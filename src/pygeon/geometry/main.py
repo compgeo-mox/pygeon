@@ -21,13 +21,15 @@ def reference_solution(data_key, g, data, discr):
 
     return q, p
 
-def main(N=2, d = 2):
+def main(N=2):
 
-    if d == 2:
-        g = pp.StructuredTriangleGrid([N]*2, [1]*2)
-    elif d == 3:
-        g = pp.StructuredTetrahedralGrid([N]*3, [1]*3)
-    #g = pp.CartGrid([N]*d, [1]*d)
+    # 2D
+    # g = pp.StructuredTriangleGrid([N]*2, [1]*2)
+    # g = pp.CartGrid([N]*2, [1]*2)
+    
+    # 3D
+    g = pp.StructuredTetrahedralGrid([N]*3, [1]*3)
+    # g = pp.CartGrid([N]*3, [1]*3)
     
     g.compute_geometry()
     g.edge_nodes, g.face_edges = compute_edges(g)
@@ -36,7 +38,7 @@ def main(N=2, d = 2):
     curl = g.face_edges.T
     div  = g.cell_faces.T
 
-
+    # Set up discretization
     perm = pp.SecondOrderTensor(kxx=4*np.ones(g.num_cells), kyy=np.ones(g.num_cells), kxy=np.ones(g.num_cells))
     b_faces = g.tags["domain_boundary_faces"].nonzero()[0]
     bc = pp.BoundaryCondition(g, b_faces, ["dir"]*b_faces.size)
@@ -48,12 +50,13 @@ def main(N=2, d = 2):
     data = pp.initialize_default_data(g, {}, data_key, parameters)
 
     discr = pp.RT0(data_key)
+    # discr = pp.MVEM(data_key)
 
     # step 1
     print("step 1")
     start_time = time.time()
 
-    h_scaling = np.mean(g.cell_diameters())**(d - 2)
+    h_scaling = np.mean(g.cell_diameters())**(g.dim - 2)
     BBt = h_scaling*div*div.T
 
     p_f = sps.linalg.spsolve(BBt, f)

@@ -29,23 +29,23 @@ def _compute_edges_2d(g):
     return sps.identity(g.num_nodes, dtype=np.int), face_edges
 
 def _compute_edges_3d(g):
+    # Number of edges per face, assumed to be constant.
+    n_e = g.face_nodes[:,0].nnz
+
     # Pre-allocation
-    edges = np.ndarray((2, 3*g.num_faces), dtype=np.int)
-    orientations = np.ones(3*g.num_faces, dtype=np.int)
+    edges = np.ndarray((2, n_e*g.num_faces), dtype=np.int)
 
     for face in np.arange(g.num_faces):
         # find indices for nodes of this face
         loc = g.face_nodes.indices[g.face_nodes.indptr[face]:\
                                    g.face_nodes.indptr[face + 1]]
         # Define edges between each pair of nodes
+        # assuming ordering in face_nodes is done 
         # according to right-hand rule
-        edges[:, 3*face] = [loc[0], loc[1]]
-        edges[:, 3*face+1] = [loc[1], loc[2]]
-        edges[:, 3*face+2] = [loc[2], loc[0]]
+        edges[:, n_e*face:n_e*(face+1)] = np.row_stack((loc, np.roll(loc, -1)))
 
-        # Save orientation of each edge w.r.t. the face
-        orientation_loc = np.sign(loc[[1, 2, 0]] - loc)
-        orientations[3*face:3*face + 3] = orientation_loc
+    # Save orientation of each edge w.r.t. the face
+    orientations = np.sign(edges[1,:] - edges[0,:])
 
     # Edges are oriented from low to high node indices
     edges.sort(axis=0)
@@ -63,7 +63,7 @@ def _compute_edges_3d(g):
     # face_edges(i, j) = +/- 1:
     # face j has edge i with same/opposite orientation
     # with the orientation defined according to the right-hand rule
-    indptr = np.arange(0, indices.size + 1, 3)
+    indptr = np.arange(0, indices.size + 1, n_e)
     face_edges = sps.csc_matrix((orientations, indices, indptr))
 
     return edge_nodes, face_edges
