@@ -38,6 +38,12 @@ def main(N=2):
     curl = g.face_edges.T
     div  = g.cell_faces.T
 
+    # Testing
+    assert (curl * grad).nnz == 0
+    assert (div * curl).nnz == 0
+    if g.dim == 3:
+        assert (abs(g.edge_nodes) * abs(g.face_edges) - 2 * g.face_nodes).nnz == 0, "Edges do not preserve connectivity"
+
     # Set up discretization
     perm = pp.SecondOrderTensor(kxx=4*np.ones(g.num_cells), kyy=np.ones(g.num_cells), kxy=np.ones(g.num_cells))
     b_faces = g.tags["domain_boundary_faces"].nonzero()[0]

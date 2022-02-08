@@ -11,22 +11,26 @@ def compute_edges(g):
         return None, None
 
 def _compute_edges_2d(g):
+    # Edges in 2D are nodes
+
     rot = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
     face_tangential = rot.dot(g.face_normals)
 
     face_edges = g.face_nodes.copy().astype(np.int)
 
-    nodes, faces, _ = sps.find(g.face_nodes)
+    nodes = sps.find(g.face_nodes)[0]
     for face in np.arange(g.num_faces):
         loc = slice(g.face_nodes.indptr[face], g.face_nodes.indptr[face + 1])
-        nodes_loc = nodes[loc]
+        nodes_loc = np.sort(nodes[loc])
 
         tangent = g.nodes[:, nodes_loc[1]] - g.nodes[:, nodes_loc[0]]
         sign = np.sign(np.dot(face_tangential[:, face], tangent))
 
         face_edges.data[loc] = [-sign, sign]
 
-    return sps.identity(g.num_nodes, dtype=np.int), face_edges
+    edge_nodes = sps.csc_matrix(np.ones((1, g.num_nodes), dtype=np.int))
+
+    return edge_nodes, face_edges
 
 def _compute_edges_3d(g):
     # Number of edges per face, assumed to be constant.
