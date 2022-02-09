@@ -15,7 +15,7 @@ def reference_solution(data_key, g, data, discr):
 
     qp = sps.linalg.spsolve(A, b_flow+b_rhs)
 
-    # Extract the normal flux and pressure from the solution
+    # Extract the flux and pressure from the solution
     q = discr.extract_flux(g, qp, data)
     p = discr.extract_pressure(g, qp, data)
 
@@ -63,7 +63,7 @@ def main(N=2):
     start_time = time.time()
 
     h_scaling = np.mean(g.cell_diameters())**(g.dim - 2)
-    BBt = h_scaling*div*div.T
+    BBt = div*h_scaling*div.T
 
     p_f = sps.linalg.spsolve(BBt, f)
     q_f = h_scaling*div.T*p_f
@@ -80,12 +80,11 @@ def main(N=2):
     b = - curl.T*M*q_f
 
     if g.dim == 2:
-        values = np.ones((1, g.num_nodes))
-        A = sps.bmat([[A, values.T], [values, None]], format=A.getformat())
-        b = np.append(b, [0.]*values.shape[0])
+        A = sps.bmat([[A, grad], [grad.T, 1]], format=A.getformat())
+        b = np.append(b, [0.])
         sigma = sps.linalg.spsolve(A, b)[:-1]
     else:
-        A += h_scaling*grad*grad.T
+        A += grad*h_scaling*grad.T
         sigma = sps.linalg.spsolve(A, b)
 
     print("done in", time.time() - start_time)
@@ -100,8 +99,9 @@ def main(N=2):
     # verification
     q_ref, p_ref = reference_solution(data_key, g, data, discr)
 
-    print(np.linalg.norm(p-p_ref))
-    print(np.linalg.norm(q-q_ref))
+    print("Pressure error: {:.2E}".format(np.linalg.norm(p-p_ref)))
+    print("Flux error:     {:.2E}".format(np.linalg.norm(q-q_ref)))
+    print("Mass loss:      {:.2E}".format(np.linalg.norm(div*q - f)))
 
 
 if __name__ == "__main__":
