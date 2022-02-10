@@ -20,4 +20,8 @@ if you want to modify PyGeoN install it in an editable way by writing instead
 pip install --user -e .
 ```
 
+## Issues
+Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 
+## License
+See 
