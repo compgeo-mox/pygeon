@@ -19,6 +19,7 @@ if you want to modify PyGeoN install it in an editable way by writing instead
 ```bash
 pip install --user -e .
 ```
+It might be useful to add PyGeoN to your PYTHONPATH.
 
 ## Issues
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
