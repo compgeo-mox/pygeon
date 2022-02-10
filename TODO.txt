@@ -1,0 +1,3 @@
+Since PyGeoN is new we are moving some of our code in it, this requires some time. To remember what we need to do here a list of future improvements:
+- in grids add the possibility to create a grid from a terrain, with additional constraints.
+- in geometry/graph_analysis.py consider different topological creations of the graphs from dfn
