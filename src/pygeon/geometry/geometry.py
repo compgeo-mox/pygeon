@@ -2,18 +2,41 @@ import numpy as np
 import scipy.sparse as sps
 import porepy as pp
 
-def compute_edges(g):
-    if g.dim == 3:
-        return _compute_edges_3d(g)
-    elif g.dim == 2:
-        return _compute_edges_2d(g)
-    else:
-        return None, None
+"""
+
+Acknowledgements:
+    The functionalities related to the edge computations are modified from
+    github.com/anabudisa/md_aux_precond developed by Ana Budisa and Wietse M. Boon.
+"""
+
+def compute_edges(grid):
+    if isinstance(grid, pp.Grid):
+        if grid.dim == 3:
+            _compute_edges_3d(grid)
+        elif grid.dim == 2:
+            _compute_edges_2d(grid)
+        elif grid.dim == 1:
+            _compute_edges_1d(grid)
+        elif grid.dim == 0:
+            _compute_edges_0d(grid)
+
+    if isinstance(grid, pp.GridBucket):
+        for g, _ in grid:
+            compute_edges(g)
+
+def _compute_edges_0d(g):
+    g.edge_nodes = sps.csc_matrix((1, 1), dtype=np.int)
+    g.face_edges = sps.csc_matrix((1, 1), dtype=np.int)
+
+def _compute_edges_1d(g):
+    g.edge_nodes = sps.csc_matrix((g.num_nodes, 1), dtype=np.int)
+    g.face_edges = sps.csc_matrix((1, g.num_faces), dtype=np.int)
 
 def _compute_edges_2d(g):
     # Edges in 2D are nodes
 
-    rot = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+    R = pp.map_geometry.project_plane_matrix(g.nodes)
+    rot = np.dot(R.T, np.dot(np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]]), R))
     face_tangential = rot.dot(g.face_normals)
 
     face_edges = g.face_nodes.copy().astype(np.int)
@@ -28,9 +51,8 @@ def _compute_edges_2d(g):
 
         face_edges.data[loc] = [-sign, sign]
 
-    edge_nodes = sps.csc_matrix(np.ones((1, g.num_nodes), dtype=np.int))
-
-    return edge_nodes, face_edges
+    g.edge_nodes = sps.csc_matrix(np.ones((1, g.num_nodes), dtype=np.int))
+    g.face_edges = face_edges
 
 def _compute_edges_3d(g):
     # Number of edges per face, assumed to be constant.
@@ -44,7 +66,7 @@ def _compute_edges_3d(g):
         loc = g.face_nodes.indices[g.face_nodes.indptr[face]:\
                                    g.face_nodes.indptr[face + 1]]
         # Define edges between each pair of nodes
-        # assuming ordering in face_nodes is done 
+        # assuming ordering in face_nodes is done
         # according to right-hand rule
         edges[:, n_e*face:n_e*(face+1)] = np.row_stack((loc, np.roll(loc, -1)))
 
@@ -61,13 +83,11 @@ def _compute_edges_3d(g):
     indptr = np.arange(0, edges.size + 1, 2)
     ind = np.ravel(edges, order="F")
     data = -(-1)**np.arange(edges.size)
-    edge_nodes = sps.csc_matrix((data, ind, indptr))
+    g.edge_nodes = sps.csc_matrix((data, ind, indptr))
 
     # Generate face_edges such that
     # face_edges(i, j) = +/- 1:
     # face j has edge i with same/opposite orientation
     # with the orientation defined according to the right-hand rule
     indptr = np.arange(0, indices.size + 1, n_e)
-    face_edges = sps.csc_matrix((orientations, indices, indptr))
-
-    return edge_nodes, face_edges
+    g.face_edges = sps.csc_matrix((orientations, indices, indptr))
