@@ -1,0 +1,9 @@
+meshio>=5.0
+networkx
+numpy
+scipy
+matplotlib
+future
+six
+numba>=0.53.0
+gmsh
