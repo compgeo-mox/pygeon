@@ -30,12 +30,12 @@ def compute_edges(grid):
 
 def _compute_edges_0d(g):
     g.num_edges = 0
-    g.edge_nodes = sps.csc_matrix((g.num_edges, g.num_edges), dtype=np.int)
+    g.edge_nodes = sps.csc_matrix((0, g.num_edges), dtype=np.int)
     g.face_edges = sps.csc_matrix((g.num_edges, g.num_edges), dtype=np.int)
 
 def _compute_edges_1d(g):
     g.num_edges = 0
-    g.edge_nodes = sps.csc_matrix((g.num_nodes, g.num_edges), dtype=np.int)
+    g.edge_nodes = sps.csc_matrix((0, g.num_edges), dtype=np.int)
     g.face_edges = sps.csc_matrix((g.num_edges, g.num_faces), dtype=np.int)
 
 def _compute_edges_2d(g):
@@ -58,7 +58,7 @@ def _compute_edges_2d(g):
 
         face_edges.data[loc] = [-sign, sign]
 
-    g.edge_nodes = sps.csc_matrix(np.ones((1, g.num_edges), dtype=np.int))
+    g.edge_nodes = sps.csc_matrix((0, g.num_edges), dtype=np.int)
     g.face_edges = face_edges
 
 def _compute_edges_3d(g):
@@ -101,18 +101,30 @@ def _compute_edges_3d(g):
     g.face_edges = sps.csc_matrix((orientations, indices, indptr))
     
 def _compute_edges_md(gb, e):
+    """
+    Computes the mixed-dimensioanl face-edge and edge-node connectivities
+    and saves them as properties of the mortar grid
+    """
+
     # Find high-dim faces matching to low-dim cell
     mg = gb.edge_props(e, 'mortar_grid')
     cell_faces = mg.mortar_to_primary_int() * mg.secondary_to_mortar_int()
 
-    # Find high-dim edges matching to low-dim face
     g_down, g_up = gb.nodes_of_edge(e)
-    face_edges = sps.lil_matrix((g_up.num_edges, g_down.num_faces), dtype=int)
 
-    if g_up.dim == 2:
+    # High-dim edges matching to low-dim face
+    face_edges = sps.lil_matrix((g_up.num_edges, g_down.num_faces), dtype=int)
+    # High-dim nodes matching to low-dim edge
+    edge_nodes = sps.lil_matrix((g_up.num_nodes, g_down.num_edges), dtype=int)
+
+    # Find information about the two-dimensional grid
+    if mg.dim == 1:
         R = pp.map_geometry.project_plane_matrix(g_up.nodes)
         rot = np.dot(R.T, np.dot(
             np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]]), R))
+    else: # mg.dim == 2
+        R = pp.map_geometry.project_plane_matrix(g_down.nodes)
+        normal_to_g_down = np.dot(R.T, [0, 0, 1])
 
     for (face_up, cell_down) in zip(*sps.find(cell_faces)[:-1]):
         # Faces of cell in lower-dim grid
@@ -127,15 +139,30 @@ def _compute_edges_md(gb, e):
         if mg.dim == 1:
             face_xyz = g_down.face_centers[:, faces_down]
             edge_xyz = g_up.nodes[:, edges_up]
-        else: # mg.dim == 2
+        else:  # mg.dim == 2
             face_xyz = abs(g_down.face_edges[:, faces_down]) / 2 * g_down.nodes
             edge_xyz = abs(g_up.edge_nodes[:, edges_up]) / 2 * g_up.nodes
         
         edges_up = edges_up[match_coordinates(face_xyz, edge_xyz)]
 
+        # Edge-node connectivity in 3D
+        if mg.dim == 2:
+            # Edges of cell in lower-dim grid
+            ce_down = g_down.cell_nodes
+            edges_down = ce_down.indices[ce_down.indptr[face_up]:ce_down[face_up+1]]
+            edge_xyz = g_down.nodes[:, edges_down]
+
+            # Nodes of face in higher-dim grid
+            fn_up = g_up.face_nodes
+            nodes_up = fn_up.indices[fn_up.indptr[face_up]:fn_up[face_up+1]]
+            node_xyz = g_up.nodes[:, nodes_up]
+
+            # Swap nodes around so they match with lower-dim edges
+            nodes_up = nodes_up[match_coordinates(edge_xyz, node_xyz)]
+
+
         # Take care of orientations
-        
-        # Computation is done here so that we have access to the normal vector
+        # NOTE:this computation is done here so that we have access to the normal vector
 
         # Find the normal vector oriented outward wrt the higher-dim grid
         is_outward = g_up.cell_faces.tocsr()[face_up, :].data[0]
@@ -149,15 +176,30 @@ def _compute_edges_md(gb, e):
             # we say that orientations align if the rotated mortar
             # normal corresponds to the normal of the
             # lower-dimensional face
-            orientations = np.dot(np.dot(rot, normal_up), normal_down)
+            orientations_fe = np.dot(np.dot(rot, normal_up), normal_down)
 
-        face_edges[edges_up, faces_down] = np.sign(orientations)
+        else:  # mg.dim == 2
+            # we say that orientations align if the cross product
+            # between the edge tangent and the mortar normal corresponds 
+            # to the normal of the lower-dimensional face
+            tangents = g_up.edge_nodes[:, edges_up] * g_up.nodes
+            orientations_fe = np.dot(np.cross(tangents, normal_up, axisa = 0), normal_down)
+
+            # The (virtual) line connecting the low-dim edge to 
+            # the high-dim is oriented according to the normal to the fracture plane
+            orientations_en = - np.dot(normal_up, normal_to_g_down)
+            edge_nodes[nodes_up, edges_down] = np.sign(orientations_en)
+        
+        face_edges[edges_up, faces_down] = np.sign(orientations_fe)
 
     # We map to zero at fracture tips
     face_edges[:, g_down.tags['tip_faces']] = 0
+    if mg.dim == 2:
+        edge_nodes[:, g_down.tags['tip_nodes']] = 0
 
+    # Set face_edges and edge_nodes as properties of the mortar grid
     mg.face_edges = sps.csc_matrix(face_edges, dtype=int)
-
+    mg.edge_nodes = sps.csc_matrix(edge_nodes, dtype=int)
 
 # ------------------------------------------------------------------------ #
 
@@ -177,6 +219,7 @@ def match_coordinates(a, b):
 
     return ind
 
+# ------------------------------------------------------------------------ #
 
 def signed_mortar_to_secondary(gb, e):
     mg = gb.edge_props(e, 'mortar_grid')
