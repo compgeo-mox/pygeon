@@ -83,7 +83,7 @@ def _compute_edges_3d(g):
     # Edges are oriented from low to high node indices
     edges.sort(axis=0)
     edges, _, indices = pp.utils.setmembership.unique_columns_tol(edges)
-    g.num_edges = edges.size(1)
+    g.num_edges = np.size(edges, 1)
 
     # Generate edge-node connectivity such that
     # edge_nodes(i, j) = +/- 1:
