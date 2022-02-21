@@ -1,12 +1,12 @@
 import numpy as np
 import scipy.sparse as sps
 import porepy as pp
-from pygeon.geometry.geometry import signed_mortar_to_secondary
+from pygeon.geometry.geometry import signed_mortar_to_primary
 
 """
 Acknowledgements:
     The functionalities related to the curl computations are modified from
-    github.com/anabudisa/md_aux_precond developed by Ana Budisa and Wietse M. Boon.
+    github.com/anabudisa/md_aux_precond developed by Ana Budiša and Wietse M. Boon.
 """
 
 # ----------------------------------div---------------------------------- #
@@ -40,7 +40,7 @@ def _gb_div(gb):
 
         # Place in the matrix
         gb_div[nn_g_d, nn_mg] = - mg.mortar_to_secondary_int()
-        gb_div[nn_g_u, nn_mg] = div(g_up) * signed_mortar_to_secondary(gb, e)
+        gb_div[nn_g_u, nn_mg] = div(g_up) * signed_mortar_to_primary(gb, e)
 
     return sps.bmat(gb_div, format='csc')
 
@@ -94,7 +94,7 @@ def _gb_curl(gb):
             loc_curl = gb_curl[nn_g, ind]
 
             if loc_curl is not None:
-                gb_curl[nn_mg, ind] = signed_mortar_to_secondary(gb, e).T * loc_curl
+                gb_curl[nn_mg, ind] = signed_mortar_to_primary(gb, e).T * loc_curl
                 gb_curl[nn_g, ind] -= Pi * loc_curl
 
     return sps.bmat(gb_curl, format='csr')

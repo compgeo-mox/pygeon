@@ -6,7 +6,7 @@ import porepy as pp
 
 Acknowledgements:
     The functionalities related to the edge computations are modified from
-    github.com/anabudisa/md_aux_precond developed by Ana Budisa and Wietse M. Boon.
+    github.com/anabudisa/md_aux_precond developed by Ana Budiša and Wietse M. Boon.
 """
 
 def compute_edges(grid):
@@ -221,7 +221,7 @@ def match_coordinates(a, b):
 
 # ------------------------------------------------------------------------ #
 
-def signed_mortar_to_secondary(gb, e):
+def signed_mortar_to_primary(gb, e):
     mg = gb.edge_props(e, 'mortar_grid')
     g_up = gb.nodes_of_edge(e)[1]
     
@@ -229,3 +229,34 @@ def signed_mortar_to_secondary(gb, e):
     signs = [g_up.cell_faces.tocsr()[face, :].data[0] for face in faces]
     
     return sps.csc_matrix((signs, (faces, cells)), (g_up.num_faces, mg.num_cells))
+
+# ------------------------------------------------------------------------ #
+
+def tag_mesh_entities(gb):
+        
+    for g in gb.get_grids():
+        # Tag the faces that correspond to a codim 1 domain 
+        g.tags['leaf_faces'] = g.tags['tip_faces'] + g.tags['fracture_faces']
+        
+        # Initialize the other tags
+        g.tags['leaf_edges'] = np.zeros(g.num_edges, dtype=bool)
+        num_nodes = [0,0,0,g.num_nodes]
+        g.tags['leaf_nodes'] = np.zeros(num_nodes[g.dim], dtype=bool)
+
+    # Tag the edges that correspond to a codim 2 domain
+    for e, d in gb.edges():
+        mg = d['mortar_grid']
+
+        if mg.dim >= 1:
+            g_down, g_up = gb.nodes_of_edge(e)        
+            g_up.tags['leaf_edges'] += (abs(mg.face_edges)
+                                        * g_down.tags['leaf_faces']).astype('bool')
+
+    # Tag the nodes that correspond to a codim 3 domain
+    for e, d in gb.edges():
+        mg = d['mortar_grid']
+
+        if mg.dim >= 2:
+            g_down, g_up = gb.nodes_of_edge(e)
+            g_up.tags['leaf_nodes'] += (abs(mg.edge_nodes)
+                                        * g_down.tags['leaf_edges']).astype('bool')
