@@ -188,19 +188,22 @@ def _compute_edges_md(gb, e):
 
             # The (virtual) line connecting the low-dim edge to 
             # the high-dim is oriented according to the normal to the fracture plane
-            orientations_en = - np.dot(normal_up, normal_to_g_down)
-            edge_nodes[nodes_up, edges_down] = np.sign(orientations_en)
+            orientations_en = - np.dot(normal_up, normal_to_g_down) * np.ones(nodes_up.shape)
+            edge_nodes[nodes_up, edges_down] += np.sign(orientations_en)
         
-        face_edges[edges_up, faces_down] = np.sign(orientations_fe)
+        face_edges[edges_up, faces_down] += np.sign(orientations_fe)
 
-    # We map to zero at fracture tips
-    face_edges[:, g_down.tags['tip_faces']] = 0
-    if mg.dim == 2:
-        edge_nodes[:, g_down.tags['tip_nodes']] = 0
+    # Ensure that double indices are mapped to +-1 
+    # This step ensures that the jump maps to zero at tips.
+    face_edges = sps.csc_matrix(face_edges, dtype=int)
+    edge_nodes = sps.csc_matrix(edge_nodes, dtype=int)
+
+    face_edges.data = np.sign(face_edges.data)
+    edge_nodes.data = np.sign(edge_nodes.data)
 
     # Set face_edges and edge_nodes as properties of the mortar grid
-    mg.face_edges = sps.csc_matrix(face_edges, dtype=int)
-    mg.edge_nodes = sps.csc_matrix(edge_nodes, dtype=int)
+    mg.face_edges = face_edges
+    mg.edge_nodes = edge_nodes
 
 # ------------------------------------------------------------------------ #
 
