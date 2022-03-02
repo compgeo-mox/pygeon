@@ -140,21 +140,21 @@ def _compute_edges_md(gb, e):
             face_xyz = g_down.face_centers[:, faces_down]
             edge_xyz = g_up.nodes[:, edges_up]
         else:  # mg.dim == 2
-            face_xyz = abs(g_down.face_edges[:, faces_down]) / 2 * g_down.nodes
-            edge_xyz = abs(g_up.edge_nodes[:, edges_up]) / 2 * g_up.nodes
+            face_xyz = g_down.nodes * abs(g_down.face_edges[:, faces_down]) / 2
+            edge_xyz = g_up.nodes * abs(g_up.edge_nodes[:, edges_up]) / 2
         
         edges_up = edges_up[match_coordinates(face_xyz, edge_xyz)]
 
         # Edge-node connectivity in 3D
         if mg.dim == 2:
             # Edges of cell in lower-dim grid
-            ce_down = g_down.cell_nodes
-            edges_down = ce_down.indices[ce_down.indptr[face_up]:ce_down[face_up+1]]
+            ce_down = g_down.cell_nodes()
+            edges_down = ce_down.indices[ce_down.indptr[cell_down]:ce_down.indptr[cell_down+1]]
             edge_xyz = g_down.nodes[:, edges_down]
 
             # Nodes of face in higher-dim grid
             fn_up = g_up.face_nodes
-            nodes_up = fn_up.indices[fn_up.indptr[face_up]:fn_up[face_up+1]]
+            nodes_up = fn_up.indices[fn_up.indptr[face_up]:fn_up.indptr[face_up+1]]
             node_xyz = g_up.nodes[:, nodes_up]
 
             # Swap nodes around so they match with lower-dim edges
@@ -182,8 +182,9 @@ def _compute_edges_md(gb, e):
             # we say that orientations align if the cross product
             # between the edge tangent and the mortar normal corresponds 
             # to the normal of the lower-dimensional face
-            tangents = g_up.edge_nodes[:, edges_up] * g_up.nodes
-            orientations_fe = np.dot(np.cross(tangents, normal_up, axisa = 0), normal_down)
+            tangents = g_up.nodes * g_up.edge_nodes[:, edges_up]
+            products = np.cross(tangents, normal_up, axisa=0, axisc=0)
+            orientations_fe = [np.dot(products[:,i], normal_down[:,i]) for i in np.arange(np.size(tangents, 1))]
 
             # The (virtual) line connecting the low-dim edge to 
             # the high-dim is oriented according to the normal to the fracture plane
