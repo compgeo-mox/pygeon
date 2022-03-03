@@ -62,7 +62,7 @@ def _gb_hdiv_mass(gb, discr, data_key):
 
     return sps.bmat(gb_hdiv_mass, format='csc')
 
-def lumped_mass_TPFA(g):
+def lumped_mass_TPFA(g, return_inverse=False):
     """
     Returns the lumped mass matrix L such that
     (div * L^-1 * div) is equivalent to a TPFA method
@@ -71,5 +71,8 @@ def lumped_mass_TPFA(g):
     for (face, cell) in zip(*g.cell_faces.nonzero()):
         h_perp[face] += np.linalg.norm(g.face_centers[:,
                                        face] - g.cell_centers[:, cell])
-    return sps.diags(h_perp / g.face_areas)
-
+    
+    if return_inverse:
+        return sps.diags(g.face_areas / h_perp)
+    else:
+        return sps.diags(h_perp / g.face_areas)
