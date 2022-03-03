@@ -71,5 +71,5 @@ def lumped_mass_TPFA(g):
     for (face, cell) in zip(*g.cell_faces.nonzero()):
         h_perp[face] += np.linalg.norm(g.face_centers[:,
                                        face] - g.cell_centers[:, cell])
-    return sps.spdiags(h_perp / g.face_areas)
+    return sps.diags(h_perp / g.face_areas)
 
