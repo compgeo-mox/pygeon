@@ -4,9 +4,8 @@ import scipy.sparse as sps
 import porepy as pp
 from pygeon.geometry.geometry import signed_mortar_to_primary
 
-def hdiv_mass(grid, discr, data, data_key="flow"):
+def hdiv_mass(grid, discr, data=None, data_key="flow"):
     if isinstance(grid, pp.Grid):
-        data = pp.initialize_default_data(grid, {}, data_key)
         discr.discretize(grid, data)
         return data[pp.DISCRETIZATION_MATRICES][data_key]["mass"]
     elif isinstance(grid, pp.GridBucket):
@@ -40,7 +39,7 @@ def _gb_hdiv_mass(gb, discr, data_key):
         nn_mg = d_e['edge_number'] + gb.num_graph_nodes()
 
         # Local mortar mass matrix
-        kn = 1 # TODO retrieve normal permeability from data
+        kn = d_e['parameters'][data_key]['normal_diffusivity']
         gb_hdiv_mass[nn_mg, nn_mg] = sps.diags(mg.cell_volumes) / kn
 
         # Inner products of mortar extension into primary domain
