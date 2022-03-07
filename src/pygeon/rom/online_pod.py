@@ -11,12 +11,12 @@ from offline import OfflineComputations
 
 
 class OnlinePod: 
-    '''
-    '''
+    """
+    """
     
     def __init__(self):
-        '''
-        '''
+        """
+        """
         # # variable name:
         self.var_names = ['generic_var']
         
@@ -33,8 +33,12 @@ class OnlinePod:
         
         
     def pod_data_dictionary(self, keys): 
-        '''
-        '''
+        """ initialize data
+            input:
+            - keys ([str]): list of dictionary keys 
+            output:
+            - dict (dict): dictionary with empty values
+        """
         dict = {}
         for key in keys:
             dict[key] = None
@@ -44,25 +48,24 @@ class OnlinePod:
     
     
     def compute_A_rhs(self):
-        '''
-        '''
+        """ method to be implemented in the child class by user. Calculate matrix and rrhs
+        """
         A = None
         b = None
         
         return A, b
     
     
-    
+
     def compute_reduced_solution(self, A, b, Phi):
-        '''
-            compute reduced solution
+        """ compute reduced solution
             input:
                 - A, discretization matrix
                 - b, rhs
                 - Phi, transition matrix
             output:
                 - solution reduced
-        '''
+        """
         
         if not np.allclose( np.diag(Phi.T@Phi), np.ones(Phi.shape[1]), rtol=1e-10, atol=1e-8 ):
             print('Phi.T@Phi is NOT diagonal\n')

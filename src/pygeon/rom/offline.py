@@ -11,13 +11,13 @@ import os
 
 
 class OfflineComputations:
-    '''
+    """
         contains all offline functions for both POD and Neural Network approach
-    '''
+    """
     
     def __init__(self):
-        '''
-        '''
+        """
+        """
         
         # uncertain/stochastic parameters:
         self.bit_generator = np.random.default_rng()
@@ -42,17 +42,18 @@ class OfflineComputations:
         self.data = {} # dictionary to store data as snap_matrix, and U, S, Vh from SVD 
         
         for var in self.var_names:                                              
-            self.data[var] =  self.svd_data_dictionary(self.data_keys) 
+            self.data[var] =  self._svd_data_dictionary(self.data_keys) 
         self.data[self.parameters] = None
         
         
 
-    def svd_data_dictionary(self, keys): 
-        '''
-            initialize data
+    def _svd_data_dictionary(self, keys): 
+        """ initialize data
             input:
+            - keys ([str]): list of dictionary keys 
             output:
-        '''
+            - dict (dict): dictionary with empty values
+        """
         dict = {}
         for key in keys:
             dict[key] = np.array([])
@@ -62,8 +63,14 @@ class OfflineComputations:
 
 
     def generate_snapshots(self, n_snap_to_generate, vtu_filename=None, verbose=True):     
-        '''
-        '''
+        """ generate snapshots saving them as numpy txt format
+            input:
+            - n_snap_to_generate (int): number of snapshots to generate
+            - vtu_filename (str, optional): name of the vtu file
+            - verbose (bool): toggle verbosity
+            output:
+            -
+        """
         for index in range(n_snap_to_generate):
             
             if verbose == True:
@@ -78,30 +85,29 @@ class OfflineComputations:
             if vtu_filename != None: 
                 gb = other_outputs[0]
                 self.export_file_vtu(gb, solution, vtu_filename) 
+                input("I'm waiting for you to have a look at the current snapshot...")
             
         return
                 
 
     def solve_one_instance(self, index, mu_param):
-        '''
-        '''
+        """ method to be implemented in the child class by user. Calculate one snapshot
+        """
         solution = None
         return solution
         
         
         
     def sample_parameters(self, mu_param_data):
-        '''
-            
+        """ sample parameters from distribution
             input: 
-            - mu_param_data, parameters that define te distribution, 
-              example for uniform distributin: np.array([[min_mu_1, min_mu_2, ...],  [max_mu_1, max_mu_2, ...] ])
-            -
-            
+            - mu_param_data (list): parameters that define te distribution, 
+              example for uniform distributin: np.array([[min_mu_1, min_mu_2, ...],  [max_mu_1, max_mu_2, ...])
             output:
+            - mu_param (list): list of parameters
             
             TODO: add other distributions
-        '''
+        """
         
         min_val = -1
         max_val = 1
@@ -116,8 +122,8 @@ class OfflineComputations:
         
         
     def save_snapshot(self, solution, index, format='numpy_savetxt'):
-        '''
-        '''
+        """
+        """
         if format == 'numpy_savetxt':
             for var in self.var_names:
                 filename = './data/snap_' + var + '_' + str(index)
@@ -130,8 +136,8 @@ class OfflineComputations:
     
     
     def save_mu_parameter(self, params, index, format='numpy_savetxt'):
-        '''
-        '''
+        """
+        """
         if format == 'numpy_savetxt':
             filename = './data/params_' + str(index)
             np.savetxt(filename, params)
@@ -141,14 +147,14 @@ class OfflineComputations:
         return
 
 
-    def load_n_snapshots(self, n_snap_to_use, shuffle=False):
-        '''
-            fill snapshot matrices
+    def load_snapshots(self, n_snap_to_use, shuffle=False):
+        """ fill snapshot matrices
             input:
-                - n_snap_to_use, 
+            - n_snap_to_use (int): number of snapshots contained in the snapshot matrix 
             output:
+            -
             
-        '''
+        """
         if shuffle == True:
             print('\nTODO: shuffle')
 
@@ -167,8 +173,8 @@ class OfflineComputations:
         
         
     def fill_param_matrix(self, index, param):
-        '''
-        '''
+        """
+        """
         self.data[self.parameters][:, index] = param
         
         return
@@ -176,8 +182,8 @@ class OfflineComputations:
                             
                 
     def _matrix_initialization(self, var, snap, n_snap_to_use):  
-        '''
-        '''
+        """
+        """
         self.data[var][self.snap_matrix] = np.zeros( [snap.size, n_snap_to_use] )
         self.data[var][self.deviation_matrix] = np.zeros( [snap.size, n_snap_to_use] ) # not used
     
@@ -186,17 +192,18 @@ class OfflineComputations:
 
 
     def compute_svd(self, do_monolithic):
-        '''
-            compute SVD decomposition
+        """ compute SVD decomposition
             input: 
+            - do_monolithic (bool): compute "monolithic" or "block" SVD
             output:
-        '''
+            -
+        """
         
         n_snap_to_use = self.data[self.var_names[0]][self.snap_matrix].shape[1] # number of column of any snap matrix
         
         if do_monolithic == True:
             self.var_names.append('all')
-            self.data[self.var_names[-1]] = self.svd_data_dictionary(self.data_keys) 
+            self.data[self.var_names[-1]] = self._svd_data_dictionary(self.data_keys) 
     
             # join the snapshots matrices:
             self.data[self.var_names[-1]][self.snap_matrix] = self.data[self.var_names[0]][self.snap_matrix] # problems with python...
@@ -211,7 +218,7 @@ class OfflineComputations:
     
     
         else:    
-            # not used # deviation matrices and SVD computation:
+            # not used, deviation matrices and SVD computation:
             for var in self.var_names:
                 self.data[var][self.mean_snap] = np.mean( self.data[var][self.snap_matrix], axis=1 )
         
@@ -220,6 +227,8 @@ class OfflineComputations:
         
                 # U, S, Vh = np.linalg.svd( self.data[var][self.deviation_matrix], full_matrices=False, compute_uv=True, hermitian=False ) 
                 U, S, Vh = np.linalg.svd( self.data[var][self.snap_matrix], full_matrices=False, compute_uv=True, hermitian=False )
+        
+                print('U.shape = ', U.shape)
         
                 self.data[var][self.U] = U
                 self.data[var][self.S] = S
@@ -230,19 +239,40 @@ class OfflineComputations:
         
         
     def truncate_U(self, n_modes_to_use):    
-        '''
+        """ truncate modes matrix U
+            input:
+            - n_modes_to_use (int): number of modes to use = number of column of U
+            ouput:
+            -
             TODO: improve it: n_modes_to_use = n_modes_to_use(var)
-        '''
+        """
+        
+        # variable n_modes_to_use:
+        n_dofs = {}
         for var in self.var_names:
-            #if type(self.data[var][self.U]) != type(None):
             if self.data[var][self.U].size != 0:
-                self.data[var][self.U_truncated] = self.data[var][self.U][:, 0:n_modes_to_use]
+                n_dofs[var] = self.data[var][self.U].shape[0]
+        
+        for var in self.var_names:
+            if self.data[var][self.U].size != 0:
+                
+                # truncation proportional to the number of dof of the specific variable:
+                specific_n_modes_to_use = int( max( [np.floor(n_modes_to_use*n_dofs[var]/max(n_dofs.values())), 1] ) )
+                
+                # truncation s.t. n modes = n dofs (no truncation):
+                # specific_n_modes_to_use = min( [n_dofs[var], self.data[var][self.U].shape[1]] )
+                # equivalently:
+                # specific_n_modes_to_use = n_modes_to_use
+                
+                print('specific_n_modes_to_use = ', specific_n_modes_to_use)
+                
+                self.data[var][self.U_truncated] = self.data[var][self.U][:, 0:specific_n_modes_to_use]
 
         
         
     def save_svd_matrices(self):
-        '''
-        ''' 
+        """
+        """
         for var in self.var_names:
             np.savetxt('./data/U_' + var, self.data[var][self.U])
             np.savetxt('./data/S_' + var, self.data[var][self.S])
@@ -254,11 +284,12 @@ class OfflineComputations:
 
         
     def assemble_phi(self):
-        '''
-            create transition matrix Phi as block-diagonal matrix
+        """ create transition matrix Phi
             input:
+            -
             output:
-        '''
+            -
+        """
         list_of_matrices = []
         
         for var in self.var_names:
@@ -283,8 +314,8 @@ class OfflineComputations:
     
     
     def load_phi(self):
-        '''
-        '''
+        """
+        """
         Phi = np.loadtxt('./data/Phi')
         
         return Phi 
@@ -292,8 +323,8 @@ class OfflineComputations:
 
 
     def save_data(self):
-        '''
-        '''
+        """
+        """
         np.savetxt('./data/input_parameters', self.data[self.parameters])
         np.savetxt('./data/snap_matrix', self.data[self.var_names[3]][self.snap_matrix]) # snapshots containing full solution...
         
@@ -302,8 +333,8 @@ class OfflineComputations:
 
 
     def remove_old_data(self):
-        '''
-        '''
+        """
+        """
         import os
         
         os.system('rm ./data/*' )
