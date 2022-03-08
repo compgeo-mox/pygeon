@@ -23,7 +23,7 @@ def compute_edges(grid):
     if isinstance(grid, pp.GridBucket):
         for g, _ in grid.nodes():
             compute_edges(g)
-            
+
         for e, d_e in grid.edges():
             if d_e["mortar_grid"].dim >= 1:
                 _compute_edges_md(grid, e)
@@ -99,7 +99,7 @@ def _compute_edges_3d(g):
     # with the orientation defined according to the right-hand rule
     indptr = np.arange(0, indices.size + 1, n_e)
     g.face_edges = sps.csc_matrix((orientations, indices, indptr))
-    
+
 def _compute_edges_md(gb, e):
     """
     Computes the mixed-dimensioanl face-edge and edge-node connectivities
@@ -130,7 +130,7 @@ def _compute_edges_md(gb, e):
         # Faces of cell in lower-dim grid
         cf_down = g_down.cell_faces
         faces_down = cf_down.indices[cf_down.indptr[cell_down]:cf_down.indptr[cell_down+1]]
-        
+
         # Edges of face in higher-dim grid
         fe_up = g_up.face_edges
         edges_up = fe_up.indices[fe_up.indptr[face_up]:fe_up.indptr[face_up+1]]
@@ -142,7 +142,7 @@ def _compute_edges_md(gb, e):
         else:  # mg.dim == 2
             face_xyz = g_down.nodes * abs(g_down.face_edges[:, faces_down]) / 2
             edge_xyz = g_up.nodes * abs(g_up.edge_nodes[:, edges_up]) / 2
-        
+
         edges_up = edges_up[match_coordinates(face_xyz, edge_xyz)]
 
         # Edge-node connectivity in 3D
@@ -170,7 +170,7 @@ def _compute_edges_md(gb, e):
 
         # Find the normal to the lower-dim face
         normal_down = g_down.face_normals[:, faces_down]
-        
+
         # Identify orientation
         if mg.dim == 1:
             # we say that orientations align if the rotated mortar
@@ -180,20 +180,20 @@ def _compute_edges_md(gb, e):
 
         else:  # mg.dim == 2
             # we say that orientations align if the cross product
-            # between the edge tangent and the mortar normal corresponds 
+            # between the edge tangent and the mortar normal corresponds
             # to the normal of the lower-dimensional face
             tangents = g_up.nodes * g_up.edge_nodes[:, edges_up]
             products = np.cross(tangents, normal_up, axisa=0, axisc=0)
             orientations_fe = [np.dot(products[:,i], normal_down[:,i]) for i in np.arange(np.size(tangents, 1))]
 
-            # The (virtual) line connecting the low-dim edge to 
+            # The (virtual) line connecting the low-dim edge to
             # the high-dim is oriented according to the normal to the fracture plane
             orientations_en = - np.dot(normal_up, normal_to_g_down) * np.ones(nodes_up.shape)
             edge_nodes[nodes_up, edges_down] += np.sign(orientations_en)
-        
+
         face_edges[edges_up, faces_down] += np.sign(orientations_fe)
 
-    # Ensure that double indices are mapped to +-1 
+    # Ensure that double indices are mapped to +-1
     # This step ensures that the jump maps to zero at tips.
     face_edges = sps.csc_matrix(face_edges, dtype=int)
     edge_nodes = sps.csc_matrix(edge_nodes, dtype=int)
@@ -207,7 +207,6 @@ def _compute_edges_md(gb, e):
 
 # ------------------------------------------------------------------------ #
 
-@staticmethod
 def match_coordinates(a, b):
     # compare and match columns of a and b
     # return: ind s.t. b[ind] = a
@@ -228,20 +227,20 @@ def match_coordinates(a, b):
 def signed_mortar_to_primary(gb, e):
     mg = gb.edge_props(e, 'mortar_grid')
     g_up = gb.nodes_of_edge(e)[1]
-    
+
     cells, faces, _ = sps.find(mg.primary_to_mortar_int())
     signs = [g_up.cell_faces.tocsr()[face, :].data[0] for face in faces]
-    
+
     return sps.csc_matrix((signs, (faces, cells)), (g_up.num_faces, mg.num_cells))
 
 # ------------------------------------------------------------------------ #
 
 def tag_mesh_entities(gb):
-        
+
     for g in gb.get_grids():
-        # Tag the faces that correspond to a codim 1 domain 
+        # Tag the faces that correspond to a codim 1 domain
         g.tags['leaf_faces'] = g.tags['tip_faces'] + g.tags['fracture_faces']
-        
+
         # Initialize the other tags
         g.tags['leaf_edges'] = np.zeros(g.num_edges, dtype=bool)
         num_nodes = [0,0,0,g.num_nodes]
@@ -252,7 +251,7 @@ def tag_mesh_entities(gb):
         mg = d['mortar_grid']
 
         if mg.dim >= 1:
-            g_down, g_up = gb.nodes_of_edge(e)        
+            g_down, g_up = gb.nodes_of_edge(e)
             g_up.tags['leaf_edges'] += (abs(mg.face_edges)
                                         * g_down.tags['leaf_faces']).astype('bool')
 
