@@ -40,7 +40,7 @@ def _gb_hdiv_mass(gb, discr, data_key):
 
         # Local mortar mass matrix
         kn = d_e['parameters'][data_key]['normal_diffusivity']
-        gb_hdiv_mass[nn_mg, nn_mg] = sps.diags(mg.cell_volumes) / kn
+        gb_hdiv_mass[nn_mg, nn_mg] = sps.diags(1 / mg.cell_volumes / kn) 
 
         # Inner products of mortar extension into primary domain
         gb_hdiv_mass[nn_mg, nn_mg] += signed_mortar_to_primary(gb, e).T * \
