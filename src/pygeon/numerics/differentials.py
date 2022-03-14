@@ -42,6 +42,16 @@ def _gb_div(gb):
         gb_div[nn_g_d, nn_mg] = - mg.mortar_to_secondary_int()
         gb_div[nn_g_u, nn_mg] = div(g_up) * signed_mortar_to_primary(gb, e)
 
+        # Remove influence of itf dofs overwritten by mortar
+        Pi = mg.mortar_to_primary_int() * mg.primary_to_mortar_int()
+        gb_div[nn_g_u, nn_g_u] -= gb_div[nn_g_u, nn_g_u] * Pi
+
+    # Remove fracture tip contributions
+    for g, d_g in gb:
+        nn_g = d_g["node_number"]
+        Pi = sps.diags(g.tags['tip_faces'].astype(np.int))
+        gb_div[nn_g, nn_g] -= gb_div[nn_g, nn_g] * Pi
+
     return sps.bmat(gb_div, format='csc')
 
 
