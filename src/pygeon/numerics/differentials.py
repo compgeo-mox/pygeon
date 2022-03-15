@@ -20,7 +20,9 @@ def div(grid):
 
 
 def _gb_div(gb):
-    gb_div = np.empty(shape=(gb.size(), gb.size()), dtype=sps.spmatrix)
+    gb_div = np.empty(
+        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
+        dtype=sps.spmatrix)
 
     # Local divergences
     for g, d_g in gb:
@@ -36,23 +38,21 @@ def _gb_div(gb):
         # Get indices in grid_bucket
         nn_g_d = gb.node_props(g_down, 'node_number')
         nn_g_u = gb.node_props(g_up, 'node_number')
-        nn_mg = d_e['edge_number'] + gb.num_graph_nodes()
 
         # Place in the matrix
-        gb_div[nn_g_d, nn_mg] = - mg.mortar_to_secondary_int()
-        gb_div[nn_g_u, nn_mg] = div(g_up) * signed_mortar_to_primary(gb, e)
+        gb_div[nn_g_d, nn_g_u] = - mg.mortar_to_secondary_int() * \
+            signed_mortar_to_primary(gb, e).T
 
-        # Remove influence of itf dofs overwritten by mortar
-        Pi = mg.mortar_to_primary_int() * mg.primary_to_mortar_int()
-        gb_div[nn_g_u, nn_g_u] -= gb_div[nn_g_u, nn_g_u] * Pi
+    return sps.bmat(gb_div, format='csc') * zero_tip_face_dofs(gb)
 
-    # Remove fracture tip contributions
-    for g, d_g in gb:
-        nn_g = d_g["node_number"]
-        Pi = sps.diags(g.tags['tip_faces'].astype(np.int))
-        gb_div[nn_g, nn_g] -= gb_div[nn_g, nn_g] * Pi
 
-    return sps.bmat(gb_div, format='csc')
+def zero_tip_face_dofs(gb):
+    not_tip_face = []
+    for g, _ in gb:
+        not_tip_face.append(np.logical_not(g.tags['tip_faces']))
+    not_tip_face = np.concatenate(not_tip_face, dtype=np.int)
+
+    return sps.diags(not_tip_face)
 
 
 # ----------------------------------curl---------------------------------- #
@@ -67,7 +67,8 @@ def curl(grid):
 
 def _gb_curl(gb):
     gb_curl = np.empty(
-        shape=(gb.size(), gb.num_graph_nodes()), dtype=sps.spmatrix)
+        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
+        dtype=sps.spmatrix)
 
     # Local curls
     for g, d_g in gb:
@@ -88,26 +89,19 @@ def _gb_curl(gb):
             # Place in the matrix
             gb_curl[nn_g_d, nn_g_u] = curl(mg)
 
-    # Redistribute over interior and mortar dof
-    for e, d_e in gb.edges():
-        # Get grids
-        g = gb.nodes_of_edge(e)[1]
-        mg = d_e['mortar_grid']
+    return sps.bmat(gb_curl, format='csr') * zero_tip_edge_dofs(gb)
 
-        # Get indices in grid_bucket
-        nn_g = gb.node_props(g, 'node_number')
-        nn_mg = d_e['edge_number'] + gb.num_graph_nodes()
 
-        Pi = mg.mortar_to_primary_int() * mg.primary_to_mortar_int()
+def zero_tip_edge_dofs(gb):
+    not_tip_edge = []
+    for g, _ in gb:
+        if g.dim == 2:
+            not_tip_edge.append(np.logical_not(g.tags['tip_nodes']))
+        elif g.dim == 3:
+            not_tip_edge.append(np.ones(g.num_edges, dtype=np.int))
+    not_tip_edge = np.concatenate(not_tip_edge, dtype=np.int)
 
-        for ind in np.arange(np.size(gb_curl, 1)):
-            loc_curl = gb_curl[nn_g, ind]
-
-            if loc_curl is not None:
-                gb_curl[nn_mg, ind] = signed_mortar_to_primary(gb, e).T * loc_curl
-                gb_curl[nn_g, ind] -= Pi * loc_curl
-
-    return sps.bmat(gb_curl, format='csr')
+    return sps.diags(not_tip_edge)
 
 
 # ----------------------------------grad---------------------------------- #
