@@ -42,28 +42,28 @@ def _g_exterior_derivative(grid, n_minus_k):
             raise ValueError('(n - k) needs to be between 3 and 1')
 
 def _gb_exterior_derivative(gb, n_minus_k):
+    # Pre-allocation of the block-matrix
     bmat = np.empty(
         shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
         dtype=sps.spmatrix)
 
-    # Local differential operator
+    # Compute local differential operator
     for g, d_g in gb:
-        nn_g = d_g["node_number"]
-        bmat[nn_g, nn_g] = exterior_derivative(g, n_minus_k)
+        node_nr = d_g["node_number"]
+        bmat[node_nr, node_nr] = exterior_derivative(g, n_minus_k)
 
-    # Jump operator
+    # Compute mixed-dimensional jump operator
     for e, d_e in gb.edges():
         # Get mortar_grid and adjacent grids
         mg = d_e['mortar_grid']
         grids = gb.nodes_of_edge(e)
 
         if grids[1].dim >= n_minus_k:
-            # Get indices in grid_bucket
-            nn_g_d = gb.node_props(grids[0], 'node_number')
-            nn_g_u = gb.node_props(grids[1], 'node_number')
+            # Get indices (node_numbers) in grid_bucket
+            node_nrs = [gb.node_props(g, 'node_number') for g in grids]
 
-            # Place in the matrix
-            bmat[nn_g_d, nn_g_u] = exterior_derivative(mg, n_minus_k)
+            # Place the jump term in the block-matrix
+            bmat[node_nrs[0], node_nrs[1]] = exterior_derivative(mg, n_minus_k)
 
     return sps.bmat(bmat, format='csc') * zero_tip_dofs(gb, n_minus_k)
 
@@ -73,7 +73,7 @@ def zero_tip_dofs(gb, n_minus_k):
     str = 'tip_' + get_codim_str(n_minus_k)
 
     not_tip_dof = []
-    for g, _ in gb:
+    for g in gb.get_grids():
         if g.dim >= n_minus_k:
             not_tip_dof.append(np.logical_not(g.tags[str]))
 
@@ -81,6 +81,10 @@ def zero_tip_dofs(gb, n_minus_k):
         not_tip_dof = np.concatenate(not_tip_dof, dtype=np.int)
 
     return sps.diags(not_tip_dof)
+
+def remove_tip_dofs(gb, n_minus_k):
+    R = zero_tip_dofs(gb, n_minus_k).tocsr()
+    return R[R.indices, :]
 
 def get_codim_str(n_minus_k):
     if n_minus_k == 1:
