@@ -9,6 +9,12 @@ Acknowledgements:
     github.com/anabudisa/md_aux_precond developed by Ana Budiša and Wietse M. Boon.
 """
 
+def compute_geometry(gb):
+    compute_edges(gb)
+    assign_smtp_to_mg(gb)
+    assign_cell_faces_to_mg(gb)
+    tag_edges(gb)
+
 def compute_edges(grid):
     if isinstance(grid, pp.Grid):
         if grid.dim == 3:
@@ -21,7 +27,7 @@ def compute_edges(grid):
             _compute_edges_0d(grid)
 
     if isinstance(grid, pp.GridBucket):
-        for g, _ in grid.nodes():
+        for g in grid.get_grids():
             compute_edges(g)
 
         for e, d_e in grid.edges():
@@ -102,7 +108,7 @@ def _compute_edges_3d(g):
 
 def _compute_edges_md(gb, e):
     """
-    Computes the mixed-dimensioanl face-edge and edge-node connectivities
+    Computes the mixed-dimensional face-edge and edge-node connectivities
     and saves them as properties of the mortar grid
     """
 
@@ -207,16 +213,32 @@ def _compute_edges_md(gb, e):
 
 # ------------------------------------------------------------------------ #
 
+def tag_edges(gb):
+    for g in gb.get_grids():
+        if g.dim == 2:
+            g.tags['tip_edges'] = g.tags['tip_nodes']
+        else:
+            g.tags['tip_edges'] = np.zeros(g.num_edges, dtype=np.int)
+
+# ------------------------------------------------------------------------ #
+
+def assign_cell_faces_to_mg(gb) :
+    for mg in gb.get_mortar_grids():
+        mg.cell_faces = - mg.signed_mortar_to_primary * \
+                        mg.secondary_to_mortar_int()
+
+# ------------------------------------------------------------------------ #
+
 def match_coordinates(a, b):
     # compare and match columns of a and b
     # return: ind s.t. b[ind] = a
-    # Note: we assume that each column has a match
+    # NOTE: we assume that each column has a match
     #       and a and b match in shape
     n = a.shape[1]
     ind = np.empty((n,), dtype=int)
     for i in np.arange(n):
         for j in np.arange(n):
-            if np.linalg.norm(a[:, i] - b[:, j]) < 1e-12:
+            if np.allclose(a[:, i], b[:, j]):
                 ind[i] = j
                 break
 
@@ -224,14 +246,20 @@ def match_coordinates(a, b):
 
 # ------------------------------------------------------------------------ #
 
-def signed_mortar_to_primary(gb, e):
-    mg = gb.edge_props(e, 'mortar_grid')
-    g_up = gb.nodes_of_edge(e)[1]
 
+def assign_smtp_to_mg(gb):
+    for e, d_e in gb.edges():
+        # Get adjacent grids and mortar_grid
+        g = gb.nodes_of_edge(e)[1]
+        mg = d_e['mortar_grid']
+
+        mg.signed_mortar_to_primary = signed_mortar_to_primary(mg, g)
+
+def signed_mortar_to_primary(mg, g):
     cells, faces, _ = sps.find(mg.primary_to_mortar_int())
-    signs = [g_up.cell_faces.tocsr()[face, :].data[0] for face in faces]
+    signs = [g.cell_faces.tocsr()[face, :].data[0] for face in faces]
 
-    return sps.csc_matrix((signs, (faces, cells)), (g_up.num_faces, mg.num_cells))
+    return sps.csc_matrix((signs, (faces, cells)), (g.num_faces, mg.num_cells))
 
 # ------------------------------------------------------------------------ #
 

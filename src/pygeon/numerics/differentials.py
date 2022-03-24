@@ -1,139 +1,91 @@
 import numpy as np
 import scipy.sparse as sps
 import porepy as pp
-from pygeon.geometry.geometry import signed_mortar_to_primary
 
 """
 Acknowledgements:
     The functionalities related to the curl computations are modified from
     github.com/anabudisa/md_aux_precond developed by Ana Budiša and Wietse M. Boon.
 """
-
-# ----------------------------------div---------------------------------- #
+# ---------------------------------- Aliases ---------------------------------- #
 
 def div(grid):
-    if isinstance(grid, pp.Grid):
-        return grid.cell_faces.T
+    return exterior_derivative(grid, 1)
 
-    elif isinstance(grid, pp.GridBucket):
-        return _gb_div(grid)
-
-
-def _gb_div(gb):
-    gb_div = np.empty(
-        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
-        dtype=sps.spmatrix)
-
-    # Local divergences
-    for g, d_g in gb:
-        nn_g = d_g["node_number"]
-        gb_div[nn_g, nn_g] = div(g)
-
-    # mortar contributions
-    for e, d_e in gb.edges():
-        # Get adjacent grids and mortar_grid
-        g_down, g_up = gb.nodes_of_edge(e)
-        mg = d_e['mortar_grid']
-
-        # Get indices in grid_bucket
-        nn_g_d = gb.node_props(g_down, 'node_number')
-        nn_g_u = gb.node_props(g_up, 'node_number')
-
-        # Place in the matrix
-        gb_div[nn_g_d, nn_g_u] = - mg.mortar_to_secondary_int() * \
-            signed_mortar_to_primary(gb, e).T
-
-    return sps.bmat(gb_div, format='csc') * zero_tip_face_dofs(gb)
-
-
-def zero_tip_face_dofs(gb):
-    not_tip_face = []
-    for g, _ in gb:
-        not_tip_face.append(np.logical_not(g.tags['tip_faces']))
-    not_tip_face = np.concatenate(not_tip_face, dtype=np.int)
-
-    return sps.diags(not_tip_face)
-
-
-# ----------------------------------curl---------------------------------- #
 
 def curl(grid):
+    return exterior_derivative(grid, 2)
+
+
+def grad(grid):
+    return exterior_derivative(grid, 3)
+
+
+# --------------------------- MD exterior derivative --------------------------- #
+
+def exterior_derivative(grid, n_minus_k):
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
-        return grid.face_edges.T
+        return _g_exterior_derivative(grid, n_minus_k)
 
     elif isinstance(grid, pp.GridBucket):
-        return _gb_curl(grid)
+        return _gb_exterior_derivative(grid, n_minus_k)
 
 
-def _gb_curl(gb):
-    gb_curl = np.empty(
+def _g_exterior_derivative(grid, n_minus_k):
+        if n_minus_k == 1:
+            return grid.cell_faces.T
+        elif n_minus_k == 2:
+            return grid.face_edges.T
+        elif n_minus_k == 3:
+            return grid.edge_nodes.T
+        else:
+            raise ValueError('(n - k) needs to be between 3 and 1')
+
+def _gb_exterior_derivative(gb, n_minus_k):
+    bmat = np.empty(
         shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
         dtype=sps.spmatrix)
 
-    # Local curls
+    # Local differential operator
     for g, d_g in gb:
         nn_g = d_g["node_number"]
-        gb_curl[nn_g, nn_g] = curl(g)
+        bmat[nn_g, nn_g] = exterior_derivative(g, n_minus_k)
 
-    # Jump terms
+    # Jump operator
     for e, d_e in gb.edges():
+        # Get mortar_grid and adjacent grids
         mg = d_e['mortar_grid']
-        if mg.dim >= 1:
-            # Get relevant grids
-            g_down, g_up = gb.nodes_of_edge(e)
+        grids = gb.nodes_of_edge(e)
 
+        if grids[1].dim >= n_minus_k:
             # Get indices in grid_bucket
-            nn_g_d = gb.node_props(g_down, 'node_number')
-            nn_g_u = gb.node_props(g_up, 'node_number')
+            nn_g_d = gb.node_props(grids[0], 'node_number')
+            nn_g_u = gb.node_props(grids[1], 'node_number')
 
             # Place in the matrix
-            gb_curl[nn_g_d, nn_g_u] = curl(mg)
+            bmat[nn_g_d, nn_g_u] = exterior_derivative(mg, n_minus_k)
 
-    return sps.bmat(gb_curl, format='csr') * zero_tip_edge_dofs(gb)
+    return sps.bmat(bmat, format='csc') * zero_tip_dofs(gb, n_minus_k)
 
+# --------------------------- Helper functions --------------------------- #
 
-def zero_tip_edge_dofs(gb):
-    not_tip_edge = []
+def zero_tip_dofs(gb, n_minus_k):
+    str = 'tip_' + get_codim_str(n_minus_k)
+
+    not_tip_dof = []
     for g, _ in gb:
-        if g.dim == 2:
-            not_tip_edge.append(np.logical_not(g.tags['tip_nodes']))
-        elif g.dim == 3:
-            not_tip_edge.append(np.ones(g.num_edges, dtype=np.int))
-    not_tip_edge = np.concatenate(not_tip_edge, dtype=np.int)
+        if g.dim >= n_minus_k:
+            not_tip_dof.append(np.logical_not(g.tags[str]))
 
-    return sps.diags(not_tip_edge)
+    if len(not_tip_dof) > 0:
+        not_tip_dof = np.concatenate(not_tip_dof, dtype=np.int)
 
+    return sps.diags(not_tip_dof)
 
-# ----------------------------------grad---------------------------------- #
-
-def grad(grid):
-    if isinstance(grid, (pp.Grid, pp.MortarGrid)):
-        return grid.edge_nodes.T
-    elif isinstance(grid, pp.GridBucket):
-        return _gb_grad(grid)
-
-
-def _gb_grad(gb):
-    gb_grad = np.empty(
-        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), dtype=sps.spmatrix)
-
-    # Local grads
-    for g, d_g in gb:
-        nn_g = d_g["node_number"]
-        gb_grad[nn_g, nn_g] = grad(g)
-
-    # Jump terms
-    for e, d_e in gb.edges():
-        mg = d_e['mortar_grid']
-        if mg.dim >= 2:
-            # Get relevant grids
-            g_down, g_up = gb.nodes_of_edge(e)
-
-            # Get indices in grid_bucket
-            nn_g_d = gb.node_props(g_down, 'node_number')
-            nn_g_u = gb.node_props(g_up, 'node_number')
-
-            # Place in the matrix
-            gb_grad[nn_g_d, nn_g_u] = grad(mg)
-
-    return sps.bmat(gb_grad, format='csr')
+def get_codim_str(n_minus_k):
+    if n_minus_k == 1:
+        return 'faces'
+    elif n_minus_k == 2:
+        return 'edges'
+    elif n_minus_k == 3:
+        return 'nodes'

@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
-from pygeon.geometry.geometry import signed_mortar_to_primary
 
 def hdiv_mass(grid, discr, data=None, data_key="flow"):
     if isinstance(grid, pp.Grid):
@@ -33,9 +32,9 @@ def _gb_hdiv_mass(gb, discr, data_key):
 
         # Local mortar mass matrix
         kn = d_e['parameters'][data_key]['normal_diffusivity']
-        gb_hdiv_mass[nn_g, nn_g] += signed_mortar_to_primary(gb, e) * \
-            sps.diags(1 / mg.cell_volumes / kn) * \
-            signed_mortar_to_primary(gb, e).T
+        gb_hdiv_mass[nn_g, nn_g] += mg.signed_mortar_to_primary * \
+            sps.diags(1.0 / mg.cell_volumes / kn) * \
+            mg.signed_mortar_to_primary.T
 
     return sps.bmat(gb_hdiv_mass, format='csc')
 
