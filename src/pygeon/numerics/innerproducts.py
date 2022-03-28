@@ -3,6 +3,27 @@ import scipy.sparse as sps
 
 import porepy as pp
 
+def mass_matrix(gb, discr, n_minus_k):
+    if n_minus_k == 0:
+        return P0_mass(gb)
+    if n_minus_k == 1:
+        return hdiv_mass(gb, discr)
+    else:
+        raise NotImplementedError
+
+
+def P0_mass(gb:pp.GridBucket):
+    bmat = np.empty(
+        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()),
+        dtype=sps.spmatrix
+        )
+    
+    for g, d_g in gb:
+        nn_g = d_g["node_number"]
+        bmat[nn_g, nn_g] = sps.diags(g.cell_volumes)
+    
+    return sps.bmat(bmat)
+
 def hdiv_mass(grid, discr, data=None, data_key="flow"):
     if isinstance(grid, pp.Grid):
         discr.discretize(grid, data)
