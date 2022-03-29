@@ -68,16 +68,15 @@ class OfflineComputations:
             - n_snap_to_generate (int): number of snapshots to generate
             - vtu_filename (str, optional): name of the vtu file
             - verbose (bool): toggle verbosity
-            output:
+            output: snapshots saved as ??? (np.savetxt fromat) files
             -
         """
         for index in range(n_snap_to_generate):
             
             if verbose == True:
                 print(index)
-                # and something else...
-                    
-            mu_param = self.sample_parameters(self.mu_param_data)
+                # and something else...    
+            mu_param = self.sample_parameters(self.mu_param_data) # select parameters... TODO
             solution, other_outputs = self.solve_one_instance(index, mu_param)
             self.save_snapshot(solution, index)
             self.save_mu_parameter(mu_param, index)
@@ -91,7 +90,7 @@ class OfflineComputations:
                 
 
     def solve_one_instance(self, index, mu_param):
-        """ method to be implemented in the child class by user. Calculate one snapshot
+        """ method to be implemented in the inherited class by user. Calculate one snapshot
         """
         solution = None
         return solution
@@ -172,13 +171,13 @@ class OfflineComputations:
         
         
         
-    def fill_param_matrix(self, index, param):
-        """
-        """
-        self.data[self.parameters][:, index] = param
-        
-        return
-    
+    # def fill_param_matrix(self, index, param):
+    #     """
+    #     """
+    #     self.data[self.parameters][:, index] = param
+    # 
+    #     return
+
                             
                 
     def _matrix_initialization(self, var, snap, n_snap_to_use):  
@@ -197,8 +196,8 @@ class OfflineComputations:
             - do_monolithic (bool): compute "monolithic" or "block" SVD
             output:
             -
+            TODO: I'm always adding the 'all' key in self.data, even in the case the problem has only one varible... improve it
         """
-        
         n_snap_to_use = self.data[self.var_names[0]][self.snap_matrix].shape[1] # number of column of any snap matrix
         
         if do_monolithic == True:
@@ -228,7 +227,7 @@ class OfflineComputations:
                 # U, S, Vh = np.linalg.svd( self.data[var][self.deviation_matrix], full_matrices=False, compute_uv=True, hermitian=False ) 
                 U, S, Vh = np.linalg.svd( self.data[var][self.snap_matrix], full_matrices=False, compute_uv=True, hermitian=False )
         
-                print('U.shape = ', U.shape)
+                print('var: ', var, 'U.shape = ', U.shape)
         
                 self.data[var][self.U] = U
                 self.data[var][self.S] = S
@@ -262,7 +261,7 @@ class OfflineComputations:
                 # truncation s.t. n modes = n dofs (no truncation):
                 # specific_n_modes_to_use = min( [n_dofs[var], self.data[var][self.U].shape[1]] )
                 # equivalently:
-                # specific_n_modes_to_use = n_modes_to_use
+                specific_n_modes_to_use = n_modes_to_use
                 
                 print('specific_n_modes_to_use = ', specific_n_modes_to_use)
                 

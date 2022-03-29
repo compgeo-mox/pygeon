@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import pdb
 import os
 from offline_porepy import *
-from online_porepy import *
+from online_pod_porepy import *
 
 os.system('clear')
 
@@ -63,9 +63,9 @@ os.system("rm *pvd *vtu")
 # offline:
 ################################################################################
 offline = True 
-n_snap_to_generate = 60 # 100      # 245 no fault # with fault
-fault = True # WORKS ONLY WITH FAULTS... todo?
-do_monolithic = True
+n_snap_to_generate = 60  # 245 no fault # with fault
+fault = True 
+do_monolithic = False
 
 if offline == True:
     generate_snap = OfflinePorePy()
@@ -80,7 +80,7 @@ if offline == True:
 ################################################################################
 # fom solution:
 pod = OnlinePodPorePy()
-pod.generate_grid()
+pod.generate_grid(add_fault=fault)
 A, b = pod.compute_A_rhs()
 sol_fom = pod.compute_fom_solution(A, b) # do you prefer a generic "compute_solution" method?
 
@@ -92,9 +92,9 @@ exporter = pp.Exporter(g, "vel_fom")
 exporter.write_vtu({"vel_fom": vel_fom})
 
 # settings:
-n_snap_max = 60 # 100 # maximum number os snapshots to use
+n_snap_max = 60 # maximum number os snapshots to use
 n_snap_to_use_list = np.arange(1, n_snap_max, 5) # either this or 
-n_single_eval = 11
+n_single_eval = 6
 #n_snap_to_use_list = np.array([n_single_eval])   # this
 
 mse_error = []
@@ -166,13 +166,13 @@ ax[1].set_ylabel('mse error')
 ax[1].set_xlabel('number of snapshots used')
 ax[1].grid(linestyle='--')
 
-# plot singular values:
-S = np.loadtxt('./data/S_all')
-fig, ax = plt.subplots()
-ax.plot(S, marker='o')
-ax.set_ylabel('singular_values')
-ax.set_yscale('log')
-ax.grid(linestyle='--')
+# # plot singular values:
+# S = np.loadtxt('./data/S_all')
+# fig, ax = plt.subplots()
+# ax.plot(S, marker='o')
+# ax.set_ylabel('singular_values')
+# ax.set_yscale('log')
+# ax.grid(linestyle='--')
 
 plt.show()
 
