@@ -17,7 +17,13 @@ class OnlinePod:
     def __init__(self):
         """
         """
-        # # variable name:
+        # full order problem data:
+        self.A_list = [] 
+        self.b_list = []
+        self.A = []
+        self.b = []
+        
+        # variable name:
         self.var_names = ['generic_var']
         
         # SVD decomposition and transition matrix
@@ -47,17 +53,44 @@ class OnlinePod:
 
     
     
-    def compute_A_rhs(self):
-        """ method to be implemented in the child class by user. Calculate matrix and rrhs
+    def load_full_order_matrices_rhss(self):
+        """ if they were computed in the offline stage 
         """
-        A = None
-        b = None
+        self.A_list = np.loadtxt('./data/A_list')
+        self.b_list = np.loadtxt('./data/b_list')
+    
+    
+    
+    def compute_full_order_matrices_rhss(self):
+        """ if they were NOT computed in the offline stage
+            method to be implemented in the child class by user.
+            Suitable if affine parameter property holds.
+        """
+        self.A_list = []
+        self.b_list = []
+    
         
-        return A, b
-    
-    
 
-    def compute_reduced_solution(self, A, b, Phi):
+    def assemble_full_order_A_rhs(self):
+        """ method to be implemented in the child class by user
+        """
+        # expected steps:
+        # from A_list and b_list assemble A and b OR compute A and b if affine params prop does not hold
+        self.A = []
+        self.b = []
+        
+        return self.A, self.b
+        
+    # def compute_A_rhs(self):
+    #     """ method to be implemented in the child class by user. Calculate matrix and rrhs
+    #     """
+    #     A = None
+    #     b = None
+    # 
+    #     return A, b
+
+
+    def compute_reduced_solution(self, A, b, Phi): 
         """ compute reduced solution
             input:
                 - A, discretization matrix
@@ -65,6 +98,8 @@ class OnlinePod:
                 - Phi, transition matrix
             output:
                 - solution reduced
+            TODO: do we prefer a more generic "compute solution" wich takes as input A, b and possibly Phi?
+            TODO: do we prefer to eliminate this method and solve the system in the main script?
         """
         
         if not np.allclose( np.diag(Phi.T@Phi), np.ones(Phi.shape[1]), rtol=1e-10, atol=1e-8 ):

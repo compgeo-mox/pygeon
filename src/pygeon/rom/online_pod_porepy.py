@@ -91,7 +91,7 @@ class OnlinePodPorePy(OnlinePod):
         
         
         
-    def compute_A_rhs(self):
+    def assemble_full_order_A_rhs(self):
         """
         """
         bit_generator = self.bit_generator
@@ -199,9 +199,9 @@ class OnlinePodPorePy(OnlinePod):
         
         self.assembler = pp.Assembler(self.gb, dof_manager)
         self.assembler.discretize()
-        A, b = self.assembler.assemble_matrix_rhs()
+        self.A, self.b = self.assembler.assemble_matrix_rhs()
         
-        return A, b
+        return self.A, self.b
         
         
         

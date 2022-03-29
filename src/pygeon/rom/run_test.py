@@ -26,7 +26,7 @@ def stop():
 
 n_snap_to_generate = 50
 n_snap_to_use = 6
-n_modes_to_use = 2
+#n_modes_to_use = {'all': 2}
 do_monolithic = True
 
 offline = OfflineTest()
@@ -34,22 +34,20 @@ offline.remove_old_data()
 offline.generate_snapshots(n_snap_to_generate) # from analytical solution
 
 offline.load_snapshots(n_snap_to_use, shuffle=False)
-offline.compute_svd(do_monolithic)
-offline.truncate_U(n_modes_to_use)
-offline.save_svd_matrices()
+offline.compute_svd(do_monolithic, save=False)
+offline.plot_singular_values() # not necessary
+offline.truncate_U(save_all_svd_matrices=True)
 
 Phi = offline.assemble_phi() # and save phi
 
-# not necessary:
-offline.plot_singular_values()
 
 
 
 online = OnlineTest() 
-A, b = online.compute_A_rhs()
+A, b = online.assemble_full_order_A_rhs()
 
 # not necessary:
-sol_analytical, sol_fom = online.compute_fom_solution(A, b) # analytical solution + A, b assembling for random mu_param
+sol_analytical, sol_fom = online.compute_fom_solution(A, b) # analytical solution + A, b assembling for random mu_params
 
 sol_reduced = online.compute_reduced_solution(A, b, Phi)
 sol_reconstructed = Phi@sol_reduced

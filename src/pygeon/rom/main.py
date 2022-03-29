@@ -43,7 +43,7 @@ TODO:
 13) fix exporter: problem related to variable with different names                  DONE
 14) save grid as python object insted of rebuild it                                 todo
 
-15) WORKS ONLY WITH FAULTS ############################################################
+15) WORKS ONLY WITH FAULTS, fix it                                                  DONE          
 
 
 STO GENERALIZZANDO POCO: RANGE MU UGUALE PER SNAP E PER ONLINE
@@ -63,8 +63,8 @@ os.system("rm *pvd *vtu")
 # offline:
 ################################################################################
 offline = True 
-n_snap_to_generate = 60  # 245 no fault # with fault
-fault = True 
+n_snap_to_generate = 60 # 245 no fault # with fault
+fault = True
 do_monolithic = False
 
 if offline == True:
@@ -81,7 +81,7 @@ if offline == True:
 # fom solution:
 pod = OnlinePodPorePy()
 pod.generate_grid(add_fault=fault)
-A, b = pod.compute_A_rhs()
+A, b = pod.assemble_full_order_A_rhs()
 sol_fom = pod.compute_fom_solution(A, b) # do you prefer a generic "compute_solution" method?
 
 # compute velocity from fom sulution:
@@ -94,8 +94,8 @@ exporter.write_vtu({"vel_fom": vel_fom})
 # settings:
 n_snap_max = 60 # maximum number os snapshots to use
 n_snap_to_use_list = np.arange(1, n_snap_max, 5) # either this or 
-n_single_eval = 6
-#n_snap_to_use_list = np.array([n_single_eval])   # this
+n_single_eval = 60
+n_snap_to_use_list = np.array([n_single_eval])   # this
 
 mse_error = []
 
@@ -109,13 +109,16 @@ for n_snap_to_use in n_snap_to_use_list:
     # still offline:
     compute_reduced_basis.var_names = ['ph', 'pl', 'lmbda'] # not required if no "for" loop, compute_svd adds the var name 'all'
     compute_reduced_basis.load_snapshots(n_snap_to_use, shuffle=False)
-    compute_reduced_basis.compute_svd(do_monolithic=do_monolithic)                                                  
+    compute_reduced_basis.compute_svd(do_monolithic=do_monolithic, save=False)                                                  
     
-    n_modes_to_use = n_snap_to_use # I'll always use the number of snapshots since their computation is expensive
-    #n_modes_to_use = 1
+    if do_monolithic:
+        n_modes_to_use = {'all':n_snap_to_use}
+    else:
+        n_modes_to_use = {'ph':n_snap_to_use, 'pl':n_snap_to_use, 'lmbda':n_snap_to_use} # I'll always use the number of snapshots since their computation is expensive
     
-    compute_reduced_basis.truncate_U(n_modes_to_use)
-    compute_reduced_basis.save_svd_matrices()
+    compute_reduced_basis.plot_singular_values()
+    #compute_reduced_basis.truncate_U(n_modes_to_use) # pick one...
+    compute_reduced_basis.truncate_U(threshold=1e-10, save_all_svd_matrices=True)
     Phi = compute_reduced_basis.assemble_phi()
 
     # online:    

@@ -54,7 +54,7 @@ class OfflinePorePy(OfflineComputations):
         self.data[self.parameters] = None
 
         # data for uncertain parameter:
-        self.mu_param_data = np.array([[np.log(1e-2), np.log(1e2), np.log(1e-1)], [np.log(1e-1), np.log(1e3), np.log(1e2)]]) # np.array([[min_1, ...], [ max_1, ...]]) of uniform distribution, last one is for the fault
+        self.mu_params_data = np.array([[np.log(1e-2), np.log(1e2), np.log(1e-1)], [np.log(1e-1), np.log(1e3), np.log(1e2)]]) # np.array([[min_1, ...], [ max_1, ...]]) of uniform distribution, last one is for the fault
 
 
     def generate_grid(self, add_fault):
@@ -130,11 +130,11 @@ class OfflinePorePy(OfflineComputations):
         # self.ref_g = self.gb.grids_of_dimension(3)[0
 
 
-
-    def solve_one_instance(self, index, mu_param): #, split_solution=True): non serve, basta contare il numero di variabili in var_names
+    @OfflineComputations._save_snapshot
+    def solve_one_instance(self, mu_params): 
         """ Calculate one snapshot
             input:
-            - mu_param (list): list containig parameters (usually pointed as "mu" in books/papers)
+            - mu_params (list): list containig parameters (usually pointed as "mu" in books/papers)
             output:
             - solution (np.array): solution
             - data_out (list): other output (data_out = [gb])
@@ -146,13 +146,13 @@ class OfflinePorePy(OfflineComputations):
             specific_volumes = np.power(self.aperture, gb.dim_max()-g.dim)
 
             kxx = np.ones(g.num_cells) * specific_volumes
-            self.frac_permeability *= mu_param[2]                               ### non manca un np.exp() ?
+            self.frac_permeability *= mu_params[2]                               ### non manca un np.exp() ?
 
             if g.dim < gb.dim_max():
                 kxx *= self.frac_permeability
             else:
-                k1 = np.exp( mu_param[0] )
-                k2 = np.exp( mu_param[1] )
+                k1 = np.exp( mu_params[0] )
+                k2 = np.exp( mu_params[1] )
 
                 x_centers = g.cell_centers[0]
                 y_centers = g.cell_centers[1]
@@ -217,7 +217,7 @@ class OfflinePorePy(OfflineComputations):
         for e, d in gb.edges():
             g1, g2 = gb.nodes_of_edge(e)
 
-            # kn = np.exp( mu_param[2] )
+            # kn = np.exp( mu_params[2] )
             kn = self.frac_permeability / (self.aperture/2) 
             physical_param = {'normal_diffusivity': kn}
 
