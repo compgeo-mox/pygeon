@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sps
 import porepy as pp
+import pygeon as pg
 
 """
 Acknowledgements:
@@ -29,6 +30,9 @@ def exterior_derivative(grid, n_minus_k):
 
     elif isinstance(grid, pp.GridBucket):
         return _gb_exterior_derivative(grid, n_minus_k)
+
+    else:
+        raise TypeError("grid needs to be of type pp.Grid or pp.GridBucket")
 
 
 def _g_exterior_derivative(grid, n_minus_k):
@@ -65,31 +69,5 @@ def _gb_exterior_derivative(gb, n_minus_k):
             # Place the jump term in the block-matrix
             bmat[node_nrs[0], node_nrs[1]] = exterior_derivative(mg, n_minus_k)
 
-    return sps.bmat(bmat, format='csc') * zero_tip_dofs(gb, n_minus_k)
-
-# --------------------------- Helper functions --------------------------- #
-
-def zero_tip_dofs(gb, n_minus_k):
-    str = 'tip_' + get_codim_str(n_minus_k)
-
-    not_tip_dof = []
-    for g in gb.get_grids():
-        if g.dim >= n_minus_k:
-            not_tip_dof.append(np.logical_not(g.tags[str]))
-
-    if len(not_tip_dof) > 0:
-        not_tip_dof = np.concatenate(not_tip_dof, dtype=np.int)
-
-    return sps.diags(not_tip_dof)
-
-def remove_tip_dofs(gb, n_minus_k):
-    R = zero_tip_dofs(gb, n_minus_k).tocsr()
-    return R[R.indices, :]
-
-def get_codim_str(n_minus_k):
-    if n_minus_k == 1:
-        return 'faces'
-    elif n_minus_k == 2:
-        return 'edges'
-    elif n_minus_k == 3:
-        return 'nodes'
+    return sps.bmat(bmat, format='csc') * \
+        pg.numerics.restrictions.zero_tip_dofs(gb, n_minus_k)
