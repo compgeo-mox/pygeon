@@ -24,10 +24,21 @@ class OnlinePodPorePy(OnlinePod):
         # physical marametres:
         self.physical_param_key = 'flow'
         self.bit_generator = np.random.default_rng()
-        self.x_bottom = None
-        self.x_top = None
         self.ymin = None
         self.ymax = None
+        self.x_bottom = None
+        self.x_top = None
+        
+        # schifo: non li vado a leggere dal file scritto durante offline. Dati copiati da OfflinePorePy
+        self.xmin = -0.5
+        self.xmax = 0.5
+        self.ymin = -0.5
+        self.ymax = 0.5
+        self.beta = np.pi/6 # fault tilt angle
+        height_domain = self.ymax-self.ymin
+        self.x_bottom = -height_domain/2*np.tan(self.beta) # falut
+        self.x_top = height_domain/2*np.tan(self.beta) # falut
+        
         self.aperture = 1
         self.frac_permeability = 1e0
         
@@ -42,7 +53,7 @@ class OnlinePodPorePy(OnlinePod):
 
 
         
-    def generate_grid(self):
+    def generate_grid(self, add_fault=True):
         """ reads file created during the offline stage and genereate the mesh
             input:
             -
@@ -59,24 +70,28 @@ class OnlinePodPorePy(OnlinePod):
         #     domain_3d = ast.literal_eval(file.readline())  #### non serve
         #     mesh_args = ast.literal_eval(file.readline())
         
-        # read x_bottom and x_top, required for boundary conditions
-        with open(filename_2d, 'r') as file:
-            file.readline() 
-            coordinates = ast.literal_eval(file.readline())
-            self.x_bottom = coordinates[1]
-            self.x_top = coordinates[3]
-            self.ymin = coordinates[2]
-            self.ymax = coordinates[4]
-            
+        # read x_bottom and x_top, required for boundary conditions             # AGGIUNTI NEGLI ATTRIBUTI
+        # with open(filename_2d, 'r') as file:
+        #     file.readline()                         
+        #     coordinates = ast.literal_eval(file.readline())
+        #     self.x_bottom = coordinates[1]
+        #     self.x_top = coordinates[3]
+        #     self.ymin = coordinates[2]
+        #     self.ymax = coordinates[4]
+    
         network_2d = pp.fracture_importer.network_2d_from_csv(filename_2d, domain=domain_2d)
         # network_3d = pp.fracture_importer.network_3d_from_csv(filename_3d, has_domain=True)
         
-        self.gb = network_2d.mesh(mesh_args, constraints=np.array([1]))
+        if add_fault:
+            self.gb = network_2d.mesh(mesh_args, constraints=np.array([1])) ### ...
+        else:
+            self.gb = network_2d.mesh(mesh_args)
+            
         # self.gb = network_3d.mesh(mesh_args) ############################################ 3D
         
         
         
-    def compute_A_rhs(self):
+    def assemble_full_order_A_rhs(self):
         """
         """
         bit_generator = self.bit_generator
@@ -184,9 +199,9 @@ class OnlinePodPorePy(OnlinePod):
         
         self.assembler = pp.Assembler(self.gb, dof_manager)
         self.assembler.discretize()
-        A, b = self.assembler.assemble_matrix_rhs()
+        self.A, self.b = self.assembler.assemble_matrix_rhs()
         
-        return A, b
+        return self.A, self.b
         
         
         
