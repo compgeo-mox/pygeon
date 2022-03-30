@@ -37,7 +37,7 @@ def compute_edges(grid):
 def _compute_edges_0d(g):
     g.num_edges = 0
     g.edge_nodes = sps.csc_matrix((0, g.num_edges), dtype=np.int)
-    g.face_edges = sps.csc_matrix((g.num_edges, g.num_edges), dtype=np.int)
+    g.face_edges = sps.csc_matrix((g.num_edges, g.num_faces), dtype=np.int)
 
 def _compute_edges_1d(g):
     g.num_edges = 0
