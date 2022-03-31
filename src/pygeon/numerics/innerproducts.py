@@ -43,9 +43,9 @@ def _g_mass(g, discr, n_minus_k, data):
 
 def _gb_mass(gb, discr, n_minus_k, local_matrix=mass_matrix):
     bmat = np.empty(
-        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
+        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()),
         dtype=sps.spmatrix
-        )
+    )
 
     # Local mass matrices
     for g, d_g in gb:
@@ -72,6 +72,7 @@ def _gb_mass(gb, discr, n_minus_k, local_matrix=mass_matrix):
 
 # ---------------------------------- Lumped ---------------------------------- #
 
+
 def lumped_mass_matrix(grid, discr, n_minus_k, data=None):
     if isinstance(grid, pp.Grid):
         return _g_lumped_mass(grid, n_minus_k)
@@ -89,9 +90,9 @@ def _g_lumped_mass(g, n_minus_k):
         """
         h_perp = np.zeros(g.num_faces)
         for (face, cell) in zip(*g.cell_faces.nonzero()):
-            h_perp[face] += np.linalg.norm(g.face_centers[:, face] 
-                                         - g.cell_centers[:, cell])
-        
+            h_perp[face] += np.linalg.norm(g.face_centers[:, face]
+                                           - g.cell_centers[:, cell])
+
         return sps.diags(h_perp / g.face_areas)
 
     else:

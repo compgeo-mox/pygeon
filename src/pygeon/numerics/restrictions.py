@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sps
 
+
 def zero_tip_dofs(gb, n_minus_k):
     str = 'tip_' + get_codim_str(n_minus_k)
 
@@ -20,5 +21,5 @@ def remove_tip_dofs(gb, n_minus_k):
     return R[R.indices, :]
 
 
-def get_codim_str(n_minus_k): 
+def get_codim_str(n_minus_k):
     return ['cells', 'faces', 'edges', 'nodes'][n_minus_k]

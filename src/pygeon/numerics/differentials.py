@@ -10,6 +10,7 @@ Acknowledgements:
 """
 # ---------------------------------- Aliases ---------------------------------- #
 
+
 def div(grid):
     return exterior_derivative(grid, 1)
 
@@ -36,19 +37,20 @@ def exterior_derivative(grid, n_minus_k):
 
 
 def _g_exterior_derivative(grid, n_minus_k):
-        if n_minus_k == 1:
-            return grid.cell_faces.T
-        elif n_minus_k == 2:
-            return grid.face_edges.T
-        elif n_minus_k == 3:
-            return grid.edge_nodes.T
-        else:
-            raise ValueError('(n - k) needs to be between 3 and 1')
+    if n_minus_k == 1:
+        return grid.cell_faces.T
+    elif n_minus_k == 2:
+        return grid.face_edges.T
+    elif n_minus_k == 3:
+        return grid.edge_nodes.T
+    else:
+        raise ValueError('(n - k) needs to be between 3 and 1')
+
 
 def _gb_exterior_derivative(gb, n_minus_k):
     # Pre-allocation of the block-matrix
     bmat = np.empty(
-        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), 
+        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()),
         dtype=sps.spmatrix)
 
     # Compute local differential operator
