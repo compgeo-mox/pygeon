@@ -3,7 +3,7 @@ import scipy.sparse as sps
 
 
 def zero_tip_dofs(gb, n_minus_k):
-    str = 'tip_' + get_codim_str(n_minus_k)
+    str = "tip_" + get_codim_str(n_minus_k)
 
     is_tip_dof = []
     for g in gb.get_grids():
@@ -22,4 +22,4 @@ def remove_tip_dofs(gb, n_minus_k):
 
 
 def get_codim_str(n_minus_k):
-    return ['cells', 'faces', 'edges', 'nodes'][n_minus_k]
+    return ["cells", "faces", "edges", "nodes"][n_minus_k]
