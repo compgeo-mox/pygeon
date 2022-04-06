@@ -24,6 +24,7 @@ def hgrad_mass(grid, discr, data=None):
 
 # ---------------------------------- General ---------------------------------- #
 
+
 def mass_matrix(grid, discr, n_minus_k, data=None):
     if isinstance(grid, pp.Grid):
         return _g_mass(grid, discr, n_minus_k, data)
@@ -43,8 +44,7 @@ def _g_mass(g, discr, n_minus_k, data):
 
 def _gb_mass(gb, discr, n_minus_k, local_matrix=mass_matrix):
     bmat = np.empty(
-        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()),
-        dtype=sps.spmatrix
+        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), dtype=sps.spmatrix
     )
 
     # Local mass matrices
@@ -57,18 +57,21 @@ def _gb_mass(gb, discr, n_minus_k, local_matrix=mass_matrix):
         for e, d_e in gb.edges():
             # Get adjacent grids and mortar_grid
             g_up = gb.nodes_of_edge(e)[1]
-            mg = d_e['mortar_grid']
+            mg = d_e["mortar_grid"]
 
             # Get indices in grid_bucket
-            nn_g = gb.node_props(g_up, 'node_number')
+            nn_g = gb.node_props(g_up, "node_number")
 
             # Local mortar mass matrix
-            kn = d_e['parameters']["flow"]['normal_diffusivity']
-            bmat[nn_g, nn_g] += mg.signed_mortar_to_primary * \
-                sps.diags(1.0 / mg.cell_volumes / kn) * \
-                mg.signed_mortar_to_primary.T
+            kn = d_e["parameters"]["flow"]["normal_diffusivity"]
+            bmat[nn_g, nn_g] += (
+                mg.signed_mortar_to_primary
+                * sps.diags(1.0 / mg.cell_volumes / kn)
+                * mg.signed_mortar_to_primary.T
+            )
 
-    return sps.bmat(bmat, format='csc')
+    return sps.bmat(bmat, format="csc")
+
 
 # ---------------------------------- Lumped ---------------------------------- #
 
@@ -90,8 +93,9 @@ def _g_lumped_mass(g, n_minus_k):
         """
         h_perp = np.zeros(g.num_faces)
         for (face, cell) in zip(*g.cell_faces.nonzero()):
-            h_perp[face] += np.linalg.norm(g.face_centers[:, face]
-                                           - g.cell_centers[:, cell])
+            h_perp[face] += np.linalg.norm(
+                g.face_centers[:, face] - g.cell_centers[:, cell]
+            )
 
         return sps.diags(h_perp / g.face_areas)
 
