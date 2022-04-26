@@ -5,8 +5,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
-
-from pygeon import BoundaryConditionNode
+import pygeon as pg
 
 # Module-wide logger
 logger = logging.getLogger(__name__)
@@ -154,7 +153,7 @@ class P1Advection:
         # Retrieve the advection field, boundary conditions
         beta = parameter_dictionary["advection_field"]
         bc = parameter_dictionary["bc"]
-        if not isinstance(bc, BoundaryConditionNode):
+        if not isinstance(bc, pg.BoundaryConditionNode):
             raise ValueError("Consider BoundaryConditionNode to assign bc")
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
