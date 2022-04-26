@@ -6,33 +6,26 @@ import porepy as pp
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def P0_mass(grid, discr, data=None):
-    return mass_matrix(grid, discr, 0, data)
+def P0_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, discr, 0, **kwargs)
 
 
-def hdiv_mass(grid, discr, data=None):
-    return mass_matrix(grid, discr, 1, data)
+def hdiv_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, discr, 1, **kwargs)
 
 
-def hcurl_mass(grid, discr, data=None):
-    return mass_matrix(grid, discr, 2, data)
+def hcurl_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, discr, 2, **kwargs)
 
 
-def hgrad_mass(grid, discr, data=None):
-    return mass_matrix(grid, discr, 3, data)
+def hgrad_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, discr, 3, **kwargs)
 
 
 # ---------------------------------- General ---------------------------------- #
 
 
-def mass_matrix(grid, discr, n_minus_k, data=None):
-    if isinstance(grid, pp.Grid):
-        return _g_mass(grid, discr, n_minus_k, data)
-    elif isinstance(grid, pp.GridBucket):
-        return _gb_mass(grid, discr, n_minus_k)
-
-
-def _g_mass(g, discr, n_minus_k, data):
+def _g_mass_matrix(g, discr, n_minus_k, data):
     if n_minus_k == 0:
         return sps.diags(g.cell_volumes)
     elif n_minus_k == 1:
@@ -42,15 +35,18 @@ def _g_mass(g, discr, n_minus_k, data):
         raise NotImplementedError
 
 
-def _gb_mass(gb, discr, n_minus_k, local_matrix=mass_matrix):
-    bmat = np.empty(
+def mass_matrix(gb, discr, n_minus_k, local_matrix=_g_mass_matrix, return_bmat=False):
+
+    bmat_g = np.empty(
         shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), dtype=sps.spmatrix
     )
+    bmat_mg = bmat_g.copy()
 
     # Local mass matrices
     for g, d_g in gb:
         nn_g = d_g["node_number"]
-        bmat[nn_g, nn_g] = local_matrix(g, discr, n_minus_k, d_g)
+        bmat_g[nn_g, nn_g] = local_matrix(g, discr, n_minus_k, d_g)
+        bmat_mg[nn_g, nn_g] = sps.csc_matrix(bmat_g[nn_g, nn_g].shape)
 
     # Mortar contribution
     if n_minus_k > 0:
@@ -64,28 +60,28 @@ def _gb_mass(gb, discr, n_minus_k, local_matrix=mass_matrix):
 
             # Local mortar mass matrix
             kn = d_e["parameters"]["flow"]["normal_diffusivity"]
-            bmat[nn_g, nn_g] += (
+            bmat_mg[nn_g, nn_g] += (
                 mg.signed_mortar_to_primary
                 * sps.diags(1.0 / mg.cell_volumes / kn)
                 * mg.signed_mortar_to_primary.T
             )
 
-    return sps.bmat(bmat, format="csc")
+    if return_bmat:
+        return bmat_g, bmat_mg
+    else:
+        return sps.bmat(bmat_g, format="csc") + sps.bmat(bmat_mg, format="csc")
 
 
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_mass_matrix(grid, discr, n_minus_k, data=None):
-    if isinstance(grid, pp.Grid):
-        return _g_lumped_mass(grid, n_minus_k)
-    elif isinstance(grid, pp.GridBucket):
-        return _gb_mass(grid, discr, n_minus_k, local_matrix=lumped_mass_matrix)
+def lumped_mass_matrix(grid, discr, n_minus_k):
+    return mass_matrix(grid, discr, n_minus_k, local_matrix=_g_lumped_mass)
 
 
-def _g_lumped_mass(g, n_minus_k):
+def _g_lumped_mass(g, discr, n_minus_k, data):
     if n_minus_k == 0:
-        return _g_mass(g, None, n_minus_k, None)
+        return _g_mass_matrix(g, None, n_minus_k, None)
     elif n_minus_k == 1:
         """
         Returns the lumped mass matrix L such that
