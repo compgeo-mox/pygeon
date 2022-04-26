@@ -1,6 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import networkx as nx
+import pyamg
+
 from itertools import combinations
 
 import porepy as pp
@@ -13,6 +14,10 @@ class FracturesGraph():
 
         # set up a way of calling the elements in the graph
         self.name = kwargs.get("graph_name", lambda n: str(n))
+
+        # set the injection and production
+        self.injection = np.empty(0)
+        self.production = np.empty(0)
 
         if isinstance(self.network, pp.FractureNetwork2d):
             self._construct_2d()
@@ -38,11 +43,81 @@ class FracturesGraph():
         # remove all the nodes with dim given
         self.graph.remove_nodes_from(to_remove)
 
-    def draw(self):
-        pos = nx.spring_layout(self.graph)
-        nx.draw(self.graph, pos)
-        nx.draw_networkx_labels(self.graph, pos)
+    def draw(self, graph = None, node_label = None, edge_attr = None):
+        import matplotlib.pyplot as plt
+        if graph is None:
+            graph = self.graph
+        pos = nx.spring_layout(graph)
+        nx.draw(graph, pos)
+
+        if node_label is None:
+            nx.draw_networkx_labels(graph, pos)
+        else:
+            data = graph.nodes(data = node_label, default = None)
+            import pdb; pdb.set_trace()
+            nx.draw_networkx_labels(graph, pos, labels = dict(data))
+        if edge_attr is not None:
+            nx.draw_networkx_edge_labels(graph, pos, edge_labels = edge_attr)
+
         plt.show()
+
+    #def _add_injection_production(self, injection, production, injection_name=None, production_name=None):
+
+    def compute_flux(self, injection, production, weight_label="weight", flux_label="flux", **kwargs):
+        # set the injection and production node name
+        injection_name = kwargs.get("injection_name", lambda n: str(self.name(n)) + "i")
+        production_name = kwargs.get("production_name", lambda n: str(self.name(n)) + "p")
+
+        # set the node names
+        injection = np.atleast_1d(injection)
+        production = np.atleast_1d(production)
+
+        # set the well contribution
+        attrs = {}
+        for n in injection:
+            w = injection_name(n)
+            self.graph.add_node(w)
+            self.graph.add_edge(n, w)
+            attrs[(n, w)] = {"rhs": 1/injection.size}
+
+        for n in production:
+            w = production_name(n)
+            self.graph.add_node(w)
+            self.graph.add_edge(n, w)
+            attrs[(n, w)] = {"rhs": -1/production.size}
+
+        # construct the line graph associated with the original graph
+        line_graph = nx.line_graph(self.graph)
+        # set the attributes to the graph and get in the ordered way
+        nx.set_node_attributes(line_graph, attrs)
+        data = line_graph.nodes(data="rhs", default=0)
+
+        # construct the rhs
+        rhs = np.fromiter(dict(data).values(), dtype=float)
+        # construct the laplacian
+        L = nx.laplacian_matrix(line_graph, weight=weight_label)
+        # solve the problem
+        p = pyamg.solve(L, rhs)
+
+        # construct the incidence matrix and compute the flux
+        I = nx.incidence_matrix(line_graph, oriented=True, weight=weight_label)
+        flux = I.T*p
+
+        attrs = {}
+        for e, f in zip(line_graph.edges(), flux):
+            nodes, counts = np.unique(e, return_counts=True)
+            node = nodes[counts > 1][0]
+            if flux_label in attrs.get(node, {}):
+                attrs[node][flux_label] += np.abs(f)
+            else:
+                attrs[node] = {flux_label: np.abs(f)}
+
+        # remove wells from the graph
+        self.graph.remove_nodes_from([injection_name(n) for n in injection])
+        self.graph.remove_nodes_from([production_name(n) for n in production])
+
+        # set the attributes to the graph
+        nx.set_node_attributes(self.graph, attrs)
 
     def all_paths(self, start, end, cutoff=None):
         # compute all the shortest and not shortest paths from the start to the end node
