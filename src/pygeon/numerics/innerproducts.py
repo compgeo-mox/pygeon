@@ -49,7 +49,7 @@ def mass_matrix(gb, discr, n_minus_k, local_matrix=_g_mass_matrix, return_bmat=F
         bmat_mg[nn_g, nn_g] = sps.csc_matrix(bmat_g[nn_g, nn_g].shape)
 
     # Mortar contribution
-    if n_minus_k > 0:
+    if n_minus_k == 1:
         for e, d_e in gb.edges():
             # Get adjacent grids and mortar_grid
             g_up = gb.nodes_of_edge(e)[1]
@@ -82,6 +82,7 @@ def lumped_mass_matrix(grid, discr, n_minus_k):
 def _g_lumped_mass(g, discr, n_minus_k, data):
     if n_minus_k == 0:
         return _g_mass_matrix(g, None, n_minus_k, None)
+
     elif n_minus_k == 1:
         """
         Returns the lumped mass matrix L such that
@@ -94,6 +95,33 @@ def _g_lumped_mass(g, discr, n_minus_k, data):
             )
 
         return sps.diags(h_perp / g.face_areas)
+
+    elif n_minus_k == 2 and g.dim == 3:
+        tangents = g.nodes * g.edge_nodes
+        h = np.linalg.norm(tangents, axis=0)
+
+        cell_edges = np.abs(g.face_edges) * np.abs(g.cell_faces)
+        cell_edges.data[:] = 1.0
+
+        volumes = cell_edges * g.cell_volumes
+
+        return sps.diags(volumes / (h * h))
+
+    elif n_minus_k == 2 and g.dim == 2:
+        volumes = g.cell_nodes() * g.cell_volumes / (g.dim + 1)
+
+        return sps.diags(volumes)
+
+    elif n_minus_k == 2 and g.dim < 2:
+        return sps.csc_matrix((g.num_edges, g.num_edges))
+
+    elif n_minus_k == 3:
+        cell_nodes = np.abs(g.edge_nodes) * np.abs(g.face_edges) * np.abs(g.cell_faces)
+        cell_nodes.data[:] = 1.0
+
+        volumes = cell_nodes * g.cell_volumes / (g.dim + 1)
+
+        return sps.diags(volumes)
 
     else:
         raise NotImplementedError
