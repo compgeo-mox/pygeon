@@ -8,6 +8,10 @@ Acknowledgments:
     github.com/anabudisa/md_aux_precond developed by Ana Budiša and Wietse M. Boon.
 """
 
+"""
+TODO: Refactor to ridges and peaks
+"""
+
 
 def compute_geometry(gb):
     compute_edges(gb)
@@ -237,7 +241,8 @@ def _compute_edges_md(gb, e):
 def tag_edges(gb):
     for g in gb.get_grids():
         if g.dim == 2:
-            g.tags["tip_edges"] = g.tags["tip_nodes"]
+            fe_bool = g.face_edges.astype("bool")
+            g.tags["tip_edges"] = fe_bool * g.tags["tip_faces"]
         else:
             g.tags["tip_edges"] = np.zeros(g.num_edges, dtype=np.bool)
 
