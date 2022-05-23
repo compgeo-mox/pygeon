@@ -1,23 +1,46 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import networkx as nx
+import scipy.sparse as sps
+
 from itertools import combinations
 
 import porepy as pp
 
-class FracturesGraph():
+class Graph():
 
-    def __init__(self, network, **kwargs):
-        self.network = network.copy()
+    def __init__(self, **kwargs):
         self.graph = nx.Graph()
 
-        # set up a way of calling the elements in the graph
-        self.name = kwargs.get("graph_name", lambda n: str(n))
+        if kwargs.get("graph", None):
+            self.graph = kwargs.get("graph")
+        elif kwargs.get("network", None):
+            network = kwargs["network"].copy()
+            if isinstance(network, pp.FractureNetwork2d):
+                self._construct_2d(network)
+            else:
+                self._construct_3d(network)
+        elif kwargs.get("file_name", None):
+            self._from_file(kwargs.get("file_name"), kwargs.get("max_dim", 1))
 
-        if isinstance(self.network, pp.FractureNetwork2d):
-            self._construct_2d()
-        else:
-            self._construct_3d()
+    def line_graph(self):
+        # construct the line graph associated with the original graph
+        return Graph(graph=nx.line_graph(self.graph))
+
+    def set_attribute(self, nodes, attrs, name):
+        # create the appropriate data structure
+        data = {node: {name: attr} for node, attr in zip(nodes, attrs)}
+        # set the attributes to the graph and get in the ordered way
+        nx.set_node_attributes(self.graph, data)
+
+    def attr_to_array(self, label, default=0):
+        # get the attributes from the graph
+        data = self.graph.nodes(data=label, default=default)
+        # construct the rhs
+        return np.fromiter(dict(data).values(), dtype=float)
+
+    def edges_of_nodes(self, nodes):
+        # return the sorted edges of input nodes
+        return [tuple(sorted(e)) for e in self.graph.edges(np.atleast_1d(nodes))]
 
     def collapse(self, dim):
         to_remove = []
@@ -38,10 +61,21 @@ class FracturesGraph():
         # remove all the nodes with dim given
         self.graph.remove_nodes_from(to_remove)
 
-    def draw(self):
-        pos = nx.spring_layout(self.graph)
-        nx.draw(self.graph, pos)
-        nx.draw_networkx_labels(self.graph, pos)
+    def draw(self, graph = None, node_label = None, edge_attr = None):
+        import matplotlib.pyplot as plt
+        if graph is None:
+            graph = self.graph
+        pos = nx.spring_layout(graph)
+        nx.draw(graph, pos)
+
+        if node_label is None:
+            nx.draw_networkx_labels(graph, pos)
+        else:
+            data = graph.nodes(data = node_label, default = None)
+            nx.draw_networkx_labels(graph, pos, labels = dict(data))
+        if edge_attr is not None:
+            nx.draw_networkx_edge_labels(graph, pos, edge_labels = edge_attr)
+
         plt.show()
 
     def all_paths(self, start, end, cutoff=None):
@@ -109,7 +143,17 @@ class FracturesGraph():
         # secondary one
         return np.setdiff1d(sb, pb, assume_unique=True)
 
-    def _construct_2d(self):
+    def to_file(self, file_name):
+        # make sure that an edge is sorted by dimension
+        sort = lambda e: e if self.graph.nodes[e[0]]["dim"] > self.graph.nodes[e[1]]["dim"] else np.flip(e)
+        # collect all the edges
+        data = np.array([sort(e) for e in self.graph.edges])
+        # remap the values, we assume that are continuously divided into two separate sets
+        data -= np.amin(data, axis=0)
+        # save to file
+        np.savetxt(file_name, data, fmt="%i")
+
+    def _construct_2d(self, network):
         """Represent the fracture set as a graph, using the networkx data structure.
 
         By default the fractures will first be split into non-intersecting branches.
@@ -120,39 +164,27 @@ class FracturesGraph():
 
         """
         # split the fractures in branches
-        self.network = self.network.copy_with_split_intersections()
-        edges = self.network.edges
+        network = network.copy_with_split_intersections()
+        edges = network.edges
+
+        # define the intersection
+        fracs = np.arange(edges.shape[1]) + np.amax(edges) + 1
+
+        # create the edges
+        edgelist_0 = np.vstack((fracs, edges[0, :]))
+        edgelist_1 = np.vstack((fracs, edges[1, :]))
+
+        # create the graph
+        self.graph = nx.from_edgelist(np.hstack((edgelist_0, edgelist_1)).T)
 
         # attributes
-        attrs = {}
-
-        # first add the graph nodes from the fractures
-        for e in np.arange(edges.shape[1]):
-            node_name = self.name(e)
-            self.graph.add_node(node_name)
-            attrs[node_name] = {"dim": 1}
-
-        # then add the intersection of fractures as graph node and set the graph edges
-        for e in np.arange(edges.shape[1]):
-            for j in [0, 1]:
-                # check the connections of the current fracture with others at ending point j
-                _, conn = np.where(edges == edges[j, e])
-                # uniquify and sort the list of connecting fractures
-                conn = np.unique(conn)
-                # do not consider the special case when the same fracture is found
-                if np.any(conn != e):
-                    # add the intersection as graph node
-                    node_name = self.name(conn)
-                    self.graph.add_node(node_name)
-                    attrs[node_name] = {"dim": 0}
-
-                    # add the intersection -> fracture as graph edge
-                    self.graph.add_edge(self.name(e), self.name(conn))
+        attrs = {i: {"dim": 0} for i in np.unique(edges)}
+        attrs.update({i: {"dim": 1} for i in fracs})
 
         # set the attributes to the graph
         nx.set_node_attributes(self.graph, attrs)
 
-    def _construct_3d(self):
+    def _construct_3d(self, network):
         """Represent the fracture set as a graph, using the networkx data structure.
 
         By default the network will first calculate intersections.
@@ -164,19 +196,19 @@ class FracturesGraph():
 
         """
         # Find intersections between fractures
-        self.network.find_intersections()
+        network.find_intersections()
 
         # attributes
         attrs = {}
 
         # first add the graph nodes from the fractures
-        for e in np.arange(self.network.num_frac()):
+        for e in np.arange(network.num_frac()):
             node_name = self.name(e)
             self.graph.add_node(node_name)
             attrs[node_name] = {"dim": 2}
 
         # then add the intersection of fractures as graph node and set the graph edges
-        for first, second in zip(self.network.intersections["first"], self.network.intersections["second"]):
+        for first, second in zip(network.intersections["first"], network.intersections["second"]):
             node_name = self.name(np.sort([first.index, second.index]))
             # add the intersection as graph node
             self.graph.add_node(node_name)
@@ -185,6 +217,24 @@ class FracturesGraph():
             self.graph.add_edge(self.name(first.index), node_name)
             # add the intersection -> first fracture as graph edge
             self.graph.add_edge(self.name(second.index), node_name)
+
+        # set the attributes to the graph
+        nx.set_node_attributes(self.graph, attrs)
+
+    def _from_file(self, file_name, max_dim):
+        # read the data I, J from the file
+        I, J = np.loadtxt(file_name, dtype=int, unpack=True)
+
+        # create the adjacency matrix representation of a graph
+        frac_to_intersect = sps.coo_matrix((np.ones(I.size), (I, J)))
+        adj = sps.bmat([[None, frac_to_intersect], [frac_to_intersect.T, None]])
+
+        # creates a new graph from an adjacency matrix given as a SciPy sparse matrix
+        self.graph = nx.from_scipy_sparse_matrix(adj)
+
+        # set the attribute dim
+        attrs = {i: {"dim": max_dim} for i in I}
+        attrs.update({j + frac_to_intersect.shape[0]: {"dim": max_dim-1} for j in J})
 
         # set the attributes to the graph
         nx.set_node_attributes(self.graph, attrs)
