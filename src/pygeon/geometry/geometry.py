@@ -81,6 +81,7 @@ def _compute_edges_2d(g):
 
 def _compute_edges_3d(g):
     # Number of edges per face, assumed to be constant.
+    # TODO: Relax this assumption
     n_e = g.face_nodes[:, 0].nnz
 
     # Pre-allocation
