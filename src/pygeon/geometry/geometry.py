@@ -15,9 +15,10 @@ TODO: Refactor to ridges and peaks
 
 def compute_geometry(gb):
     compute_edges(gb)
-    assign_smtp_to_mg(gb)
-    assign_cell_faces_to_mg(gb)
-    tag_edges(gb)
+    if isinstance(gb, pp.GridBucket):
+        assign_smtp_to_mg(gb)
+        assign_cell_faces_to_mg(gb)
+        tag_edges(gb)
 
 
 def compute_edges(grid):
