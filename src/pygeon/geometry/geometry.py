@@ -14,7 +14,7 @@ def compute_geometry(gb):
     if isinstance(gb, pp.GridBucket):
         assign_smtp_to_mg(gb)
         assign_cell_faces_to_mg(gb)
-        tag_tip_ridges(gb)
+        tag_tips(gb)
 
 
 def compute_ridges(grid):
@@ -232,8 +232,9 @@ def _compute_ridges_md(gb, e):
 # ------------------------------------------------------------------------ #
 
 
-def tag_tip_ridges(gb):
+def tag_tips(gb):
     for g in gb.get_grids():
+        g.tags["tip_peaks"] = np.zeros(g.num_peaks, dtype=np.bool)
         if g.dim == 2:
             fr_bool = g.face_ridges.astype("bool")
             g.tags["tip_ridges"] = fr_bool * g.tags["tip_faces"]

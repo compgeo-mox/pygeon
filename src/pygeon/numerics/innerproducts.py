@@ -97,13 +97,13 @@ def _g_lumped_mass(g, discr, n_minus_k, data):
         return sps.diags(h_perp / g.face_areas)
 
     elif n_minus_k == 2 and g.dim == 3:
-        tangents = g.nodes * g.edge_nodes
+        tangents = g.nodes * g.ridge_peaks
         h = np.linalg.norm(tangents, axis=0)
 
-        cell_edges = np.abs(g.face_edges) * np.abs(g.cell_faces)
-        cell_edges.data[:] = 1.0
+        cell_ridges = np.abs(g.face_ridges) * np.abs(g.cell_faces)
+        cell_ridges.data[:] = 1.0
 
-        volumes = cell_edges * g.cell_volumes
+        volumes = cell_ridges * g.cell_volumes
 
         return sps.diags(volumes / (h * h))
 
@@ -113,10 +113,12 @@ def _g_lumped_mass(g, discr, n_minus_k, data):
         return sps.diags(volumes)
 
     elif n_minus_k == 2 and g.dim < 2:
-        return sps.csc_matrix((g.num_edges, g.num_edges))
+        return sps.csc_matrix((g.num_ridges, g.num_ridges))
 
     elif n_minus_k == 3:
-        cell_nodes = np.abs(g.edge_nodes) * np.abs(g.face_edges) * np.abs(g.cell_faces)
+        cell_nodes = (
+            np.abs(g.ridge_peaks) * np.abs(g.face_ridges) * np.abs(g.cell_faces)
+        )
         cell_nodes.data[:] = 1.0
 
         volumes = cell_nodes * g.cell_volumes / (g.dim + 1)
