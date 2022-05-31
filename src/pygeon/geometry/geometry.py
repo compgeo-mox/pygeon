@@ -2,6 +2,8 @@ import numpy as np
 import scipy.sparse as sps
 import porepy as pp
 
+from pygeon.utils.set_membership import match_coordinates
+
 """
 Acknowledgments:
     The functionalities related to the ridge computations are modified from
@@ -10,33 +12,67 @@ Acknowledgments:
 
 
 def compute_geometry(gb):
+    """
+    Compute the connectivities between mesh entities in a grid or grid bucket of codimension higher than one.
+    This function needs to be called before the operators from pygeon.numerics.differentials can be used.
+
+    The entities are referred to by their codimension:
+    0: "cells"
+    1: "faces"
+    2: "ridges"
+    3: "peaks"
+
+    Parameters:
+        gb (pp.Grid or pp.GridBucket): The grid (bucket).
+    """
+
     compute_ridges(gb)
 
+    # For grid buckets, we assign additional fields to the mortar grids.
     if isinstance(gb, pp.GridBucket):
         assign_smtp_to_mg(gb)
         assign_cell_faces_to_mg(gb)
         tag_tips(gb)
 
 
-def compute_ridges(grid):
-    if isinstance(grid, pp.Grid):
-        if grid.dim == 3:
-            _compute_ridges_3d(grid)
-        elif grid.dim == 2:
-            _compute_ridges_2d(grid)
-        elif grid.dim <= 1:
-            _compute_ridges_01d(grid)
+def compute_ridges(gb):
+    """
+    Assign the following attributes to the grid or to each grid in the grid bucket:
+    num_ridges: number of ridges
+    num_peaks: number of peaks
+    face_ridges: connectivity between each face and ridge
+    ridge_peaks: connectivity between each ridge and peak
 
-    if isinstance(grid, pp.GridBucket):
-        for g in grid.get_grids():
+    Parameters:
+        gb (pp.Grid or pp.GridBucket).
+    """
+
+    if isinstance(gb, pp.Grid):
+        if gb.dim == 3:
+            _compute_ridges_3d(gb)
+        elif gb.dim == 2:
+            _compute_ridges_2d(gb)
+        else:  # The grid is of dimension 0 or 1.
+            _compute_ridges_01d(gb)
+
+    elif isinstance(gb, pp.GridBucket):
+        for g in gb.get_grids():
             compute_ridges(g)
 
-        for e, d_e in grid.edges():
+        for e, d_e in gb.edges():
             if d_e["mortar_grid"].dim >= 1:
-                _compute_ridges_md(grid, e)
+                _compute_ridges_md(gb, e)
 
 
 def _compute_ridges_01d(g):
+    """
+    Assign zero as the number of ridges and peaks for a grid of dimension 0 or 1.
+    The connectivity matrices are zero with the appropriate dimensions.
+
+    Parameters:
+        g (pp.Grid): The grid.
+    """
+
     g.num_peaks = 0
     g.num_ridges = 0
     g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=np.int)
@@ -44,16 +80,26 @@ def _compute_ridges_01d(g):
 
 
 def _compute_ridges_2d(g):
-    # Ridges in 2D are nodes
+    """
+    Assign the number of ridges, number of peaks, and the connectivity matrices to a grid of dimension 2.
+
+    Parameters:
+        g (pp.Grid): The grid.
+    """
+
     g.num_peaks = 0
     g.num_ridges = g.num_nodes
+    g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=np.int)
 
+    # We compute the face tangential by mapping the face normal to a reference grid in the xy-plane,
+    # rotating locally, and mapping back.
     R = pp.map_geometry.project_plane_matrix(g.nodes)
-    rot = np.dot(
-        R.T, np.dot(np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]), R)
-    )
+    loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    rot = R.T @ loc_rot @ R
     face_tangential = rot.dot(g.face_normals)
 
+    # The face-ridge orientation is determined by whether the rotated normal
+    # coincides with the difference vector between the ridges.
     face_ridges = g.face_nodes.copy().astype(np.int)
 
     nodes = sps.find(g.face_nodes)[0]
@@ -66,11 +112,17 @@ def _compute_ridges_2d(g):
 
         face_ridges.data[loc] = [-sign, sign]
 
-    g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=np.int)
     g.face_ridges = face_ridges
 
 
 def _compute_ridges_3d(g):
+    """
+    Assign the number of ridges, number of peaks, and the connectivity matrices to a grid of dimension 3.
+
+    Parameters:
+        g (pp.Grid): The grid.
+    """
+
     g.num_peaks = g.num_nodes
 
     # Pre-allocation
@@ -116,8 +168,11 @@ def _compute_ridges_3d(g):
 
 def _compute_ridges_md(gb, e):
     """
-    Computes the mixed-dimensional face-ridge and ridge-peak connectivities
-    and saves them as properties of the mortar grid
+    Assign the face-ridge and ridge-peak connectivities to the mortar grid corresponding to an edge of a grid bucket.
+
+    Parameters:
+        gb (pp.GridBucket): The grid bucket.
+        e (Tuple[pp.Grid, pp.Grid]): An edge of gb.
     """
 
     # Find high-dim faces matching to low-dim cell
@@ -230,10 +285,14 @@ def _compute_ridges_md(gb, e):
     mg.ridge_peaks = ridge_peaks
 
 
-# ------------------------------------------------------------------------ #
-
-
 def tag_tips(gb):
+    """
+    Tag the peaks and ridges of a grid bucket that are located on fracture tips.
+
+    Parameters:
+        gb (pp.GridBucket): The grid bucket.
+    """
+
     for g in gb.get_grids():
         g.tags["tip_peaks"] = np.zeros(g.num_peaks, dtype=np.bool)
         if g.dim == 2:
@@ -243,42 +302,15 @@ def tag_tips(gb):
             g.tags["tip_ridges"] = np.zeros(g.num_ridges, dtype=np.bool)
 
 
-# ------------------------------------------------------------------------ #
-
-
-def assign_cell_faces_to_mg(gb):
-    for mg in gb.get_mortar_grids():
-        mg.cell_faces = -mg.signed_mortar_to_primary * mg.secondary_to_mortar_int()
-
-
-# ------------------------------------------------------------------------ #
-
-
-def match_coordinates(a, b):
-    """
-    Compare and match columns of a and b
-    return: ind s.t. b[ind] = a
-    NOTE: we assume that each column has a match
-          and a and b match in shape
-    TODO: Move this function to utils
-    """
-    n = a.shape[1]
-    ind = np.empty((n,), dtype=int)
-    for i in np.arange(n):
-        for j in np.arange(n):
-            if np.allclose(a[:, i], b[:, j]):
-                ind[i] = j
-                break
-
-    return ind
-
-
-# ------------------------------------------------------------------------ #
-
-
 def assign_smtp_to_mg(gb):
+    """
+    Assign the signed_mortar_to_primary mapping as an attribute to all mortar grids in a grid bucket.
+
+    Parameters:
+        gb (pp.GridBucket): The grid bucket.
+    """
+
     for e, d_e in gb.edges():
-        # Get adjacent grids and mortar_grid
         g = gb.nodes_of_edge(e)[1]
         mg = d_e["mortar_grid"]
 
@@ -286,27 +318,55 @@ def assign_smtp_to_mg(gb):
 
 
 def signed_mortar_to_primary(mg, g):
+    """
+    Compute the mapping from mortar cells to the faces of the primary grid that respects orientation.
+
+    Parameters:
+        mg (pp.MortarGrid): The mortar grid.
+        g (pp.Grid): The primary grid.
+
+    Returns:
+        sps.csc_matrix, num_primary_faces x num_mortar_cells.
+    """
+
     cells, faces, _ = sps.find(mg.primary_to_mortar_int())
     signs = [g.cell_faces.tocsr()[face, :].data[0] for face in faces]
 
     return sps.csc_matrix((signs, (faces, cells)), (g.num_faces, mg.num_cells))
 
 
-# ------------------------------------------------------------------------ #
+def assign_cell_faces_to_mg(gb):
+    """
+    Assign the connectivity between cells of the secondary grid and faces of the primary grid
+    for each mortar grid of a grid bucket.
+
+    Parameters:
+        gb (pp.GridBucket): The grid bucket.
+    """
+
+    for mg in gb.get_mortar_grids():
+        mg.cell_faces = -mg.signed_mortar_to_primary * mg.secondary_to_mortar_int()
 
 
-def tag_mesh_entities(gb):
+def tag_leafs(gb):
+    """
+    Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid in a grid bucket.
+    TODO: Use these tags to generate mixed-dimensional inner products.
+
+    Parameters:
+        gb (pp.GridBucket): The grid bucket.
+    """
 
     for g in gb.get_grids():
-        # Tag the faces that correspond to a codim 1 domain
+        # Tag the faces that correspond to a cell in a codim 1 domain
         g.tags["leaf_faces"] = g.tags["tip_faces"] + g.tags["fracture_faces"]
 
         # Initialize the other tags
         g.tags["leaf_ridges"] = np.zeros(g.num_ridges, dtype=bool)
         g.tags["leaf_peaks"] = np.zeros(g.num_peaks, dtype=bool)
 
-    # Tag the ridges that correspond to a codim 2 domain
     for e, d in gb.edges():
+        # Tag the ridges that correspond to a cell in a codim 2 domain
         mg = d["mortar_grid"]
 
         if mg.dim >= 1:
@@ -315,8 +375,8 @@ def tag_mesh_entities(gb):
                 abs(mg.face_ridges) * g_down.tags["leaf_faces"]
             ).astype("bool")
 
-    # Tag the peaks that correspond to a codim 3 domain
     for e, d in gb.edges():
+        # Tag the peaks that correspond to a codim 3 domain
         mg = d["mortar_grid"]
 
         if mg.dim >= 2:
