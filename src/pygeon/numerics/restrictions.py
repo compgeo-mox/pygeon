@@ -22,4 +22,4 @@ def remove_tip_dofs(gb, n_minus_k):
 
 
 def get_codim_str(n_minus_k):
-    return ["cells", "faces", "edges", "nodes"][n_minus_k]
+    return ["cells", "faces", "ridges", "peaks"][n_minus_k]

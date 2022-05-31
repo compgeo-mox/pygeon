@@ -1,4 +1,4 @@
-""" Module contains a unit tests to validate the computation of edges (co-dimension 2 from a cell).
+""" Module contains a unit tests to validate the computation of ridges (co-dimension 2 from a cell).
 """
 import unittest
 import numpy as np
@@ -7,39 +7,39 @@ import porepy as pp
 import pygeon as pg
 
 
-class GridEdgesTest(unittest.TestCase):
-    def test_grid_edges_0d(self):
-        # no edges are defined in 0d, we should obtain an empty map with correct size
+class GridRidgesTest(unittest.TestCase):
+    def test_grid_ridges_0d(self):
+        # no ridges are defined in 0d, we should obtain an empty map with correct size
         g = pp.PointGrid([0, 0, 0])
-        pg.compute_edges(g)
+        pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_edges == 0)
-        self.assertTrue(g.edge_nodes.shape == (0, 0))
-        self.assertTrue(g.face_edges.shape == (0, 0))
+        self.assertTrue(g.num_ridges == 0)
+        self.assertTrue(g.ridge_peaks.shape == (0, 0))
+        self.assertTrue(g.face_ridges.shape == (0, 0))
 
-    def test_grid_edges_1d(self):
-        # no edges are defined in 1d, we should obtain an empty map with correct size
+    def test_grid_ridges_1d(self):
+        # no ridges are defined in 1d, we should obtain an empty map with correct size
         N = 3
         g = pp.CartGrid(N)
-        pg.compute_edges(g)
+        pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_edges == 0)
-        self.assertTrue(g.edge_nodes.shape == (0, 0))
-        self.assertTrue(g.face_edges.shape == (0, N + 1))
+        self.assertTrue(g.num_ridges == 0)
+        self.assertTrue(g.ridge_peaks.shape == (0, 0))
+        self.assertTrue(g.face_ridges.shape == (0, N + 1))
 
-    def test_grid_edges_2d_cart(self):
+    def test_grid_ridges_2d_cart(self):
         N = 3
         g = pp.CartGrid([N] * 2)
         g.compute_geometry()
-        pg.compute_edges(g)
+        pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_edges == (N + 1) ** 2)
-        self.assertTrue(g.edge_nodes.shape == (0, (N + 1) ** 2))
+        self.assertTrue(g.num_ridges == (N + 1) ** 2)
+        self.assertTrue(g.ridge_peaks.shape == (0, (N + 1) ** 2))
 
-        known_face_edges = np.matrix(
+        known_face_ridges = np.matrix(
             [
                 [
                     -1,
@@ -460,12 +460,12 @@ class GridEdgesTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(np.all(g.face_edges.todense() == known_face_edges))
+        self.assertTrue(np.all(g.face_ridges.todense() == known_face_ridges))
 
 
 if __name__ == "__main__":
-    GridEdgesTest().test_grid_edges_0d()
-    GridEdgesTest().test_grid_edges_1d()
-    GridEdgesTest().test_grid_edges_2d_cart()
+    GridRidgesTest().test_grid_ridges_0d()
+    GridRidgesTest().test_grid_ridges_1d()
+    GridRidgesTest().test_grid_ridges_2d_cart()
 
     # unittest.main()
