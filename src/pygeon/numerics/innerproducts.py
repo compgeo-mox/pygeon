@@ -6,26 +6,26 @@ import porepy as pp
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def P0_mass(gb, discr, **kwargs):
-    return mass_matrix(gb, discr, 0, **kwargs)
+def cell_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, 0, discr, **kwargs)
 
 
-def hdiv_mass(gb, discr, **kwargs):
-    return mass_matrix(gb, discr, 1, **kwargs)
+def face_mass(gb, discr=pp.RT0, **kwargs):
+    return mass_matrix(gb, 1, discr, **kwargs)
 
 
-def hcurl_mass(gb, discr, **kwargs):
-    return mass_matrix(gb, discr, 2, **kwargs)
+def ridge_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, 2, discr, **kwargs)
 
 
-def hgrad_mass(gb, discr, **kwargs):
-    return mass_matrix(gb, discr, 3, **kwargs)
+def peak_mass(gb, discr, **kwargs):
+    return mass_matrix(gb, 3, discr, **kwargs)
 
 
 # ---------------------------------- General ---------------------------------- #
 
 
-def _g_mass_matrix(g, discr, n_minus_k, data):
+def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
     if n_minus_k == 0:
         return sps.diags(g.cell_volumes)
     elif n_minus_k == 1:
@@ -35,7 +35,7 @@ def _g_mass_matrix(g, discr, n_minus_k, data):
         raise NotImplementedError
 
 
-def mass_matrix(gb, discr, n_minus_k, local_matrix=_g_mass_matrix, return_bmat=False):
+def mass_matrix(gb, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=False):
 
     bmat_g = np.empty(
         shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), dtype=sps.spmatrix
@@ -45,7 +45,7 @@ def mass_matrix(gb, discr, n_minus_k, local_matrix=_g_mass_matrix, return_bmat=F
     # Local mass matrices
     for g, d_g in gb:
         nn_g = d_g["node_number"]
-        bmat_g[nn_g, nn_g] = local_matrix(g, discr, n_minus_k, d_g)
+        bmat_g[nn_g, nn_g] = local_matrix(g, n_minus_k, discr, d_g)
         bmat_mg[nn_g, nn_g] = sps.csc_matrix(bmat_g[nn_g, nn_g].shape)
 
     # Mortar contribution
@@ -75,11 +75,11 @@ def mass_matrix(gb, discr, n_minus_k, local_matrix=_g_mass_matrix, return_bmat=F
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_mass_matrix(grid, discr, n_minus_k):
-    return mass_matrix(grid, discr, n_minus_k, local_matrix=_g_lumped_mass)
+def lumped_mass_matrix(grid, n_minus_k, discr):
+    return mass_matrix(grid, n_minus_k, discr, local_matrix=_g_lumped_mass)
 
 
-def _g_lumped_mass(g, discr, n_minus_k, data):
+def _g_lumped_mass(g, n_minus_k, discr, data):
     if n_minus_k == 0:
         return _g_mass_matrix(g, None, n_minus_k, None)
 
