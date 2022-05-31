@@ -11,6 +11,7 @@ Acknowledgments:
 
 def compute_geometry(gb):
     compute_ridges(gb)
+
     if isinstance(gb, pp.GridBucket):
         assign_smtp_to_mg(gb)
         assign_cell_faces_to_mg(gb)
@@ -43,7 +44,7 @@ def _compute_ridges_01d(g):
 
 
 def _compute_ridges_2d(g):
-    # Edges in 2D are nodes
+    # Ridges in 2D are nodes
     g.num_peaks = 0
     g.num_ridges = g.num_nodes
 
@@ -72,22 +73,23 @@ def _compute_ridges_2d(g):
 def _compute_ridges_3d(g):
     g.num_peaks = g.num_nodes
 
-    # Number of ridges per face, assumed to be constant.
-    # TODO: Relax this assumption
-    n_r = g.face_nodes[:, 0].nnz
-
     # Pre-allocation
-    ridges = np.ndarray((2, n_r * g.num_faces), dtype=np.int)
+    ridges = np.ndarray((2, g.face_nodes.nnz), dtype=np.int)
 
+    fr_indptr = np.zeros(g.num_faces + 1, dtype=int)
     for face in np.arange(g.num_faces):
         # find indices for nodes of this face
         loc = g.face_nodes.indices[
             g.face_nodes.indptr[face] : g.face_nodes.indptr[face + 1]
         ]
+        fr_indptr[face + 1] = fr_indptr[face] + loc.size
+
         # Define ridges between each pair of nodes
         # assuming ordering in face_nodes is done
         # according to right-hand rule
-        ridges[:, n_r * face : n_r * (face + 1)] = np.row_stack((loc, np.roll(loc, -1)))
+        ridges[:, fr_indptr[face] : fr_indptr[face + 1]] = np.row_stack(
+            (loc, np.roll(loc, -1))
+        )
 
     # Save orientation of each ridge w.r.t. the face
     orientations = np.sign(ridges[1, :] - ridges[0, :])
@@ -109,8 +111,7 @@ def _compute_ridges_3d(g):
     # face_ridges(i, j) = +/- 1:
     # face j has ridge i with same/opposite orientation
     # with the orientation defined according to the right-hand rule
-    indptr = np.arange(0, indices.size + 1, n_r)
-    g.face_ridges = sps.csc_matrix((orientations, indices, indptr))
+    g.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr))
 
 
 def _compute_ridges_md(gb, e):
