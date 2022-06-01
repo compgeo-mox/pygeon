@@ -6,7 +6,7 @@ import porepy as pp
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def cell_mass(gb, discr, **kwargs):
+def cell_mass(gb, discr=None, **kwargs):
     return mass_matrix(gb, 0, discr, **kwargs)
 
 
@@ -14,11 +14,11 @@ def face_mass(gb, discr=pp.RT0, **kwargs):
     return mass_matrix(gb, 1, discr, **kwargs)
 
 
-def ridge_mass(gb, discr, **kwargs):
+def ridge_mass(gb, discr=None, **kwargs):
     return mass_matrix(gb, 2, discr, **kwargs)
 
 
-def peak_mass(gb, discr, **kwargs):
+def peak_mass(gb, discr=None, **kwargs):
     return mass_matrix(gb, 3, discr, **kwargs)
 
 
