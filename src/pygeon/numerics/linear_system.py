@@ -3,6 +3,19 @@ import scipy.sparse as sps
 
 
 class LinearSystem:
+    """
+    Class for storing a linear system consisting of the matrix and its
+    right-hand side. The class keeps track of essential boundary conditions
+    and reduces the system appropriately before solving.
+
+    Attributes:
+        A (sps.spmatrix, n x n): The left-hand side matrix
+        b (np.array-like): The right-hand side vector
+        is_dof (np.array, bool): Determines whether an entry is a degree of freedom.
+            If False then it will be overwritten by an essential bc.
+        ess_vals (np.array, (n, )): The values of the essential bcs.
+    """
+
     def __init__(self, A, b=None) -> None:
         self.A = A
 
@@ -35,5 +48,15 @@ class LinearSystem:
 
 
 def create_restriction(keep_dof):
+    """
+    Helper function to create the restriction mapping
+
+    Parameters:
+        keep_dof (np.array, bool): True for the dofs of the system,
+            False for the overwritten values
+
+    Returns:
+        sps.csr_matrix: the restriction mapping.
+    """
     R = sps.diags(keep_dof, dtype=np.int).tocsr()
     return R[R.indices, :]

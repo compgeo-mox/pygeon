@@ -7,18 +7,62 @@ import porepy as pp
 
 
 def cell_mass(gb, discr=None, **kwargs):
+    """
+    Compute the mass matrix for the piecewise constants on a grid bucket
+
+    Parameters:
+        gb (pp.GridBucket).
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_cells x num_cells
+    """
+
     return mass_matrix(gb, 0, discr, **kwargs)
 
 
 def face_mass(gb, discr=pp.RT0, **kwargs):
+    """
+    Compute the mass matrix for discretization defined on the faces of a grid bucket
+
+    Parameters:
+        gb (pp.GridBucket).
+        discr (pp.RT0 or pp.MVEM).
+
+    Returns:
+        sps.csc_matrix, num_faces x num_faces
+    """
+
     return mass_matrix(gb, 1, discr, **kwargs)
 
 
 def ridge_mass(gb, discr=None, **kwargs):
+    """
+    Compute the mass matrix for discretization defined on the ridges of a grid bucket
+
+    Parameters:
+        gb (pp.GridBucket).
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_ridges x num_ridges
+    """
+
     return mass_matrix(gb, 2, discr, **kwargs)
 
 
 def peak_mass(gb, discr=None, **kwargs):
+    """
+    Compute the mass matrix for discretization defined on the peaks of a grid bucket
+
+    Parameters:
+        gb (pp.GridBucket).
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_peaks x num_peaks
+    """
+
     return mass_matrix(gb, 3, discr, **kwargs)
 
 
@@ -26,6 +70,19 @@ def peak_mass(gb, discr=None, **kwargs):
 
 
 def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
+    """
+    Compute the mass matrix on a single grid
+
+    Parameters:
+        g (pp.Grid).
+        n_minus_k (int): The difference between the dimension and the order of the differential.
+        discr (pp discretization object).
+        data (dict): the data object associated to the grid.
+
+    Returns:
+        sps.csc_matrix, num_dofs x num_dofs
+    """
+
     if n_minus_k == 0:
         return sps.diags(g.cell_volumes)
     elif n_minus_k == 1:
@@ -36,6 +93,21 @@ def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
 
 
 def mass_matrix(gb, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=False):
+    """
+    Compute the mass matrix on a grid bucket
+
+    Parameters:
+        gb (pp.GridBucket).
+        n_minus_k (int): The difference between the dimension and the order of the differential.
+        discr (pp discretization object).
+        data (dict): the data object associated to the grid.
+        local_matrix (function): function that generates the local mass matrix on a grid
+        return_bmat (bool): Set to True to return the unassembled block matrix
+
+    Returns:
+        sps.csc_matrix, num_dofs x num_dofs
+        (if return_bmat) np.array of sps.spmatrices
+    """
 
     bmat_g = np.empty(
         shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), dtype=sps.spmatrix
@@ -75,11 +147,37 @@ def mass_matrix(gb, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=F
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_mass_matrix(grid, n_minus_k, discr):
-    return mass_matrix(grid, n_minus_k, discr, local_matrix=_g_lumped_mass)
+def lumped_mass_matrix(gb, n_minus_k, discr):
+    """
+    Compute the mass-lumped mass matrix on a grid bucket
+
+    Parameters:
+        gb (pp.GridBucket).
+        n_minus_k (int): The difference between the dimension and the order of the differential.
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_dofs x num_dofs
+    """
+
+    return mass_matrix(gb, n_minus_k, discr, local_matrix=_g_lumped_mass)
 
 
 def _g_lumped_mass(g, n_minus_k, discr, data):
+    """
+    Compute the mass-lumped mass matrix on a single grid.
+    For k = 1, this is the matrix that leads to a TPFA discretization.
+
+    Parameters:
+        gb (pp.GridBucket).
+        n_minus_k (int): The difference between the dimension and the order of the differential.
+        discr (pp discretization object).
+        data (dict): the data object associated to the grid.
+
+    Returns:
+        sps.csc_matrix, num_dofs x num_dofs
+    """
+
     if n_minus_k == 0:
         return _g_mass_matrix(g, None, n_minus_k, None)
 

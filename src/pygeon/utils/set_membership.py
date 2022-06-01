@@ -3,11 +3,16 @@ import numpy as np
 
 def match_coordinates(a, b):
     """
-    Compare and match columns of a and b
-    We assume that each column has a match
-    and a and b match in shape
+    Compare and match columns of a and b.
+    We assume that each column has a match.
+    NOTE: This code is not optimized so only use this for "small" matrices.
 
-    return: ind s.t. b[ind] = a
+    Parameters:
+        a (np.array, m x n)
+        b (np.array, m x n)
+
+    return:
+        np.array, (n, ): The indices ind such that b[:, ind] = a
 
     """
     n = a.shape[1]
