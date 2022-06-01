@@ -15,11 +15,11 @@ class GridRidgesTest(unittest.TestCase):
         pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_ridges == 0)
-        self.assertTrue(g.num_peaks == 0)
+        self.assertEqual(g.num_ridges, 0)
+        self.assertEqual(g.num_peaks, 0)
 
-        self.assertTrue(g.ridge_peaks.shape == (0, 0))
-        self.assertTrue(g.face_ridges.shape == (0, 0))
+        self.assertEqual(g.ridge_peaks.shape, (0, 0))
+        self.assertEqual(g.face_ridges.shape, (0, 0))
 
     def test_grid_1d(self):
         # no ridges or peaks are defined in 1d, we should obtain an empty map with correct size
@@ -28,11 +28,11 @@ class GridRidgesTest(unittest.TestCase):
         pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_ridges == 0)
-        self.assertTrue(g.num_peaks == 0)
+        self.assertEqual(g.num_ridges, 0)
+        self.assertEqual(g.num_peaks, 0)
 
-        self.assertTrue(g.ridge_peaks.shape == (0, 0))
-        self.assertTrue(g.face_ridges.shape == (0, N + 1))
+        self.assertEqual(g.ridge_peaks.shape, (0, 0))
+        self.assertEqual(g.face_ridges.shape, (0, N + 1))
 
     def test_grid_2d_cart(self):
         N = 2
@@ -41,11 +41,11 @@ class GridRidgesTest(unittest.TestCase):
         pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_ridges == (N + 1) ** 2)
-        self.assertTrue(g.num_peaks == 0)
+        self.assertEqual(g.num_ridges, (N + 1) ** 2)
+        self.assertEqual(g.num_peaks, 0)
 
-        self.assertTrue(g.ridge_peaks.shape == (0, (N + 1) ** 2))
-        self.assertTrue((g.face_ridges - self.known_fr_2d_cart()).nnz == 0)
+        self.assertEqual(g.ridge_peaks.shape, (0, (N + 1) ** 2))
+        self.assertEqual((g.face_ridges - self.known_fr_2d_cart()).nnz, 0)
 
     def test_grid_2d_tris(self):
         N = 2
@@ -54,11 +54,11 @@ class GridRidgesTest(unittest.TestCase):
         pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_ridges == (N + 1) ** 2)
-        self.assertTrue(g.num_peaks == 0)
+        self.assertEqual(g.num_ridges, (N + 1) ** 2)
+        self.assertEqual(g.num_peaks, 0)
 
-        self.assertTrue(g.ridge_peaks.shape == (0, (N + 1) ** 2))
-        self.assertTrue((g.face_ridges - self.known_fr_2d_tris()).nnz == 0)
+        self.assertEqual(g.ridge_peaks.shape, (0, (N + 1) ** 2))
+        self.assertEqual((g.face_ridges - self.known_fr_2d_tris()).nnz, 0)
 
     def test_grid_3d_cart(self):
         N = 2
@@ -67,11 +67,11 @@ class GridRidgesTest(unittest.TestCase):
         pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_ridges == 3 * N * (N + 1) ** 2)
-        self.assertTrue(g.num_peaks == (N + 1) ** 3)
+        self.assertEqual(g.num_ridges, 3 * N * (N + 1) ** 2)
+        self.assertEqual(g.num_peaks, (N + 1) ** 3)
 
-        self.assertTrue((g.ridge_peaks - self.known_rp_3d_cart()).nnz == 0)
-        self.assertTrue((g.face_ridges - self.known_fr_3d_cart()).nnz == 0)
+        self.assertEqual((g.ridge_peaks - self.known_rp_3d_cart()).nnz, 0)
+        self.assertEqual((g.face_ridges - self.known_fr_3d_cart()).nnz, 0)
 
     def test_grid_3d_tet(self):
         N = 1
@@ -80,11 +80,11 @@ class GridRidgesTest(unittest.TestCase):
         pg.compute_ridges(g)
 
         # do the checks
-        self.assertTrue(g.num_ridges == 7 * N**3 + 9 * N**2 + 3 * N)
-        self.assertTrue(g.num_peaks == (N + 1) ** 3)
+        self.assertEqual(g.num_ridges, 7 * N**3 + 9 * N**2 + 3 * N)
+        self.assertEqual(g.num_peaks, (N + 1) ** 3)
 
-        self.assertTrue((g.ridge_peaks - self.known_rp_3d_tet()).nnz == 0)
-        self.assertTrue((g.face_ridges - self.known_fr_3d_tet()).nnz == 0)
+        self.assertEqual((g.ridge_peaks - self.known_rp_3d_tet()).nnz, 0)
+        self.assertEqual((g.face_ridges - self.known_fr_3d_tet()).nnz, 0)
 
     def test_grid_bucket_2d(self):
         def setup_problem():
@@ -109,8 +109,8 @@ class GridRidgesTest(unittest.TestCase):
 
         mg = gb.get_mortar_grids()[0]
 
-        self.assertTrue(mg.ridge_peaks.shape == (0, 0))
-        self.assertTrue((mg.face_ridges - known_face_ridges()).nnz == 0)
+        self.assertEqual(mg.ridge_peaks.shape, (0, 0))
+        self.assertEqual((mg.face_ridges - known_face_ridges()).nnz, 0)
 
     def test_grid_bucket_3d(self):
         def setup_problem():
@@ -145,8 +145,8 @@ class GridRidgesTest(unittest.TestCase):
 
         mg = gb.get_mortar_grids()[0]
 
-        self.assertTrue((mg.ridge_peaks - known_ridge_peaks()).nnz == 0)
-        self.assertTrue((mg.face_ridges - known_face_ridges()).nnz == 0)
+        self.assertEqual((mg.ridge_peaks - known_ridge_peaks()).nnz, 0)
+        self.assertEqual((mg.face_ridges - known_face_ridges()).nnz, 0)
 
     def test_grid_bucket_3d_itsc(self):
         def setup_problem():
@@ -184,7 +184,7 @@ class GridRidgesTest(unittest.TestCase):
 
         for mg in gb.get_mortar_grids():
             if mg.dim == 1:
-                self.assertTrue(mg.ridge_peaks.shape == (0, 0))
+                self.assertEqual(mg.ridge_peaks.shape, (0, 0))
                 self.assertTrue(np.all(mg.face_ridges.todense() == known_face_ridges()))
 
     def known_fr_2d_cart(self):
