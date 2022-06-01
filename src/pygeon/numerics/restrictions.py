@@ -24,7 +24,7 @@ def zero_tip_dofs(gb, n_minus_k):
     if len(is_tip_dof) > 0:
         is_tip_dof = np.concatenate(is_tip_dof)
 
-    return sps.diags(np.logical_not(is_tip_dof), dtype=np.int)
+    return sps.diags(np.logical_not(is_tip_dof), dtype=int)
 
 
 def remove_tip_dofs(gb, n_minus_k):
