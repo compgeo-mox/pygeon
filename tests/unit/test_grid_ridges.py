@@ -164,7 +164,7 @@ class GridRidgesTest(unittest.TestCase):
             return network.mesh(mesh_args)
 
         def known_face_ridges():
-            return np.matrix(
+            return np.array(
                 [
                     [0, 0],
                     [0, 0],
