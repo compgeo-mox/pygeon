@@ -75,8 +75,8 @@ def _compute_ridges_01d(g):
 
     g.num_peaks = 0
     g.num_ridges = 0
-    g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=np.int)
-    g.face_ridges = sps.csc_matrix((g.num_ridges, g.num_faces), dtype=np.int)
+    g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=int)
+    g.face_ridges = sps.csc_matrix((g.num_ridges, g.num_faces), dtype=int)
 
 
 def _compute_ridges_2d(g):
@@ -89,7 +89,7 @@ def _compute_ridges_2d(g):
 
     g.num_peaks = 0
     g.num_ridges = g.num_nodes
-    g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=np.int)
+    g.ridge_peaks = sps.csc_matrix((g.num_peaks, g.num_ridges), dtype=int)
 
     # We compute the face tangential by mapping the face normal to a reference grid in the xy-plane,
     # rotating locally, and mapping back.
@@ -100,7 +100,7 @@ def _compute_ridges_2d(g):
 
     # The face-ridge orientation is determined by whether the rotated normal
     # coincides with the difference vector between the ridges.
-    face_ridges = g.face_nodes.copy().astype(np.int)
+    face_ridges = g.face_nodes.copy().astype(int)
 
     nodes = sps.find(g.face_nodes)[0]
     for face in np.arange(g.num_faces):
@@ -126,7 +126,7 @@ def _compute_ridges_3d(g):
     g.num_peaks = g.num_nodes
 
     # Pre-allocation
-    ridges = np.ndarray((2, g.face_nodes.nnz), dtype=np.int)
+    ridges = np.ndarray((2, g.face_nodes.nnz), dtype=int)
 
     fr_indptr = np.zeros(g.num_faces + 1, dtype=int)
     for face in np.arange(g.num_faces):
