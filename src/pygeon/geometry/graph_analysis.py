@@ -1,6 +1,8 @@
 import numpy as np
 import networkx as nx
 import scipy.sparse as sps
+import gmsh
+import meshio
 
 from itertools import combinations
 
@@ -20,13 +22,15 @@ class Graph():
             else:
                 self._construct_3d(network)
         elif kwargs.get("file_name", None):
-            self._from_file(kwargs.get("file_name"), kwargs.get("max_dim", 1))
+            self._from_file(**kwargs)
 
     def line_graph(self):
         # construct the line graph associated with the original graph
         return Graph(graph=nx.line_graph(self.graph))
 
-    def set_attribute(self, nodes, attrs, name):
+    def set_attribute(self, name, attrs, nodes=None):
+        if nodes is None:
+            nodes = self.graph.nodes
         # create the appropriate data structure
         data = {node: {name: attr} for node, attr in zip(nodes, attrs)}
         # set the attributes to the graph and get in the ordered way
@@ -60,6 +64,9 @@ class Graph():
 
         # remove all the nodes with dim given
         self.graph.remove_nodes_from(to_remove)
+
+    def nodes_with_attributes(self, name, value):
+        return np.array([n for n in self.graph.nodes if self.graph.nodes[n][name] == value])
 
     def draw(self, graph = None, node_label = None, edge_attr = None):
         import matplotlib.pyplot as plt
@@ -153,6 +160,42 @@ class Graph():
         # save to file
         np.savetxt(file_name, data, fmt="%i")
 
+    def to_vtk(self, file_name, info=["dim"], radius=0.1, cylinder_radius=0.025):
+        # create a single sphere grid
+        sphere_cells, sphere_pts = self._sphere()
+
+        # add all the nodes as sphere
+        cells, pts, cell_data = [], [], {i: [] for i in info}
+        num_cells = 0
+        for n, d in self.graph.nodes(data=True):
+            # add the cells, pts and cell_data
+            cells.append(sphere_cells + num_cells)
+            num_cells += sphere_pts.shape[0]
+            pts.append(radius*sphere_pts + d["centre"])
+            [cell_data[i].append(d[i]*np.ones(sphere_cells.shape[0])) for i in info]
+
+        # create a single cylinder grid
+        #cylinder_cells, cylinder_pts = self._cylinder()
+        #for n0, n1 in self.graph.edges():
+        #    # add the cells, pts and (zero) cell_data
+        #    cells.append(cylinder_cells + num_cells)
+        #    num_cells += cylinder_pts.shape[0]
+
+        #    n0_centre = self.graph.nodes[n0]["centre"]
+        #    n1_centre = self.graph.nodes[n1]["centre"]
+        #    S = np.array([[cylinder_radius, 0, 0], [0, cylinder_radius, 0], [0, 0, n1_centre[2] - n0_centre[2]]])
+        #    pts_loc = np.dot(S, cylinder_pts.T).T + n0_centre #############
+        #    pts.append(pts_loc)
+        #    [cell_data[i].append(np.zeros(cylinder_cells.shape[0])) for i in info]
+
+        # group the cells and vertices
+        cells = [("triangle", np.vstack(cells))]
+        cell_data = {i: [np.hstack(v)] for i, v in cell_data.items()}
+
+        # create the meshio grid
+        meshio_grid = meshio.Mesh(np.vstack(pts), cells, cell_data=cell_data)
+        meshio.write(file_name, meshio_grid, binary=True)
+
     def _construct_2d(self, network):
         """Represent the fracture set as a graph, using the networkx data structure.
 
@@ -221,20 +264,83 @@ class Graph():
         # set the attributes to the graph
         nx.set_node_attributes(self.graph, attrs)
 
-    def _from_file(self, file_name, max_dim):
+    def _from_file(self, **kwargs):
         # read the data I, J from the file
-        I, J = np.loadtxt(file_name, dtype=int, unpack=True)
+        #frac, intersect = np.loadtxt(kwargs.get("file_name"), dtype=int, unpack=True)
+        intersect, frac = np.loadtxt(kwargs["file_name"], dtype=int, unpack=True)
+
+        # shift the index if requested
+        frac -= kwargs.get("index_from", 0)
+        intersect -= kwargs.get("index_from", 0)
+
+        # if the shape of the network is given read it otherwise guess it
+        if kwargs.get("shape", None) is not None:
+            shape = np.loadtxt(kwargs["shape"], dtype=int)
+        else:
+            shape = np.array([np.amax(frac), np.amax(intersect)]) + 1
 
         # create the adjacency matrix representation of a graph
-        frac_to_intersect = sps.coo_matrix((np.ones(I.size), (I, J)))
+        frac_to_intersect = sps.coo_matrix((np.ones(frac.size), (frac, intersect)), shape=shape)
         adj = sps.bmat([[None, frac_to_intersect], [frac_to_intersect.T, None]])
 
         # creates a new graph from an adjacency matrix given as a SciPy sparse matrix
         self.graph = nx.from_scipy_sparse_matrix(adj)
 
         # set the attribute dim
-        attrs = {i: {"dim": max_dim} for i in I}
-        attrs.update({j + frac_to_intersect.shape[0]: {"dim": max_dim-1} for j in J})
+        max_dim = kwargs.get("max_dim", 2)
+        num_frac = frac_to_intersect.shape[0]
+        attrs = {i: {"dim": max_dim, "boundary_flag": 0} for i in np.unique(frac)}
+        attrs.update({j + num_frac: {"dim": max_dim-1, "boundary_flag": 0} for j in np.unique(intersect)})
+
+        # load the centres if present and add them to be attributes
+        if kwargs.get("centres", None) is not None:
+            for idf, fc in enumerate(np.loadtxt(kwargs["centres"][0])):
+                attrs[idf]["centre"] = fc
+            for idi, ic, in enumerate(np.loadtxt(kwargs["centres"][1])):
+                attrs[idi + num_frac]["centre"] = ic
+
+        # read the boundary flags: left 1, right 2, top 3, bottom 4, front 5, back 6, internal 0
+        if kwargs.get("boundary_flag", None) is not None:
+            for idi, flag in enumerate(np.loadtxt(kwargs["boundary_flag"], dtype=int)):
+                attrs[idi + num_frac]["boundary_flag"] = flag
 
         # set the attributes to the graph
         nx.set_node_attributes(self.graph, attrs)
+
+    def _sphere(self):
+        gmsh.initialize()
+        gmsh.option.setNumber("General.Terminal", 0)
+
+        # create a sphere object
+        model = gmsh.model()
+        model.occ.addSphere(0, 0, 0, 1)
+
+        # generate mesh
+        model.occ.synchronize()
+        model.mesh.generate(2)
+
+        # extract mesh data
+        _, _, cells = model.mesh.getElements(dim=2)
+        _, pts, _ = model.mesh.getNodes()
+        gmsh.finalize()
+
+        return cells[0].reshape(-1, 3) - 1, pts.reshape(-1, 3)
+
+    def _cylinder(self):
+        gmsh.initialize()
+        gmsh.option.setNumber("General.Terminal", 0)
+
+        # create a sphere object
+        model = gmsh.model()
+        model.occ.addCylinder(0, 0, 0, 0, 0, 1, 1)
+
+        # generate mesh
+        model.occ.synchronize()
+        model.mesh.generate(2)
+
+        # extract mesh data
+        _, _, cells = model.mesh.getElements(dim=2)
+        _, pts, _ = model.mesh.getNodes()
+        gmsh.finalize()
+
+        return cells[0].reshape(-1, 3) - 1, pts.reshape(-1, 3)
