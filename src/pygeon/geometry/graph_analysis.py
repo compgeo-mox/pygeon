@@ -24,6 +24,12 @@ class Graph():
         elif kwargs.get("file_name", None):
             self._from_file(**kwargs)
 
+    def num_nodes(self):
+        return self.graph.number_of_nodes()
+
+    def num_edges(self):
+        return self.graph.number_of_edges()
+
     def line_graph(self):
         # construct the line graph associated with the original graph
         return Graph(graph=nx.line_graph(self.graph))
