@@ -23,6 +23,9 @@ class LinearSystem:
             b = np.zeros(A.shape[0])
         self.b = b
 
+        self.reset_bc()
+
+    def reset_bc(self):
         self.is_dof = np.ones(self.b.size, dtype=bool)
         self.ess_vals = np.zeros(self.b.size)
 
