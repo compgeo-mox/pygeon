@@ -5,7 +5,7 @@ import scipy.sparse as sps
 
 def div(g):
     div_mat = nx.incidence_matrix(g.graph, oriented=True)
-    return sps.sparse_matrix(div_mat)
+    return sps.csr_matrix(div_mat)
 
 
 def grad(g):
