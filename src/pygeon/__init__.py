@@ -1,4 +1,6 @@
 from pygeon.geometry.geometry import *
+import pygeon.geometry.transformation as transformation
+
 from pygeon.grids.grid import Grid
 
 from pygeon.numerics.differentials import grad, curl, div
