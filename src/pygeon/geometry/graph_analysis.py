@@ -1,34 +1,83 @@
 import numpy as np
 import networkx as nx
 import scipy.sparse as sps
-import gmsh
-import meshio
 
 from itertools import combinations
 
 import porepy as pp
+import pygeon as pg
 
-class Graph():
+class Graph(pp.Grid):
 
-    def __init__(self, **kwargs):
-        self.graph = nx.Graph()
+    def __init__(self, graph):
+        self.graph = graph
 
-        if kwargs.get("graph", None):
-            self.graph = kwargs.get("graph")
-        elif kwargs.get("network", None):
-            network = kwargs["network"].copy()
-            if isinstance(network, pp.FractureNetwork2d):
-                self._construct_2d(network)
-            else:
-                self._construct_3d(network)
-        elif kwargs.get("file_name", None):
-            self._from_file(**kwargs)
+        self.dim = 2
+        self.nodes = np.vstack([c for _, c in self.graph.nodes(data="centre")]).T
 
-    def num_nodes(self):
-        return self.graph.number_of_nodes()
+        # create the relation cell faces
+        self.cell_faces = sps.csc_matrix(nx.incidence_matrix(self.graph, oriented=True).T)
 
-    def num_edges(self):
-        return self.graph.number_of_edges()
+        self.num_cells = self.cell_faces.shape[1]
+        self.num_faces = self.cell_faces.shape[0]
+
+        self.initiate_face_tags()
+        self.update_boundary_face_tag()
+
+    def compute_geometry(self):
+        """Compute geometric quantities for the graph interpreted as a grid.
+
+        This method initializes class variables describing the graph as grid
+        geometry, see class documentation for details.
+
+        The method could have been called from the constructor, however,
+        in cases where the grid is modified after the initial construction (
+        say, grid refinement), this may lead to costly, unnecessary
+        computations.
+        """
+
+        self._compute_ridges()
+
+        self._tag_tips()
+
+    def _compute_ridges(self):
+        cb = nx.cycle_basis(self.graph)
+
+        incidence = np.abs(self.cell_faces.T)
+
+        n = np.concatenate(cb).size
+        I = np.zeros(n, dtype=int)
+        J = np.zeros(n, dtype=int)
+        V = np.zeros(n)
+
+        ind = 0
+        for (i_c, cycle) in enumerate(cb):
+            for i in np.arange(len(cycle)):
+                start = cycle[i - 1]
+                stop = cycle[i]
+
+                vec = np.zeros(self.graph.number_of_nodes())
+                vec[start] = 1
+                vec[stop] = 1
+
+                out = incidence.T * vec
+
+                I[ind] = i_c
+                J[ind] = np.where(out == 2)[0]
+                V[ind] = np.sign(stop - start)
+
+                ind += 1
+
+        self.num_ridges = len(cb)
+        self.face_ridges = sps.csc_matrix((V, (I, J)), shape=(self.num_ridges, self.num_faces))
+
+    def _tag_tips(self):
+        """
+        Tag the peaks and ridges of a grid bucket that are located on fracture tips.
+
+        """
+
+        self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=np.bool)
 
     def line_graph(self):
         # construct the line graph associated with the original graph
@@ -166,187 +215,4 @@ class Graph():
         # save to file
         np.savetxt(file_name, data, fmt="%i")
 
-    def to_vtk(self, file_name, info=["dim"], radius=0.1, cylinder_radius=0.025):
-        # create a single sphere grid
-        sphere_cells, sphere_pts = self._sphere()
 
-        # add all the nodes as sphere
-        cells, pts, cell_data = [], [], {i: [] for i in info}
-        num_cells = 0
-        for n, d in self.graph.nodes(data=True):
-            # add the cells, pts and cell_data
-            cells.append(sphere_cells + num_cells)
-            num_cells += sphere_pts.shape[0]
-            pts.append(radius*sphere_pts + d["centre"])
-            [cell_data[i].append(d[i]*np.ones(sphere_cells.shape[0])) for i in info]
-
-        # create a single cylinder grid
-        #cylinder_cells, cylinder_pts = self._cylinder()
-        #for n0, n1 in self.graph.edges():
-        #    # add the cells, pts and (zero) cell_data
-        #    cells.append(cylinder_cells + num_cells)
-        #    num_cells += cylinder_pts.shape[0]
-
-        #    n0_centre = self.graph.nodes[n0]["centre"]
-        #    n1_centre = self.graph.nodes[n1]["centre"]
-        #    S = np.array([[cylinder_radius, 0, 0], [0, cylinder_radius, 0], [0, 0, n1_centre[2] - n0_centre[2]]])
-        #    pts_loc = np.dot(S, cylinder_pts.T).T + n0_centre #############
-        #    pts.append(pts_loc)
-        #    [cell_data[i].append(np.zeros(cylinder_cells.shape[0])) for i in info]
-
-        # group the cells and vertices
-        cells = [("triangle", np.vstack(cells))]
-        cell_data = {i: [np.hstack(v)] for i, v in cell_data.items()}
-
-        # create the meshio grid
-        meshio_grid = meshio.Mesh(np.vstack(pts), cells, cell_data=cell_data)
-        meshio.write(file_name, meshio_grid, binary=True)
-
-    def _construct_2d(self, network):
-        """Represent the fracture set as a graph, using the networkx data structure.
-
-        By default the fractures will first be split into non-intersecting branches.
-        The former have graph id the fracture id while the latter the ordered list of
-        fractures involved in the intersection. Both labels are converted into string.
-        Each fracture is a graph node as well as each fracture intersection.
-        The graph edges between two graph nodes are the connections (mortars).
-
-        """
-        # split the fractures in branches
-        network = network.copy_with_split_intersections()
-        edges = network.edges
-
-        # define the intersection
-        fracs = np.arange(edges.shape[1]) + np.amax(edges) + 1
-
-        # create the edges
-        edgelist_0 = np.vstack((fracs, edges[0, :]))
-        edgelist_1 = np.vstack((fracs, edges[1, :]))
-
-        # create the graph
-        self.graph = nx.from_edgelist(np.hstack((edgelist_0, edgelist_1)).T)
-
-        # attributes
-        attrs = {i: {"dim": 0} for i in np.unique(edges)}
-        attrs.update({i: {"dim": 1} for i in fracs})
-
-        # set the attributes to the graph
-        nx.set_node_attributes(self.graph, attrs)
-
-    def _construct_3d(self, network):
-        """Represent the fracture set as a graph, using the networkx data structure.
-
-        By default the network will first calculate intersections.
-        Each fracture is a graph node as well as each fracture intersection.
-        The former have graph id the fracture id while the latter the ordered list of
-        fractures involved in the intersection. Both labels are converted into string.
-        Intersections of fracture intersections (0d points) are not represented.
-        The graph edges between two graph nodes are the connections (mortars).
-
-        """
-        # Find intersections between fractures
-        network.find_intersections()
-
-        # attributes
-        attrs = {}
-
-        # first add the graph nodes from the fractures
-        for e in np.arange(network.num_frac()):
-            node_name = self.name(e)
-            self.graph.add_node(node_name)
-            attrs[node_name] = {"dim": 2}
-
-        # then add the intersection of fractures as graph node and set the graph edges
-        for first, second in zip(network.intersections["first"], network.intersections["second"]):
-            node_name = self.name(np.sort([first.index, second.index]))
-            # add the intersection as graph node
-            self.graph.add_node(node_name)
-            attrs[node_name] = {"dim": 1}
-            # add the intersection -> first fracture as graph edge
-            self.graph.add_edge(self.name(first.index), node_name)
-            # add the intersection -> first fracture as graph edge
-            self.graph.add_edge(self.name(second.index), node_name)
-
-        # set the attributes to the graph
-        nx.set_node_attributes(self.graph, attrs)
-
-    def _from_file(self, **kwargs):
-        # read the data I, J from the file
-        #frac, intersect = np.loadtxt(kwargs.get("file_name"), dtype=int, unpack=True)
-        intersect, frac = np.loadtxt(kwargs["file_name"], dtype=int, unpack=True)
-
-        # shift the index if requested
-        frac -= kwargs.get("index_from", 0)
-        intersect -= kwargs.get("index_from", 0)
-
-        # if the shape of the network is given read it otherwise guess it
-        if kwargs.get("shape", None) is not None:
-            shape = np.loadtxt(kwargs["shape"], dtype=int)
-        else:
-            shape = np.array([np.amax(frac), np.amax(intersect)]) + 1
-
-        # create the adjacency matrix representation of a graph
-        frac_to_intersect = sps.coo_matrix((np.ones(frac.size), (frac, intersect)), shape=shape)
-        adj = sps.bmat([[None, frac_to_intersect], [frac_to_intersect.T, None]])
-
-        # creates a new graph from an adjacency matrix given as a SciPy sparse matrix
-        self.graph = nx.from_scipy_sparse_matrix(adj)
-
-        # set the attribute dim
-        max_dim = kwargs.get("max_dim", 2)
-        num_frac = frac_to_intersect.shape[0]
-        attrs = {i: {"dim": max_dim, "boundary_flag": 0} for i in np.unique(frac)}
-        attrs.update({j + num_frac: {"dim": max_dim-1, "boundary_flag": 0} for j in np.unique(intersect)})
-
-        # load the centres if present and add them to be attributes
-        if kwargs.get("centres", None) is not None:
-            for idf, fc in enumerate(np.loadtxt(kwargs["centres"][0])):
-                attrs[idf]["centre"] = fc
-            for idi, ic, in enumerate(np.loadtxt(kwargs["centres"][1])):
-                attrs[idi + num_frac]["centre"] = ic
-
-        # read the boundary flags: left 1, right 2, top 3, bottom 4, front 5, back 6, internal 0
-        if kwargs.get("boundary_flag", None) is not None:
-            for idi, flag in enumerate(np.loadtxt(kwargs["boundary_flag"], dtype=int)):
-                attrs[idi + num_frac]["boundary_flag"] = flag
-
-        # set the attributes to the graph
-        nx.set_node_attributes(self.graph, attrs)
-
-    def _sphere(self):
-        gmsh.initialize()
-        gmsh.option.setNumber("General.Terminal", 0)
-
-        # create a sphere object
-        model = gmsh.model()
-        model.occ.addSphere(0, 0, 0, 1)
-
-        # generate mesh
-        model.occ.synchronize()
-        model.mesh.generate(2)
-
-        # extract mesh data
-        _, _, cells = model.mesh.getElements(dim=2)
-        _, pts, _ = model.mesh.getNodes()
-        gmsh.finalize()
-
-        return cells[0].reshape(-1, 3) - 1, pts.reshape(-1, 3)
-
-    def _cylinder(self):
-        gmsh.initialize()
-        gmsh.option.setNumber("General.Terminal", 0)
-
-        # create a sphere object
-        model = gmsh.model()
-        model.occ.addCylinder(0, 0, 0, 0, 0, 1, 1)
-
-        # generate mesh
-        model.occ.synchronize()
-        model.mesh.generate(2)
-
-        # extract mesh data
-        _, _, cells = model.mesh.getElements(dim=2)
-        _, pts, _ = model.mesh.getNodes()
-        gmsh.finalize()
-
-        return cells[0].reshape(-1, 3) - 1, pts.reshape(-1, 3)
