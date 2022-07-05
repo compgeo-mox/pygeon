@@ -1,4 +1,5 @@
 from pygeon.geometry.geometry import *
+from pygeon.grids.grid import Grid
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import face_mass, cell_mass
