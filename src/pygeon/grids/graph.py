@@ -7,16 +7,17 @@ from itertools import combinations
 import porepy as pp
 import pygeon as pg
 
-class Graph(pp.Grid):
 
+class Graph(pp.Grid):
     def __init__(self, graph):
         self.graph = graph
 
         self.dim = 2
         self.nodes = np.vstack([c for _, c in self.graph.nodes(data="centre")]).T
 
-        # create the relation cell faces
-        self.cell_faces = sps.csc_matrix(nx.incidence_matrix(self.graph, oriented=True).T)
+        self.cell_faces = sps.csc_matrix(
+            nx.incidence_matrix(self.graph, oriented=True).T
+        )
 
         self.num_cells = self.cell_faces.shape[1]
         self.num_faces = self.cell_faces.shape[0]
@@ -31,16 +32,47 @@ class Graph(pp.Grid):
         geometry, see class documentation for details.
 
         The method could have been called from the constructor, however,
-        in cases where the grid is modified after the initial construction (
-        say, grid refinement), this may lead to costly, unnecessary
-        computations.
+        in cases where the graph is modified after the initial construction,
+        this may lead to costly, unnecessary computations.
+        """
+        self.cell_volumes = np.array(
+            [vol for _, vol in self.graph.nodes(data="measure", default=1)]
+        )
+        self.face_areas = np.array(
+            [area for _, _, area in self.graph.edges(data="measure", default=1)]
+        )
+
+        self.cell_centers = self.nodes
+        self.face_centers = self.compute_face_centers()
+
+        self.face_normals = self.cell_centers * self.cell_faces.T
+
+        self.compute_ridges()
+        self.tag_tips()
+
+    def compute_face_centers(self):
+        """
+        Compute the face centers on the graph.
+        If the face_centers are given in the networkx graph, then they are inherited.
+        Else, the face inherits the coordinates of the lower-dimensional neighbor cell.
         """
 
-        self._compute_ridges()
+        face_centers = np.zeros((3, self.num_faces))
 
-        self._tag_tips()
+        for i, (cell_1, cell_2, c) in enumerate(
+            self.graph.edges(data="center", default=None)
+        ):
+            if c is None:
+                cells = np.array([cell_1, cell_2])
+                dims = np.array([self.graph.nodes[cell]["dim"] for cell in cells])
+                c = self.cell_centers[:, cells[dims == min(dims)][0]]
 
-    def _compute_ridges(self):
+            face_centers[:, i] = c
+
+        return face_centers
+
+    def compute_ridges(self):
+
         cb = nx.cycle_basis(self.graph)
 
         incidence = np.abs(self.cell_faces.T)
@@ -69,15 +101,20 @@ class Graph(pp.Grid):
                 ind += 1
 
         self.num_ridges = len(cb)
-        self.face_ridges = sps.csc_matrix((V, (I, J)), shape=(self.num_ridges, self.num_faces))
+        self.face_ridges = sps.csc_matrix(
+            (V, (I, J)), shape=(self.num_ridges, self.num_faces)
+        )
 
-    def _tag_tips(self):
+        self.num_peaks = 0
+        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
+
+    def tag_tips(self):
         """
-        Tag the peaks and ridges of a grid bucket that are located on fracture tips.
-
+        Dummy tags for the peaks and ridges.
         """
 
         self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=np.bool)
+        self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
 
     def line_graph(self):
         # construct the line graph associated with the original graph
@@ -121,10 +158,13 @@ class Graph(pp.Grid):
         self.graph.remove_nodes_from(to_remove)
 
     def nodes_with_attributes(self, name, value):
-        return np.array([n for n in self.graph.nodes if self.graph.nodes[n][name] == value])
+        return np.array(
+            [n for n in self.graph.nodes if self.graph.nodes[n][name] == value]
+        )
 
-    def draw(self, graph = None, node_label = None, edge_attr = None):
+    def draw(self, graph=None, node_label=None, edge_attr=None):
         import matplotlib.pyplot as plt
+
         if graph is None:
             graph = self.graph
         pos = nx.spring_layout(graph)
@@ -133,10 +173,10 @@ class Graph(pp.Grid):
         if node_label is None:
             nx.draw_networkx_labels(graph, pos)
         else:
-            data = graph.nodes(data = node_label, default = None)
-            nx.draw_networkx_labels(graph, pos, labels = dict(data))
+            data = graph.nodes(data=node_label, default=None)
+            nx.draw_networkx_labels(graph, pos, labels=dict(data))
         if edge_attr is not None:
-            nx.draw_networkx_edge_labels(graph, pos, edge_labels = edge_attr)
+            nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_attr)
 
         plt.show()
 
@@ -184,7 +224,7 @@ class Graph(pp.Grid):
             cond = lambda node: len(node.split()) == 1
 
         pb = []
-        #loop on all the paths and add only the one that satisfy a condition
+        # loop on all the paths and add only the one that satisfy a condition
         for path in sp:
             [pb.append(int(node)) for node in path if cond(node)]
         return np.unique(pb)
@@ -207,12 +247,14 @@ class Graph(pp.Grid):
 
     def to_file(self, file_name):
         # make sure that an edge is sorted by dimension
-        sort = lambda e: e if self.graph.nodes[e[0]]["dim"] > self.graph.nodes[e[1]]["dim"] else np.flip(e)
+        sort = (
+            lambda e: e
+            if self.graph.nodes[e[0]]["dim"] > self.graph.nodes[e[1]]["dim"]
+            else np.flip(e)
+        )
         # collect all the edges
         data = np.array([sort(e) for e in self.graph.edges])
         # remap the values, we assume that are continuously divided into two separate sets
         data -= np.amin(data, axis=0)
         # save to file
         np.savetxt(file_name, data, fmt="%i")
-
-

@@ -8,7 +8,7 @@ import porepy as pp
 
 def cell_mass(mdg, discr=None, **kwargs):
     """
-    Compute the mass matrix for the piecewise constants on a grid bucket
+    Compute the mass matrix for the piecewise constants on a (MD-)grid
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
@@ -23,7 +23,7 @@ def cell_mass(mdg, discr=None, **kwargs):
 
 def face_mass(mdg, discr=pp.RT0, **kwargs):
     """
-    Compute the mass matrix for discretization defined on the faces of a grid bucket
+    Compute the mass matrix for discretization defined on the faces of a (MD-)grid
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
@@ -38,7 +38,7 @@ def face_mass(mdg, discr=pp.RT0, **kwargs):
 
 def ridge_mass(mdg, discr=None, **kwargs):
     """
-    Compute the mass matrix for discretization defined on the ridges of a grid bucket
+    Compute the mass matrix for discretization defined on the ridges of a (MD-)grid
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
@@ -53,7 +53,7 @@ def ridge_mass(mdg, discr=None, **kwargs):
 
 def peak_mass(mdg, discr=None, **kwargs):
     """
-    Compute the mass matrix for discretization defined on the peaks of a grid bucket
+    Compute the mass matrix for discretization defined on the peaks of a (MD-)grid
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
@@ -94,7 +94,7 @@ def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
 
 def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=False):
     """
-    Compute the mass matrix on a grid bucket
+    Compute the mass matrix on a mixed-dimensional grid
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
@@ -116,23 +116,20 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=
 
     # Local mass matrices
     for sd, d_sd in mdg.subdomains(return_data=True):
-        nn_g = d_sd["node_number"]
-        bmat_g[nn_g, nn_g] = local_matrix(sd, n_minus_k, discr, d_sd)
-        bmat_mg[nn_g, nn_g] = sps.csc_matrix(bmat_g[nn_g, nn_g].shape)
+        nn_sd = d_sd["node_number"]
+        bmat_g[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd)
+        bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_g[nn_sd, nn_sd].shape)
 
     # Mortar contribution
     if n_minus_k == 1:
-        # for e, d_e in mdg.interfaces(return_data=True):
         for intf, d_intf in mdg.interfaces(return_data=True):
-            # Get adjacent grids and mortar_grid
-            pair = mdg.interface_to_subdomain_pair(intf)
-
-            # Get indices in grid_bucket
-            nn_g = mdg.subdomain_data(pair[0])["node_number"]
+            # Get the node number of the upper-dimensional neighbor
+            sd_pair = mdg.interface_to_subdomain_pair(intf)
+            nn_sd = mdg.subdomain_data(sd_pair[0])["node_number"]
 
             # Local mortar mass matrix
             kn = d_intf["parameters"]["flow"]["normal_diffusivity"]
-            bmat_mg[nn_g, nn_g] += (
+            bmat_mg[nn_sd, nn_sd] += (
                 intf.signed_mortar_to_primary
                 * sps.diags(1.0 / intf.cell_volumes / kn)
                 * intf.signed_mortar_to_primary.T
@@ -149,7 +146,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=
 
 def lumped_mass_matrix(mdg, n_minus_k, discr):
     """
-    Compute the mass-lumped mass matrix on a grid bucket
+    Compute the mass-lumped mass matrix on a mixed-dimensional grid
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
