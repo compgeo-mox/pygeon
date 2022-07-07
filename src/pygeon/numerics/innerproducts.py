@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
+import pygeon as pg
 
 # ---------------------------------- Aliases ---------------------------------- #
 
@@ -92,7 +93,14 @@ def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
         raise NotImplementedError
 
 
-def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=False):
+def local_matrix(g):
+    if isinstance(g, pg.Graph):
+        return _g_lumped_mass
+    elif isinstance(g, pp.Grid):
+        return _g_mass_matrix
+
+
+def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, return_bmat=False):
     """
     Compute the mass matrix on a mixed-dimensional grid
 
@@ -110,14 +118,14 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=
     """
 
     bmat_g = np.empty(
-        shape=(mdg.num_graph_nodes(), mdg.num_graph_nodes()), dtype=sps.spmatrix
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
     bmat_mg = bmat_g.copy()
 
     # Local mass matrices
     for sd, d_sd in mdg.subdomains(return_data=True):
         nn_sd = d_sd["node_number"]
-        bmat_g[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd)
+        bmat_g[nn_sd, nn_sd] = local_matrix(sd)(sd, n_minus_k, discr, d_sd)
         bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_g[nn_sd, nn_sd].shape)
 
     # Mortar contribution
@@ -125,7 +133,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=
         for intf, d_intf in mdg.interfaces(return_data=True):
             # Get the node number of the upper-dimensional neighbor
             sd_pair = mdg.interface_to_subdomain_pair(intf)
-            nn_sd = mdg.subdomain_data(sd_pair[0])["node_number"]
+            nn_sd = mdg.node_number(sd_pair[0])
 
             # Local mortar mass matrix
             kn = d_intf["parameters"]["flow"]["normal_diffusivity"]
@@ -176,7 +184,7 @@ def _g_lumped_mass(g, n_minus_k, discr, data):
     """
 
     if n_minus_k == 0:
-        return _g_mass_matrix(g, None, n_minus_k, None)
+        return _g_mass_matrix(g, n_minus_k, None, None)
 
     elif n_minus_k == 1:
         """

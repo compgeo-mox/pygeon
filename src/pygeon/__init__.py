@@ -11,8 +11,6 @@ from pygeon.numerics.restrictions import remove_tip_dofs
 from pygeon.numerics.linear_system import LinearSystem
 from pygeon.rom.offline import OfflineComputations
 
-import pygeon.numerics.graph_innerproducts as graph_innerproducts
-
 from pygeon.filters.convert_from_pp import convert_from_pp
 from pygeon.filters.exporter import Exporter
 import pygeon.filters.importer as importer
