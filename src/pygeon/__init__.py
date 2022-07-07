@@ -1,7 +1,8 @@
-from pygeon.geometry.geometry import *
 import pygeon.geometry.transformation as transformation
 
 from pygeon.grids.grid import Grid
+from pygeon.grids.md_grid import MixedDimensionalGrid
+from pygeon.grids.mortar_grid import MortarGrid
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import face_mass, cell_mass
