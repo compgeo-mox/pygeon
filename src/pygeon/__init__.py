@@ -13,5 +13,6 @@ from pygeon.rom.offline import OfflineComputations
 from pygeon.geometry.graph_analysis import Graph
 import pygeon.numerics.graph_innerproducts as graph_innerproducts
 
+from pygeon.filters.convert_from_pp import convert_from_pp
 from pygeon.filters.exporter import Exporter
 import pygeon.filters.importer as importer
