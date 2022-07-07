@@ -35,8 +35,8 @@ class DifferentialsTest(unittest.TestCase):
         self.run_grid_test(gb)
 
     def run_grid_test(self, grid):
+        pg.convert_from_pp(grid)
         grid.compute_geometry()
-        pg.compute_geometry(grid)
 
         for n_minus_k in [1, 2]:
             diff1 = pg.numerics.differentials.exterior_derivative(grid, n_minus_k)

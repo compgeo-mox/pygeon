@@ -12,7 +12,8 @@ class GridRidgesTest(unittest.TestCase):
     def test_grid_0d(self):
         # no ridges or peaks are defined in 0d, we should obtain an empty map with correct size
         g = pp.PointGrid([0, 0, 0])
-        pg.compute_ridges(g)
+        pg.convert_from_pp(g)
+        g.compute_geometry()
 
         # do the checks
         self.assertEqual(g.num_ridges, 0)
@@ -25,7 +26,8 @@ class GridRidgesTest(unittest.TestCase):
         # no ridges or peaks are defined in 1d, we should obtain an empty map with correct size
         N = 3
         g = pp.CartGrid(N)
-        pg.compute_ridges(g)
+        pg.convert_from_pp(g)
+        g.compute_geometry()
 
         # do the checks
         self.assertEqual(g.num_ridges, 0)
@@ -37,8 +39,8 @@ class GridRidgesTest(unittest.TestCase):
     def test_grid_2d_cart(self):
         N = 2
         g = pp.CartGrid([N] * 2, [1] * 2)
+        pg.convert_from_pp(g)
         g.compute_geometry()
-        pg.compute_ridges(g)
 
         # do the checks
         self.assertEqual(g.num_ridges, (N + 1) ** 2)
@@ -50,8 +52,8 @@ class GridRidgesTest(unittest.TestCase):
     def test_grid_2d_tris(self):
         N = 2
         g = pp.StructuredTriangleGrid([N] * 2)
+        pg.convert_from_pp(g)
         g.compute_geometry()
-        pg.compute_ridges(g)
 
         # do the checks
         self.assertEqual(g.num_ridges, (N + 1) ** 2)
@@ -63,8 +65,8 @@ class GridRidgesTest(unittest.TestCase):
     def test_grid_3d_cart(self):
         N = 2
         g = pp.CartGrid([N] * 3, [1] * 3)
+        pg.convert_from_pp(g)
         g.compute_geometry()
-        pg.compute_ridges(g)
 
         # do the checks
         self.assertEqual(g.num_ridges, 3 * N * (N + 1) ** 2)
@@ -76,8 +78,8 @@ class GridRidgesTest(unittest.TestCase):
     def test_grid_3d_tet(self):
         N = 1
         g = pp.StructuredTetrahedralGrid([N] * 3)
+        pg.convert_from_pp(g)
         g.compute_geometry()
-        pg.compute_ridges(g)
 
         # do the checks
         self.assertEqual(g.num_ridges, 7 * N**3 + 9 * N**2 + 3 * N)
@@ -104,10 +106,11 @@ class GridRidgesTest(unittest.TestCase):
 
             return sps.csc_matrix((data, indices, indptr), (16, 3))
 
-        gb = setup_problem()
-        pg.compute_ridges(gb)
+        mdg = setup_problem()
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
 
-        mg = gb.get_mortar_grids()[0]
+        mg = mdg.interfaces()[0]
 
         self.assertEqual(mg.ridge_peaks.shape, (0, 0))
         self.assertEqual((mg.face_ridges - known_face_ridges()).nnz, 0)
@@ -140,10 +143,11 @@ class GridRidgesTest(unittest.TestCase):
 
             return sps.csc_matrix((data, indices, indptr), (28, 5))
 
-        gb = setup_problem()
-        pg.compute_ridges(gb)
+        mdg = setup_problem()
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
 
-        mg = gb.get_mortar_grids()[0]
+        mg = mdg.interfaces()[0]
 
         self.assertEqual((mg.ridge_peaks - known_ridge_peaks()).nnz, 0)
         self.assertEqual((mg.face_ridges - known_face_ridges()).nnz, 0)
@@ -179,10 +183,11 @@ class GridRidgesTest(unittest.TestCase):
                 ]
             )
 
-        gb = setup_problem()
-        pg.compute_ridges(gb)
+        mdg = setup_problem()
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
 
-        for mg in gb.get_mortar_grids():
+        for mg in mdg.interfaces():
             if mg.dim == 1:
                 self.assertEqual(mg.ridge_peaks.shape, (0, 0))
                 self.assertTrue(np.all(mg.face_ridges.todense() == known_face_ridges()))
