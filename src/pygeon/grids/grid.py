@@ -2,13 +2,32 @@ import numpy as np
 import scipy.sparse as sps
 import porepy as pp
 
+"""
+Acknowledgments:
+    The functionalities related to the ridge computations are modified from
+    github.com/anabudisa/md_aux_precond developed by Ana Budiša and Wietse M. Boon.
+"""
+
+
 class Grid(pp.Grid):
     def __init__(self, *args, **kwargs):
         super(Grid, self).__init__(*args, **kwargs)
 
     def compute_geometry(self):
         super(Grid, self).compute_geometry()
+        self.compute_ridges()
 
+    def compute_ridges(self):
+        """
+        Assign the following attributes to the grid or to each grid in the grid bucket:
+        num_ridges: number of ridges
+        num_peaks: number of peaks
+        face_ridges: connectivity between each face and ridge
+        ridge_peaks: connectivity between each ridge and peak
+
+        Parameters:
+            gb (pp.Grid or pp.GridBucket).
+        """
         if self.dim == 3:
             self._compute_ridges_3d()
         elif self.dim == 2:
@@ -16,7 +35,7 @@ class Grid(pp.Grid):
         else:  # The grid is of dimension 0 or 1.
             self._compute_ridges_01d()
 
-        self._tag_tips()
+        self.tag_tip_ridges()
 
     def _compute_ridges_01d(self):
         """
@@ -110,13 +129,15 @@ class Grid(pp.Grid):
         # with the orientation defined according to the right-hand rule
         self.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr))
 
-    def _tag_tips(self):
+    def tag_tip_ridges(self):
         """
         Tag the peaks and ridges of a grid bucket that are located on fracture tips.
 
+        Parameters:
+            gb (pp.GridBucket): The grid bucket.
         """
-
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
+
         if self.dim == 2:
             fr_bool = self.face_ridges.astype("bool")
             self.tags["tip_ridges"] = fr_bool * self.tags["tip_faces"]
