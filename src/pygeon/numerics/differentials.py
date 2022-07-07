@@ -130,7 +130,7 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
 
         if pair[0].dim >= n_minus_k:
             # Get indices (node_numbers) in grid_bucket
-            node_nrs = [mdg.subdomain_data(sd, "node_number") for sd in pair]
+            node_nrs = [mdg.subdomain_data(sd)["node_number"] for sd in pair]
 
             # Place the jump term in the block-matrix
             bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)
