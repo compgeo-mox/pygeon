@@ -122,8 +122,8 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_mass_matrix, return_bmat=
 
     # Mortar contribution
     if n_minus_k == 1:
-        #for e, d_e in mdg.interfaces(return_data=True):
-        for intf, d_e in mdg.interfaces(return_data=True):
+        # for e, d_e in mdg.interfaces(return_data=True):
+        for intf, d_intf in mdg.interfaces(return_data=True):
             # Get adjacent grids and mortar_grid
             pair = mdg.interface_to_subdomain_pair(intf)
 

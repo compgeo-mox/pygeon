@@ -14,20 +14,30 @@ class Grid(pp.Grid):
         super(Grid, self).__init__(*args, **kwargs)
 
     def compute_geometry(self):
+        """
+        Defines grid entities of codim 2 and 3.
+
+        The entities are referred to by their codimension:
+        0: "cells"
+        1: "faces"
+        2: "ridges"
+        3: "peaks"
+        """
+
         super(Grid, self).compute_geometry()
         self.compute_ridges()
 
     def compute_ridges(self):
         """
-        Assign the following attributes to the grid or to each grid in the grid bucket:
+        Assigns the following attributes to the grid
+
         num_ridges: number of ridges
         num_peaks: number of peaks
         face_ridges: connectivity between each face and ridge
         ridge_peaks: connectivity between each ridge and peak
-
-        Parameters:
-            gb (pp.Grid or pp.GridBucket).
+        tags['tip_ridges'], tags['tip_peaks']: tags for entities at fracture tips
         """
+
         if self.dim == 3:
             self._compute_ridges_3d()
         elif self.dim == 2:
@@ -39,8 +49,7 @@ class Grid(pp.Grid):
 
     def _compute_ridges_01d(self):
         """
-        Assign zero as the number of ridges and peaks for a grid of dimension 0 or 1.
-        The connectivity matrices are zero with the appropriate dimensions.
+        Assign the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 2.
         """
 
         self.num_peaks = 0
@@ -50,8 +59,7 @@ class Grid(pp.Grid):
 
     def _compute_ridges_2d(self):
         """
-        Assign the number of ridges, number of peaks, and the connectivity matrices to a grid of dimension 2.
-
+        Assign the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 2.
         """
 
         self.num_peaks = 0
@@ -83,8 +91,7 @@ class Grid(pp.Grid):
 
     def _compute_ridges_3d(self):
         """
-        Assign the number of ridges, number of peaks, and the connectivity matrices to a grid of dimension 3.
-
+        Assign the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 3.
         """
 
         self.num_peaks = self.num_nodes
@@ -131,11 +138,9 @@ class Grid(pp.Grid):
 
     def tag_tip_ridges(self):
         """
-        Tag the peaks and ridges of a grid bucket that are located on fracture tips.
-
-        Parameters:
-            gb (pp.GridBucket): The grid bucket.
+        Tag the peaks and ridges of the grid located on fracture tips.
         """
+
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
 
         if self.dim == 2:

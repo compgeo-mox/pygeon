@@ -3,6 +3,10 @@ import numpy as np
 import porepy as pp
 import pygeon as pg
 
+""" 
+Module contains a unit tests to validate the differential operators.
+"""
+
 
 class DifferentialsTest(unittest.TestCase):
     def test_cochain_CartGrids(self):
@@ -22,7 +26,7 @@ class DifferentialsTest(unittest.TestCase):
         for grid in grids:
             self.run_grid_test(grid)
 
-    def test_cochain_Grid_Bucket_2d(self):
+    def test_cochain_MD_Grid_2d(self):
         p = np.array([[0.0, 1.0, 0.5, 0.5], [0.5, 0.5, 0.0, 1.0]])
         e = np.array([[0, 2], [1, 3]])
 
@@ -30,9 +34,9 @@ class DifferentialsTest(unittest.TestCase):
         network = pp.FractureNetwork2d(p, e, domain)
         mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
-        gb = network.mesh(mesh_kwargs)
+        mdg = network.mesh(mesh_kwargs)
 
-        self.run_grid_test(gb)
+        self.run_grid_test(mdg)
 
     def run_grid_test(self, grid):
         pg.convert_from_pp(grid)
