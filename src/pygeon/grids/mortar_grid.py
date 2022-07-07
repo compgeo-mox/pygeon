@@ -35,7 +35,7 @@ class MortarGrid(pp.MortarGrid):
 
         # Find high-dim faces matching to low-dim cell
         cell_faces = self.mortar_to_primary_int() * self.secondary_to_mortar_int()
-        g_down, g_up = pair
+        g_up, g_down = pair
 
         # High-dim ridges matching to low-dim face
         face_ridges = sps.lil_matrix((g_up.num_ridges, g_down.num_faces), dtype=int)
@@ -155,7 +155,7 @@ class MortarGrid(pp.MortarGrid):
         Returns:
             sps.csc_matrix, num_primary_faces x num_mortar_cells.
         """
-        g = pair[1]
+        g = pair[0]
         cells, faces, _ = sps.find(self.primary_to_mortar_int())
         signs = [g.cell_faces.tocsr()[face, :].data[0] for face in faces]
 
