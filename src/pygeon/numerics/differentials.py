@@ -128,12 +128,12 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
     for intf in mdg.interfaces():
         pair = mdg.interface_to_subdomain_pair(intf)
 
-        if pair[1].dim >= n_minus_k:
+        if pair[0].dim >= n_minus_k:
             # Get indices (node_numbers) in grid_bucket
             node_nrs = [mdg.subdomain_data(sd, "node_number") for sd in pair]
 
             # Place the jump term in the block-matrix
-            bmat[node_nrs[0], node_nrs[1]] = exterior_derivative(intf, n_minus_k)
+            bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)
 
     return sps.bmat(bmat, format="csc") * pg.numerics.restrictions.zero_tip_dofs(
         mdg, n_minus_k
