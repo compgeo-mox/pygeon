@@ -2,12 +2,12 @@ import numpy as np
 import scipy.sparse as sps
 
 
-def zero_tip_dofs(gb, n_minus_k):
+def zero_tip_dofs(mdg, n_minus_k):
     """
     Compute the operator that maps the tip degrees of freedom to zero.
 
     Parameters:
-        gb (pp.GridBucket).
+        mdg (pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of the differential form
 
     Returns:
@@ -17,9 +17,9 @@ def zero_tip_dofs(gb, n_minus_k):
     str = "tip_" + get_codim_str(n_minus_k)
 
     is_tip_dof = []
-    for g in gb.get_grids():
-        if g.dim >= n_minus_k:
-            is_tip_dof.append(g.tags[str])
+    for sd in mdg.subdomains():
+        if sd.dim >= n_minus_k:
+            is_tip_dof.append(sd.tags[str])
 
     if len(is_tip_dof) > 0:
         is_tip_dof = np.concatenate(is_tip_dof)
@@ -27,18 +27,18 @@ def zero_tip_dofs(gb, n_minus_k):
     return sps.diags(np.logical_not(is_tip_dof), dtype=int)
 
 
-def remove_tip_dofs(gb, n_minus_k):
+def remove_tip_dofs(mdg, n_minus_k):
     """
     Compute the operator that removes the tip degrees of freedom.
 
     Parameters:
-        gb (pp.GridBucket).
+        mdg (pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of the differential form
 
     Returns:
         sps.csr_matrix
     """
-    R = zero_tip_dofs(gb, n_minus_k).tocsr()
+    R = zero_tip_dofs(mdg, n_minus_k).tocsr()
     return R[R.indices, :]
 
 

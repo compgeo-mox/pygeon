@@ -17,7 +17,7 @@ def div(grid):
     Compute the divergence.
 
     Parameters:
-        grid (pp.Grid, pp.MortarGrid, or pp.GridBucket).
+        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
 
     Returns:
         sps.csr_matrix. The divergence operator.
@@ -30,7 +30,7 @@ def curl(grid):
     Compute the curl.
 
     Parameters:
-        grid (pp.Grid, pp.MortarGrid, or pp.GridBucket).
+        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
 
     Returns:
         sps.csr_matrix. The curl operator.
@@ -43,7 +43,7 @@ def grad(grid):
     Compute the gradient.
 
     Parameters:
-        grid (pp.Grid, pp.MortarGrid, or pp.GridBucket).
+        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
 
     Returns:
         sps.csr_matrix. The gradient operator.
@@ -59,7 +59,7 @@ def exterior_derivative(grid, n_minus_k):
     Compute the (mixed-dimensional) exterior derivative for the differential forms of order n - k.
 
     Parameters:
-        grid (pp.Grid, pp.MortarGrid, or pp.GridBucket).
+        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the ambient dimension and the order of the differential form.
 
     Returns:
@@ -69,12 +69,12 @@ def exterior_derivative(grid, n_minus_k):
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
         return _g_exterior_derivative(grid, n_minus_k)
 
-    elif isinstance(grid, pp.GridBucket):
-        return _gb_exterior_derivative(grid, n_minus_k)
+    elif isinstance(grid, pp.MixedDimensionalGrid):
+        return _mdg_exterior_derivative(grid, n_minus_k)
 
     else:
         raise TypeError(
-            "Input needs to be of type pp.Grid, pp.MortarGrid, or pp.GridBucket"
+            "Input needs to be of type pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid"
         )
 
 
@@ -105,38 +105,36 @@ def _g_exterior_derivative(grid, n_minus_k):
         return sps.csr_matrix((0, 0))
 
 
-def _gb_exterior_derivative(gb, n_minus_k):
+def _mdg_exterior_derivative(mdg, n_minus_k):
     """
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
     Parameters:
-        grid (pp.GridBucket): The grid bucket.
+        grid (pp.MixedDimensionalGrid): The grid bucket.
         n_minus_k (int): The difference between the ambient dimension and the order of the differential form.
     """
 
     # Pre-allocation of the block-matrix
     bmat = np.empty(
-        shape=(gb.num_graph_nodes(), gb.num_graph_nodes()), dtype=sps.spmatrix
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
 
     # Compute local differential operator
-    for g, d_g in gb:
-        node_nr = d_g["node_number"]
-        bmat[node_nr, node_nr] = exterior_derivative(g, n_minus_k)
+    for sd, d_sd in mdg.subdomains(return_data=True):
+        node_nr = d_sd["node_number"]
+        bmat[node_nr, node_nr] = exterior_derivative(sd, n_minus_k)
 
     # Compute mixed-dimensional jump operator
-    for e, d_e in gb.edges():
-        # Get mortar_grid and adjacent grids
-        mg = d_e["mortar_grid"]
-        grids = gb.nodes_of_edge(e)
+    for intf in mdg.interfaces():
+        pair = mdg.interface_to_subdomain_pair(intf)
 
-        if grids[1].dim >= n_minus_k:
+        if pair[1].dim >= n_minus_k:
             # Get indices (node_numbers) in grid_bucket
-            node_nrs = [gb.node_props(g, "node_number") for g in grids]
+            node_nrs = [mdg.subdomain_data(sd, "node_number") for sd in pair]
 
             # Place the jump term in the block-matrix
-            bmat[node_nrs[0], node_nrs[1]] = exterior_derivative(mg, n_minus_k)
+            bmat[node_nrs[0], node_nrs[1]] = exterior_derivative(intf, n_minus_k)
 
     return sps.bmat(bmat, format="csc") * pg.numerics.restrictions.zero_tip_dofs(
-        gb, n_minus_k
+        mdg, n_minus_k
     )
