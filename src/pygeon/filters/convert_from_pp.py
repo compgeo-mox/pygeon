@@ -10,7 +10,7 @@ def convert_from_pp(obj):
         obj.__class__ = pg.MortarGrid
     elif isinstance(obj, pp.MixedDimensionalGrid):
         [convert_from_pp(sd) for sd in obj.subdomains()]
-        [convert_from_pp(sd) for intf in obj.interfaces()]
+        [convert_from_pp(intf) for intf in obj.interfaces()]
         obj.__class__ = pg.MixedDimensionalGrid
     else:
         raise TypeError
