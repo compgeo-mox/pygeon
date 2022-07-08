@@ -177,8 +177,27 @@ class Lagrange:
 
     def local_grads(self, coord, dim):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
-        I = np.hstack((np.zeros((dim + 1, 1)), np.eye(dim)))
-        return np.linalg.solve(Q, I)
+        invQ = np.linalg.inv(Q)
+        return invQ[1:, :]
+
+    def local_mass(self, c_volume, dim):
+        """Compute the local mass H1 matrix using the P1 Lagrangean approach.
+
+        Parameters
+        ----------
+        c_volume : scalar
+            Cell volume.
+
+        Return
+        ------
+        out: ndarray (num_faces_of_cell, num_faces_of_cell)
+            Local mass Hdiv matrix.
+        """
+        # Allow short variable names in this function
+        # pylint: disable=invalid-name
+
+        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
+        return c_volume * M / ((dim + 1) * (dim + 2))
 
     def stiffH1(self, K, c_volume, coord, dim):
         """Compute the local stiffness H1 matrix using the P1 Lagrangean approach.

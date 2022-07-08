@@ -9,6 +9,7 @@ from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import face_mass, cell_mass
 from pygeon.numerics.restrictions import remove_tip_dofs
 from pygeon.numerics.linear_system import LinearSystem
+from pygeon.numerics.fem.Nedelec import Nedelec1
 from pygeon.rom.offline import OfflineComputations
 
 from pygeon.filters.convert_from_pp import convert_from_pp
