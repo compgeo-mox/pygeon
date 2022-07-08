@@ -9,10 +9,20 @@ import pygeon as pg
 
 
 class Graph(pp.Grid):
-    def __init__(self, graph):
+    def __init__(self, graph, dim=2):
+        """ Construct a pp.Grid like representation of a graph.
+
+        The following informations are stored
+        dim: the dimension of the graph, always
+        nodes: the coordinate of the nodes
+        cell_faces: the map from the cells (graph nodes) to the faces (graph edges)
+        num_cells: the number of cells (number of graph nodes)
+        num_faces: the number of faces (number of graph edges)
+        tags: tags to identify some geometrical quantities
+        """
         self.graph = graph
 
-        self.dim = 2
+        self.dim = dim
         self.nodes = np.vstack([c for _, c in self.graph.nodes(data="centre")]).T
 
         self.cell_faces = sps.csc_matrix(
@@ -73,7 +83,16 @@ class Graph(pp.Grid):
         return face_centers
 
     def compute_ridges(self):
+        """ Compute the ridges (graph cycles) in a graph, it also add the peaks (empty)
+        data structure to be consistent with the pg.Grid.
 
+        This function create mapping between the faces and the ridges in the graph,
+        the following data are created
+        num_ridges: the number of rideges (graph cicles)
+        num_peaks: the number of peaks (always 0)
+        face_ridges: the map from the faces to the ridges
+        ridge_peaks: an empty matrix that maps the ridges to peaks
+        """
         cb = nx.cycle_basis(self.graph)
 
         incidence = np.abs(self.cell_faces.T)
@@ -118,6 +137,9 @@ class Graph(pp.Grid):
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
 
     def tag_boundary(self):
+        """
+        Tags the boundary cells (graph nodes), by default 0 means an internal cell
+        """
 
         tag = np.array(
             [flag for _, flag in self.graph.nodes(data="boundary_flag", default=0)]
@@ -125,10 +147,14 @@ class Graph(pp.Grid):
         self.tags["domain_boundary_cells"] = tag
 
     def line_graph(self):
-        # construct the line graph associated with the original graph
+        """ Construct the line graph associated with the original graph
+        """
         return Graph(graph=nx.line_graph(self.graph))
 
     def set_attribute(self, name, attrs, nodes=None):
+        """ Set an attribute to the underlying graph with a given name
+        """
+
         if nodes is None:
             nodes = self.graph.nodes
         # create the appropriate data structure
@@ -147,6 +173,11 @@ class Graph(pp.Grid):
         return [tuple(sorted(e)) for e in self.graph.edges(np.atleast_1d(nodes))]
 
     def collapse(self, dim):
+        """ Collapse the graph removing the nodes with a given dimension.
+        From a bipartite graph it is possible to create a dim = 2 graph (only fracures)
+        or a dim = 1 (only fracture intersections) graph.
+        """
+
         to_remove = []
         # loop over all the nodes
         for node, data in self.graph.nodes(data=True):
@@ -170,36 +201,26 @@ class Graph(pp.Grid):
             [n for n in self.graph.nodes if self.graph.nodes[n][name] == value]
         )
 
-    def draw(self, graph=None, node_label=None, edge_attr=None):
-        import matplotlib.pyplot as plt
-
-        if graph is None:
-            graph = self.graph
-        pos = nx.spring_layout(graph)
-        nx.draw(graph, pos)
-
-        if node_label is None:
-            nx.draw_networkx_labels(graph, pos)
-        else:
-            data = graph.nodes(data=node_label, default=None)
-            nx.draw_networkx_labels(graph, pos, labels=dict(data))
-        if edge_attr is not None:
-            nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_attr)
-
-        plt.show()
-
     def all_paths(self, start, end, cutoff=None):
-        # compute all the shortest and not shortest paths from the start to the end node
+        """ Compute all the shortest and not shortest paths from the start to the end graph nodes.
+        """
+
         sp = self.shortest_paths(start, end)
         nsp = self.not_shortest_paths(start, end, sp, cutoff)
         return sp, nsp
 
     def shortest_paths(self, start, end):
-        # compute all the shortest paths from the start to the end node
+        """ Compute all the shortest paths from the start to the end graph nodes.
+        """
+
         sp = nx.all_shortest_paths(self.graph, start, end)
         return np.array(list(sp), dtype=np.object)
 
     def not_shortest_paths(self, start, end, sp=None, cutoff=None):
+        """ Compyte all the not shortest paths between two graph nodes.
+        It is possible to set a cutoff to make the computation faster leaving out long paths.
+        """
+
         # compute all the shortest paths if are not given
         if sp is None:
             sp = self.shortest_paths(start, end)
@@ -217,15 +238,18 @@ class Graph(pp.Grid):
         return nsp[to_keep]
 
     def all_backbone(self, sp, nsp, cond=None):
-        # compute the primary (from the shortest paths) and secondary (from the not shortest paths)
-        # backbones
+        """ Compute the primary (from the shortest paths) and secondary (from the not shortest
+        paths) backbones
+        """
+
         pb = self.primary_backbone(sp, cond)
         sb = self.secondary_backbone(nsp, pb, cond)
         return pb, sb
 
     def primary_backbone(self, sp, cond=None):
-        # compute the primary back bone of the fracture network,
-        # which is the list of all nodes in the shortest paths
+        """ Compute the primary back bone of the fracture network,
+            which is the list of all nodes in the shortest paths
+        """
 
         # consider a standard condition if not provided
         if cond is None:
@@ -238,8 +262,9 @@ class Graph(pp.Grid):
         return np.unique(pb)
 
     def secondary_backbone(self, nsp, pb, cond=None):
-        # compute the secondary back bone of the fracture network,
-        # which is the list of all nodes not in the shortest paths
+        """ Compute the secondary back bone of the fracture network,
+            which is the list of all nodes not in the shortest paths
+        """
 
         # consider a standard condition if not provided
         if cond is None:
@@ -254,6 +279,10 @@ class Graph(pp.Grid):
         return np.setdiff1d(sb, pb, assume_unique=True)
 
     def to_file(self, file_name):
+        """ Save the graph to a file.
+            TODO: To be improved.
+        """
+
         # make sure that an edge is sorted by dimension
         sort = (
             lambda e: e
