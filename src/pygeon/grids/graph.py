@@ -49,6 +49,7 @@ class Graph(pp.Grid):
 
         self.compute_ridges()
         self.tag_tips()
+        self.tag_boundary()
 
     def compute_face_centers(self):
         """
@@ -115,6 +116,13 @@ class Graph(pp.Grid):
 
         self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=np.bool)
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
+
+    def tag_boundary(self):
+
+        tag = np.array(
+            [flag for _, flag in self.graph.nodes(data="boundary_flag", default=0)]
+        )
+        self.tags["domain_boundary_cells"] = tag
 
     def line_graph(self):
         # construct the line graph associated with the original graph
