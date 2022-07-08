@@ -73,6 +73,10 @@ class Graph(pp.Grid):
         return face_centers
 
     def compute_ridges(self):
+        """
+        Computes the ridges and peaks and the corresponding connectivity matrices.
+        The ridges in the graph correspond to its cycles and a graph has zero peaks.
+        """
 
         cb = nx.cycle_basis(self.graph)
 
@@ -118,6 +122,9 @@ class Graph(pp.Grid):
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
 
     def tag_boundary(self):
+        """
+        Tag the boundary cells (i.e. vertices) of the graph.
+        """
 
         tag = np.array(
             [flag for _, flag in self.graph.nodes(data="boundary_flag", default=0)]
@@ -125,7 +132,9 @@ class Graph(pp.Grid):
         self.tags["domain_boundary_cells"] = tag
 
     def line_graph(self):
-        # construct the line graph associated with the original graph
+        """
+        Construct the line graph associated with the original graph as a pygeon Graph
+        """
         return Graph(graph=nx.line_graph(self.graph))
 
     def set_attribute(self, name, attrs, nodes=None):
