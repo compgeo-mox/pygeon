@@ -117,7 +117,7 @@ class Nedelec1:
         matrix_dictionary[self.curl_matrix_key] = self.curl(g)
 
     def curl(self, g):
-        return sps.bmat[[pg.curl(g), -pg.curl(g)]]
+        return sps.bmat([[pg.curl(g), -pg.curl(g)]])
 
     def local_grads(self, coord, dim=3):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
