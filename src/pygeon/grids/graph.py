@@ -83,8 +83,9 @@ class Graph(pp.Grid):
         return face_centers
 
     def compute_ridges(self):
-        """ Compute the ridges (graph cycles) in a graph, it also add the peaks (empty)
-        data structure to be consistent with the pg.Grid.
+        """
+        Computes the ridges and peaks and the corresponding connectivity matrices.
+        The ridges in the graph correspond to its cycles and a graph has zero peaks.
 
         This function create mapping between the faces and the ridges in the graph,
         the following data are created
@@ -93,6 +94,7 @@ class Graph(pp.Grid):
         face_ridges: the map from the faces to the ridges
         ridge_peaks: an empty matrix that maps the ridges to peaks
         """
+
         cb = nx.cycle_basis(self.graph)
 
         incidence = np.abs(self.cell_faces.T)
@@ -138,7 +140,7 @@ class Graph(pp.Grid):
 
     def tag_boundary(self):
         """
-        Tags the boundary cells (graph nodes), by default 0 means an internal cell
+        Tag the boundary cells (i.e. vertices) of the graph.
         """
 
         tag = np.array(
@@ -147,8 +149,10 @@ class Graph(pp.Grid):
         self.tags["domain_boundary_cells"] = tag
 
     def line_graph(self):
-        """ Construct the line graph associated with the original graph
         """
+        Construct the line graph associated with the original graph as a pygeon Graph
+        """
+
         return Graph(graph=nx.line_graph(self.graph))
 
     def set_attribute(self, name, attrs, nodes=None):
