@@ -5,11 +5,14 @@ from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.graph import Graph
 
+from pygeon.numerics.fem.nedelec import Nedelec1
+from pygeon.numerics.fem.lagrange import Lagrange
+from pygeon.numerics.fem.pwconstants import PwConstants
+
 from pygeon.numerics.differentials import grad, curl, div
-from pygeon.numerics.innerproducts import face_mass, cell_mass
+from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass
 from pygeon.numerics.restrictions import remove_tip_dofs
 from pygeon.numerics.linear_system import LinearSystem
-from pygeon.numerics.fem.nedelec import Nedelec1
 from pygeon.rom.offline import OfflineComputations
 
 from pygeon.filters.convert_from_pp import convert_from_pp

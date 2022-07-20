@@ -22,7 +22,7 @@ def cell_mass(mdg, discr=None, **kwargs):
     return mass_matrix(mdg, 0, discr, **kwargs)
 
 
-def face_mass(mdg, discr=pp.RT0, **kwargs):
+def face_mass(mdg, discr=None, **kwargs):
     """
     Compute the mass matrix for discretization defined on the faces of a (MD-)grid
 
@@ -68,6 +68,22 @@ def peak_mass(mdg, discr=None, **kwargs):
 
 
 # ---------------------------------- General ---------------------------------- #
+def default_discr(g, n_minus_k, keyword="flow"):
+    """
+    Construct the default discretization operator depending on n_minus_k.
+    These correspond to the Whitney forms.
+    """
+
+    if n_minus_k == 0:
+        return pg.PwConstants(keyword)
+    elif n_minus_k == 1:
+        return pp.RT0(keyword)
+    elif n_minus_k == g.dim:
+        return pg.Lagrange(keyword)
+    elif n_minus_k == 2:
+        return pg.Nedelec1(keyword)
+    else:
+        raise ValueError
 
 
 def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
@@ -83,24 +99,24 @@ def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
+    if n_minus_k > g.dim:
+        return sps.csc_matrix((0, 0))
 
-    if n_minus_k == 0:
-        return sps.diags(g.cell_volumes)
-    elif n_minus_k == 1:
-        discr.discretize(g, data)
-        return data[pp.DISCRETIZATION_MATRICES]["flow"]["mass"]
-    else:
-        raise NotImplementedError
+    if discr is None:
+        discr = default_discr(g, n_minus_k)
 
-
-def local_matrix(g):
-    if isinstance(g, pg.Graph):
-        return _g_lumped_mass
-    elif isinstance(g, pp.Grid):
-        return _g_mass_matrix
+    discr.discretize(g, data)
+    return data[pp.DISCRETIZATION_MATRICES][discr.keyword]["mass"]
 
 
-def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, return_bmat=False):
+def local_matrix(sd, n_minus_k, discr, d_sd):
+    if isinstance(sd, pg.Graph):
+        return _g_lumped_mass(sd, n_minus_k, discr, d_sd)
+    elif isinstance(sd, pp.Grid):
+        return _g_mass_matrix(sd, n_minus_k, discr, d_sd)
+
+
+def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix):
     """
     Compute the mass matrix on a mixed-dimensional grid
 
@@ -110,13 +126,19 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, return_bmat=Fa
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
         local_matrix (function): function that generates the local mass matrix on a grid
-        return_bmat (bool): Set to True to return the unassembled block matrix
 
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
-        (if return_bmat) np.array of sps.spmatrices
     """
+    bmats = mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix)
 
+    return np.sum([sps.bmat(bmat, format="csc") for bmat in bmats])
+
+
+def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix):
+    """
+    Computes the block matrices of the mass matrix
+    """
     bmat_g = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
@@ -125,7 +147,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, return_bmat=Fa
     # Local mass matrices
     for sd, d_sd in mdg.subdomains(return_data=True):
         nn_sd = d_sd["node_number"]
-        bmat_g[nn_sd, nn_sd] = local_matrix(sd)(sd, n_minus_k, discr, d_sd)
+        bmat_g[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd)
         bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_g[nn_sd, nn_sd].shape)
 
     # Mortar contribution
@@ -136,17 +158,14 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, return_bmat=Fa
             nn_sd = mdg.node_number(sd_pair[0])
 
             # Local mortar mass matrix
-            kn = d_intf["parameters"]["flow"]["normal_diffusivity"]
+            kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
             bmat_mg[nn_sd, nn_sd] += (
                 intf.signed_mortar_to_primary
                 * sps.diags(1.0 / intf.cell_volumes / kn)
                 * intf.signed_mortar_to_primary.T
             )
 
-    if return_bmat:
-        return bmat_g, bmat_mg
-    else:
-        return sps.bmat(bmat_g, format="csc") + sps.bmat(bmat_mg, format="csc")
+    return bmat_g, bmat_mg
 
 
 # ---------------------------------- Lumped ---------------------------------- #
@@ -165,16 +184,16 @@ def lumped_mass_matrix(mdg, n_minus_k, discr):
         sps.csc_matrix, num_dofs x num_dofs
     """
 
-    return mass_matrix(mdg, n_minus_k, discr, local_matrix=_g_lumped_mass)
+    return mass_matrix(mdg, n_minus_k, discr, _g_lumped_mass)
 
 
-def _g_lumped_mass(g, n_minus_k, discr, data):
+def _g_lumped_mass(g, n_minus_k, discr=None, data=None):
     """
     Compute the mass-lumped mass matrix on a single grid.
     For k = 1, this is the matrix that leads to a TPFA discretization.
 
     Parameters:
-        mdg (pp.MixedDimensionalGrid).
+        g (pp.Grid).
         n_minus_k (int): The difference between the dimension and the order of the differential.
         discr (pp discretization object).
         data (dict): the data object associated to the grid.

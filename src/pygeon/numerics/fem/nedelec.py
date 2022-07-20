@@ -1,5 +1,3 @@
-from typing import Dict, Tuple
-
 import numpy as np
 import scipy.sparse as sps
 
@@ -35,7 +33,7 @@ class Nedelec1:
         else:
             raise ValueError
 
-    def discretize(self, g: pg.Grid, data: Dict):
+    def discretize(self, g: pg.Grid, data: dict):
         """Compute the mass matrix for a first-order Nedelec discretization
 
         Parameters
@@ -55,10 +53,14 @@ class Nedelec1:
         # Allow short variable names in backend function
         # pylint: disable=invalid-name
 
+        assert g.dim == 3
+
         # Get dictionary for discretization matrix storage
         matrix_dictionary = data[pp.DISCRETIZATION_MATRICES][self.keyword]
+        matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(g, data)
+        matrix_dictionary[self.curl_matrix_key] = self.assemble_curl(g)
 
-        assert g.dim == 3
+    def assemble_mass_matrix(self, g: pg.Grid, data: dict):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
@@ -69,15 +71,13 @@ class Nedelec1:
         idx = 0
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
-        ridges, cells, _ = sps.find(cell_ridges)
-
         ridge_peaks = g.ridge_peaks
 
         for c in np.arange(g.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
-            ridges_loc = ridges[loc]
+            ridges_loc = cell_ridges.indices[loc]
             dof_loc = np.reshape(
                 ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
             ).flatten()
@@ -111,15 +111,12 @@ class Nedelec1:
                 idx += cols.size
 
         # Construct the global matrices
-        M = sps.csr_matrix((dataIJ, (I, J)))
-
-        matrix_dictionary[self.mass_matrix_key] = M
-        matrix_dictionary[self.curl_matrix_key] = self.curl(g)
-
-    def curl(self, g):
-        return sps.bmat([[pg.curl(g), -pg.curl(g)]])
+        return sps.csr_matrix((dataIJ, (I, J)))
 
     def local_grads(self, coord, dim=3):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
+
+    def assemble_curl(self, g):
+        return sps.bmat([[pg.curl(g), -pg.curl(g)]])
