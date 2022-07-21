@@ -5,7 +5,7 @@ from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.graph import Graph
 
-from pygeon.numerics.fem.nedelec import Nedelec1
+from pygeon.numerics.fem.nedelec import Nedelec0, Nedelec1
 from pygeon.numerics.fem.lagrange import Lagrange
 from pygeon.numerics.fem.pwconstants import PwConstants
 
