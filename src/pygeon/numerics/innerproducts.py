@@ -81,7 +81,7 @@ def default_discr(g, n_minus_k, keyword="flow"):
     elif n_minus_k == g.dim:
         return pg.Lagrange(keyword)
     elif n_minus_k == 2:
-        return pg.Nedelec1(keyword)
+        return pg.Nedelec0(keyword)
     else:
         raise ValueError
 

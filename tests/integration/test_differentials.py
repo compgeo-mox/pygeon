@@ -49,6 +49,30 @@ class DifferentialsTest(unittest.TestCase):
             product = diff1 * diff2
             self.assertTrue(product.nnz == 0)
 
+    def test_stiffness_P1(self):
+        """
+        Test whether the stiffness matrix of P1 corresponds to
+        grad.T M grad where M is the mass matrix of Ne0.
+        """
+
+        la = pg.Lagrange("flow")
+        ne = pg.Nedelec0("flow")
+
+        grid = pp.StructuredTetrahedralGrid([4] * 3, [1] * 3)
+        pg.convert_from_pp(grid)
+        grid.compute_geometry()
+
+        data = {pp.PARAMETERS: {"flow": {}}}
+        k = pp.SecondOrderTensor(np.ones(grid.num_cells))
+        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = k
+
+        A_la = la.assemble_stiffness_matrix(grid, data)
+        M_ne = ne.assemble_mass_matrix(grid, data)
+        grad = pg.grad(grid)
+
+        diff = A_la - grad.T * M_ne * grad
+        self.assertAlmostEqual(np.linalg.norm(diff.data), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

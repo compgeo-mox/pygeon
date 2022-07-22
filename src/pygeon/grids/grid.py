@@ -141,10 +141,10 @@ class Grid(pp.Grid):
         Tag the peaks and ridges of the grid located on fracture tips.
         """
 
-        self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
+        self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
 
         if self.dim == 2:
             fr_bool = self.face_ridges.astype("bool")
             self.tags["tip_ridges"] = fr_bool * self.tags["tip_faces"]
         else:
-            self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=np.bool)
+            self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=bool)

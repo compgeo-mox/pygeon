@@ -65,8 +65,8 @@ class Nedelec0:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 6 * 6 * g.num_cells
-        I = np.empty(size, dtype=np.int)
-        J = np.empty(size, dtype=np.int)
+        I = np.empty(size, dtype=int)
+        J = np.empty(size, dtype=int)
         dataIJ = np.empty(size)
         idx = 0
 
@@ -193,8 +193,8 @@ class Nedelec1:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 9 * 4 * g.num_cells
-        I = np.empty(size, dtype=np.int)
-        J = np.empty(size, dtype=np.int)
+        I = np.empty(size, dtype=int)
+        J = np.empty(size, dtype=int)
         dataIJ = np.empty(size)
         idx = 0
 
