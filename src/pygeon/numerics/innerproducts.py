@@ -201,14 +201,17 @@ def _g_lumped_mass(g, n_minus_k, discr=None, data=None):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
+    if n_minus_k > g.dim:
+        return sps.csc_matrix((0, 0))
 
-    if n_minus_k == 0:
-        return _g_mass_matrix(g, n_minus_k, None, None)
+    if discr is None:
+        discr = default_discr(g, n_minus_k)
 
-    elif n_minus_k == 1:
+    if n_minus_k == 1:
         """
         Returns the lumped mass matrix L such that
         (div * L^-1 * div) is equivalent to a TPFA method
+        TODO: Move this to RT0
         """
         h_perp = np.zeros(g.num_faces)
         for (face, cell) in zip(*g.cell_faces.nonzero()):
@@ -229,23 +232,7 @@ def _g_lumped_mass(g, n_minus_k, discr=None, data=None):
 
         return sps.diags(volumes / (h * h))
 
-    elif n_minus_k == 2 and g.dim == 2:
-        volumes = g.cell_nodes() * g.cell_volumes / (g.dim + 1)
+    elif n_minus_k == 0 or n_minus_k == g.dim:
+        return discr.assemble_lumped_matrix(g)
 
-        return sps.diags(volumes)
-
-    elif n_minus_k == 2 and g.dim < 2:
-        return sps.csc_matrix((g.num_ridges, g.num_ridges))
-
-    elif n_minus_k == 3:
-        cell_nodes = (
-            np.abs(g.ridge_peaks) * np.abs(g.face_ridges) * np.abs(g.cell_faces)
-        )
-        cell_nodes.data[:] = 1.0
-
-        volumes = cell_nodes * g.cell_volumes / (g.dim + 1)
-
-        return sps.diags(volumes)
-
-    else:
         raise NotImplementedError

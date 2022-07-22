@@ -52,3 +52,9 @@ class PwConstants:
         """
 
         return sps.diags(g.cell_volumes)
+
+    def assemble_lumped_matrix(self, g: pg.Grid):
+        """
+        Compute the lumped mass matrix, which coincides with the mass matrix for P0.
+        """
+        return self.assemble_mass_matrix(g, None)

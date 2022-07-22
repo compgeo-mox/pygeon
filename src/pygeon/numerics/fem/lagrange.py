@@ -13,6 +13,7 @@ class Lagrange:
         # Discretization of stiffness matrix
         self.stiffness_matrix_key = "stiffness"
         self.mass_matrix_key = "mass"
+        self.lumped_matrix_key = "lumped"
 
     def ndof(self, g: pp.Grid) -> int:
         """
@@ -60,6 +61,7 @@ class Lagrange:
             g, data
         )
         matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(g, data)
+        matrix_dictionary[self.lumped_matrix_key] = self.assemble_lumped_matrix(g)
 
     def assemble_mass_matrix(self, g, data):
         """
@@ -189,8 +191,6 @@ class Lagrange:
         # Construct the global matrices
         return sps.csr_matrix((dataIJ, (I, J)))
 
-    # ------------------------------------------------------------------------------#
-
     def local_stiff(self, K, c_volume, coord, dim):
         """Compute the local stiffness matrix for P1.
 
@@ -216,4 +216,6 @@ class Lagrange:
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
 
-    # ------------------------------------------------------------------------------#
+    def assemble_lumped_matrix(self, g):
+        volumes = g.cell_nodes() * g.cell_volumes / (g.dim + 1)
+        return sps.diags(volumes)

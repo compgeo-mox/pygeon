@@ -107,7 +107,7 @@ class Nedelec0:
             loc_idx = slice(idx, idx + cols.size)
             I[loc_idx] = cols.T.ravel()
             J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.ravel()
+            dataIJ[loc_idx] = A.todense().ravel()
             idx += cols.size
 
         # Construct the global matrices
@@ -122,12 +122,12 @@ class Nedelec0:
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)
 
-        M = np.zeros((12, 12))
+        M = sps.lil_matrix((12, 12))
         for i in np.arange(3):
             range = np.arange(i, i + 12, 3)
             M[np.ix_(range, range)] = M_loc
 
-        return M
+        return M.tocsc()
 
     def assemble_curl(self, g):
         return pg.curl(g)
@@ -138,8 +138,7 @@ class Nedelec1:
         self.keyword = keyword
 
         # Keywords used to identify individual terms in the discretization matrix dictionary
-        # Discretization of mass matrix
-        self.mass_matrix_key = "mass"
+        self.lumped_matrix_key = "lumped"
         self.curl_matrix_key = "curl"
 
     def ndof(self, g: pp.Grid) -> int:
@@ -185,10 +184,10 @@ class Nedelec1:
 
         # Get dictionary for discretization matrix storage
         matrix_dictionary = data[pp.DISCRETIZATION_MATRICES][self.keyword]
-        matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(g, data)
+        matrix_dictionary[self.lumped_matrix_key] = self.assemble_lumped_matrix(g, data)
         matrix_dictionary[self.curl_matrix_key] = self.assemble_curl(g)
 
-    def assemble_mass_matrix(self, g: pg.Grid, data: dict):
+    def assemble_lumped_matrix(self, g: pg.Grid, data: dict):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
