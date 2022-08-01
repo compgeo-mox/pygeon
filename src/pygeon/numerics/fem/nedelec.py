@@ -113,6 +113,18 @@ class Nedelec0:
         # Construct the global matrices
         return sps.csr_matrix((dataIJ, (I, J)))
 
+
+    def assemble_lumped_matrix(self, sd, data):
+        tangents = sd.nodes * sd.ridge_peaks
+        h = np.linalg.norm(tangents, axis=0)
+
+        cell_ridges = np.abs(sd.face_ridges) * np.abs(sd.cell_faces)
+        cell_ridges.data[:] = 1.0
+
+        volumes = cell_ridges * sd.cell_volumes
+
+        return sps.diags(volumes / (h * h))
+
     def local_grads(self, coord, dim=3):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
