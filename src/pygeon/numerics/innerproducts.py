@@ -222,18 +222,5 @@ def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
 
         return sps.diags(h_perp / sd.face_areas)
 
-    elif n_minus_k == 2 and sd.dim == 3:
-        tangents = sd.nodes * sd.ridge_peaks
-        h = np.linalg.norm(tangents, axis=0)
-
-        cell_ridges = np.abs(sd.face_ridges) * np.abs(sd.cell_faces)
-        cell_ridges.data[:] = 1.0
-
-        volumes = cell_ridges * sd.cell_volumes
-
-        return sps.diags(volumes / (h * h))
-
-    elif n_minus_k == 0 or n_minus_k == sd.dim:
-        return discr.assemble_lumped_matrix(sd)
-
-        raise NotImplementedError
+    else:
+        return discr.assemble_lumped_matrix(sd, data)
