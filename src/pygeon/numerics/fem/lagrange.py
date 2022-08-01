@@ -216,6 +216,6 @@ class Lagrange:
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
 
-    def assemble_lumped_matrix(self, g):
+    def assemble_lumped_matrix(self, g, data=None):
         volumes = g.cell_nodes() * g.cell_volumes / (g.dim + 1)
         return sps.diags(volumes)
