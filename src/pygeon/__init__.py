@@ -12,6 +12,7 @@ from pygeon.numerics.fem.pwconstants import PwConstants
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass
 from pygeon.numerics.restrictions import remove_tip_dofs
+from pygeon.numerics.projections import proj_cells_to_faces
 from pygeon.numerics.linear_system import LinearSystem
 from pygeon.rom.offline import OfflineComputations
 
