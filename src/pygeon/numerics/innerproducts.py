@@ -68,17 +68,16 @@ def peak_mass(mdg, discr=None, **kwargs):
 
 
 # ---------------------------------- General ---------------------------------- #
-def default_discr(g, n_minus_k, keyword="flow"):
+def default_discr(sd, n_minus_k, keyword="flow"):
     """
     Construct the default discretization operator depending on n_minus_k.
     These correspond to the Whitney forms.
     """
-
     if n_minus_k == 0:
         return pg.PwConstants(keyword)
     elif n_minus_k == 1:
         return pp.RT0(keyword)
-    elif n_minus_k == g.dim:
+    elif n_minus_k == sd.dim:
         return pg.Lagrange(keyword)
     elif n_minus_k == 2:
         return pg.Nedelec0(keyword)
@@ -86,12 +85,12 @@ def default_discr(g, n_minus_k, keyword="flow"):
         raise ValueError
 
 
-def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
+def _sd_mass_matrix(sd, n_minus_k, discr=None, data=None, **kwargs):
     """
     Compute the mass matrix on a single grid
 
     Parameters:
-        g (pp.Grid).
+        sd (pp.Grid).
         n_minus_k (int): The difference between the dimension and the order of the differential.
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
@@ -99,24 +98,24 @@ def _g_mass_matrix(g, n_minus_k, discr=None, data=None):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
-    if n_minus_k > g.dim:
+    if n_minus_k > sd.dim:
         return sps.csc_matrix((0, 0))
 
     if discr is None:
-        discr = default_discr(g, n_minus_k)
+        discr = default_discr(sd, n_minus_k, **kwargs)
 
-    discr.discretize(g, data)
+    discr.discretize(sd, data)
     return data[pp.DISCRETIZATION_MATRICES][discr.keyword]["mass"]
 
 
-def local_matrix(sd, n_minus_k, discr, d_sd):
+def local_matrix(sd, n_minus_k, discr, d_sd, **kwargs):
     if isinstance(sd, pg.Graph):
-        return _g_lumped_mass(sd, n_minus_k, discr, d_sd)
+        return _sd_lumped_mass(sd, n_minus_k, discr, d_sd, **kwargs)
     elif isinstance(sd, pp.Grid):
-        return _g_mass_matrix(sd, n_minus_k, discr, d_sd)
+        return _sd_mass_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
 
 
-def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix):
+def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     """
     Compute the mass matrix on a mixed-dimensional grid
 
@@ -135,20 +134,20 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix):
     return np.sum([sps.bmat(bmat, format="csc") for bmat in bmats])
 
 
-def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix):
+def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     """
     Computes the block matrices of the mass matrix
     """
-    bmat_g = np.empty(
+    bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
-    bmat_mg = bmat_g.copy()
+    bmat_mg = bmat_sd.copy()
 
     # Local mass matrices
     for sd, d_sd in mdg.subdomains(return_data=True):
         nn_sd = d_sd["node_number"]
-        bmat_g[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd)
-        bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_g[nn_sd, nn_sd].shape)
+        bmat_sd[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
+        bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_sd[nn_sd, nn_sd].shape)
 
     # Mortar contribution
     if n_minus_k == 1:
@@ -165,7 +164,7 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix):
                 * intf.signed_mortar_to_primary.T
             )
 
-    return bmat_g, bmat_mg
+    return bmat_sd, bmat_mg
 
 
 # ---------------------------------- Lumped ---------------------------------- #
@@ -184,16 +183,16 @@ def lumped_mass_matrix(mdg, n_minus_k, discr):
         sps.csc_matrix, num_dofs x num_dofs
     """
 
-    return mass_matrix(mdg, n_minus_k, discr, _g_lumped_mass)
+    return mass_matrix(mdg, n_minus_k, discr, _sd_lumped_mass)
 
 
-def _g_lumped_mass(g, n_minus_k, discr=None, data=None):
+def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
     """
     Compute the mass-lumped mass matrix on a single grid.
     For k = 1, this is the matrix that leads to a TPFA discretization.
 
     Parameters:
-        g (pp.Grid).
+        sd (pp.Grid).
         n_minus_k (int): The difference between the dimension and the order of the differential.
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
@@ -201,11 +200,11 @@ def _g_lumped_mass(g, n_minus_k, discr=None, data=None):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
-    if n_minus_k > g.dim:
+    if n_minus_k > sd.dim:
         return sps.csc_matrix((0, 0))
 
     if discr is None:
-        discr = default_discr(g, n_minus_k)
+        discr = default_discr(sd, n_minus_k)
 
     if n_minus_k == 1:
         """
@@ -213,26 +212,26 @@ def _g_lumped_mass(g, n_minus_k, discr=None, data=None):
         (div * L^-1 * div) is equivalent to a TPFA method
         TODO: Move this to RT0
         """
-        h_perp = np.zeros(g.num_faces)
-        for (face, cell) in zip(*g.cell_faces.nonzero()):
+        h_perp = np.zeros(sd.num_faces)
+        for (face, cell) in zip(*sd.cell_faces.nonzero()):
             h_perp[face] += np.linalg.norm(
-                g.face_centers[:, face] - g.cell_centers[:, cell]
+                sd.face_centers[:, face] - sd.cell_centers[:, cell]
             )
 
-        return sps.diags(h_perp / g.face_areas)
+        return sps.diags(h_perp / sd.face_areas)
 
-    elif n_minus_k == 2 and g.dim == 3:
-        tangents = g.nodes * g.ridge_peaks
+    elif n_minus_k == 2 and sd.dim == 3:
+        tangents = sd.nodes * sd.ridge_peaks
         h = np.linalg.norm(tangents, axis=0)
 
-        cell_ridges = np.abs(g.face_ridges) * np.abs(g.cell_faces)
+        cell_ridges = np.abs(sd.face_ridges) * np.abs(sd.cell_faces)
         cell_ridges.data[:] = 1.0
 
-        volumes = cell_ridges * g.cell_volumes
+        volumes = cell_ridges * sd.cell_volumes
 
         return sps.diags(volumes / (h * h))
 
-    elif n_minus_k == 0 or n_minus_k == g.dim:
-        return discr.assemble_lumped_matrix(g)
+    elif n_minus_k == 0 or n_minus_k == sd.dim:
+        return discr.assemble_lumped_matrix(sd)
 
         raise NotImplementedError
