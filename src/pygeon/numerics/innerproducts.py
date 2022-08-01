@@ -68,6 +68,8 @@ def peak_mass(mdg, discr=None, **kwargs):
 
 
 # ---------------------------------- General ---------------------------------- #
+
+
 def default_discr(sd, n_minus_k, keyword="flow"):
     """
     Construct the default discretization operator depending on n_minus_k.
@@ -209,7 +211,7 @@ def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
     if n_minus_k == 1:
         """
         Returns the lumped mass matrix L such that
-        (div * L^-1 * div) is equivalent to a TPFA method
+        (div * L^-1 * div.T) is equivalent to a TPFA method
         TODO: Move this to RT0
         """
         h_perp = np.zeros(sd.num_faces)
