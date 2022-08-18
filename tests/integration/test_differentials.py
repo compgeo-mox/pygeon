@@ -49,6 +49,56 @@ class DifferentialsTest(unittest.TestCase):
             product = diff1 * diff2
             self.assertTrue(product.nnz == 0)
 
+    def test_stiffness_P1_3D(self):
+        """
+        Test whether the stiffness matrix of P1 corresponds to
+        grad.T M grad where M is the mass matrix of Ne0.
+        """
+
+        la = pg.Lagrange("flow")
+        ne = pg.Nedelec0("flow")
+
+        grid = pp.StructuredTetrahedralGrid([4] * 3, [1] * 3)
+        pg.convert_from_pp(grid)
+        grid.compute_geometry()
+
+        data = {pp.PARAMETERS: {"flow": {}}}
+        k = pp.SecondOrderTensor(np.ones(grid.num_cells))
+        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = k
+
+        A_la = la.assemble_stiffness_matrix(grid, data)
+        M_ne = ne.assemble_mass_matrix(grid, data)
+        grad = pg.grad(grid)
+
+        diff = A_la - grad.T * M_ne * grad
+        self.assertAlmostEqual(np.linalg.norm(diff.data), 0)
+
+    def test_stiffness_P1_2D(self):
+        """
+        Test whether the stiffness matrix of P1 in 2D corresponds to
+        curl.T M curl where M is the mass matrix of RT0.
+        """
+
+        la = pg.Lagrange("flow")
+        rt = pp.RT0("flow")
+
+        grid = pp.StructuredTriangleGrid([4] * 2, [1] * 2)
+        pg.convert_from_pp(grid)
+        grid.compute_geometry()
+
+        data = {pp.PARAMETERS: {"flow": {}}, pp.DISCRETIZATION_MATRICES: {"flow": {}}}
+        k = pp.SecondOrderTensor(np.ones(grid.num_cells))
+        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = k
+
+        rt.discretize(grid, data)
+
+        A_la = la.assemble_stiffness_matrix(grid, data)
+        M_rt = data[pp.DISCRETIZATION_MATRICES]["flow"]["mass"]
+        curl = pg.curl(grid)
+
+        diff = A_la - curl.T * M_rt * curl
+        self.assertAlmostEqual(np.linalg.norm(diff.data), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
