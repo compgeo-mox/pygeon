@@ -144,6 +144,51 @@ class Nedelec0:
     def assemble_curl(self, g):
         return pg.curl(g)
 
+    def eval_at_cell_centers(self, g):
+
+        # Allocate the data to store matrix entries, that's the most efficient
+        # way to create a sparse matrix.
+        size = 6 * 3 * g.num_cells
+        I = np.empty(size, dtype=int)
+        J = np.empty(size, dtype=int)
+        dataIJ = np.empty(size)
+        idx = 0
+
+        M = self.local_inner_product(g.dim)
+
+        cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
+        ridge_peaks = g.ridge_peaks
+
+        for c in np.arange(g.num_cells):
+            # For the current cell retrieve its ridges and
+            # determine the location of the dof
+            loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
+            ridges_loc = cell_ridges.indices[loc]
+            peaks_loc = np.reshape(
+                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
+            )
+
+            # Find the nodes of the cell and their coordinates
+            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
+            indices = np.reshape(indices, (2, -1))
+            coords = g.nodes[:, nodes_uniq]
+
+            # Compute the gradients of the Lagrange basis functions
+            dphi = self.local_grads(coords)
+
+            Psi = np.zeros((3, 6))
+            for (ridge, peaks) in enumerate(indices.T):
+                Psi[:, ridge] = dphi[:, peaks[1]] - dphi[:, peaks[0]]
+
+            # Put in the right spot
+            loc_idx = slice(idx, idx + Psi.size)
+            I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3*c
+            J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
+            dataIJ[loc_idx] = Psi.ravel() / 4.
+            idx += Psi.size
+
+        # Construct the global matrices
+        return sps.csr_matrix((dataIJ, (I, J)))
 
 class Nedelec1:
     def __init__(self, keyword: str) -> None:
@@ -259,3 +304,46 @@ class Nedelec1:
 
     def assemble_curl(self, g):
         return sps.bmat([[pg.curl(g), -pg.curl(g)]]) / 2
+
+    def eval_at_cell_centers(self, g):
+
+        # Allocate the data to store matrix entries, that's the most efficient
+        # way to create a sparse matrix.
+        size = 12 * 3 * g.num_cells
+        I = np.empty(size, dtype=int)
+        J = np.empty(size, dtype=int)
+        dataIJ = np.empty(size)
+        idx = 0
+
+        cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
+        ridge_peaks = g.ridge_peaks
+
+        for c in np.arange(g.num_cells):
+            # For the current cell retrieve its ridges and
+            # determine the location of the dof
+            loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
+            ridges_loc = cell_ridges.indices[loc]
+            dof_loc = np.reshape(
+                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
+            ).flatten()
+
+            # Find the nodes of the cell and their coordinates
+            nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
+            coords = g.nodes[:, nodes_uniq]
+
+            # Compute the gradients of the Lagrange basis functions
+            dphi = self.local_grads(coords)
+
+            # Compute the local Nedelec basis functions and global indices
+            Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
+            Ne_indices = np.concatenate((ridges_loc, ridges_loc + g.num_ridges))
+
+            # Save values for projection P local matrix in the global structure
+            loc_idx = slice(idx, idx + Ne_basis.size)
+            I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3*c
+            J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
+            dataIJ[loc_idx] = Ne_basis.ravel() / 4.
+            idx += Ne_basis.size
+
+        # Construct the global matrices
+        return sps.csr_matrix((dataIJ, (I, J)))

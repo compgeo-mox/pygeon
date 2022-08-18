@@ -219,3 +219,29 @@ class Lagrange:
     def assemble_lumped_matrix(self, g, data=None):
         volumes = g.cell_nodes() * g.cell_volumes / (g.dim + 1)
         return sps.diags(volumes)
+
+    def eval_at_cell_centers(self, g):
+
+        # Allocate the data to store matrix entries, that's the most efficient
+        # way to create a sparse matrix.
+        size = (g.dim + 1) * g.num_cells
+        I = np.empty(size, dtype=int)
+        J = np.empty(size, dtype=int)
+        dataIJ = np.empty(size)
+        idx = 0
+
+        cell_nodes = g.cell_nodes()
+
+        for c in np.arange(g.num_cells):
+            # For the current cell retrieve its nodes
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+            nodes_loc = cell_nodes.indices[loc]
+
+            loc_idx = slice(idx, idx + nodes_loc.size)
+            I[loc_idx] = c
+            J[loc_idx] = nodes_loc
+            dataIJ[loc_idx] = 1. / (g.dim + 1)
+            idx += nodes_loc.size
+
+        # Construct the global matrices
+        return sps.csr_matrix((dataIJ, (I, J)))

@@ -38,6 +38,24 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             [sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int
         )
 
+    def num_subdomain_ridges(self, cond = None) -> int:
+        """Compute the total number ridges of of the mixed-dimensional grid.
+
+        A function can be passed to filter subdomains and/or interfaces.
+
+        Args:
+            cond: optional, predicate with a grid as input.
+
+        Return:
+            int: the total number of faces of the mixed-dimensional grid.
+
+        """
+        if cond is None:
+            cond = lambda _: True
+        return np.sum(  # type: ignore
+            [sd.num_ridges for sd in self.subdomains() if cond(sd)], dtype=int
+        )
+
     def tag_leafs(self):
         """
         Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid in a grid bucket.
