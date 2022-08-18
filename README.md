@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/455087135.svg)](https://zenodo.org/badge/latestdoi/455087135)
+
 # PyGeoN: a Python package for Geo-Numerics
 
 ## Installation for Linux
