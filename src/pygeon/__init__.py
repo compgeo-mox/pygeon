@@ -5,9 +5,9 @@ from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.graph import Graph
 
-from pygeon.numerics.fem.nedelec import Nedelec0, Nedelec1
-from pygeon.numerics.fem.lagrange import Lagrange
-from pygeon.numerics.fem.pwconstants import PwConstants
+from pygeon.discretizations.fem.Hcurl import Nedelec0, Nedelec1
+from pygeon.discretizations.fem.H1 import Lagrange
+from pygeon.discretizations.fem.L2 import PwConstants
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass

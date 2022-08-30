@@ -211,7 +211,8 @@ class Lagrange:
 
         return c_volume * np.dot(dphi.T, np.dot(K, dphi))
 
-    def local_grads(self, coord, dim):
+    @staticmethod
+    def local_grads(coord, dim):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
@@ -240,7 +241,7 @@ class Lagrange:
             loc_idx = slice(idx, idx + nodes_loc.size)
             I[loc_idx] = c
             J[loc_idx] = nodes_loc
-            dataIJ[loc_idx] = 1. / (g.dim + 1)
+            dataIJ[loc_idx] = 1.0 / (g.dim + 1)
             idx += nodes_loc.size
 
         # Construct the global matrices
