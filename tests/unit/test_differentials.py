@@ -5,9 +5,9 @@ import numpy as np
 import porepy as pp
 import pygeon as pg
 
-class DifferentialsUnitTest(unittest.TestCase):
 
-    def test_1d_single_grid(self):
+class DifferentialsUnitTest(unittest.TestCase):
+    def test_1d(self):
         N, dim = 3, 1
         sd = pp.CartGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
@@ -28,11 +28,14 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((0, 0))
         # fmt: on
 
+        self.assertTrue(np.sum(curl * grad) == 0)
+        self.assertTrue(np.sum(div * curl) == 0)
+
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
-    def test_2d_single_simplicial_grid(self):
+    def test_2d_simplicial(self):
         N, dim = 2, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
@@ -74,11 +77,14 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
+        self.assertTrue(np.sum(curl * grad) == 0)
+        self.assertTrue(np.sum(div * curl) == 0)
+
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
-    def test_2d_single_cartesian_grid(self):
+    def test_2d_cartesian(self):
         N, dim = 2, 2
         sd = pp.CartGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
@@ -112,11 +118,14 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
+        self.assertTrue(np.sum(curl * grad) == 0)
+        self.assertTrue(np.sum(div * curl) == 0)
+
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
-    def test_3d_single_simplicial_grid(self):
+    def test_3d_simplicial(self):
         N, dim = 2, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
@@ -128,11 +137,14 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_simplicial_grid()
 
+        self.assertTrue(np.sum(curl * grad) == 0)
+        self.assertTrue(np.sum(div * curl) == 0)
+
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
-    def test_3d_single_cartesian_grid(self):
+    def test_3d_cartesian(self):
         N, dim = 2, 3
         sd = pp.CartGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
@@ -143,6 +155,9 @@ class DifferentialsUnitTest(unittest.TestCase):
         grad = pg.grad(sd)
 
         known_div, known_curl, known_grad = self._3d_single_cartesian_grid()
+
+        self.assertTrue(np.sum(curl * grad) == 0)
+        self.assertTrue(np.sum(div * curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -533,6 +548,7 @@ class DifferentialsUnitTest(unittest.TestCase):
         # fmt: on
 
         return div, curl, grad
+
 
 if __name__ == "__main__":
     unittest.main()
