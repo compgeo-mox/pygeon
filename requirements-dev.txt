@@ -1,4 +1,4 @@
-porepy == 1.6.0
+git+https://github.com/pmgbergen/porepy.git
 meshio >= 5.0
 networkx
 numpy
