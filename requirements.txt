@@ -1,4 +1,4 @@
-porepy==1.6.0
+porepy == 1.6.0
 meshio>=5.0
 networkx
 numpy
