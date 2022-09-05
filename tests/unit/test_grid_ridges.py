@@ -5,7 +5,7 @@ import porepy as pp
 import pygeon as pg
 import scipy.sparse as sps
 
-""" 
+"""
 Module contains a unit tests to validate the computation of ridges (co-dimension 2 from a cell).
 """
 
@@ -119,7 +119,7 @@ class GridRidgesTest(unittest.TestCase):
 
     def test_grid_bucket_3d(self):
         def setup_problem():
-            f_1 = pp.Fracture(
+            f_1 = pp.PlaneFracture(
                 np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
             )
 
@@ -156,10 +156,10 @@ class GridRidgesTest(unittest.TestCase):
 
     def test_grid_bucket_3d_itsc(self):
         def setup_problem():
-            f_1 = pp.Fracture(
+            f_1 = pp.PlaneFracture(
                 np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
             )
-            f_2 = pp.Fracture(
+            f_2 = pp.PlaneFracture(
                 np.array([[0, 1, 1, 0], [0.5, 0.5, 0.5, 0.5], [0, 0, 1, 1]])
             )
 
