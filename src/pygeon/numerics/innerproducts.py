@@ -80,7 +80,7 @@ def default_discr(sd, n_minus_k, keyword="flow"):
     elif n_minus_k == 1:
         return pg.RT0(keyword)
     elif n_minus_k == sd.dim:
-        return pg.Lagrange(keyword)
+        return pg.Lagrange1(keyword)
     elif n_minus_k == 2:
         return pg.Nedelec0(keyword)
     else:

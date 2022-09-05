@@ -6,9 +6,14 @@ import pygeon as pg
 
 
 class PwConstants(pg.Discretization):
+    """
+    Discretization class for the piecewise constants.
+    Each degree of freedom is the cell-center value.
+    """
+
     def ndof(self, sd: pp.Grid) -> int:
         """
-        Return the number of degrees of freedom associated to the method.
+        Returns the number of degrees of freedom associated to the method.
         In this case number of cells.
 
         Args
@@ -21,7 +26,8 @@ class PwConstants(pg.Discretization):
         return sd.num_cells
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
-        """Compute the mass matrix for piecewise constants
+        """
+        Computes the mass matrix for piecewise constants
 
         Args
             sd: grid, or a subclass, with geometry fields computed.
@@ -31,11 +37,11 @@ class PwConstants(pg.Discretization):
             matrix: sparse csr (g.num_cells, g.num_cells)
         """
 
-        return sps.diags(sd.cell_volumes)
+        return sps.diags(sd.cell_volumes).tocsc()
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
         """
-        Compute the lumped mass matrix, which coincides with the mass matrix for P0.
+        Computes the lumped mass matrix, which coincides with the mass matrix for P0.
         """
 
         return self.assemble_mass_matrix(sd, data)
@@ -77,7 +83,8 @@ class PwConstants(pg.Discretization):
         Returns
             array: the values of the degrees of freedom
         """
-        vals = np.array([func(x) for x in sd.cell_centers])
+
+        return np.array([func(x) for x in sd.cell_centers])
 
     def eval_at_cell_centers(self, sd: pg.Grid):
         """
@@ -89,26 +96,19 @@ class PwConstants(pg.Discretization):
         Returns
             matrix: the evaluation matrix.
         """
+
         return sps.eye(self.ndofs(sd))
 
-    def source_term(self, sd: pg.Grid, func):
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
-        Assembles the source term by interpolating the given function
-        and multiplying by the mass matrix
-
-        Args
-            sd: grid, or a subclass.
-            func: a function that returns the function values at coordinates
-
-        Returns
-            matrix: the evaluation matrix.
+        Returns a zero vector
         """
 
-        return self.assemble_mass_matrix(sd) * self.interpolate(sd, func)
-
-    def assemble_nat_bc(self, sd: pg.Grid, b_dofs):
-        """
-        Assembles the natural boundary condition term
-
-        """
         return np.zeros(self.ndof(sd))
+
+    def get_range_discr_class(self, dim: int):
+        """
+        Raises an error since the range of the differential is zero.
+        """
+
+        raise NotImplementedError("There's no zero discretization in PyGeoN")

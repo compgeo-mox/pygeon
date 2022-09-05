@@ -6,8 +6,13 @@ import pygeon as pg
 
 
 class RT0(pg.Discretization, pp.RT0):
+    """
+    Discretization class for Raviart-Thomas of lowest order.
+    Each degree of freedom is the integral over a mesh face.
+    """
+
     def __init__(self, keyword: str) -> None:
-        super().__init__(keyword)
+        pg.Discretization.__init__(self, keyword)
         pp.RT0.__init__(self, keyword)
 
     def ndof(self, sd: pg.Grid) -> int:
@@ -40,7 +45,8 @@ class RT0(pg.Discretization, pp.RT0):
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         """
-        Assembles the lumped mass matrix such that a TPFA method is obtained.
+        Assembles the lumped mass matrix L such that
+        B^T L^{-1} B is a TPFA method.
 
         Args
             sd: grid, or a subclass.
@@ -112,12 +118,21 @@ class RT0(pg.Discretization, pp.RT0):
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
-    def assemble_nat_bc(self, sd: pg.Grid, b_dofs):
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
         Assembles the natural boundary condition term
-
+        (n dot q, func)_\Gamma
         """
-        raise NotImplementedError
+        vals = np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self):
+        for dof in b_faces:
+            vals[dof] = (
+                func(sd.face_centers[:, dof])
+                * np.sum(sd.cell_faces[dof, :])
+                * sd.face_areas[dof]
+            )
+
+        return vals
+
+    def get_range_discr_class(self, dim: int):
         return pg.PwConstants

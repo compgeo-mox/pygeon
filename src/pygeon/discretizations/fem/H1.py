@@ -5,67 +5,23 @@ import porepy as pp
 import pygeon as pg
 
 
-class Lagrange:
-    def __init__(self, keyword: str) -> None:
-        self.keyword = keyword
-
-        # Keywords used to identify individual terms in the discretization matrix dictionary
-        # Discretization of stiffness matrix
-        self.stiffness_matrix_key = "stiffness"
-        self.mass_matrix_key = "mass"
-        self.lumped_matrix_key = "lumped"
-
+class Lagrange1(pg.Discretization):
     def ndof(self, g: pp.Grid) -> int:
         """
-        Return the number of degrees of freedom associated to the method.
+        Returns the number of degrees of freedom associated to the method.
         In this case number of nodes.
 
-        Parameter
-        ---------
-        g: grid, or a subclass.
-
-        Return
-        ------
-        dof: the number of degrees of freedom.
-
-        """
-        if isinstance(g, pp.Grid):
-            return g.num_nodes
-        else:
-            raise ValueError
-
-    def discretize(self, g: pp.Grid, data: dict) -> None:
-        """Set the stiffness and mass matrices
-
-        Parameters
-        ----------
-        g: grid, or a subclass, with geometry fields computed.
-        data: dictionary to store the data.
+        Args
+            g: grid, or a subclass.
 
         Returns
-        ------
-        matrix: sparse csr (g.num_nodes, g.num_nodes)
-            Matrix obtained from the discretization.
-
-        Raises:
-        ------
-        ValueError if the boundary condition is not defined node-wise.
+            ndof: the number of degrees of freedom.
         """
-        # Allow short variable names in backend function
-        # pylint: disable=invalid-name
-
-        # Get dictionary for discretization matrix storage
-        matrix_dictionary = data[pp.DISCRETIZATION_MATRICES][self.keyword]
-
-        matrix_dictionary[self.stiffness_matrix_key] = self.assemble_stiffness_matrix(
-            g, data
-        )
-        matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(g, data)
-        matrix_dictionary[self.lumped_matrix_key] = self.assemble_lumped_matrix(g)
+        return g.num_nodes
 
     def assemble_mass_matrix(self, g, data):
         """
-        Return the matrix for a discretization of a
+        Returns the matrix for a discretization of a
         L2-mass bilinear form with P1 test and trial functions.
 
         The name of data in the input dictionary (data) are:
@@ -75,17 +31,15 @@ class Lagrange:
         deltaT: Time step for a possible temporal discretization scheme.
             If not given assumed unitary.
 
-        Parameters
-        ----------
-        g : grid, or a subclass, with geometry fields computed.
-        data: dictionary to store the data.
+        Args
+            g : grid, or a subclass, with geometry fields computed.
+            data: dictionary to store the data.
 
-        Return
-        ------
-        matrix: sparse dia (g.num_cells, g_num_cells)
-            Mass matrix obtained from the discretization.
-        rhs: array (g_num_cells)
-            Null right-hand side.
+        Returns
+            matrix: sparse dia (g.num_cells, g_num_cells)
+                Mass matrix obtained from the discretization.
+            rhs: array (g_num_cells)
+                Null right-hand side.
 
         """
 
@@ -121,8 +75,7 @@ class Lagrange:
     def local_mass(self, c_volume, dim):
         """Compute the local mass matrix.
 
-        Parameters
-        ----------
+        Args
         c_volume : scalar
             Cell volume.
 
@@ -191,20 +144,30 @@ class Lagrange:
         # Construct the global matrices
         return sps.csr_matrix((dataIJ, (I, J)))
 
+    def assemble_diff_matrix(self, sd: pg.Grid):
+        if sd.dim == 3:
+            return sd.ridge_peaks.T
+        elif sd.dim == 2:
+            return sd.face_ridges.T
+        elif sd.dim == 1:
+            return sd.cell_faces.T
+        elif sd.dim == 0:
+            return sps.csr_matrix((0, 1))
+        else:
+            raise ValueError
+
     def local_stiff(self, K, c_volume, coord, dim):
         """Compute the local stiffness matrix for P1.
 
-        Parameters
-        ----------
-        K : ndarray (g.dim, g.dim)
-            Permeability of the cell.
-        c_volume : scalar
-            Cell volume.
+        Args
+            K : ndarray (g.dim, g.dim)
+                Permeability of the cell.
+            c_volume : scalar
+                Cell volume.
 
-        Return
-        ------
-        out: ndarray (num_faces_of_cell, num_faces_of_cell)
-            Local mass Hdiv matrix.
+        Returns
+            out: ndarray (num_faces_of_cell, num_faces_of_cell)
+                Local mass Hdiv matrix.
         """
 
         dphi = self.local_grads(coord, dim)
@@ -223,8 +186,7 @@ class Lagrange:
 
     def eval_at_cell_centers(self, g):
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
+        # Allocation
         size = (g.dim + 1) * g.num_cells
         I = np.empty(size, dtype=int)
         J = np.empty(size, dtype=int)
@@ -241,8 +203,38 @@ class Lagrange:
             loc_idx = slice(idx, idx + nodes_loc.size)
             I[loc_idx] = c
             J[loc_idx] = nodes_loc
-            dataIJ[loc_idx] = 1.0 / (g.dim + 1)
+            dataIJ[loc_idx] = 1.0 / nodes_loc.size
             idx += nodes_loc.size
 
         # Construct the global matrices
         return sps.csr_matrix((dataIJ, (I, J)))
+
+    def interpolate(self, sd: pg.Grid, func):
+        return np.array([func(x) for x in sd.nodes])
+
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+        """
+        Assembles the 'natural' boundary condition
+        (u, func)_Gamma with u a test function in Lagrange1
+        """
+        vals = np.zeros(self.ndof(sd))
+
+        for face in b_faces:
+            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
+            loc_n = sd.face_nodes.indices[loc]
+
+            vals[loc_n] += (
+                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
+            )
+
+        return vals
+
+    def get_range_discr_class(self, dim):
+        if dim == 3:
+            return pg.Nedelec0
+        elif dim == 2:
+            return pg.RT0
+        elif dim == 1:
+            return pg.PwConstants
+        else:
+            raise NotImplementedError("There's no zero discretization in PyGeoN")

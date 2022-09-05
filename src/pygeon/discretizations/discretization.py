@@ -1,13 +1,26 @@
 import numpy as np
 import scipy.sparse as sps
+import abc
 
 import porepy as pp
 import pygeon as pg
 
 
-class Discretization:
+class Discretization(pp.numerics.discretization.Discretization):
+    """
+    Abstract class for pygeon discretization methods.
+    For full compatibility, a child class requires the following methods:
+        ndof
+        assemble_mass_matrix
+        assemble_diff_matrix
+        interpolate
+        eval_at_cell_centers
+        assemble_nat_bc
+        get_range_discr_class
+    """
+
     def __init__(self, keyword: str) -> None:
-        self.keyword = keyword
+        super().__init__(keyword)
 
         # Keywords used to identify individual terms in the discretization matrix dictionary
         self.mass_matrix_key = "mass"
@@ -25,19 +38,7 @@ class Discretization:
             sd, data
         )
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-
-        Args
-            sd: grid, or a subclass.
-
-        Returns
-            dof: the number of degrees of freedom.
-        """
-
-        raise NotImplementedError
-
+    @abc.abstractmethod
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Assembles the mass matrix
@@ -50,7 +51,7 @@ class Discretization:
             mass_matrix: the mass matrix.
         """
 
-        raise NotImplementedError
+        pass
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         """
@@ -64,10 +65,9 @@ class Discretization:
             lumped_matrix: the lumped mass matrix.
         """
 
-        diagonal = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
+        return sps.diags(np.sum(self.assemble_mass_matrix(sd, data), axis=0))
 
-        return sps.diags(diagonal)
-
+    @abc.abstractmethod
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
         Assembles the matrix corresponding to the differential
@@ -79,7 +79,7 @@ class Discretization:
             csr_matrix: the differential matrix.
         """
 
-        raise NotImplementedError
+        pass
 
     def assemble_stiff_matrix(self, sd: pg.Grid, data):
         """
@@ -94,11 +94,12 @@ class Discretization:
 
         B = self.assemble_diff_matrix(sd)
 
-        discr = self.get_range_discr_class()(self.keyword)
+        discr = self.get_range_discr_class(sd.dim)(self.keyword)
         A = discr.assemble_mass_matrix(sd, data)
 
         return B.T * A * B
 
+    @abc.abstractmethod
     def interpolate(self, sd: pg.Grid, func):
         """
         Interpolates a function onto the finite element space
@@ -110,8 +111,9 @@ class Discretization:
         Returns
             array: the values of the degrees of freedom
         """
-        raise NotImplementedError
+        pass
 
+    @abc.abstractmethod
     def eval_at_cell_centers(self, sd: pg.Grid):
         """
         Assembles the matrix
@@ -122,7 +124,7 @@ class Discretization:
         Returns
             matrix: the evaluation matrix.
         """
-        raise NotImplementedError
+        pass
 
     def source_term(self, sd: pg.Grid, func):
         """
@@ -139,16 +141,27 @@ class Discretization:
 
         return self.assemble_mass_matrix(sd) * self.interpolate(sd, func)
 
-    def assemble_nat_bc(self, sd: pg.Grid, b_dofs):
+    @abc.abstractmethod
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
         Assembles the natural boundary condition term
-
+        (Tr q, p)_Gamma
         """
-        raise NotImplementedError
 
-    def get_range_discr_class(self):
+        pass
+
+    @abc.abstractmethod
+    def get_range_discr_class(self, dim: int):
         """
         Returns the discretization class that contains the range of the differential
-
         """
-        raise NotImplementedError
+
+        pass
+
+    def assemble_matrix_rhs(self, sd: pp.Grid, data: dict):
+        """
+        Returns a mass matrix and a zero rhs vector.
+        This is only implemented for compatibility with Porepy.
+        """
+
+        return self.assemble_mass_matrix(sd, data), np.zeros(self.ndof(sd))
