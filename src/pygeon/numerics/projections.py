@@ -1,6 +1,6 @@
 import numpy as np
-import scipy.sparse as sps
 import porepy as pp
+import scipy.sparse as sps
 
 
 def eval_at_cell_centers(mdg, discr=None, **kwargs):

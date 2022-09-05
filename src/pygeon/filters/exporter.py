@@ -1,6 +1,6 @@
-import numpy as np
 import gmsh
 import meshio
+import numpy as np
 
 import pygeon as pg
 

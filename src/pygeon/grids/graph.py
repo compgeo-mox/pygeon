@@ -1,10 +1,10 @@
-import numpy as np
-import networkx as nx
-import scipy.sparse as sps
-
 from itertools import combinations
 
+import networkx as nx
+import numpy as np
 import porepy as pp
+import scipy.sparse as sps
+
 import pygeon as pg
 
 
