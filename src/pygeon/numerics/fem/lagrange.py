@@ -240,7 +240,7 @@ class Lagrange:
             loc_idx = slice(idx, idx + nodes_loc.size)
             I[loc_idx] = c
             J[loc_idx] = nodes_loc
-            dataIJ[loc_idx] = 1. / (g.dim + 1)
+            dataIJ[loc_idx] = 1.0 / (g.dim + 1)
             idx += nodes_loc.size
 
         # Construct the global matrices

@@ -15,6 +15,7 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
 
     return sps.bmat(bmat_sd, format="csc")
 
+
 def proj_faces_to_cells(mdg, discr=None, **kwargs):
     """
     Computes the block matrices of the mass matrix
@@ -30,6 +31,8 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
     for sd, d_sd in mdg.subdomains(return_data=True):
         nn_sd = d_sd["node_number"]
         discr.discretize(sd, d_sd)
-        bmat_sd[nn_sd, nn_sd] = d_sd[pp.DISCRETIZATION_MATRICES][discr.keyword]["vector_proj"]
+        bmat_sd[nn_sd, nn_sd] = d_sd[pp.DISCRETIZATION_MATRICES][discr.keyword][
+            "vector_proj"
+        ]
 
     return sps.bmat(bmat_sd, format="csc")

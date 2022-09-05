@@ -1,6 +1,7 @@
 import porepy as pp
 import pygeon as pg
 
+
 def convert_from_pp(obj):
     if isinstance(obj, pg.Graph):
         pass

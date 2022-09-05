@@ -113,7 +113,6 @@ class Nedelec0:
         # Construct the global matrices
         return sps.csr_matrix((dataIJ, (I, J)))
 
-
     def assemble_lumped_matrix(self, sd, data):
         tangents = sd.nodes * sd.ridge_peaks
         h = np.linalg.norm(tangents, axis=0)
@@ -182,13 +181,14 @@ class Nedelec0:
 
             # Put in the right spot
             loc_idx = slice(idx, idx + Psi.size)
-            I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3*c
+            I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
             J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
-            dataIJ[loc_idx] = Psi.ravel() / 4.
+            dataIJ[loc_idx] = Psi.ravel() / 4.0
             idx += Psi.size
 
         # Construct the global matrices
         return sps.csr_matrix((dataIJ, (I, J)))
+
 
 class Nedelec1:
     def __init__(self, keyword: str) -> None:
@@ -340,9 +340,9 @@ class Nedelec1:
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + Ne_basis.size)
-            I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3*c
+            I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3 * c
             J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
-            dataIJ[loc_idx] = Ne_basis.ravel() / 4.
+            dataIJ[loc_idx] = Ne_basis.ravel() / 4.0
             idx += Ne_basis.size
 
         # Construct the global matrices
