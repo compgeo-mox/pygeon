@@ -223,9 +223,9 @@ class Lagrange:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = (g.dim + 1) * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = g.cell_nodes()
@@ -236,10 +236,10 @@ class Lagrange:
             nodes_loc = cell_nodes.indices[loc]
 
             loc_idx = slice(idx, idx + nodes_loc.size)
-            I[loc_idx] = c
-            J[loc_idx] = nodes_loc
-            dataIJ[loc_idx] = 1.0 / (g.dim + 1)
+            rows_I[loc_idx] = c
+            cols_J[loc_idx] = nodes_loc
+            data_IJ[loc_idx] = 1.0 / (g.dim + 1)
             idx += nodes_loc.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
