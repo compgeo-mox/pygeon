@@ -57,11 +57,13 @@ def grad(grid):
 
 def exterior_derivative(grid, n_minus_k):
     """
-    Compute the (mixed-dimensional) exterior derivative for the differential forms of order n - k.
+    Compute the (mixed-dimensional) exterior derivative for the differential forms of
+    order n - k.
 
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        n_minus_k (int): The difference between the ambient dimension and the order of the differential form.
+        n_minus_k (int): The difference between the ambient dimension and the order of the
+            differential form.
 
     Returns:
         sps.csr_matrix. The differential operator.
@@ -85,7 +87,8 @@ def _g_exterior_derivative(grid, n_minus_k):
 
     Parameters:
         grid (pp.Grid or pp.MortarGrid): The grid.
-        n_minus_k (int): The difference between the ambient dimension and the order of the differential form.
+        n_minus_k (int): The difference between the ambient dimension and the order of the
+            differential form.
 
     Returns:
         sps.csr_matrix. The differential operator.
@@ -112,7 +115,8 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
 
     Parameters:
         grid (pp.MixedDimensionalGrid): The grid bucket.
-        n_minus_k (int): The difference between the ambient dimension and the order of the differential form.
+        n_minus_k (int): The difference between the ambient dimension and the order of
+            the differential form.
     """
 
     # Pre-allocation of the block-matrix

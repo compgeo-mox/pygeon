@@ -65,9 +65,9 @@ class Nedelec0:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 6 * 6 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         M = self.local_inner_product(g.dim)
@@ -105,13 +105,13 @@ class Nedelec0:
             # Put in the right spot
             cols = np.tile(ridges_loc, (ridges_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.todense().ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.todense().ravel()
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(self, sd, data):
         tangents = sd.nodes * sd.ridge_peaks
@@ -152,8 +152,6 @@ class Nedelec0:
         J = np.empty(size, dtype=int)
         dataIJ = np.empty(size)
         idx = 0
-
-        M = self.local_inner_product(g.dim)
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
         ridge_peaks = g.ridge_peaks

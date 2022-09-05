@@ -143,7 +143,8 @@ class MortarGrid(pp.MortarGrid):
 
     def assign_signed_mortar_to_primary(self, sd_pair):
         """
-        Compute the mapping from mortar cells to the faces of the primary grid that respects orientation.
+        Compute the mapping from mortar cells to the faces of the primary grid that
+        respects orientation.
 
         Parameters:
             sd_pair (Tuple[pp.Grid, pp.Grid]): pair of adjacent subdomains
@@ -161,7 +162,8 @@ class MortarGrid(pp.MortarGrid):
 
     def assign_cell_faces(self):
         """
-        Assign the connectivity between cells of the secondary grid and faces of the primary grid
+        Assign the connectivity between cells of the secondary grid and faces of the
+        primary grid.
         """
 
         self.cell_faces = (

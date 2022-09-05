@@ -5,8 +5,6 @@ import numpy as np
 import porepy as pp
 import scipy.sparse as sps
 
-import pygeon as pg
-
 
 class Graph(pp.Grid):
     def __init__(self, graph, dim=2):
@@ -100,9 +98,9 @@ class Graph(pp.Grid):
         incidence = np.abs(self.cell_faces.T)
 
         n = np.concatenate(cb).size
-        I = np.zeros(n, dtype=int)
-        J = np.zeros(n, dtype=int)
-        V = np.zeros(n)
+        rows_I = np.zeros(n, dtype=int)
+        cols_J = np.zeros(n, dtype=int)
+        data_IJ = np.zeros(n)
 
         ind = 0
         for (i_c, cycle) in enumerate(cb):
@@ -116,15 +114,15 @@ class Graph(pp.Grid):
 
                 out = incidence.T * vec
 
-                I[ind] = i_c
-                J[ind] = np.where(out == 2)[0]
-                V[ind] = np.sign(stop - start)
+                rows_I[ind] = i_c
+                cols_J[ind] = np.where(out == 2)[0]
+                data_IJ[ind] = np.sign(stop - start)
 
                 ind += 1
 
         self.num_ridges = len(cb)
         self.face_ridges = sps.csc_matrix(
-            (V, (I, J)), shape=(self.num_ridges, self.num_faces)
+            (data_IJ, (rows_I, cols_J)), shape=(self.num_ridges, self.num_faces)
         )
 
         self.num_peaks = 0
@@ -205,7 +203,8 @@ class Graph(pp.Grid):
         )
 
     def all_paths(self, start, end, cutoff=None):
-        """Compute all the shortest and not shortest paths from the start to the end graph nodes."""
+        """Compute all the shortest and not shortest paths from the start to the end graph
+        nodes."""
 
         sp = self.shortest_paths(start, end)
         nsp = self.not_shortest_paths(start, end, sp, cutoff)
