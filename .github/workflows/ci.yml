@@ -82,7 +82,7 @@ jobs:
 
     - name: isort
       if: ${{always()}}
-      run: isort --check src
+      run: isort --profile black --check src
 
     - name: flake8
       if: ${{ always() }}
