@@ -5,7 +5,9 @@ from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.graph import Graph
 
+from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.fem.Hcurl import Nedelec0, Nedelec1
+from pygeon.discretizations.fem.Hdiv import RT0
 from pygeon.discretizations.fem.H1 import Lagrange
 from pygeon.discretizations.fem.L2 import PwConstants
 
