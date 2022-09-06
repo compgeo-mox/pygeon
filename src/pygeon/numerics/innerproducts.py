@@ -1,7 +1,7 @@
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 # ---------------------------------- Aliases ---------------------------------- #
@@ -93,7 +93,8 @@ def _sd_mass_matrix(sd, n_minus_k, discr=None, data=None, **kwargs):
 
     Parameters:
         sd (pp.Grid).
-        n_minus_k (int): The difference between the dimension and the order of the differential.
+        n_minus_k (int): The difference between the dimension and the order of
+            the differential.
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
 
@@ -123,7 +124,8 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
-        n_minus_k (int): The difference between the dimension and the order of the differential.
+        n_minus_k (int): The difference between the dimension and the order of
+            the differential.
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
         local_matrix (function): function that generates the local mass matrix on a grid
@@ -178,7 +180,8 @@ def lumped_mass_matrix(mdg, n_minus_k, discr):
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
-        n_minus_k (int): The difference between the dimension and the order of the differential.
+        n_minus_k (int): The difference between the dimension and the order of
+            the differential.
         discr (pp discretization object).
 
     Returns:
@@ -195,7 +198,8 @@ def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
 
     Parameters:
         sd (pp.Grid).
-        n_minus_k (int): The difference between the dimension and the order of the differential.
+        n_minus_k (int): The difference between the dimension and the order of
+            the differential.
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
 

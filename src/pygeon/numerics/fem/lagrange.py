@@ -1,8 +1,6 @@
 import numpy as np
-import scipy.sparse as sps
-
 import porepy as pp
-import pygeon as pg
+import scipy.sparse as sps
 
 
 class Lagrange:
@@ -92,9 +90,9 @@ class Lagrange:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = np.power(g.dim + 1, 2) * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = g.cell_nodes()
@@ -110,13 +108,13 @@ class Lagrange:
             # Save values for mass-H1 local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrix
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_mass(self, c_volume, dim):
         """Compute the local mass matrix.
@@ -161,9 +159,9 @@ class Lagrange:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = np.power(g.dim + 1, 2) * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = g.cell_nodes()
@@ -183,13 +181,13 @@ class Lagrange:
             # Save values for stiff-H1 local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_stiff(self, K, c_volume, coord, dim):
         """Compute the local stiffness matrix for P1.
@@ -225,9 +223,9 @@ class Lagrange:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = (g.dim + 1) * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = g.cell_nodes()
@@ -238,10 +236,10 @@ class Lagrange:
             nodes_loc = cell_nodes.indices[loc]
 
             loc_idx = slice(idx, idx + nodes_loc.size)
-            I[loc_idx] = c
-            J[loc_idx] = nodes_loc
-            dataIJ[loc_idx] = 1. / (g.dim + 1)
+            rows_I[loc_idx] = c
+            cols_J[loc_idx] = nodes_loc
+            data_IJ[loc_idx] = 1.0 / (g.dim + 1)
             idx += nodes_loc.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))

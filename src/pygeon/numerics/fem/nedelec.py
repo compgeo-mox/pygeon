@@ -1,7 +1,7 @@
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -65,9 +65,9 @@ class Nedelec0:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 6 * 6 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         M = self.local_inner_product(g.dim)
@@ -105,14 +105,13 @@ class Nedelec0:
             # Put in the right spot
             cols = np.tile(ridges_loc, (ridges_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.todense().ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.todense().ravel()
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
-
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(self, sd, data):
         tangents = sd.nodes * sd.ridge_peaks
@@ -149,12 +148,10 @@ class Nedelec0:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 6 * 3 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
-
-        M = self.local_inner_product(g.dim)
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
         ridge_peaks = g.ridge_peaks
@@ -182,13 +179,14 @@ class Nedelec0:
 
             # Put in the right spot
             loc_idx = slice(idx, idx + Psi.size)
-            I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3*c
-            J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
-            dataIJ[loc_idx] = Psi.ravel() / 4.
+            rows_I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
+            cols_J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
+            data_IJ[loc_idx] = Psi.ravel() / 4.0
             idx += Psi.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+
 
 class Nedelec1:
     def __init__(self, keyword: str) -> None:
@@ -249,9 +247,9 @@ class Nedelec1:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 9 * 4 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
@@ -289,13 +287,13 @@ class Nedelec1:
                 # Save values for stiff-H1 local matrix in the global structure
                 cols = np.tile(loc_ind, (loc_ind.size, 1))
                 loc_idx = slice(idx, idx + cols.size)
-                I[loc_idx] = cols.T.ravel()
-                J[loc_idx] = cols.ravel()
-                dataIJ[loc_idx] = A.ravel()
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_IJ[loc_idx] = A.ravel()
                 idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_grads(self, coord, dim=3):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
@@ -310,9 +308,9 @@ class Nedelec1:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 12 * 3 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
@@ -340,10 +338,10 @@ class Nedelec1:
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + Ne_basis.size)
-            I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3*c
-            J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
-            dataIJ[loc_idx] = Ne_basis.ravel() / 4.
+            rows_I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3 * c
+            cols_J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
+            data_IJ[loc_idx] = Ne_basis.ravel() / 4.0
             idx += Ne_basis.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))

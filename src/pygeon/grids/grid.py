@@ -1,6 +1,6 @@
 import numpy as np
-import scipy.sparse as sps
 import porepy as pp
+import scipy.sparse as sps
 
 """
 Acknowledgments:
@@ -49,7 +49,8 @@ class Grid(pp.Grid):
 
     def _compute_ridges_01d(self):
         """
-        Assign the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 2.
+        Assign the number of ridges, number of peaks, and connectivity matrices to a
+        grid of dimension 2.
         """
 
         self.num_peaks = 0
@@ -59,15 +60,16 @@ class Grid(pp.Grid):
 
     def _compute_ridges_2d(self):
         """
-        Assign the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 2.
+        Assign the number of ridges, number of peaks, and connectivity matrices to a
+        grid of dimension 2.
         """
 
         self.num_peaks = 0
         self.num_ridges = self.num_nodes
         self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
 
-        # We compute the face tangential by mapping the face normal to a reference grid in the xy-plane,
-        # rotating locally, and mapping back.
+        # We compute the face tangential by mapping the face normal to a reference grid
+        # in the xy-plane, rotating locally, and mapping back.
         R = pp.map_geometry.project_plane_matrix(self.nodes)
         loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
         rot = R.T @ loc_rot @ R
@@ -91,7 +93,8 @@ class Grid(pp.Grid):
 
     def _compute_ridges_3d(self):
         """
-        Assign the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 3.
+        Assign the number of ridges, number of peaks, and connectivity matrices to a
+        grid of dimension 3.
         """
 
         self.num_peaks = self.num_nodes
