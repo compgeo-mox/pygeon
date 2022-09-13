@@ -51,7 +51,10 @@ class LinearSystem:
         if self.b.ndim == 1:
             return self.ess_vals
         else:
-            return sps.csr_matrix(self.ess_vals).T * sps.csc_matrix(np.ones(self.b.shape[1]))
+            return sps.csr_matrix(self.ess_vals).T * sps.csc_matrix(
+                np.ones(self.b.shape[1])
+            )
+
 
 def create_restriction(keep_dof):
     """
