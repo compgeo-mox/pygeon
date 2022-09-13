@@ -133,7 +133,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
-    bmats = mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix)
+    bmats = mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix, **kwargs)
 
     return np.sum([sps.bmat(bmat, format="csc") for bmat in bmats])
 
