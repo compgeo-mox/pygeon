@@ -1,17 +1,17 @@
-import numpy as np
 import gmsh
 import meshio
+import numpy as np
 
 import pygeon as pg
 
-class Exporter():
 
+class Exporter:
     def __init__(self, obj, file_name, **kwargs):
         self.obj = obj
         self.file_name = file_name
-        self.folder_name = "./" #folder_name
+        self.folder_name = "./"  # folder_name
 
-    def write_vtu(self, data = [], **kwargs):
+    def write_vtu(self, data=[], **kwargs):
         if isinstance(self.obj, pg.Graph):
             self._graph_write_vtu(data, **kwargs)
 
@@ -30,8 +30,8 @@ class Exporter():
             # add the cells, pts and cell_data
             cells.append(sphere_cells + num_cells)
             num_cells += sphere_pts.shape[0]
-            pts.append(radius*sphere_pts + d["centre"])
-            [cell_data[i].append(d[i]*np.ones(sphere_cells.shape[0])) for i in data]
+            pts.append(radius * sphere_pts + d["centre"])
+            [cell_data[i].append(d[i] * np.ones(sphere_cells.shape[0])) for i in data]
 
         # create a single cylinder grid
         cylinder_cells, cylinder_pts = self._cylinder()
@@ -44,7 +44,7 @@ class Exporter():
             n0_centre = graph.nodes[n0]["centre"]
             n1_centre = graph.nodes[n1]["centre"]
             dist = np.linalg.norm(n0_centre - n1_centre)
-            R = pg.transformation.rotation(n1_centre-n0_centre)
+            R = pg.transformation.rotation(n1_centre - n0_centre)
             S = pg.transformation.scaling([cylinder_radius, cylinder_radius, dist])
 
             pts_loc = np.dot(np.dot(R.T, S), cylinder_pts.T).T + n0_centre

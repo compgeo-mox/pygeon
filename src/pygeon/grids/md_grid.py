@@ -20,7 +20,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
 
         self.tag_leafs()
 
-    def num_subdomain_faces(self, cond = None) -> int:
+    def num_subdomain_faces(self, cond=None) -> int:
         """Compute the total number of faces of the mixed-dimensional grid.
 
         A function can be passed to filter subdomains and/or interfaces.
@@ -38,7 +38,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             [sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int
         )
 
-    def num_subdomain_ridges(self, cond = None) -> int:
+    def num_subdomain_ridges(self, cond=None) -> int:
         """Compute the total number ridges of of the mixed-dimensional grid.
 
         A function can be passed to filter subdomains and/or interfaces.
@@ -58,7 +58,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
 
     def tag_leafs(self):
         """
-        Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid in a grid bucket.
+        Tag the mesh entities that correspond to a mesh entity of a lower-dimensional
+        grid in a grid bucket.
         TODO: Use these tags to generate mixed-dimensional inner products.
         """
 
