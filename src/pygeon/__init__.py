@@ -9,7 +9,6 @@ from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.numerics.differentials import curl, div, grad
 from pygeon.numerics.fem.lagrange import Lagrange
 from pygeon.numerics.fem.nedelec import Nedelec0, Nedelec1
-from pygeon.numerics.fem.bdm1 import BDM1
 from pygeon.numerics.fem.pwconstants import PwConstants
 from pygeon.numerics.innerproducts import cell_mass, face_mass, peak_mass, ridge_mass
 from pygeon.numerics.linear_system import LinearSystem
