@@ -26,8 +26,8 @@ class LinearSystem:
         self.reset_bc()
 
     def reset_bc(self):
-        self.is_dof = np.ones(self.b.size, dtype=bool)
-        self.ess_vals = np.zeros(self.b.size)
+        self.is_dof = np.ones(self.b.shape[0], dtype=bool)
+        self.ess_vals = np.zeros(self.b.shape[0])
 
     def flag_ess_bc(self, is_ess_dof, ess_vals):
         self.is_dof[is_ess_dof] = False
@@ -36,18 +36,24 @@ class LinearSystem:
     def reduce_system(self):
         R_0 = create_restriction(self.is_dof)
         A_0 = R_0 * self.A * R_0.T
-        b_0 = R_0 * (self.b - self.A * self.ess_vals)
+        b_0 = R_0 * (self.b - self.A * self.repeat_ess_vals())
 
         return A_0, b_0, R_0
 
     def solve(self, solver=sps.linalg.spsolve):
         A_0, b_0, R_0 = self.reduce_system()
-
-        sol_0 = solver(A_0, b_0)
-
-        sol = R_0.T * sol_0 + self.ess_vals
+        sol_0 = solver(A_0.tocsc(), b_0)
+        sol = self.repeat_ess_vals() + R_0.T * sol_0
 
         return sol
+
+    def repeat_ess_vals(self):
+        if self.b.ndim == 1:
+            return self.ess_vals
+        else:
+            return sps.csr_matrix(self.ess_vals).T * sps.csc_matrix(
+                np.ones(self.b.shape[1])
+            )
 
 
 def create_restriction(keep_dof):
@@ -62,4 +68,4 @@ def create_restriction(keep_dof):
         sps.csr_matrix: the restriction mapping.
     """
     R = sps.diags(keep_dof, dtype=np.int).tocsr()
-    return R[R.indices, :]
+    return R[R.indices, :].tocsc()

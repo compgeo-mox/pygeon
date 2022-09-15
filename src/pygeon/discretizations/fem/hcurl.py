@@ -1,7 +1,7 @@
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -45,9 +45,9 @@ class Nedelec0(pg.Discretization):
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 6 * 6 * sd.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         M = self.local_inner_product(sd.dim)
@@ -85,13 +85,13 @@ class Nedelec0(pg.Discretization):
             # Put in the right spot
             cols = np.tile(ridges_loc, (ridges_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.todense().ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.todense().ravel()
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_inner_product(self, dim):
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
@@ -111,9 +111,9 @@ class Nedelec0(pg.Discretization):
 
         # Allocation
         size = 6 * 3 * sd.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
@@ -142,13 +142,13 @@ class Nedelec0(pg.Discretization):
 
             # Put in the right spot
             loc_idx = slice(idx, idx + Psi.size)
-            I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
-            J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
-            dataIJ[loc_idx] = Psi.ravel() / 4.0
+            rows_I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
+            cols_J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
+            data_IJ[loc_idx] = Psi.ravel() / 4.0
             idx += Psi.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError
@@ -192,9 +192,9 @@ class Nedelec1(pg.Discretization):
 
         # Allocation
         size = 9 * 4 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
@@ -232,13 +232,13 @@ class Nedelec1(pg.Discretization):
                 # Save values for stiff-H1 local matrix in the global structure
                 cols = np.tile(loc_ind, (loc_ind.size, 1))
                 loc_idx = slice(idx, idx + cols.size)
-                I[loc_idx] = cols.T.ravel()
-                J[loc_idx] = cols.ravel()
-                dataIJ[loc_idx] = A.ravel()
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_IJ[loc_idx] = A.ravel()
                 idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_diff_matrix(self, sd):
         return sps.bmat([[pg.curl(sd), -pg.curl(sd)]]) / 2
@@ -262,9 +262,9 @@ class Nedelec1(pg.Discretization):
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 12 * 3 * g.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
@@ -292,13 +292,13 @@ class Nedelec1(pg.Discretization):
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + Ne_basis.size)
-            I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3 * c
-            J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
-            dataIJ[loc_idx] = Ne_basis.ravel() / 4.0
+            rows_I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3 * c
+            cols_J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
+            data_IJ[loc_idx] = Ne_basis.ravel() / 4.0
             idx += Ne_basis.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError

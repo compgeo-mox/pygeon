@@ -8,7 +8,8 @@ def zero_tip_dofs(mdg, n_minus_k):
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
-        n_minus_k (int): The difference between the dimension and the order of the differential form
+        n_minus_k (int): The difference between the dimension and the order of the
+            differential form
 
     Returns:
         sps.dia_matrix
@@ -33,7 +34,8 @@ def remove_tip_dofs(mdg, n_minus_k):
 
     Parameters:
         mdg (pp.MixedDimensionalGrid).
-        n_minus_k (int): The difference between the dimension and the order of the differential form
+        n_minus_k (int): The difference between the dimension and the order of the
+            differential form
 
     Returns:
         sps.csr_matrix

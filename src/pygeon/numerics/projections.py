@@ -1,6 +1,6 @@
 import numpy as np
-import scipy.sparse as sps
 import porepy as pp
+import scipy.sparse as sps
 
 
 def eval_at_cell_centers(mdg, discr=None, **kwargs):
@@ -14,6 +14,7 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
         bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     return sps.bmat(bmat_sd, format="csc")
+
 
 def proj_faces_to_cells(mdg, discr=None, **kwargs):
     """
@@ -30,6 +31,8 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
     for sd, d_sd in mdg.subdomains(return_data=True):
         nn_sd = d_sd["node_number"]
         discr.discretize(sd, d_sd)
-        bmat_sd[nn_sd, nn_sd] = d_sd[pp.DISCRETIZATION_MATRICES][discr.keyword]["vector_proj"]
+        bmat_sd[nn_sd, nn_sd] = d_sd[pp.DISCRETIZATION_MATRICES][discr.keyword][
+            "vector_proj"
+        ]
 
     return sps.bmat(bmat_sd, format="csc")

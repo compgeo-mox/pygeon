@@ -1,7 +1,6 @@
 import numpy as np
-import scipy.sparse as sps
-
 import porepy as pp
+import scipy.sparse as sps
 import pygeon as pg
 
 
@@ -34,9 +33,9 @@ class Lagrange1(pg.Discretization):
 
         # Data allocation
         size = np.power(sd.dim + 1, 2) * sd.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = sd.cell_nodes()
@@ -52,13 +51,13 @@ class Lagrange1(pg.Discretization):
             # Save values for mass-H1 local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrix
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_mass(self, c_volume, dim):
         """Compute the local mass matrix.
@@ -102,9 +101,9 @@ class Lagrange1(pg.Discretization):
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = np.power(sd.dim + 1, 2) * sd.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = sd.cell_nodes()
@@ -127,13 +126,13 @@ class Lagrange1(pg.Discretization):
             # Save values for stiff-H1 local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
-            I[loc_idx] = cols.T.ravel()
-            J[loc_idx] = cols.ravel()
-            dataIJ[loc_idx] = A.ravel()
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         if sd.dim == 3:
@@ -180,9 +179,9 @@ class Lagrange1(pg.Discretization):
 
         # Allocation
         size = (sd.dim + 1) * sd.num_cells
-        I = np.empty(size, dtype=int)
-        J = np.empty(size, dtype=int)
-        dataIJ = np.empty(size)
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
         idx = 0
 
         cell_nodes = sd.cell_nodes()
@@ -193,13 +192,13 @@ class Lagrange1(pg.Discretization):
             nodes_loc = cell_nodes.indices[loc]
 
             loc_idx = slice(idx, idx + nodes_loc.size)
-            I[loc_idx] = c
-            J[loc_idx] = nodes_loc
-            dataIJ[loc_idx] = 1.0 / nodes_loc.size
+            rows_I[loc_idx] = c
+            cols_J[loc_idx] = nodes_loc
+            data_IJ[loc_idx] = 1.0 / (sd.dim + 1)
             idx += nodes_loc.size
 
         # Construct the global matrices
-        return sps.csr_matrix((dataIJ, (I, J)))
+        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def interpolate(self, sd: pg.Grid, func):
         return np.array([func(x) for x in sd.nodes])
