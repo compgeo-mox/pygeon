@@ -6,60 +6,48 @@ import pygeon as pg
 
 
 class Lagrange1(pg.Discretization):
-    def ndof(self, g: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
         In this case number of nodes.
 
         Args
-            g: grid, or a subclass.
+            sd: grid, or a subclass.
 
         Returns
             ndof: the number of degrees of freedom.
         """
-        return g.num_nodes
+        return sd.num_nodes
 
-    def assemble_mass_matrix(self, g, data):
+    def assemble_mass_matrix(self, sd: pg.Grid, data):
         """
-        Returns the matrix for a discretization of a
-        L2-mass bilinear form with P1 test and trial functions.
-
-        The name of data in the input dictionary (data) are:
-        phi: array (self.g.num_cells)
-            Scalar values which represent the porosity.
-            If not given assumed unitary.
-        deltaT: Time step for a possible temporal discretization scheme.
-            If not given assumed unitary.
+        Returns the mass matrix for the lowest order Lagrange element
 
         Args
-            g : grid, or a subclass, with geometry fields computed.
-            data: dictionary to store the data.
+            sd : grid.
 
         Returns
-            matrix: sparse dia (g.num_cells, g_num_cells)
+            matrix: sparse (sd.num_nodes, sd.num_nodes)
                 Mass matrix obtained from the discretization.
-            rhs: array (g_num_cells)
-                Null right-hand side.
 
         """
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(g.dim + 1, 2) * g.num_cells
+        # Data allocation
+        size = np.power(sd.dim + 1, 2) * sd.num_cells
         I = np.empty(size, dtype=int)
         J = np.empty(size, dtype=int)
         dataIJ = np.empty(size)
         idx = 0
 
-        cell_nodes = g.cell_nodes()
+        cell_nodes = sd.cell_nodes()
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
 
             # Compute the mass-H1 local matrix
-            A = self.local_mass(g.cell_volumes[c], g.dim)
+            A = self.local_mass(sd.cell_volumes[c], sd.dim)
 
             # Save values for mass-H1 local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
@@ -88,9 +76,9 @@ class Lagrange1(pg.Discretization):
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         return c_volume * M / ((dim + 1) * (dim + 2))
 
-    def assemble_stiffness_matrix(self, g, data):
+    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict):
         # If a 0-d grid is given then we return a zero matrix
-        if g.dim == 0:
+        if sd.dim == 0:
             return sps.csr_matrix((1, 1))
 
         # Get dictionary for parameter storage
@@ -100,11 +88,11 @@ class Lagrange1(pg.Discretization):
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
-        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(g)
+        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
         if not data.get("is_tangential", False):
             # Rotate the permeability tensor and delete last dimension
-            if g.dim < 3:
+            if sd.dim < 3:
                 k = k.copy()
                 k.rotate(R)
                 remove_dim = np.where(np.logical_not(dim))[0]
@@ -113,15 +101,15 @@ class Lagrange1(pg.Discretization):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = np.power(g.dim + 1, 2) * g.num_cells
+        size = np.power(sd.dim + 1, 2) * sd.num_cells
         I = np.empty(size, dtype=int)
         J = np.empty(size, dtype=int)
         dataIJ = np.empty(size)
         idx = 0
 
-        cell_nodes = g.cell_nodes()
+        cell_nodes = sd.cell_nodes()
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
 
@@ -130,7 +118,10 @@ class Lagrange1(pg.Discretization):
 
             # Compute the stiff-H1 local matrix
             A = self.local_stiff(
-                k.values[0 : g.dim, 0 : g.dim, c], g.cell_volumes[c], coord_loc, g.dim
+                k.values[0 : sd.dim, 0 : sd.dim, c],
+                sd.cell_volumes[c],
+                coord_loc,
+                sd.dim,
             )
 
             # Save values for stiff-H1 local matrix in the global structure
@@ -157,10 +148,11 @@ class Lagrange1(pg.Discretization):
             raise ValueError
 
     def local_stiff(self, K, c_volume, coord, dim):
-        """Compute the local stiffness matrix for P1.
+        """
+        Compute the local stiffness matrix for P1.
 
         Args
-            K : ndarray (g.dim, g.dim)
+            K : ndarray (dim, dim)
                 Permeability of the cell.
             c_volume : scalar
                 Cell volume.
@@ -180,22 +172,22 @@ class Lagrange1(pg.Discretization):
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
 
-    def assemble_lumped_matrix(self, g, data=None):
-        volumes = g.cell_nodes() * g.cell_volumes / (g.dim + 1)
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+        volumes = sd.cell_nodes() * sd.cell_volumes / (sd.dim + 1)
         return sps.diags(volumes)
 
-    def eval_at_cell_centers(self, g):
+    def eval_at_cell_centers(self, sd: pg.Grid):
 
         # Allocation
-        size = (g.dim + 1) * g.num_cells
+        size = (sd.dim + 1) * sd.num_cells
         I = np.empty(size, dtype=int)
         J = np.empty(size, dtype=int)
         dataIJ = np.empty(size)
         idx = 0
 
-        cell_nodes = g.cell_nodes()
+        cell_nodes = sd.cell_nodes()
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
