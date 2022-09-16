@@ -131,7 +131,71 @@ class BDM1:
         return M.tocsc()
 
     def assemble_div(self, g):
-        return sps.bmat([[pg.div(g), pg.div(g)]]) / 2
+        return sps.bmat([[pg.div(g)]*g.dim]) / g.dim
 
     def eval_at_cell_centers(self, g):
         raise NotImplemented
+
+    def assemble_lumped_matrix(self, g: pg.Grid, data: dict):
+
+        # Allocate the data to store matrix entries, that's the most efficient
+        # way to create a sparse matrix.
+        size = g.dim * g.dim * (g.dim + 1) * g.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        cell_nodes = g.cell_nodes()
+        for c in np.arange(g.num_cells):
+            # For the current cell retrieve its ridges and
+            # determine the location of the dof
+            loc = slice(g.cell_faces.indptr[c], g.cell_faces.indptr[c + 1])
+            faces_loc = g.cell_faces.indices[loc]
+            dof_loc = np.reshape(
+                g.face_nodes[:, faces_loc].indices, (g.dim, -1), order="F"
+            )
+
+            # Find the nodes of the cell and their coordinates
+            nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
+            indices = indices.reshape((g.dim, -1))
+
+            face_nodes_loc = g.face_nodes[:, faces_loc].toarray()
+            cell_nodes_loc = cell_nodes[:, c].toarray()
+            # get the opposite node id for each face
+            opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
+
+            # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
+            Bdm_basis = np.zeros((3, g.dim * (g.dim + 1)))
+            Bdm_indices = np.hstack([faces_loc] * g.dim)
+            Bdm_indices += np.repeat(np.arange(g.dim), g.dim + 1) * g.num_faces
+
+            for (face, nodes) in enumerate(indices.T):
+                tangents = (
+                    g.nodes[:, face_nodes_loc[:, face]]
+                    - g.nodes[:, opposite_node[:, face]]
+                )
+                normal = g.face_normals[:, faces_loc[face]]
+                for (index, node) in enumerate(nodes):
+                    Bdm_basis[:, face + index * (g.dim + 1)] = tangents[:, index] / np.dot(
+                        tangents[:, index], normal
+                    )
+
+            for node in nodes_uniq:
+                bf_is_at_node = dof_loc.flatten() == node
+                basis = Bdm_basis[:, bf_is_at_node]
+                A = basis.T @ basis
+                A *= g.cell_volumes[c] / (g.dim + 1)
+
+                loc_ind = Bdm_indices[bf_is_at_node]
+
+                # Save values for the local matrix in the global structure
+                cols = np.tile(loc_ind, (loc_ind.size, 1))
+                loc_idx = slice(idx, idx + cols.size)
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_IJ[loc_idx] = A.ravel()
+                idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
