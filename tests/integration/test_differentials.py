@@ -55,7 +55,7 @@ class DifferentialsTest(unittest.TestCase):
         grad.T M grad where M is the mass matrix of Ne0.
         """
 
-        la = pg.Lagrange("flow")
+        la = pg.Lagrange1("flow")
         ne = pg.Nedelec0("flow")
 
         grid = pp.StructuredTetrahedralGrid([4] * 3, [1] * 3)
@@ -79,7 +79,7 @@ class DifferentialsTest(unittest.TestCase):
         curl.T M curl where M is the mass matrix of RT0.
         """
 
-        la = pg.Lagrange("flow")
+        la = pg.Lagrange1("flow")
         rt = pp.RT0("flow")
 
         grid = pp.StructuredTriangleGrid([4] * 2, [1] * 2)
