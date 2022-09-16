@@ -6,11 +6,14 @@ from pygeon.grids.graph import Graph
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
-from pygeon.numerics.differentials import curl, div, grad
-from pygeon.numerics.fem.lagrange import Lagrange
-from pygeon.numerics.fem.nedelec import Nedelec0, Nedelec1
-from pygeon.numerics.fem.pwconstants import PwConstants
-from pygeon.numerics.innerproducts import cell_mass, face_mass, peak_mass, ridge_mass
-from pygeon.numerics.linear_system import LinearSystem
-from pygeon.numerics.projections import eval_at_cell_centers, proj_faces_to_cells
+from pygeon.grids.graph import Graph
+
+from pygeon.discretizations.fem.Hcurl import Nedelec0, Nedelec1
+from pygeon.discretizations.fem.H1 import Lagrange
+from pygeon.discretizations.fem.L2 import PwConstants
+
+from pygeon.numerics.differentials import grad, curl, div
+from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass
 from pygeon.numerics.restrictions import remove_tip_dofs
+from pygeon.numerics.projections import eval_at_cell_centers, proj_faces_to_cells
+from pygeon.numerics.linear_system import LinearSystem

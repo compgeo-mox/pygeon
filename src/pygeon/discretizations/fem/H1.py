@@ -209,7 +209,8 @@ class Lagrange:
 
         return c_volume * np.dot(dphi.T, np.dot(K, dphi))
 
-    def local_grads(self, coord, dim):
+    @staticmethod
+    def local_grads(coord, dim):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
