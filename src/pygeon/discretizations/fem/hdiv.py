@@ -55,12 +55,16 @@ class RT0(pg.Discretization, pp.RT0):
         Returns
             lumped_matrix: the lumped mass matrix.
         """
+        # Get dictionary for parameter storage
+        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        # Retrieve the permeability
+        k = parameter_dictionary["second_order_tensor"]
 
         h_perp = np.zeros(sd.num_faces)
         for (face, cell) in zip(*sd.cell_faces.nonzero()):
-            h_perp[face] += np.linalg.norm(
-                sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            )
+            inv_k = np.linalg.inv(k.values[:, :, cell])
+            dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
+            h_perp[face] += dist.T @ inv_k @ dist / np.linalg.norm(dist)
 
         return sps.diags(h_perp / sd.face_areas)
 
