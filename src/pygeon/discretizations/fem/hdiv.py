@@ -78,10 +78,7 @@ class RT0(pg.Discretization, pp.RT0):
         Returns
             csr_matrix: the differential matrix.
         """
-        P0mass = pg.PwConstants(self.keyword).assemble_mass_matrix(sd)
-        P0mass.data = 1.0 / P0mass.data
-
-        return P0mass * sd.cell_faces.T
+        return sd.cell_faces.T
 
     def interpolate(self, sd: pg.Grid, func):
         """

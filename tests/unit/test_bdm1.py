@@ -46,7 +46,7 @@ class BDM1Test(unittest.TestCase):
         E = sps.bmat([[sps.eye(sd.num_faces)] * 3])
 
         check = E * mass_bdm1 * E.T - mass_rt0
-        self.assertEqual(check.nnz, 0)
+        self.assertAlmostEqual(np.linalg.norm(check.data), 0)
 
     def test3(self):
         N, dim = 20, 2
@@ -129,5 +129,5 @@ class BDM1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    BDM1Test().test0()
+    BDM1Test().test1()
     # unittest.main()
