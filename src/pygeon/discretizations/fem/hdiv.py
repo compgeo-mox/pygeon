@@ -64,7 +64,9 @@ class RT0(pg.Discretization, pp.RT0):
         for (face, cell) in zip(*sd.cell_faces.nonzero()):
             inv_k = np.linalg.inv(k.values[:, :, cell])
             dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            h_perp[face] += dist.T @ inv_k @ dist / np.linalg.norm(dist)
+            h_perp_loc = dist.T @ inv_k @ dist
+            norm_dist = np.linalg.norm(dist)
+            h_perp[face] += h_perp_loc / norm_dist if norm_dist else 0
 
         return sps.diags(h_perp / sd.face_areas)
 
