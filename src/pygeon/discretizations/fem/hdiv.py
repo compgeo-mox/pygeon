@@ -127,13 +127,14 @@ class RT0(pg.Discretization, pp.RT0):
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
         """
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
         vals = np.zeros(self.ndof(sd))
 
         for dof in b_faces:
-            vals[dof] = (
-                func(sd.face_centers[:, dof])
-                * np.sum(sd.cell_faces[dof, :])
-                * sd.face_areas[dof]
+            vals[dof] = func(sd.face_centers[:, dof]) * np.sum(
+                sd.cell_faces.tocsr()[dof, :]
             )
 
         return vals

@@ -97,7 +97,9 @@ def _g_exterior_derivative(grid, n_minus_k):
     if n_minus_k == 0:
         return sps.csr_matrix((0, grid.num_cells))
     elif n_minus_k == 1:
-        return grid.cell_faces.T
+        cell_mass = pg.PwConstants("").assemble_mass_matrix(grid)
+        cell_mass.data = 1 / cell_mass.data
+        return cell_mass * grid.cell_faces.T
     elif n_minus_k == 2:
         return grid.face_ridges.T
     elif n_minus_k == 3:
