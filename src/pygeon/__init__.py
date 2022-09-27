@@ -9,10 +9,9 @@ from pygeon.grids.mortar_grid import MortarGrid
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
-from pygeon.discretizations.fem.hdiv import RT0
+from pygeon.discretizations.fem.hdiv import RT0, BDM1
 from pygeon.discretizations.fem.h1 import Lagrange1
 from pygeon.discretizations.fem.l2 import PwConstants
-from pygeon.discretizations.fem.bdm1 import BDM1
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass
