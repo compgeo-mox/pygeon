@@ -188,7 +188,7 @@ class Nedelec1(pg.Discretization):
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         raise NotImplementedError
 
-    def assemble_lumped_matrix(self, g: pg.Grid, data: dict):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
 
         # Allocation
         size = 9 * 4 * g.num_cells
