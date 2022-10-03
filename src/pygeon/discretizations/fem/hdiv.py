@@ -148,7 +148,7 @@ class BDM1(pg.Discretization):
 
         Parameter
         ---------
-        g: grid, or a subclass.
+        sd: grid, or a subclass.
 
         Return
         ------
