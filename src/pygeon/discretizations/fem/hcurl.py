@@ -197,10 +197,10 @@ class Nedelec1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
-        ridge_peaks = g.ridge_peaks
+        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        ridge_peaks = sd.ridge_peaks
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -218,14 +218,14 @@ class Nedelec1(pg.Discretization):
 
             # Compute the local Nedelec basis functions and global indices
             Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
-            Ne_indices = np.concatenate((ridges_loc, ridges_loc + g.num_ridges))
+            Ne_indices = np.concatenate((ridges_loc, ridges_loc + sd.num_ridges))
 
             # Compute the inner products around each node
             for node in nodes_uniq:
                 bf_is_at_node = dof_loc == node
                 grads = Ne_basis[:, bf_is_at_node]
                 A = grads.T @ grads
-                A *= g.cell_volumes[c] / 4
+                A *= sd.cell_volumes[c] / 4
 
                 loc_ind = Ne_indices[bf_is_at_node]
 
@@ -261,16 +261,16 @@ class Nedelec1(pg.Discretization):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = 12 * 3 * g.num_cells
+        size = 12 * 3 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
-        ridge_peaks = g.ridge_peaks
+        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        ridge_peaks = sd.ridge_peaks
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -288,7 +288,7 @@ class Nedelec1(pg.Discretization):
 
             # Compute the local Nedelec basis functions and global indices
             Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
-            Ne_indices = np.concatenate((ridges_loc, ridges_loc + g.num_ridges))
+            Ne_indices = np.concatenate((ridges_loc, ridges_loc + sd.num_ridges))
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + Ne_basis.size)

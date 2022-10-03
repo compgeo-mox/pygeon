@@ -34,7 +34,7 @@ class PwConstants(pg.Discretization):
             data: dictionary with possible scaling
 
         Returns
-            matrix: sparse csr (g.num_cells, g.num_cells)
+            matrix: sparse csr (sd.num_cells, sd.num_cells)
         """
 
         return sps.diags(1 / sd.cell_volumes).tocsc()
