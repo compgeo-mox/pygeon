@@ -284,7 +284,7 @@ class Nedelec1(pg.Discretization):
             coords = sd.nodes[:, nodes_uniq]
 
             # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, g.dim)
+            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
 
             # Compute the local Nedelec basis functions and global indices
             Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
