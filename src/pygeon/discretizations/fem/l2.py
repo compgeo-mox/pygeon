@@ -11,7 +11,7 @@ class PwConstants(pg.Discretization):
     NB! Each degree of freedom is the integral over the cell.
     """
 
-    def ndof(self, sd: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
         In this case number of cells.
