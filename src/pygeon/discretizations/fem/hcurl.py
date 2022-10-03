@@ -211,7 +211,7 @@ class Nedelec1(pg.Discretization):
 
             # Find the nodes of the cell and their coordinates
             nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
-            coords = g.nodes[:, nodes_uniq]
+            coords = sd.nodes[:, nodes_uniq]
 
             # Compute the gradients of the Lagrange basis functions
             dphi = pg.Lagrange1.local_grads(coords, g.dim)
