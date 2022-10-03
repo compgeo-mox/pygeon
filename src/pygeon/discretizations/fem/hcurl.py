@@ -257,7 +257,7 @@ class Nedelec1(pg.Discretization):
 
         return vals
 
-    def eval_at_cell_centers(self, g):
+    def eval_at_cell_centers(self, sd):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
