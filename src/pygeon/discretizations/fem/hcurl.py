@@ -38,7 +38,7 @@ class Nedelec0(pg.Discretization):
 
         Returns
         ------
-        matrix: sparse csr (g.num_ridges, g.num_ridges)
+        matrix: sparse csr (sd.num_ridges, sd.num_ridges)
             Matrix obtained from the discretization.
 
         """
