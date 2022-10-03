@@ -191,7 +191,7 @@ class Nedelec1(pg.Discretization):
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
 
         # Allocation
-        size = 9 * 4 * g.num_cells
+        size = 9 * 4 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
