@@ -1,17 +1,16 @@
 import numpy as np
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
 class PwConstants(pg.Discretization):
     """
     Discretization class for the piecewise constants.
-    Each degree of freedom is the cell-center value.
+    NB! Each degree of freedom is the integral over the cell.
     """
 
-    def ndof(self, sd: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
         In this case number of cells.
@@ -34,10 +33,10 @@ class PwConstants(pg.Discretization):
             data: dictionary with possible scaling
 
         Returns
-            matrix: sparse csr (g.num_cells, g.num_cells)
+            matrix: sparse csr (sd.num_cells, sd.num_cells)
         """
 
-        return sps.diags(sd.cell_volumes).tocsc()
+        return sps.diags(1 / sd.cell_volumes).tocsc()
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
         """
@@ -84,7 +83,9 @@ class PwConstants(pg.Discretization):
             array: the values of the degrees of freedom
         """
 
-        return np.array([func(x) for x in sd.cell_centers])
+        return np.array(
+            [func(x) * vol for (x, vol) in zip(sd.cell_centers, sd.cell_volumes)]
+        )
 
     def eval_at_cell_centers(self, sd: pg.Grid):
         """
@@ -97,7 +98,7 @@ class PwConstants(pg.Discretization):
             matrix: the evaluation matrix.
         """
 
-        return sps.eye(self.ndofs(sd))
+        return sps.diags(1 / sd.cell_volumes).tocsc()
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
@@ -111,4 +112,4 @@ class PwConstants(pg.Discretization):
         Raises an error since the range of the differential is zero.
         """
 
-        raise NotImplementedError("There's no zero discretization in PyGeoN")
+        raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")

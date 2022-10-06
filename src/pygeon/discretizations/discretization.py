@@ -1,8 +1,9 @@
-import numpy as np
-import scipy.sparse as sps
 import abc
 
+import numpy as np
 import porepy as pp
+import scipy.sparse as sps
+
 import pygeon as pg
 
 

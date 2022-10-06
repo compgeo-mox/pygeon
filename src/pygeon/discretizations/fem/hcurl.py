@@ -38,7 +38,7 @@ class Nedelec0(pg.Discretization):
 
         Returns
         ------
-        matrix: sparse csr (g.num_ridges, g.num_ridges)
+        matrix: sparse csr (sd.num_ridges, sd.num_ridges)
             Matrix obtained from the discretization.
 
         """
@@ -188,19 +188,19 @@ class Nedelec1(pg.Discretization):
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         raise NotImplementedError
 
-    def assemble_lumped_matrix(self, g: pg.Grid, data: dict):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
 
         # Allocation
-        size = 9 * 4 * g.num_cells
+        size = 9 * 4 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
-        ridge_peaks = g.ridge_peaks
+        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        ridge_peaks = sd.ridge_peaks
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -211,21 +211,21 @@ class Nedelec1(pg.Discretization):
 
             # Find the nodes of the cell and their coordinates
             nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
-            coords = g.nodes[:, nodes_uniq]
+            coords = sd.nodes[:, nodes_uniq]
 
             # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, g.dim)
+            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
 
             # Compute the local Nedelec basis functions and global indices
             Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
-            Ne_indices = np.concatenate((ridges_loc, ridges_loc + g.num_ridges))
+            Ne_indices = np.concatenate((ridges_loc, ridges_loc + sd.num_ridges))
 
             # Compute the inner products around each node
             for node in nodes_uniq:
                 bf_is_at_node = dof_loc == node
                 grads = Ne_basis[:, bf_is_at_node]
                 A = grads.T @ grads
-                A *= g.cell_volumes[c] / 4
+                A *= sd.cell_volumes[c] / 4
 
                 loc_ind = Ne_indices[bf_is_at_node]
 
@@ -257,20 +257,20 @@ class Nedelec1(pg.Discretization):
 
         return vals
 
-    def eval_at_cell_centers(self, g):
+    def eval_at_cell_centers(self, sd):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = 12 * 3 * g.num_cells
+        size = 12 * 3 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = g.face_ridges.astype(bool) * g.cell_faces.astype(bool)
-        ridge_peaks = g.ridge_peaks
+        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        ridge_peaks = sd.ridge_peaks
 
-        for c in np.arange(g.num_cells):
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -281,14 +281,14 @@ class Nedelec1(pg.Discretization):
 
             # Find the nodes of the cell and their coordinates
             nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
-            coords = g.nodes[:, nodes_uniq]
+            coords = sd.nodes[:, nodes_uniq]
 
             # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, g.dim)
+            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
 
             # Compute the local Nedelec basis functions and global indices
             Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
-            Ne_indices = np.concatenate((ridges_loc, ridges_loc + g.num_ridges))
+            Ne_indices = np.concatenate((ridges_loc, ridges_loc + sd.num_ridges))
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + Ne_basis.size)

@@ -1,7 +1,7 @@
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -80,10 +80,7 @@ class RT0(pg.Discretization, pp.RT0):
         Returns
             csr_matrix: the differential matrix.
         """
-        P0mass = pg.PwConstants(self.keyword).assemble_mass_matrix(sd)
-        P0mass.data = 1.0 / P0mass.data
-
-        return P0mass * sd.cell_faces.T
+        return sd.cell_faces.T
 
     def interpolate(self, sd: pg.Grid, func):
         """
@@ -129,13 +126,14 @@ class RT0(pg.Discretization, pp.RT0):
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
         """
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
         vals = np.zeros(self.ndof(sd))
 
         for dof in b_faces:
-            vals[dof] = (
-                func(sd.face_centers[:, dof])
-                * np.sum(sd.cell_faces[dof, :])
-                * sd.face_areas[dof]
+            vals[dof] = func(sd.face_centers[:, dof]) * np.sum(
+                sd.cell_faces.tocsr()[dof, :]
             )
 
         return vals
@@ -144,75 +142,73 @@ class RT0(pg.Discretization, pp.RT0):
         return pg.PwConstants
 
 
-class BDM1:
-    def ndof(self, g: pp.Grid) -> int:
+class BDM1(pg.Discretization):
+    def ndof(self, sd: pp.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
         In this case number of ridges.
 
         Parameter
         ---------
-        g: grid, or a subclass.
+        sd: grid, or a subclass.
 
         Return
         ------
         dof: the number of degrees of freedom.
 
         """
-        if isinstance(g, pg.Grid):
-            return g.num_faces * g.dim
+        if isinstance(sd, pg.Grid):
+            return sd.num_faces * sd.dim
         else:
             raise ValueError
 
-    def assemble_matrix(self, g: pg.Grid, data: dict):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict):
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.square(g.dim * (g.dim + 1)) * g.num_cells
+        size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
-        M = self.local_inner_product(g.dim)
+        M = self.local_inner_product(sd.dim)
 
-        cell_nodes = g.cell_nodes()
-        for c in np.arange(g.num_cells):
+        cell_nodes = sd.cell_nodes()
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
-            loc = slice(g.cell_faces.indptr[c], g.cell_faces.indptr[c + 1])
-            faces_loc = g.cell_faces.indices[loc]
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
             dof_loc = np.reshape(
-                g.face_nodes[:, faces_loc].indices, (g.dim, -1), order="F"
+                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
             )
 
             # Find the nodes of the cell and their coordinates
-            indices = np.unique(dof_loc, return_inverse=True)[1].reshape((g.dim, -1))
+            indices = np.unique(dof_loc, return_inverse=True)[1].reshape((sd.dim, -1))
 
-            face_nodes_loc = g.face_nodes[:, faces_loc].toarray()
+            face_nodes_loc = sd.face_nodes[:, faces_loc].toarray()
             cell_nodes_loc = cell_nodes[:, c].toarray()
             # get the opposite node id for each face
             opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
 
             # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
-            Psi = np.empty((g.dim * (g.dim + 1), g.dim + 1), np.ndarray)
+            Psi = np.empty((sd.dim * (sd.dim + 1), sd.dim + 1), np.ndarray)
             for (face, nodes) in enumerate(indices.T):
                 tangents = (
-                    g.nodes[:, face_nodes_loc[:, face]]
-                    - g.nodes[:, opposite_node[:, face]]
+                    sd.nodes[:, face_nodes_loc[:, face]]
+                    - sd.nodes[:, opposite_node[:, face]]
                 )
-                normal = g.face_normals[:, faces_loc[face]]
+                normal = sd.face_normals[:, faces_loc[face]]
                 for (index, node) in enumerate(nodes):
-                    Psi[face + index * (g.dim + 1), node] = tangents[:, index] / np.dot(
-                        tangents[:, index], normal
-                    )
+                    Psi[face + index * (sd.dim + 1), node] = tangents[
+                        :, index
+                    ] / np.dot(tangents[:, index], normal)
             Psi = sps.bmat(Psi)
 
             # Compute the inner products
-            A = Psi * M * Psi.T * g.cell_volumes[c]
+            A = Psi * M * Psi.T * sd.cell_volumes[c]
 
-            loc_ind = np.hstack([faces_loc] * g.dim)
-            loc_ind += np.repeat(np.arange(g.dim), g.dim + 1) * g.num_faces
+            loc_ind = np.hstack([faces_loc] * sd.dim)
+            loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
 
             # Save values of the local matrix in the global structure
             cols = np.tile(loc_ind, (loc_ind.size, 1))
@@ -236,54 +232,74 @@ class BDM1:
 
         return M.tocsc()
 
-    def assemble_div(self, g):
-        return sps.bmat([[pg.div(g)] * g.dim]) / g.dim
+    def assemble_diff_matrix(self, sd: pg.Grid):
+        """
+        Assembles the matrix corresponding to the differential
 
-    def eval_at_cell_centers(self, g):
-        raise NotImplemented
+        Args
+            sd: grid, or a subclass.
 
-    def assemble_lumped_matrix(self, g: pg.Grid, data: dict):
+        Returns
+            csr_matrix: the differential matrix.
+        """
+        RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
+
+        return sps.bmat([[RT0_diff] * sd.dim]) / sd.dim
+
+    def eval_at_cell_centers(self, sd):
+        raise NotImplementedError
+
+    def interpolate(self, sd: pg.Grid, func):
+        raise NotImplementedError
+
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+        raise NotImplementedError
+
+    def get_range_discr_class(self, dim: int):
+        return pg.PwConstants
+
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = g.dim * g.dim * (g.dim + 1) * g.num_cells
+        size = sd.dim * sd.dim * (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_nodes = g.cell_nodes()
-        for c in np.arange(g.num_cells):
+        cell_nodes = sd.cell_nodes()
+        for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
-            loc = slice(g.cell_faces.indptr[c], g.cell_faces.indptr[c + 1])
-            faces_loc = g.cell_faces.indices[loc]
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
             dof_loc = np.reshape(
-                g.face_nodes[:, faces_loc].indices, (g.dim, -1), order="F"
+                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
             )
 
             # Find the nodes of the cell and their coordinates
             nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
-            indices = indices.reshape((g.dim, -1))
+            indices = indices.reshape((sd.dim, -1))
 
-            face_nodes_loc = g.face_nodes[:, faces_loc].toarray()
+            face_nodes_loc = sd.face_nodes[:, faces_loc].toarray()
             cell_nodes_loc = cell_nodes[:, c].toarray()
             # get the opposite node id for each face
             opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
 
             # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
-            Bdm_basis = np.zeros((3, g.dim * (g.dim + 1)))
-            Bdm_indices = np.hstack([faces_loc] * g.dim)
-            Bdm_indices += np.repeat(np.arange(g.dim), g.dim + 1) * g.num_faces
+            Bdm_basis = np.zeros((3, sd.dim * (sd.dim + 1)))
+            Bdm_indices = np.hstack([faces_loc] * sd.dim)
+            Bdm_indices += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
 
             for (face, nodes) in enumerate(indices.T):
                 tangents = (
-                    g.nodes[:, face_nodes_loc[:, face]]
-                    - g.nodes[:, opposite_node[:, face]]
+                    sd.nodes[:, face_nodes_loc[:, face]]
+                    - sd.nodes[:, opposite_node[:, face]]
                 )
-                normal = g.face_normals[:, faces_loc[face]]
+                normal = sd.face_normals[:, faces_loc[face]]
                 for (index, node) in enumerate(nodes):
-                    Bdm_basis[:, face + index * (g.dim + 1)] = tangents[
+                    Bdm_basis[:, face + index * (sd.dim + 1)] = tangents[
                         :, index
                     ] / np.dot(tangents[:, index], normal)
 
@@ -291,7 +307,7 @@ class BDM1:
                 bf_is_at_node = dof_loc.flatten() == node
                 basis = Bdm_basis[:, bf_is_at_node]
                 A = basis.T @ basis
-                A *= g.cell_volumes[c] / (g.dim + 1)
+                A *= sd.cell_volumes[c] / (sd.dim + 1)
 
                 loc_ind = Bdm_indices[bf_is_at_node]
 

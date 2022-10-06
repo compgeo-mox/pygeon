@@ -1,3 +1,5 @@
+""" isort:skip_file """
+
 from pygeon.filters.importer import graph_from_file
 import pygeon.geometry.transformation as transformation
 from pygeon.filters.convert_from_pp import convert_from_pp
@@ -18,3 +20,4 @@ from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak
 from pygeon.numerics.restrictions import remove_tip_dofs
 
 from pygeon.numerics.linear_system import LinearSystem
+from pygeon.numerics.projections import eval_at_cell_centers, proj_faces_to_cells
