@@ -107,7 +107,7 @@ class Nedelec0(pg.Discretization):
     def assemble_diff_matrix(self, g: pg.Grid):
         return g.face_ridges.T
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd, data=None):
 
         # Allocation
         size = 6 * 3 * sd.num_cells
@@ -257,7 +257,7 @@ class Nedelec1(pg.Discretization):
 
         return vals
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd, data=None):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.

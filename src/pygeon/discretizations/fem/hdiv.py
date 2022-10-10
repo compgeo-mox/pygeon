@@ -99,7 +99,7 @@ class RT0(pg.Discretization, pp.RT0):
         ]
         return np.array(vals)
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid, data):
         """
         Assembles the matrix
 
@@ -109,16 +109,6 @@ class RT0(pg.Discretization, pp.RT0):
         Returns
             matrix: the evaluation matrix.
         """
-
-        # Create dummy data to pass to porepy.
-        data = {}
-        data[pp.DISCRETIZATION_MATRICES] = {"flow": {}}
-        data[pp.PARAMETERS] = {"flow": {}}
-        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = pp.SecondOrderTensor(
-            np.ones(sd.num_cells)
-        )
-
-        pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
@@ -246,7 +236,7 @@ class BDM1(pg.Discretization):
 
         return sps.bmat([[RT0_diff] * sd.dim]) / sd.dim
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd, data=None):
         raise NotImplementedError
 
     def interpolate(self, sd: pg.Grid, func):

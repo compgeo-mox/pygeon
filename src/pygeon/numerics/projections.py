@@ -11,7 +11,7 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
     # Local mass matrices
     for sd, d_sd in mdg.subdomains(return_data=True):
         nn_sd = d_sd["node_number"]
-        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
+        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd, d_sd)
 
     return sps.bmat(bmat_sd, format="csc")
 

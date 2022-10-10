@@ -87,7 +87,7 @@ class PwConstants(pg.Discretization):
             [func(x) * vol for (x, vol) in zip(sd.cell_centers, sd.cell_volumes)]
         )
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid, data=None):
         """
         Assembles the matrix
 
