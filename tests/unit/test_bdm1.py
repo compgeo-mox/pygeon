@@ -55,12 +55,16 @@ class BDM1Test(unittest.TestCase):
         sd.compute_geometry()
 
         discr_bdm1 = pg.BDM1("flow")
-        mass_bdm1 = discr_bdm1.assemble_lumped_matrix(sd, None)
+        discr_p0 = pg.PwConstants("flow")
 
-        div = discr_bdm1.assemble_diff_matrix(sd)
+        face_mass = discr_bdm1.assemble_lumped_matrix(sd, None)
+        #face_mass = discr_bdm1.assemble_mass_matrix(sd, None)
+        cell_mass = discr_p0.assemble_mass_matrix(sd, None)
+
+        div = cell_mass * discr_bdm1.assemble_diff_matrix(sd)
 
         # assemble the saddle point problem
-        spp = sps.bmat([[mass_bdm1, -div.T], [div, None]], format="csc")
+        spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
 
         b_faces = sd.tags["domain_boundary_faces"].nonzero()[0]
 
@@ -83,8 +87,14 @@ class BDM1Test(unittest.TestCase):
         q = x[: bc_val.size]
         p = x[-sd.num_cells :]
 
+        face_proj = discr_bdm1.eval_at_cell_centers(sd)
+        cell_proj = discr_p0.eval_at_cell_centers(sd)
+
+        cell_q = (face_proj * q).reshape((3, -1), order="F")
+        cell_p = cell_proj * p
+
         save = pp.Exporter(sd, "sol")
-        save.write_vtu([("p", p)])
+        save.write_vtu([("cell_p", cell_p), ("cell_q", cell_q)])
 
     def test4(self):
         N, dim = 3, 3
@@ -124,10 +134,14 @@ class BDM1Test(unittest.TestCase):
         q = x[: bc_val.size]
         p = x[-sd.num_cells :]
 
+        face_proj = discr_bdm1.eval_at_cell_centers(sd)
+        print(face_proj * q)
+
+        import pdb; pdb.set_trace()
         save = pp.Exporter(sd, "sol")
         save.write_vtu([("p", p)])
 
 
 if __name__ == "__main__":
-    BDM1Test().test1()
+    BDM1Test().test3()
     # unittest.main()

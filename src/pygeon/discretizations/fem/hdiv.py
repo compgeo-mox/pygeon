@@ -40,6 +40,11 @@ class RT0(pg.Discretization, pp.RT0):
             mass_matrix: the mass matrix.
         """
 
+        if data is None:
+            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+            data = {pp.PARAMETERS: {self.keyword: {"second_order_tensor": perm}}}
+            data.update({pp.DISCRETIZATION_MATRICES: {self.keyword: {}}})
+
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
 
@@ -117,7 +122,7 @@ class RT0(pg.Discretization, pp.RT0):
         )
 
         pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
+        return data[pp.DISCRETIZATION_MATRICES]["flow"][self.vector_proj_key]
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
@@ -245,7 +250,10 @@ class BDM1(pg.Discretization):
         return sps.bmat([[RT0_diff] * sd.dim]) / sd.dim
 
     def eval_at_cell_centers(self, sd):
-        raise NotImplementedError
+        proj_to_rt0 = sps.bmat([[sps.eye(sd.num_faces)] * sd.dim])
+        eval_rt0 = pg.RT0(self.keyword).eval_at_cell_centers(sd)
+
+        return eval_rt0 * proj_to_rt0
 
     def interpolate(self, sd: pg.Grid, func):
         raise NotImplementedError
