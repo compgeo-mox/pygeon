@@ -162,7 +162,7 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
             # Local mortar mass matrix
             try:
                 kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
-            except:
+            except KeyError:
                 kn = 1
 
             bmat_mg[nn_sd, nn_sd] += (

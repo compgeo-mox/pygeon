@@ -49,7 +49,7 @@ class BDM1Test(unittest.TestCase):
         self.assertAlmostEqual(np.linalg.norm(check.data), 0)
 
     def test3(self):
-        N, dim = 20, 2
+        N, dim = 5, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
         self.linear_distribution_test(sd)
 

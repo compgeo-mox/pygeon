@@ -48,13 +48,13 @@ class RT0(pg.Discretization, pp.RT0):
 
         try:
             data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
-        except:
+        except KeyError:
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
             data.update({pp.PARAMETERS: {self.keyword: {"second_order_tensor": perm}}})
 
         try:
             data[pp.DISCRETIZATION_MATRICES][self.keyword]
-        except:
+        except KeyError:
             data.update({pp.DISCRETIZATION_MATRICES: {self.keyword: {}}})
 
         return data
@@ -284,6 +284,7 @@ class BDM1(pg.Discretization):
         return eval_rt0 * proj_to_rt0
 
     def interpolate(self, sd: pg.Grid, func):
+
         raise NotImplementedError
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
