@@ -160,7 +160,11 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
             nn_sd = mdg.node_number(sd_pair[0])
 
             # Local mortar mass matrix
-            kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
+            try:
+                kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
+            except:
+                kn = 1
+
             bmat_mg[nn_sd, nn_sd] += (
                 intf.signed_mortar_to_primary
                 * sps.diags(1.0 / intf.cell_volumes / kn)

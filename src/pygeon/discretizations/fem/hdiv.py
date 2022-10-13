@@ -28,6 +28,37 @@ class RT0(pg.Discretization, pp.RT0):
 
         return sd.num_faces
 
+    def create_dummy_data(self, sd: pg.Grid, data):
+        """
+        Updates data such that it has all the necessary components for pp.RT0
+
+        Args
+            sd: grid, or a subclass.
+            data: dict or None.
+
+        Returns
+            data: dictionary with required attributes
+        """
+
+        if data is None:
+            data = {
+                pp.PARAMETERS: {self.keyword: {}},
+                pp.DISCRETIZATION_MATRICES: {self.keyword: {}},
+            }
+
+        try:
+            data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
+        except:
+            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+            data.update({pp.PARAMETERS: {self.keyword: {"second_order_tensor": perm}}})
+
+        try:
+            data[pp.DISCRETIZATION_MATRICES][self.keyword]
+        except:
+            data.update({pp.DISCRETIZATION_MATRICES: {self.keyword: {}}})
+
+        return data
+
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Assembles the mass matrix
@@ -40,11 +71,7 @@ class RT0(pg.Discretization, pp.RT0):
             mass_matrix: the mass matrix.
         """
 
-        if data is None:
-            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data = {pp.PARAMETERS: {self.keyword: {"second_order_tensor": perm}}}
-            data.update({pp.DISCRETIZATION_MATRICES: {self.keyword: {}}})
-
+        data = self.create_dummy_data(sd, data)
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
 
@@ -113,14 +140,7 @@ class RT0(pg.Discretization, pp.RT0):
             matrix: the evaluation matrix.
         """
 
-        # Create dummy data to pass to porepy.
-        data = {}
-        data[pp.DISCRETIZATION_MATRICES] = {"flow": {}}
-        data[pp.PARAMETERS] = {"flow": {}}
-        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = pp.SecondOrderTensor(
-            np.ones(sd.num_cells)
-        )
-
+        data = self.create_dummy_data(sd, None)
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES]["flow"][self.vector_proj_key]
 
