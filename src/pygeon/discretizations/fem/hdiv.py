@@ -169,7 +169,7 @@ class BDM1(pg.Discretization):
     def ndof(self, sd: pp.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
-        In this case number of ridges.
+        In this case the number of faces times the dimension.
 
         Parameter
         ---------
@@ -197,7 +197,7 @@ class BDM1(pg.Discretization):
 
         cell_nodes = sd.cell_nodes()
         for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its ridges and
+            # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
@@ -255,6 +255,12 @@ class BDM1(pg.Discretization):
 
         return M.tocsc()
 
+    def proj_to_RT0(self, sd: pg.Grid):
+        return sps.hstack([sps.eye(sd.num_faces)] * sd.dim) / sd.dim
+
+    def proj_from_RT0(self, sd: pg.Grid):
+        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
+
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
         Assembles the matrix corresponding to the differential
@@ -266,12 +272,14 @@ class BDM1(pg.Discretization):
             csr_matrix: the differential matrix.
         """
         RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
+        proj_to_rt0 = self.proj_to_RT0(sd)
 
-        return sps.bmat([[RT0_diff] * sd.dim]) / sd.dim
+        return RT0_diff * proj_to_rt0
 
     def eval_at_cell_centers(self, sd):
-        proj_to_rt0 = sps.bmat([[sps.eye(sd.num_faces)] * sd.dim])
+
         eval_rt0 = pg.RT0(self.keyword).eval_at_cell_centers(sd)
+        proj_to_rt0 = self.proj_to_RT0(sd)
 
         return eval_rt0 * proj_to_rt0
 
@@ -279,7 +287,25 @@ class BDM1(pg.Discretization):
         raise NotImplementedError
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
-        raise NotImplementedError
+        """
+        Assembles the natural boundary condition term
+        (n dot q, func)_\Gamma
+        """
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
+        vals = np.zeros(self.ndof(sd))
+
+        for face in b_faces:
+            local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
+            sign = np.sum(sd.cell_faces.tocsr()[face, :])
+            loc_vals = np.array(
+                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+            )
+
+            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
+
+        return vals
 
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
