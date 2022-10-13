@@ -29,6 +29,40 @@ class BDM1Test(unittest.TestCase):
 
         self.assertEqual(check.nnz, 0)
 
+    def test_interpolation_2D(self):
+        N, dim = 2, 2
+        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+        discr_bdm1 = pg.BDM1("flow")
+
+        def q_linear(x):
+            return np.array([1.0, 0, 0])
+
+        interp_q = discr_bdm1.interpolate(sd, q_linear)
+        eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
+        eval_q = np.reshape(eval_q, (3, -1), order="F")
+
+        known_q = np.array([q_linear(x) for x in sd.cell_centers.T]).T
+        self.assertAlmostEqual(np.linalg.norm(eval_q - known_q), 0)
+
+    def test_interpolation_3D(self):
+        N, dim = 2, 3
+        sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+        discr_bdm1 = pg.BDM1("flow")
+
+        def q_linear(x):
+            return np.array([1.0, 0, 0])
+
+        interp_q = discr_bdm1.interpolate(sd, q_linear)
+        eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
+        eval_q = np.reshape(eval_q, (3, -1), order="F")
+
+        known_q = np.array([q_linear(x) for x in sd.cell_centers.T]).T
+        self.assertAlmostEqual(np.linalg.norm(eval_q - known_q), 0)
+
     def test1(self):
         N, dim = 2, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
@@ -107,5 +141,4 @@ class BDM1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # BDM1Test().test3()
     unittest.main()

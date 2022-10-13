@@ -284,8 +284,16 @@ class BDM1(pg.Discretization):
         return eval_rt0 * proj_to_rt0
 
     def interpolate(self, sd: pg.Grid, func):
+        vals = np.zeros(self.ndof(sd))
 
-        raise NotImplementedError
+        for face in np.arange(sd.num_faces):
+            func_loc = np.array(
+                [func(node) for node in sd.face_nodes[:, face].indices]
+            ).T
+            vals_loc = sd.face_normals[:, face] @ func_loc
+            vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc
+
+        return vals
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
@@ -296,9 +304,9 @@ class BDM1(pg.Discretization):
             b_faces = np.where(b_faces)[0]
 
         vals = np.zeros(self.ndof(sd))
+        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
 
         for face in b_faces:
-            local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
             sign = np.sum(sd.cell_faces.tocsr()[face, :])
             loc_vals = np.array(
                 [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
