@@ -27,7 +27,7 @@ class Nedelec0(pg.Discretization):
         """
         return sd.num_ridges
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict= None):
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
 
@@ -159,7 +159,7 @@ class Nedelec0(pg.Discretization):
     def interpolate(self, sd: pg.Grid, func):
         tangents = sd.nodes * sd.ridge_peaks
         midpoints = sd.nodes * np.abs(sd.ridge_peaks) / 2
-        vals = [np.inner(func(x), t) for (x, t) in zip(midpoints, tangents)]
+        vals = [np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)]
         return np.array(vals)
 
 
@@ -188,7 +188,7 @@ class Nedelec1(pg.Discretization):
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         raise NotImplementedError
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
 
         # Allocation
         size = 9 * 4 * sd.num_cells
@@ -252,8 +252,8 @@ class Nedelec1(pg.Discretization):
             loc = slice(sd.ridge_peaks.indptr[r], sd.ridge_peaks.indptr[r + 1])
             peaks = sd.ridge_peaks.indices[loc]
             t = tangents[:, r]
-            vals[r] = np.inner(t, func(sd.nodes[:, peaks[0]]))
-            vals[r + sd.num_ridges] = np.inner(-t, func(sd.nodes[:, peaks[1]]))
+            vals[r] = np.inner(func(sd.nodes[:, peaks[0]]).flatten(), t)
+            vals[r + sd.num_ridges] = np.inner(func(sd.nodes[:, peaks[1]]).flatten(), -t)
 
         return vals
 
