@@ -84,7 +84,7 @@ class PwConstants(pg.Discretization):
         """
 
         return np.array(
-            [func(x) * vol for (x, vol) in zip(sd.cell_centers, sd.cell_volumes)]
+            [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
         )
 
     def eval_at_cell_centers(self, sd: pg.Grid):

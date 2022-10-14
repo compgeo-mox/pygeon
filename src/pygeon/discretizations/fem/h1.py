@@ -19,7 +19,7 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data):
+    def assemble_mass_matrix(self, sd: pg.Grid, data=None):
         """
         Returns the mass matrix for the lowest order Lagrange element
 
@@ -202,7 +202,7 @@ class Lagrange1(pg.Discretization):
         return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
     def interpolate(self, sd: pg.Grid, func):
-        return np.array([func(x) for x in sd.nodes])
+        return np.array([func(x) for x in sd.nodes.T])
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
