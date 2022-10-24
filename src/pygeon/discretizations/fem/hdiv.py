@@ -185,7 +185,7 @@ class BDM1(pg.Discretization):
         else:
             raise ValueError
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict=None):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
 
         size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -319,7 +319,7 @@ class BDM1(pg.Discretization):
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict=None):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
