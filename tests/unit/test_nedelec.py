@@ -14,16 +14,16 @@ class NedelecTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        def q_constant(x):
+        def r_constant(x):
             return np.array([1.0, 2.0, np.pi])
 
         for discr in [pg.Nedelec0("flow"), pg.Nedelec1("flow")]:
-            interp_q = discr.interpolate(sd, q_constant)
-            eval_q = discr.eval_at_cell_centers(sd) * interp_q
-            eval_q = np.reshape(eval_q, (3, -1), order="F")
+            interp_r = discr.interpolate(sd, r_constant)
+            eval_r = discr.eval_at_cell_centers(sd) * interp_r
+            eval_r = np.reshape(eval_r, (3, -1), order="F")
 
-            known_q = np.array([q_constant(x) for x in sd.cell_centers.T]).T
-            self.assertAlmostEqual(np.linalg.norm(eval_q - known_q), 0)
+            known_r = np.array([r_constant(x) for x in sd.cell_centers.T]).T
+            self.assertAlmostEqual(np.linalg.norm(eval_r - known_r), 0)
 
 
 if __name__ == "__main__":

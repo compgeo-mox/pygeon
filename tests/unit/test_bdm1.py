@@ -37,7 +37,7 @@ class BDM1Test(unittest.TestCase):
         discr_bdm1 = pg.BDM1("flow")
 
         def q_linear(x):
-            return np.array([1.0, 0, 0])
+            return x
 
         interp_q = discr_bdm1.interpolate(sd, q_linear)
         eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
@@ -54,7 +54,7 @@ class BDM1Test(unittest.TestCase):
         discr_bdm1 = pg.BDM1("flow")
 
         def q_linear(x):
-            return np.array([1.0, 0, 0])
+            return x
 
         interp_q = discr_bdm1.interpolate(sd, q_linear)
         eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
@@ -141,4 +141,5 @@ class BDM1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
+
     unittest.main()
