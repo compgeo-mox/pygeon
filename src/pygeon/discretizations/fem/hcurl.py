@@ -27,7 +27,7 @@ class Nedelec0(pg.Discretization):
         """
         return sd.num_ridges
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict= None):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
 
@@ -159,7 +159,9 @@ class Nedelec0(pg.Discretization):
     def interpolate(self, sd: pg.Grid, func):
         tangents = sd.nodes * sd.ridge_peaks
         midpoints = sd.nodes * np.abs(sd.ridge_peaks) / 2
-        vals = [np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)]
+        vals = [
+            np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
+        ]
         return np.array(vals)
 
 
@@ -240,12 +242,19 @@ class Nedelec1(pg.Discretization):
         # Construct the global matrices
         return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
 
+    def proj_to_Ne0(self, sd: pg.Grid):
+        return sps.hstack([sps.eye(sd.num_ridges), -sps.eye(sd.num_ridges)]) / 2
+
     def assemble_diff_matrix(self, sd):
+        Ne0_diff = pg.Nedelec0.assemble_diff_matrix(self, sd)
+        proj_to_ne0 = self.proj_to_Ne0(sd)
+
+        return Ne0_diff * proj_to_ne0
         return sps.bmat([[pg.curl(sd), -pg.curl(sd)]]) / 2
 
     def interpolate(self, sd: pg.Grid, func):
 
-        tangents = sd.nodes * sd.ridge_peaks / 2
+        tangents = sd.nodes * sd.ridge_peaks
 
         vals = np.zeros(self.ndof(sd))
         for r in np.arange(sd.num_ridges):
@@ -253,7 +262,9 @@ class Nedelec1(pg.Discretization):
             peaks = sd.ridge_peaks.indices[loc]
             t = tangents[:, r]
             vals[r] = np.inner(func(sd.nodes[:, peaks[0]]).flatten(), t)
-            vals[r + sd.num_ridges] = np.inner(func(sd.nodes[:, peaks[1]]).flatten(), -t)
+            vals[r + sd.num_ridges] = np.inner(
+                func(sd.nodes[:, peaks[1]]).flatten(), -t
+            )
 
         return vals
 
