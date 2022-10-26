@@ -55,7 +55,27 @@ def graph_from_file(**kwargs):
         for idi, flag in enumerate(np.loadtxt(kwargs["boundary_flag"], dtype=int)):
             attrs[idi + num_frac]["boundary_flag"] = flag
 
+    # read the measure
+    if kwargs.get("measures", None) is not None:
+        for idf, fm in enumerate(np.loadtxt(kwargs["measures"][0])):
+            attrs[idf]["measure"] = fm
+        for (
+            idi,
+            im,
+        ) in enumerate(np.loadtxt(kwargs["measures"][1])):
+            attrs[idi + num_frac]["measure"] = im
+
     # set the attributes to the graph
     nx.set_node_attributes(graph, attrs)
 
-    return pg.Graph(graph)
+    if kwargs.get("measures", None) is not None:
+        for first, second, data in graph.edges(data=True):
+            if graph.nodes[first]["dim"] > graph.nodes[second]["dim"]:
+                data["measure"] = graph.nodes[second]["measure"]
+            else:
+                data["measure"] = graph.nodes[first]["measure"]
+
+    if kwargs.get("domain", None) is not None:
+        return pg.Graph(graph), np.loadtxt(kwargs["domain"])
+    else:
+        return pg.Graph(graph)
