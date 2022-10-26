@@ -97,7 +97,7 @@ class Graph(pp.Grid):
 
         incidence = np.abs(self.cell_faces.T)
 
-        n = np.concatenate(cb).size
+        n = np.concatenate(cb).size if len(cb) else 0
         rows_I = np.zeros(n, dtype=int)
         cols_J = np.zeros(n, dtype=int)
         data_IJ = np.zeros(n)
