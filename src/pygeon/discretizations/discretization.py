@@ -66,7 +66,8 @@ class Discretization(pp.numerics.discretization.Discretization):
             lumped_matrix: the lumped mass matrix.
         """
 
-        return sps.diags(np.sum(self.assemble_mass_matrix(sd, data), axis=0))
+        diag_mass = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
+        return sps.diags(np.asarray(diag_mass).flatten())
 
     @abc.abstractmethod
     def assemble_diff_matrix(self, sd: pg.Grid):
