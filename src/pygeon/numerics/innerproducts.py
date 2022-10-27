@@ -177,7 +177,7 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_mass_matrix(mdg, n_minus_k, discr):
+def lumped_mass_matrix(mdg, n_minus_k, discr=None):
     """
     Compute the mass-lumped mass matrix on a mixed-dimensional grid
 
