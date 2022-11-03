@@ -2,7 +2,7 @@ git+https://github.com/pmgbergen/porepy.git
 meshio>=5.0
 networkx
 numpy
-scipy
+scipy <= 1.9.3
 matplotlib
 future
 six
