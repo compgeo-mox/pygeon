@@ -147,8 +147,7 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
     bmat_mg = bmat_sd.copy()
 
     # Local mass matrices
-    for sd, d_sd in mdg.subdomains(return_data=True):
-        nn_sd = d_sd["node_number"]
+    for (nn_sd, (sd, d_sd)) in enumerate(mdg.subdomains(return_data=True)):
         bmat_sd[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
         bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_sd[nn_sd, nn_sd].shape)
 
@@ -156,8 +155,8 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
     if n_minus_k == 1:
         for intf, d_intf in mdg.interfaces(return_data=True):
             # Get the node number of the upper-dimensional neighbor
-            sd_pair = mdg.interface_to_subdomain_pair(intf)
-            nn_sd = mdg.node_number(sd_pair[0])
+            sd = mdg.interface_to_subdomain_pair(intf)[0]
+            nn_sd = mdg.subdomains().index(sd)
 
             # Local mortar mass matrix
             try:
