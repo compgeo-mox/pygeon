@@ -26,6 +26,7 @@ class Grid(pp.Grid):
 
         super(Grid, self).compute_geometry()
         self.compute_ridges()
+        self.compute_centroids()
 
     def compute_ridges(self):
         """
@@ -46,6 +47,22 @@ class Grid(pp.Grid):
             self._compute_ridges_01d()
 
         self.tag_ridges()
+
+    def compute_centroids(self):
+        """
+        Assigns the following attributes to the grid
+
+        COMMENTS
+        """
+
+        if self.dim == 3:
+            #self._compute_centroids_3d()
+            pass
+        elif self.dim == 2:
+            self._compute_centroids_2d()
+        else:  # The grid is of dimension 0 or 1.
+            pass
+            #self._compute_ridges_01d()
 
     def _compute_ridges_01d(self):
         """
@@ -154,3 +171,19 @@ class Grid(pp.Grid):
 
         bd_ridges = self.face_ridges * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
+
+
+    def _compute_centroids_2d(self):
+        cell_nodes = self.cell_nodes()
+        for c in np.arange(self.num_cells):
+            loc = slice(self.cell_faces.indptr[c], self.cell_faces.indptr[c+1])
+            faces_loc = self.cell_faces.indices[loc]
+            faces_orient = self.cell_faces.data[loc]
+
+            for f in faces_loc:
+                loc = slice(self.face_ridges.indptr[f], self.face_ridges.indptr[f+1])
+                ridges_loc = self.face_ridges.indices[loc]
+                ridges_orient = self.face_ridges.data[loc]
+
+                import pdb; pdb.set_trace()
+
