@@ -56,13 +56,13 @@ class Grid(pp.Grid):
         """
 
         if self.dim == 3:
-            #self._compute_centroids_3d()
+            # self._compute_centroids_3d()
             pass
         elif self.dim == 2:
             self._compute_centroids_2d()
         else:  # The grid is of dimension 0 or 1.
             pass
-            #self._compute_ridges_01d()
+            # self._compute_ridges_01d()
 
     def _compute_ridges_01d(self):
         """
@@ -172,18 +172,46 @@ class Grid(pp.Grid):
         bd_ridges = self.face_ridges * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-
     def _compute_centroids_2d(self):
-        cell_nodes = self.cell_nodes()
+        self.cell_centroids = np.zeros((3, self.num_cells))
+
         for c in np.arange(self.num_cells):
-            loc = slice(self.cell_faces.indptr[c], self.cell_faces.indptr[c+1])
-            faces_loc = self.cell_faces.indices[loc]
-            faces_orient = self.cell_faces.data[loc]
+            node_loop = self._compute_node_loop(c)
+            coords = self.nodes[:, node_loop]
 
-            for f in faces_loc:
-                loc = slice(self.face_ridges.indptr[f], self.face_ridges.indptr[f+1])
-                ridges_loc = self.face_ridges.indices[loc]
-                ridges_orient = self.face_ridges.data[loc]
+            rolled = np.roll(coords, -1, axis=1)
+            factor = coords[0, :] * rolled[1, :] - rolled[0, :] * coords[1, :]
 
-                import pdb; pdb.set_trace()
+            self.cell_centroids[:, c] = np.dot(coords + rolled, factor) / (
+                6 * self.cell_volumes[c]
+            )
 
+    def _compute_node_loop(self, cell):
+        """
+        For given cell_id c, find the counter-clockwise ordering of the nodes
+        """
+        loc = slice(self.cell_faces.indptr[cell], self.cell_faces.indptr[cell + 1])
+        faces_loc = self.cell_faces.indices[loc]
+        faces_orient = self.cell_faces.data[loc]
+
+        # Construct a table of nodes with each column representing a face
+        node_table = np.zeros((2, len(faces_loc)))
+        for face, f_orient in zip(faces_loc, faces_orient):
+            loc = slice(
+                self.face_ridges.indptr[face], self.face_ridges.indptr[face + 1]
+            )
+            ridges_loc = self.face_ridges.indices[loc]
+            orient = int(self.face_ridges.data[loc][1] * f_orient)
+
+            node_table[:, face] = ridges_loc[::orient]
+
+        # Creates the node-loop
+        node_loop = np.zeros(len(faces_loc))
+        current_face = 0
+        node_loop[0] = node_table[0, 0]
+
+        for idx in np.arange(1, len(faces_loc)):
+            node_loop[idx] = node_table[1, current_face]
+            current_face = np.where(node_table[0, :] == node_loop[idx])[0]
+
+        return node_loop.astype(int)
