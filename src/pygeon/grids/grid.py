@@ -54,6 +54,7 @@ class Grid(pp.Grid):
 
         COMMENTS
         """
+        self.cell_centroids = self.cell_centers.copy()
 
         if self.dim == 3:
             # self._compute_centroids_3d()
@@ -173,9 +174,9 @@ class Grid(pp.Grid):
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
     def _compute_centroids_2d(self):
-        self.cell_centroids = np.zeros((3, self.num_cells))
+        num_faces = np.sum(np.abs(self.cell_faces), 0)
 
-        for c in np.arange(self.num_cells):
+        for c in np.where(num_faces != 3)[0]:
             node_loop = self._compute_node_loop(c)
             coords = self.nodes[:, node_loop]
 
