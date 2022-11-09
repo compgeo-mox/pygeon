@@ -195,23 +195,24 @@ class Grid(pp.Grid):
         faces_orient = self.cell_faces.data[loc]
 
         # Construct a table of nodes with each column representing a face
-        node_table = np.zeros((2, len(faces_loc)))
-        for face, f_orient in zip(faces_loc, faces_orient):
+        node_table = np.zeros((2, len(faces_loc)), int)
+        for (idx, (face, f_orient)) in enumerate(zip(faces_loc, faces_orient)):
             loc = slice(
                 self.face_ridges.indptr[face], self.face_ridges.indptr[face + 1]
             )
             ridges_loc = self.face_ridges.indices[loc]
             orient = int(self.face_ridges.data[loc][1] * f_orient)
 
-            node_table[:, face] = ridges_loc[::orient]
+            # orient determines whether ridges_loc should be read forwards or backwards
+            node_table[:, idx] = ridges_loc[::orient]
 
         # Creates the node-loop
-        node_loop = np.zeros(len(faces_loc))
+        node_loop = np.zeros(len(faces_loc), int)
         current_face = 0
         node_loop[0] = node_table[0, 0]
 
         for idx in np.arange(1, len(faces_loc)):
             node_loop[idx] = node_table[1, current_face]
-            current_face = np.where(node_table[0, :] == node_loop[idx])[0]
+            current_face = node_table[0, :] == node_loop[idx]
 
         return node_loop.astype(int)
