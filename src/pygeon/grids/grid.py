@@ -52,18 +52,31 @@ class Grid(pp.Grid):
         """
         Assigns the following attributes to the grid
 
-        COMMENTS
+        cell_centroids: the cell centroids.
         """
         self.cell_centroids = self.cell_centers.copy()
 
+        # Update centroids in 2D and 3D
         if self.dim == 3:
             # self._compute_centroids_3d()
             pass
         elif self.dim == 2:
             self._compute_centroids_2d()
-        else:  # The grid is of dimension 0 or 1.
+
+    def compute_subsimplices(self):
+        """
+        Assigns the following attributes to the grid
+
+        COMMENTS
+        """
+        self.subsimplices = self.cell_faces.copy()
+
+        # Update centroids in 2D and 3D
+        if self.dim == 3:
+            # self._compute_centroids_3d()
             pass
-            # self._compute_ridges_01d()
+        elif self.dim == 2:
+            self._compute_subsimplices_2d()
 
     def _compute_ridges_01d(self):
         """
@@ -177,7 +190,7 @@ class Grid(pp.Grid):
         num_faces = np.sum(np.abs(self.cell_faces), 0)
 
         for c in np.where(num_faces != 3)[0]:
-            node_loop = self._compute_node_loop(c)
+            node_loop, _ = self._compute_node_loop(c)
             coords = self.nodes[:, node_loop]
 
             rolled = np.roll(coords, -1, axis=1)
@@ -209,11 +222,26 @@ class Grid(pp.Grid):
 
         # Creates the node-loop
         node_loop = np.zeros(len(faces_loc), int)
-        current_face = 0
+        face_loop = np.zeros(len(faces_loc), int)
         node_loop[0] = node_table[0, 0]
 
         for idx in np.arange(1, len(faces_loc)):
-            node_loop[idx] = node_table[1, current_face]
-            current_face = node_table[0, :] == node_loop[idx]
+            node_loop[idx] = node_table[1, face_loop[idx - 1]]
+            face_loop[idx] = np.where(node_table[0, :] == node_loop[idx])[0]
 
-        return node_loop.astype(int)
+        return node_loop, faces_loc[face_loop]
+
+    def _compute_subsimplices_2d(self):
+
+        for cell in np.arange(self.num_cells):
+            loc = slice(self.cell_faces.indptr[cell], self.cell_faces.indptr[cell + 1])
+
+            node_loop, face_loop = self._compute_node_loop(cell)
+
+            tangents = self.nodes[:, np.roll(node_loop, -1)] - self.nodes[:, node_loop]
+            rays = (
+                self.nodes[:, node_loop]
+                - np.tile(self.cell_centers[:, cell], (node_loop.size, 1)).T
+            )
+
+            self.subsimplices.data[loc] = np.cross(rays, tangents, axis=0)[-1, :] / 2
