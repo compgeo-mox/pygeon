@@ -26,7 +26,6 @@ class Grid(pp.Grid):
 
         super(Grid, self).compute_geometry()
         self.compute_ridges()
-        self.compute_centroids()
 
     def compute_ridges(self):
         """
@@ -234,8 +233,6 @@ class Grid(pp.Grid):
     def _compute_subsimplices_2d(self):
 
         for cell in np.arange(self.num_cells):
-            loc = slice(self.cell_faces.indptr[cell], self.cell_faces.indptr[cell + 1])
-
             node_loop, face_loop = self._compute_node_loop(cell)
 
             tangents = self.nodes[:, np.roll(node_loop, -1)] - self.nodes[:, node_loop]
@@ -244,4 +241,6 @@ class Grid(pp.Grid):
                 - np.tile(self.cell_centers[:, cell], (node_loop.size, 1)).T
             )
 
-            self.subsimplices.data[loc] = np.cross(rays, tangents, axis=0)[-1, :] / 2
+            self.subsimplices[face_loop, cell] = (
+                np.cross(rays, tangents, axis=0)[-1, :] / 2
+            )
