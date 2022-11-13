@@ -42,20 +42,25 @@ class SubSimplexTest(unittest.TestCase):
         sd.compute_subsimplices()
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
 
-    # def test_concave_quad(self):
+    def test_concave_quad(self):
 
-    #     nodes = np.array([[0, 0.5, 1, 0.5], [0, 0.5, 0, 1], np.zeros(4)])
-    #     indices = np.array([0, 1, 1, 2, 2, 3, 3, 0])
-    #     face_nodes = sps.csc_matrix((np.ones(8), indices, np.arange(0, 9, 2)))
-    #     cell_faces = sps.csc_matrix(np.ones((4, 1)))
+        nodes = np.array([[0, 0.5, 1, 0.5], [0, 0.5, 0, 1], np.zeros(4)])
+        indices = np.array([0, 1, 1, 2, 2, 3, 3, 0])
+        face_nodes = sps.csc_matrix((np.ones(8), indices, np.arange(0, 9, 2)))
+        cell_faces = sps.csc_matrix(np.ones((4, 1)))
 
-    #     sd = pp.Grid(2, nodes, face_nodes, cell_faces, "concave")
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
+        sd = pp.Grid(2, nodes, face_nodes, cell_faces, "concave")
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
-    #     sd.compute_subsimplices()
-    #     self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
+        # Because of a bug in Porepy, we have to manually adjust the concave part.
+        sd.face_normals[:, :2] *= -1
+        sd.face_ridges[:, :2] *= -1
+
+        sd.compute_subsimplices()
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
 
 
 if __name__ == "__main__":
+    SubSimplexTest().test_concave_quad()
     unittest.main()

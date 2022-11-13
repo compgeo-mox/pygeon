@@ -250,7 +250,6 @@ class Nedelec1(pg.Discretization):
         proj_to_ne0 = self.proj_to_Ne0(sd)
 
         return Ne0_diff * proj_to_ne0
-        return sps.bmat([[pg.curl(sd), -pg.curl(sd)]]) / 2
 
     def interpolate(self, sd: pg.Grid, func):
 

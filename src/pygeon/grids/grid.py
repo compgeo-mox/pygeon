@@ -203,6 +203,7 @@ class Grid(pp.Grid):
         """
         For given cell_id c, find the counter-clockwise ordering of the nodes
         """
+
         loc = slice(self.cell_faces.indptr[cell], self.cell_faces.indptr[cell + 1])
         faces_loc = self.cell_faces.indices[loc]
         faces_orient = self.cell_faces.data[loc]
