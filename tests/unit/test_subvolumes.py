@@ -16,7 +16,7 @@ class SubVolumeTest(unittest.TestCase):
 
         sd.compute_subvolumes()
 
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
 
     def test_tris(self):
         sd = pp.StructuredTriangleGrid([4, 4])
@@ -25,7 +25,7 @@ class SubVolumeTest(unittest.TestCase):
 
         sd.compute_subvolumes()
 
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
 
     def test_hitchhiker_pentagon(self):
 
@@ -40,7 +40,7 @@ class SubVolumeTest(unittest.TestCase):
         sd.compute_geometry()
 
         sd.compute_subvolumes()
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
 
     def test_concave_quad(self):
 
@@ -54,7 +54,7 @@ class SubVolumeTest(unittest.TestCase):
         sd.compute_geometry()
 
         sd.compute_subvolumes()
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
 
     def test_multiple_concave_quads(self):
         nodes = np.array(
@@ -72,7 +72,7 @@ class SubVolumeTest(unittest.TestCase):
         sd.compute_geometry()
 
         sd.compute_subvolumes()
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
 
 
 if __name__ == "__main__":

@@ -55,7 +55,7 @@ class Grid(pp.Grid):
         subvolumes: a csc_matrix with each entry [face, cell] describing
                       the signed measure of the associated sub-volume
         """
-        self.subvolumes = self.cell_faces.copy().astype(float)
+        self.sub_volumes = self.cell_faces.copy().astype(float)
 
         if self.dim == 3:
             # self._compute_subvolumes_3d()
@@ -173,7 +173,7 @@ class Grid(pp.Grid):
             self.nodes @ (self.face_ridges[:, faces] < 0) - self.cell_centers[:, cells]
         )
 
-        self.subvolumes[faces, cells] = np.cross(rays, tangents, axis=0)[-1, :] / 2
+        self.sub_volumes[faces, cells] = np.cross(rays, tangents, axis=0)[-1, :] / 2
 
     def correct_concave_elements_2d(self):
         """
