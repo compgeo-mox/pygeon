@@ -155,14 +155,14 @@ class Grid(pp.Grid):
         """
 
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
+        fr_bool = self.face_ridges.astype("bool")
 
         if self.dim == 2:
-            fr_bool = self.face_ridges.astype("bool")
             self.tags["tip_ridges"] = fr_bool * self.tags["tip_faces"]
         else:
             self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=bool)
 
-        bd_ridges = self.face_ridges * self.tags["domain_boundary_faces"]
+        bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
     def _compute_subvolumes_2d(self):
