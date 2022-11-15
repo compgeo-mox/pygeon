@@ -55,7 +55,7 @@ class Grid(pp.Grid):
         subvolumes: a csc_matrix with each entry [face, cell] describing
                       the signed measure of the associated sub-volume
         """
-        self.subvolumes = self.cell_faces.copy()
+        self.subvolumes = self.cell_faces.copy().astype(float)
 
         if self.dim == 3:
             # self._compute_subvolumes_3d()
@@ -182,6 +182,7 @@ class Grid(pp.Grid):
 
         # We have to double check whether the orientations are consistent
         cr = self.face_ridges * self.cell_faces
+
         if cr.nnz == 0:  # Orientations are fine
             return
 
@@ -189,28 +190,25 @@ class Grid(pp.Grid):
         R = pp.map_geometry.project_plane_matrix(self.nodes)
         self.nodes = np.dot(R, self.nodes)
 
-        bad_cells = np.unique(sps.find(cr)[1])
-
         while cr.nnz != 0:
             ridges, cells, orient = sps.find(cr)
 
-            for (start_node, bad_cell) in zip(
-                ridges[orient == -2], cells[orient == -2]
-            ):
-                local_fr = self.face_ridges[:, self.cell_faces[:, bad_cell].indices]
+            start_node = ridges[orient == -2][0]
+            bad_cell = cells[orient == -2][0]
 
-                # Loop through the faces and nodes from
-                # the start: where two faces are oriented away from a ridge (cr == -2)
-                # to the finish: where two faces are oriented to the same ridge (cr == 2)
-                while cr[start_node, bad_cell] != 2:
-                    next_face = np.argmax(local_fr[start_node, :] == -1)
-                    self.cell_faces[next_face, bad_cell] *= -1
-                    start_node = np.argmax(local_fr[:, next_face] == 1)
+            local_fr = self.face_ridges[:, self.cell_faces[:, bad_cell].indices]
+
+            # Loop through the faces and nodes from
+            # the start: where two faces are oriented away from a ridge (cr == -2)
+            # to the finish: where two faces are oriented to the same ridge (cr == 2)
+            while cr[start_node, bad_cell] != 2:
+                next_face = np.argmax(local_fr[start_node, :] == -1)
+                self.cell_faces[next_face, :] *= -1
+                start_node = np.argmax(local_fr[:, next_face] == 1)
 
             cr = self.face_ridges * self.cell_faces
 
-        faces, cells_loc, orient = sps.find(self.cell_faces[:, bad_cells])
-        cells = bad_cells[cells_loc]
+        faces, cells, orient = sps.find(self.cell_faces)
 
         # Recompute the volumes and reorient cell_faces
         tangents = (self.nodes * self.face_ridges[:, faces]) * orient
@@ -219,13 +217,11 @@ class Grid(pp.Grid):
         )
 
         subsimplex_volumes = np.cross(rays, tangents, axis=0)[-1, :] / 2
-        signed_volumes = np.bincount(cells_loc, subsimplex_volumes)
+        signed_volumes = np.bincount(cells, subsimplex_volumes)
         loop_orientation = np.sign(signed_volumes)
 
-        self.cell_volumes[bad_cells] = np.abs(signed_volumes)
-        self.cell_faces[:, bad_cells] = self.cell_faces[:, bad_cells] * sps.diags(
-            loop_orientation
-        )
+        self.cell_volumes = np.abs(signed_volumes)
+        self.cell_faces = self.cell_faces * sps.diags(loop_orientation)
 
         # Recompute the cell centers
         subcentroids = (
@@ -233,8 +229,8 @@ class Grid(pp.Grid):
         ) / 3
 
         for x_dim in range(2):  # Third dimension is zero since we mapped to the plane
-            self.cell_centers[x_dim, bad_cells] = np.bincount(
-                cells_loc,
+            self.cell_centers[x_dim, :] = np.bincount(
+                cells,
                 subcentroids[x_dim, :] * subsimplex_volumes / self.cell_volumes[cells],
             )
 

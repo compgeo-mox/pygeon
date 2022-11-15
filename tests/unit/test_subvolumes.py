@@ -56,7 +56,25 @@ class SubVolumeTest(unittest.TestCase):
         sd.compute_subvolumes()
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
 
+    def test_multiple_concave_quads(self):
+        nodes = np.array(
+            [[0, 0.5, 1, 0.5, 0.5, 0.5], [0, 0.5, 0, 1, -0.5, -1], np.zeros(6)]
+        )
+        indices = np.array([0, 1, 1, 2, 2, 3, 3, 0, 0, 4, 4, 2, 2, 5, 5, 0])
+        face_nodes = sps.csc_matrix((np.ones(16), indices, np.arange(0, 17, 2)))
+        cell_faces_j = np.repeat(np.arange(3), 4)
+        cell_faces_i = np.array([0, 1, 2, 3, 4, 5, 1, 0, 4, 5, 6, 7])
+        cell_faces_v = np.array([1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1, 1])
+        cell_faces = sps.csc_matrix((cell_faces_v, (cell_faces_i, cell_faces_j)))
+
+        sd = pp.Grid(2, nodes, face_nodes, cell_faces, "concave")
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        sd.compute_subvolumes()
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
+
 
 if __name__ == "__main__":
-    SubVolumeTest().test_quads()
+    SubVolumeTest().test_multiple_concave_quads()
     unittest.main()
