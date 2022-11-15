@@ -26,6 +26,7 @@ class Grid(pp.Grid):
 
         super(Grid, self).compute_geometry()
         self.compute_ridges()
+        self.correct_concave_elements_2d()
 
     def compute_ridges(self):
         """
@@ -47,35 +48,20 @@ class Grid(pp.Grid):
 
         self.tag_ridges()
 
-    def compute_centroids(self):
+    def compute_subvolumes(self):
         """
         Assigns the following attributes to the grid
 
-        cell_centroids: the cell centroids.
+        subvolumes: a csc_matrix with each entry [face, cell] describing
+                      the signed measure of the associated sub-volume
         """
-        self.cell_centroids = self.cell_centers.copy()
+        self.subvolumes = self.cell_faces.copy()
 
-        # Update centroids in 2D and 3D
         if self.dim == 3:
-            # self._compute_centroids_3d()
+            # self._compute_subvolumes_3d()
             pass
         elif self.dim == 2:
-            self._compute_centroids_2d()
-
-    def compute_subsimplices(self):
-        """
-        Assigns the following attributes to the grid
-
-        COMMENTS
-        """
-        self.subsimplices = self.cell_faces.copy()
-
-        # Update centroids in 2D and 3D
-        if self.dim == 3:
-            # self._compute_centroids_3d()
-            pass
-        elif self.dim == 2:
-            self._compute_subsimplices_2d()
+            self._compute_subvolumes_2d()
 
     def _compute_ridges_01d(self):
         """
@@ -103,23 +89,17 @@ class Grid(pp.Grid):
         R = pp.map_geometry.project_plane_matrix(self.nodes)
         loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
         rot = R.T @ loc_rot @ R
-        face_tangential = rot.dot(self.face_normals)
+        rotated_normal = rot.dot(self.face_normals)
 
         # The face-ridge orientation is determined by whether the rotated normal
         # coincides with the difference vector between the ridges.
         face_ridges = self.face_nodes.copy().astype(int)
+        face_ridges.data[::2] *= -1
+        face_tangents = self.nodes @ face_ridges
 
-        nodes = sps.find(self.face_nodes)[0]
-        for face in np.arange(self.num_faces):
-            loc = slice(self.face_nodes.indptr[face], self.face_nodes.indptr[face + 1])
-            nodes_loc = np.sort(nodes[loc])
+        orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-            tangent = self.nodes[:, nodes_loc[1]] - self.nodes[:, nodes_loc[0]]
-            sign = np.sign(np.dot(face_tangential[:, face], tangent))
-
-            face_ridges.data[loc] = [-sign, sign]
-
-        self.face_ridges = face_ridges
+        self.face_ridges = face_ridges * sps.diags(orients)
 
     def _compute_ridges_3d(self):
         """
@@ -185,63 +165,78 @@ class Grid(pp.Grid):
         bd_ridges = self.face_ridges * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-    def _compute_centroids_2d(self):
-        num_faces = np.sum(np.abs(self.cell_faces), 0)
+    def _compute_subvolumes_2d(self):
+        faces, cells, orient = sps.find(self.cell_faces)
 
-        for c in np.where(num_faces != 3)[0]:
-            node_loop, _ = self._compute_node_loop(c)
-            coords = self.nodes[:, node_loop]
+        tangents = self.nodes @ self.face_ridges[:, faces] * orient
+        rays = (
+            self.nodes @ (self.face_ridges[:, faces] < 0) - self.cell_centers[:, cells]
+        )
 
-            rolled = np.roll(coords, -1, axis=1)
-            factor = coords[0, :] * rolled[1, :] - rolled[0, :] * coords[1, :]
+        self.subvolumes[faces, cells] = np.cross(rays, tangents, axis=0)[-1, :] / 2
 
-            self.cell_centroids[:, c] = np.dot(coords + rolled, factor) / (
-                6 * self.cell_volumes[c]
-            )
-
-    def _compute_node_loop(self, cell):
+    def correct_concave_elements_2d(self):
         """
-        For given cell_id c, find the counter-clockwise ordering of the nodes
+        Corrects the cell_center, cell_volume, and cell_faces for concave cells in 2D
         """
 
-        loc = slice(self.cell_faces.indptr[cell], self.cell_faces.indptr[cell + 1])
-        faces_loc = self.cell_faces.indices[loc]
-        faces_orient = self.cell_faces.data[loc]
+        # We have to double check whether the orientations are consistent
+        cr = self.face_ridges * self.cell_faces
+        if cr.nnz == 0:  # Orientations are fine
+            return
 
-        # Construct a table of nodes with each column representing a face
-        node_table = np.zeros((2, len(faces_loc)), int)
-        for (idx, (face, f_orient)) in enumerate(zip(faces_loc, faces_orient)):
-            loc = slice(
-                self.face_ridges.indptr[face], self.face_ridges.indptr[face + 1]
+        # Else, we first map to the xy-plane
+        R = pp.map_geometry.project_plane_matrix(self.nodes)
+        self.nodes = np.dot(R, self.nodes)
+
+        bad_cells = np.unique(sps.find(cr)[1])
+
+        while cr.nnz != 0:
+            ridges, cells, orient = sps.find(cr)
+
+            for (start_node, bad_cell) in zip(
+                ridges[orient == -2], cells[orient == -2]
+            ):
+                local_fr = self.face_ridges[:, self.cell_faces[:, bad_cell].indices]
+
+                # Loop through the faces and nodes from
+                # the start: where two faces are oriented away from a ridge (cr == -2)
+                # to the finish: where two faces are oriented to the same ridge (cr == 2)
+                while cr[start_node, bad_cell] != 2:
+                    next_face = np.argmax(local_fr[start_node, :] == -1)
+                    self.cell_faces[next_face, bad_cell] *= -1
+                    start_node = np.argmax(local_fr[:, next_face] == 1)
+
+            cr = self.face_ridges * self.cell_faces
+
+        faces, cells_loc, orient = sps.find(self.cell_faces[:, bad_cells])
+        cells = bad_cells[cells_loc]
+
+        # Recompute the volumes and reorient cell_faces
+        tangents = (self.nodes * self.face_ridges[:, faces]) * orient
+        rays = (
+            self.nodes * (self.face_ridges[:, faces] < 0) - self.cell_centers[:, cells]
+        )
+
+        subsimplex_volumes = np.cross(rays, tangents, axis=0)[-1, :] / 2
+        signed_volumes = np.bincount(cells_loc, subsimplex_volumes)
+        loop_orientation = np.sign(signed_volumes)
+
+        self.cell_volumes[bad_cells] = np.abs(signed_volumes)
+        self.cell_faces[:, bad_cells] = self.cell_faces[:, bad_cells] * sps.diags(
+            loop_orientation
+        )
+
+        # Recompute the cell centers
+        subcentroids = (
+            2 * self.face_centers[:, faces] + self.cell_centers[:, cells]
+        ) / 3
+
+        for x_dim in range(2):  # Third dimension is zero since we mapped to the plane
+            self.cell_centers[x_dim, bad_cells] = np.bincount(
+                cells_loc,
+                subcentroids[x_dim, :] * subsimplex_volumes / self.cell_volumes[cells],
             )
-            ridges_loc = self.face_ridges.indices[loc]
-            orient = int(self.face_ridges.data[loc][1] * f_orient)
 
-            # orient determines whether ridges_loc should be read forwards or backwards
-            node_table[:, idx] = ridges_loc[::orient]
-
-        # Creates the node-loop
-        node_loop = np.zeros(len(faces_loc), int)
-        face_loop = np.zeros(len(faces_loc), int)
-        node_loop[0] = node_table[0, 0]
-
-        for idx in np.arange(1, len(faces_loc)):
-            node_loop[idx] = node_table[1, face_loop[idx - 1]]
-            face_loop[idx] = np.where(node_table[0, :] == node_loop[idx])[0]
-
-        return node_loop, faces_loc[face_loop]
-
-    def _compute_subsimplices_2d(self):
-
-        for cell in np.arange(self.num_cells):
-            node_loop, face_loop = self._compute_node_loop(cell)
-
-            tangents = self.nodes[:, np.roll(node_loop, -1)] - self.nodes[:, node_loop]
-            rays = (
-                self.nodes[:, node_loop]
-                - np.tile(self.cell_centers[:, cell], (node_loop.size, 1)).T
-            )
-
-            self.subsimplices[face_loop, cell] = (
-                np.cross(rays, tangents, axis=0)[-1, :] / 2
-            )
+        # Set the nodes back in their original position.
+        self.nodes = np.dot(R.T, self.nodes)

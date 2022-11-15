@@ -8,24 +8,24 @@ import pygeon as pg
 import scipy.sparse as sps
 
 
-class SubSimplexTest(unittest.TestCase):
+class SubVolumeTest(unittest.TestCase):
     def test_quads(self):
         sd = pp.CartGrid([4, 4])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        sd.compute_subsimplices()
+        sd.compute_subvolumes()
 
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
 
     def test_tris(self):
         sd = pp.StructuredTriangleGrid([4, 4])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        sd.compute_subsimplices()
+        sd.compute_subvolumes()
 
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
 
     def test_hitchhiker_pentagon(self):
 
@@ -39,8 +39,8 @@ class SubSimplexTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        sd.compute_subsimplices()
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
+        sd.compute_subvolumes()
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
 
     def test_concave_quad(self):
 
@@ -53,14 +53,10 @@ class SubSimplexTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        # Because of a bug in Porepy, we have to manually adjust the concave part.
-        sd.face_normals[:, :2] *= -1
-        sd.face_ridges[:, :2] *= -1
-
-        sd.compute_subsimplices()
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subsimplices, 0)))
+        sd.compute_subvolumes()
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.subvolumes, 0)))
 
 
 if __name__ == "__main__":
-    SubSimplexTest().test_concave_quad()
+    SubVolumeTest().test_quads()
     unittest.main()
