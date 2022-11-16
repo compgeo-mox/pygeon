@@ -92,6 +92,11 @@ class Graph(pp.Grid):
         face_ridges: the map from the faces to the ridges
         ridge_peaks: an empty matrix that maps the ridges to peaks
         """
+        self.num_ridges = 0
+        self.num_peaks = 0
+        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
+
+        return
 
         cb = nx.cycle_basis(self.graph)
 
