@@ -190,32 +190,37 @@ class Grid(pp.Grid):
         R = pp.map_geometry.project_plane_matrix(self.nodes)
         self.nodes = np.dot(R, self.nodes)
 
-        while cr.nnz != 0:
+        for _ in range(self.num_cells):
             ridges, cells, orient = sps.find(cr)
 
-            start_node = ridges[orient == -2][0]
-            bad_cell = cells[orient == -2][0]
+            first_bad_index = np.argmax(orient == -2)
+            start_node = ridges[first_bad_index]
+            bad_cell = cells[first_bad_index]
 
             local_fr = self.face_ridges[:, self.cell_faces[:, bad_cell].indices]
 
             # Loop through the faces and nodes from
             # the start: where two faces are oriented away from a ridge (cr == -2)
             # to the finish: where two faces are oriented to the same ridge (cr == 2)
-            loop_ind = 0
-            while loop_ind < local_fr.shape[0]:
+            for _ in range(local_fr.shape[1]):
                 next_face = np.argmax(local_fr[start_node, :] == -1)
                 self.cell_faces[next_face, :] *= -1
                 start_node = np.argmax(local_fr[:, next_face] == 1)
 
-                loop_ind += 1
                 if cr[start_node, bad_cell] == 2:
                     break
             else:
                 raise TimeoutError(
-                    "Could not create a node loop, something is wrong in the mesh orientation."
+                    "Could not create a node loop; ran through all nodes"
                 )
 
+            # Recompute cell-ridge to see if things are fixed
             cr = self.face_ridges * self.cell_faces
+
+            if cr.nnz == 0:  # Orientations are fine
+                break
+        else:
+            raise TimeoutError("Could not fix orientation; ran through all cells.")
 
         faces, cells, orient = sps.find(self.cell_faces)
 
