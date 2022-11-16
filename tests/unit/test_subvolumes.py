@@ -27,6 +27,24 @@ class SubVolumeTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
 
+    def test_tets(self):
+        sd = pp.StructuredTetrahedralGrid([4, 4, 4])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        sd.compute_subvolumes()
+
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
+
+    def test_hexes(self):
+        sd = pp.CartGrid([4, 4, 4])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        sd.compute_subvolumes()
+
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sd.sub_volumes, 0)))
+
     def test_hitchhiker_pentagon(self):
 
         nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])

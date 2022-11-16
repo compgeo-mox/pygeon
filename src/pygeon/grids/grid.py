@@ -57,11 +57,12 @@ class Grid(pp.Grid):
         """
         self.sub_volumes = self.cell_faces.copy().astype(float)
 
-        if self.dim == 3:
-            # self._compute_subvolumes_3d()
-            pass
-        elif self.dim == 2:
-            self._compute_subvolumes_2d()
+        faces, cells, orient = sps.find(self.cell_faces)
+
+        normals = self.face_normals[:, faces] * orient
+        rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
+
+        self.sub_volumes[faces, cells] = np.sum(normals * rays, 0) / self.dim
 
     def _compute_ridges_01d(self):
         """
@@ -165,16 +166,6 @@ class Grid(pp.Grid):
         bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-    def _compute_subvolumes_2d(self):
-        faces, cells, orient = sps.find(self.cell_faces)
-
-        tangents = self.nodes @ self.face_ridges[:, faces] * orient
-        rays = (
-            self.nodes @ (self.face_ridges[:, faces] < 0) - self.cell_centers[:, cells]
-        )
-
-        self.sub_volumes[faces, cells] = np.cross(rays, tangents, axis=0)[-1, :] / 2
-
     def correct_concave_elements_2d(self):
         """
         Corrects the cell_center, cell_volume, and cell_faces for concave cells in 2D
@@ -186,9 +177,7 @@ class Grid(pp.Grid):
         if cr.nnz == 0:  # Orientations are fine
             return
 
-        # Else, we first map to the xy-plane
-        R = pp.map_geometry.project_plane_matrix(self.nodes)
-        self.nodes = np.dot(R, self.nodes)
+        # Else
 
         for _ in range(self.num_cells):
             ridges, cells, orient = sps.find(cr)
@@ -225,12 +214,11 @@ class Grid(pp.Grid):
         faces, cells, orient = sps.find(self.cell_faces)
 
         # Recompute the volumes and reorient cell_faces
-        tangents = (self.nodes * self.face_ridges[:, faces]) * orient
-        rays = (
-            self.nodes * (self.face_ridges[:, faces] < 0) - self.cell_centers[:, cells]
-        )
+        normals = self.face_normals[:, faces] * orient
+        rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
 
-        subsimplex_volumes = np.cross(rays, tangents, axis=0)[-1, :] / 2
+        subsimplex_volumes = np.sum(normals * rays, 0) / 2
+
         signed_volumes = np.bincount(cells, subsimplex_volumes)
         loop_orientation = np.sign(signed_volumes)
 
@@ -242,11 +230,8 @@ class Grid(pp.Grid):
             2 * self.face_centers[:, faces] + self.cell_centers[:, cells]
         ) / 3
 
-        for x_dim in range(2):  # Third dimension is zero since we mapped to the plane
+        for x_dim in range(3):
             self.cell_centers[x_dim, :] = np.bincount(
                 cells,
                 subcentroids[x_dim, :] * subsimplex_volumes / self.cell_volumes[cells],
             )
-
-        # Set the nodes back in their original position.
-        self.nodes = np.dot(R.T, self.nodes)
