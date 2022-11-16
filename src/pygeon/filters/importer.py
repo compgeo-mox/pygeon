@@ -19,6 +19,7 @@ def graph_from_file(**kwargs):
         shape = np.loadtxt(kwargs["shape"], dtype=int)
     else:
         shape = np.array([np.amax(frac), np.amax(intersect)]) + 1
+    shape = np.flip(shape)
 
     # create the adjacency matrix representation of a graph
     frac_to_intersect = sps.coo_matrix(
