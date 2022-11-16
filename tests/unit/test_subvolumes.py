@@ -76,5 +76,4 @@ class SubVolumeTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    SubVolumeTest().test_multiple_concave_quads()
     unittest.main()

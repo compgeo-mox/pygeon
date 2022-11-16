@@ -201,10 +201,19 @@ class Grid(pp.Grid):
             # Loop through the faces and nodes from
             # the start: where two faces are oriented away from a ridge (cr == -2)
             # to the finish: where two faces are oriented to the same ridge (cr == 2)
-            while cr[start_node, bad_cell] != 2:
+            loop_ind = 0
+            while loop_ind < local_fr.shape[0]:
                 next_face = np.argmax(local_fr[start_node, :] == -1)
                 self.cell_faces[next_face, :] *= -1
                 start_node = np.argmax(local_fr[:, next_face] == 1)
+
+                loop_ind += 1
+                if cr[start_node, bad_cell] == 2:
+                    break
+            else:
+                raise TimeoutError(
+                    "Could not create a node loop, something is wrong in the mesh orientation."
+                )
 
             cr = self.face_ridges * self.cell_faces
 
