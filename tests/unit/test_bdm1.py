@@ -63,7 +63,7 @@ class BDM1Test(unittest.TestCase):
         known_q = np.array([q_linear(x) for x in sd.cell_centers.T]).T
         self.assertAlmostEqual(np.linalg.norm(eval_q - known_q), 0)
 
-    def test1(self):
+    def test_compliance_RT0(self):
         N, dim = 2, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
@@ -82,12 +82,12 @@ class BDM1Test(unittest.TestCase):
         check = E.T * mass_bdm1 * E - mass_rt0
         self.assertAlmostEqual(np.linalg.norm(check.data), 0)
 
-    def test3(self):
+    def test_linear_distribution_2D(self):
         N, dim = 5, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
         self.linear_distribution_test(sd)
 
-    def test4(self):
+    def test_linear_distribution_3D(self):
         N, dim = 5, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         self.linear_distribution_test(sd)
@@ -100,44 +100,47 @@ class BDM1Test(unittest.TestCase):
         discr_bdm1 = pg.BDM1("flow")
         discr_p0 = pg.PwConstants("flow")
 
-        # face_mass = discr_bdm1.assemble_lumped_matrix(sd, None)
-        face_mass = discr_bdm1.assemble_mass_matrix(sd, None)
-        cell_mass = discr_p0.assemble_mass_matrix(sd, None)
+        mass_matrices = [
+            discr_bdm1.assemble_mass_matrix(sd, None),
+            discr_bdm1.assemble_lumped_matrix(sd, None),
+        ]
+        for face_mass in mass_matrices:
+            cell_mass = discr_p0.assemble_mass_matrix(sd, None)
 
-        div = cell_mass * discr_bdm1.assemble_diff_matrix(sd)
+            div = cell_mass * discr_bdm1.assemble_diff_matrix(sd)
 
-        # assemble the saddle point problem
-        spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
+            # assemble the saddle point problem
+            spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
 
-        b_faces = sd.tags["domain_boundary_faces"].nonzero()[0]
+            b_faces = sd.tags["domain_boundary_faces"].nonzero()[0]
 
-        def p_0(x):
-            return x[0]
+            def p_0(x):
+                return x[0]
 
-        bc_val = -discr_bdm1.assemble_nat_bc(sd, p_0, b_faces)
+            bc_val = -discr_bdm1.assemble_nat_bc(sd, p_0, b_faces)
 
-        rhs = np.zeros(spp.shape[0])
-        rhs[: bc_val.size] += bc_val
+            rhs = np.zeros(spp.shape[0])
+            rhs[: bc_val.size] += bc_val
 
-        # solve the problem
-        ls = pg.LinearSystem(spp, rhs)
-        x = ls.solve()
+            # solve the problem
+            ls = pg.LinearSystem(spp, rhs)
+            x = ls.solve()
 
-        q = x[: bc_val.size]
-        p = x[-sd.num_cells :]
+            q = x[: bc_val.size]
+            p = x[-sd.num_cells :]
 
-        face_proj = discr_bdm1.eval_at_cell_centers(sd)
-        cell_proj = discr_p0.eval_at_cell_centers(sd)
+            face_proj = discr_bdm1.eval_at_cell_centers(sd)
+            cell_proj = discr_p0.eval_at_cell_centers(sd)
 
-        cell_q = (face_proj * q).reshape((3, -1), order="F")
-        cell_p = cell_proj * p
+            cell_q = (face_proj * q).reshape((3, -1), order="F")
+            cell_p = cell_proj * p
 
-        known_q = np.zeros(cell_q.shape)
-        known_q[0, :] = -1.0
-        known_p = sd.cell_centers[0, :]
+            known_q = np.zeros(cell_q.shape)
+            known_q[0, :] = -1.0
+            known_p = sd.cell_centers[0, :]
 
-        self.assertAlmostEqual(np.linalg.norm(cell_q - known_q), 0)
-        self.assertAlmostEqual(np.linalg.norm(cell_p - known_p), 0)
+            self.assertAlmostEqual(np.linalg.norm(cell_q - known_q), 0)
+            self.assertAlmostEqual(np.linalg.norm(cell_p - known_p), 0)
 
 
 if __name__ == "__main__":
