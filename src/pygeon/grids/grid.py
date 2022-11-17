@@ -26,7 +26,7 @@ class Grid(pp.Grid):
 
         super(Grid, self).compute_geometry()
         self.compute_ridges()
-        self.correct_concave_elements_2d()
+        self.correct_concave_elements()
 
     def compute_ridges(self):
         """
@@ -166,7 +166,7 @@ class Grid(pp.Grid):
         bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-    def correct_concave_elements_2d(self):
+    def correct_concave_elements(self):
         """
         Corrects the cell_center, cell_volume, and cell_faces for concave cells in 2D
         """
@@ -178,6 +178,8 @@ class Grid(pp.Grid):
             return
 
         # Else
+        if self.dim != 2:
+            raise NotImplementedError
 
         for _ in range(self.num_cells):
             ridges, cells, orient = sps.find(cr)
@@ -193,10 +195,10 @@ class Grid(pp.Grid):
             # to the finish: where two faces are oriented to the same ridge (cr == 2)
             for _ in range(local_fr.shape[1]):
                 next_face = np.argmax(local_fr[start_node, :] == -1)
-                self.cell_faces[next_face, :] *= -1
+                self.cell_faces.data[self.cell_faces.indices == next_face] *= -1
                 start_node = np.argmax(local_fr[:, next_face] == 1)
 
-                if cr[start_node, bad_cell] == 2:
+                if cr[start_node, bad_cell] == 2:  # Found a finish node
                     break
             else:
                 raise TimeoutError(
