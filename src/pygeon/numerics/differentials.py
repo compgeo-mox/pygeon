@@ -125,9 +125,8 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
     )
 
     # Compute local differential operator
-    for sd, d_sd in mdg.subdomains(return_data=True):
-        node_nr = d_sd["node_number"]
-        bmat[node_nr, node_nr] = exterior_derivative(sd, n_minus_k)
+    for (id, sd) in enumerate(mdg.subdomains()):
+        bmat[id, id] = exterior_derivative(sd, n_minus_k)
 
     # Compute mixed-dimensional jump operator
     for intf in mdg.interfaces():
@@ -135,7 +134,7 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
 
         if pair[0].dim >= n_minus_k:
             # Get indices (node_numbers) in grid_bucket
-            node_nrs = [mdg.subdomain_data(sd)["node_number"] for sd in pair]
+            node_nrs = [mdg.subdomains().index(sd) for sd in pair]
 
             # Place the jump term in the block-matrix
             bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)

@@ -67,5 +67,5 @@ def create_restriction(keep_dof):
     Returns:
         sps.csr_matrix: the restriction mapping.
     """
-    R = sps.diags(keep_dof, dtype=np.int).tocsr()
+    R = sps.diags(keep_dof, dtype=int).tocsr()
     return R[R.indices, :].tocsc()

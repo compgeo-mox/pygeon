@@ -11,7 +11,7 @@ def cell_mass(mdg, discr=None, **kwargs):
     """
     Compute the mass matrix for the piecewise constants on a (MD-)grid
 
-    Parameters:
+    Args:
         mdg (pp.MixedDimensionalGrid).
         discr (pp discretization object).
 
@@ -26,7 +26,7 @@ def face_mass(mdg, discr=None, **kwargs):
     """
     Compute the mass matrix for discretization defined on the faces of a (MD-)grid
 
-    Parameters:
+    Args:
         mdg (pp.MixedDimensionalGrid).
         discr (pp.RT0 or pp.MVEM).
 
@@ -41,7 +41,7 @@ def ridge_mass(mdg, discr=None, **kwargs):
     """
     Compute the mass matrix for discretization defined on the ridges of a (MD-)grid
 
-    Parameters:
+    Args:
         mdg (pp.MixedDimensionalGrid).
         discr (pp discretization object).
 
@@ -56,7 +56,7 @@ def peak_mass(mdg, discr=None, **kwargs):
     """
     Compute the mass matrix for discretization defined on the peaks of a (MD-)grid
 
-    Parameters:
+    Args:
         mdg (pp.MixedDimensionalGrid).
         discr (pp discretization object).
 
@@ -78,10 +78,10 @@ def default_discr(sd, n_minus_k, keyword="flow"):
     if n_minus_k == 0:
         return pg.PwConstants(keyword)
     elif n_minus_k == 1:
-        return pp.RT0(keyword)
+        return pg.RT0(keyword)
     elif n_minus_k == sd.dim:
-        return pg.Lagrange(keyword)
-    elif n_minus_k == 2:
+        return pg.Lagrange1(keyword)
+    elif n_minus_k == 2:  # The only remaining case is (k, sd.dim) = (1, 3)
         return pg.Nedelec0(keyword)
     else:
         raise ValueError
@@ -91,7 +91,7 @@ def _sd_mass_matrix(sd, n_minus_k, discr=None, data=None, **kwargs):
     """
     Compute the mass matrix on a single grid
 
-    Parameters:
+    Args:
         sd (pp.Grid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
@@ -107,8 +107,7 @@ def _sd_mass_matrix(sd, n_minus_k, discr=None, data=None, **kwargs):
     if discr is None:
         discr = default_discr(sd, n_minus_k, **kwargs)
 
-    discr.discretize(sd, data)
-    return data[pp.DISCRETIZATION_MATRICES][discr.keyword]["mass"]
+    return discr.assemble_mass_matrix(sd, data)
 
 
 def local_matrix(sd, n_minus_k, discr, d_sd, **kwargs):
@@ -122,7 +121,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     """
     Compute the mass matrix on a mixed-dimensional grid
 
-    Parameters:
+    Args:
         mdg (pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
@@ -148,8 +147,7 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
     bmat_mg = bmat_sd.copy()
 
     # Local mass matrices
-    for sd, d_sd in mdg.subdomains(return_data=True):
-        nn_sd = d_sd["node_number"]
+    for (nn_sd, (sd, d_sd)) in enumerate(mdg.subdomains(return_data=True)):
         bmat_sd[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
         bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_sd[nn_sd, nn_sd].shape)
 
@@ -157,11 +155,15 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
     if n_minus_k == 1:
         for intf, d_intf in mdg.interfaces(return_data=True):
             # Get the node number of the upper-dimensional neighbor
-            sd_pair = mdg.interface_to_subdomain_pair(intf)
-            nn_sd = mdg.node_number(sd_pair[0])
+            sd = mdg.interface_to_subdomain_pair(intf)[0]
+            nn_sd = mdg.subdomains().index(sd)
 
             # Local mortar mass matrix
-            kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
+            try:
+                kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
+            except KeyError:
+                kn = 1
+
             bmat_mg[nn_sd, nn_sd] += (
                 intf.signed_mortar_to_primary
                 * sps.diags(1.0 / intf.cell_volumes / kn)
@@ -174,11 +176,11 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_mass_matrix(mdg, n_minus_k, discr):
+def lumped_mass_matrix(mdg, n_minus_k, discr=None):
     """
     Compute the mass-lumped mass matrix on a mixed-dimensional grid
 
-    Parameters:
+    Args:
         mdg (pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
@@ -194,9 +196,8 @@ def lumped_mass_matrix(mdg, n_minus_k, discr):
 def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
     """
     Compute the mass-lumped mass matrix on a single grid.
-    For k = 1, this is the matrix that leads to a TPFA discretization.
 
-    Parameters:
+    Args:
         sd (pp.Grid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
@@ -212,19 +213,4 @@ def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
     if discr is None:
         discr = default_discr(sd, n_minus_k)
 
-    if n_minus_k == 1:
-        """
-        Returns the lumped mass matrix L such that
-        (div * L^-1 * div.T) is equivalent to a TPFA method
-        TODO: Move this to RT0
-        """
-        h_perp = np.zeros(sd.num_faces)
-        for (face, cell) in zip(*sd.cell_faces.nonzero()):
-            h_perp[face] += np.linalg.norm(
-                sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            )
-
-        return sps.diags(h_perp / sd.face_areas)
-
-    else:
-        return discr.assemble_lumped_matrix(sd, data)
+    return discr.assemble_lumped_matrix(sd, data)

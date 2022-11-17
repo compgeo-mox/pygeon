@@ -15,6 +15,9 @@ def zero_tip_dofs(mdg, n_minus_k):
         sps.dia_matrix
     """
 
+    if n_minus_k == 0:
+        return sps.diags(np.ones(mdg.num_subdomain_cells()), dtype=int)
+
     str = "tip_" + get_codim_str(n_minus_k)
 
     is_tip_dof = []

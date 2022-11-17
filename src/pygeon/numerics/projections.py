@@ -9,8 +9,7 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
     )
 
     # Local mass matrices
-    for sd, d_sd in mdg.subdomains(return_data=True):
-        nn_sd = d_sd["node_number"]
+    for (nn_sd, sd) in enumerate(mdg.subdomains()):
         bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     return sps.bmat(bmat_sd, format="csc")
@@ -28,8 +27,7 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
         discr = pp.RT0("flow")
 
     # Local mass matrices
-    for sd, d_sd in mdg.subdomains(return_data=True):
-        nn_sd = d_sd["node_number"]
+    for (nn_sd, (sd, d_sd)) in enumerate(mdg.subdomains(return_data=True)):
         discr.discretize(sd, d_sd)
         bmat_sd[nn_sd, nn_sd] = d_sd[pp.DISCRETIZATION_MATRICES][discr.keyword][
             "vector_proj"

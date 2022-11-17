@@ -45,7 +45,7 @@ class Grid(pp.Grid):
         else:  # The grid is of dimension 0 or 1.
             self._compute_ridges_01d()
 
-        self.tag_tip_ridges()
+        self.tag_ridges()
 
     def _compute_ridges_01d(self):
         """
@@ -139,15 +139,18 @@ class Grid(pp.Grid):
         # with the orientation defined according to the right-hand rule
         self.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr))
 
-    def tag_tip_ridges(self):
+    def tag_ridges(self):
         """
         Tag the peaks and ridges of the grid located on fracture tips.
         """
 
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
+        fr_bool = self.face_ridges.astype("bool")
 
         if self.dim == 2:
-            fr_bool = self.face_ridges.astype("bool")
             self.tags["tip_ridges"] = fr_bool * self.tags["tip_faces"]
         else:
             self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=bool)
+
+        bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
+        self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
