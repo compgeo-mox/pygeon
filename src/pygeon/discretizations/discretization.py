@@ -167,3 +167,13 @@ class Discretization(pp.numerics.discretization.Discretization):
         """
 
         return self.assemble_mass_matrix(sd, data), np.zeros(self.ndof(sd))
+
+    def error_l2(self, sd, num_sol, ana_sol, relative=True):
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+        """
+        int_sol = self.interpolate(sd, ana_sol)
+        mass = self.assemble_mass_matrix(sd)
+        norm = int_sol @ mass @ int_sol.T if relative else 1
+
+        return np.sqrt((num_sol - int_sol) @ mass @ (num_sol - int_sol).T / norm)
