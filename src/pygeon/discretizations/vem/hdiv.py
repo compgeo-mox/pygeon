@@ -83,7 +83,7 @@ class MVEM(pg.Discretization, pp.MVEM):
         """
         raise NotImplementedError
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid, data = None):
         """
         Assembles the matrix
 
@@ -94,7 +94,9 @@ class MVEM(pg.Discretization, pp.MVEM):
             matrix: the evaluation matrix.
         """
 
-        raise NotImplementedError
+        data = pg.RT0.create_dummy_data(self, sd, data)
+        pp.MVEM.discretize(self, sd, data)
+        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
