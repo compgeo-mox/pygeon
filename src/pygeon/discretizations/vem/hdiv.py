@@ -81,7 +81,11 @@ class MVEM(pg.Discretization, pp.MVEM):
         Returns
             array: the values of the degrees of freedom
         """
-        raise NotImplementedError
+        vals = [
+            np.inner(func(x).flatten(), normal)
+            for (x, normal) in zip(sd.face_centers.T, sd.face_normals.T)
+        ]
+        return np.array(vals)
 
     def eval_at_cell_centers(self, sd: pg.Grid, data = None):
         """
