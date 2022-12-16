@@ -10,12 +10,12 @@ import scipy.sparse as sps
 
 class ErrorTest(unittest.TestCase):
     def test_0(self):
-        sd = pp.CartGrid(2*[3])
+        sd = pp.CartGrid(2 * [3])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         def fun(pt):
-            return pt[0] + 2*pt[1]
+            return pt[0] + 2 * pt[1]
 
         int_sol = np.array([1.5, 2.5, 3.5, 3.5, 4.5, 5.5, 5.5, 6.5, 7.5])
 
@@ -34,12 +34,12 @@ class ErrorTest(unittest.TestCase):
         self.assertTrue(np.isclose(err, 0))
 
     def test_1(self):
-        sd = pp.StructuredTriangleGrid(2*[3])
+        sd = pp.StructuredTriangleGrid(2 * [3])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         def fun(pt):
-            return np.array([pt[0] + 2*pt[1], 2*pt[0] + pt[1], 0])
+            return np.array([pt[0] + 2 * pt[1], 2 * pt[0] + pt[1], 0])
 
         # fmt: off
         int_sol = np.array([-1., -1.,  0., -3.,  2.,  1., -5.,  3.,  2.,  4.,  2., -3., -1.,
@@ -62,12 +62,12 @@ class ErrorTest(unittest.TestCase):
         self.assertTrue(np.isclose(err, 0))
 
     def test_2(self):
-        sd = pp.StructuredTetrahedralGrid(3*[3])
+        sd = pp.StructuredTetrahedralGrid(3 * [3])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         def fun(pt):
-            return np.array([pt[0] + 2*pt[1] - pt[2], 2*pt[0] - pt[1], 6*pt[2]])
+            return np.array([pt[0] + 2 * pt[1] - pt[2], 2 * pt[0] - pt[1], 6 * pt[2]])
 
         # fmt: off
         int_sol = \
@@ -112,6 +112,7 @@ class ErrorTest(unittest.TestCase):
 
         err = discr.error(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

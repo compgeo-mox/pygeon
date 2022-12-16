@@ -200,7 +200,11 @@ class Discretization(pp.numerics.discretization.Discretization):
         mass = self.assemble_mass_matrix(sd)
         stiff = self.assemble_stiff_matrix(sd, None)
 
-        norm = (int_sol @ mass @ int_sol.T + int_sol @ stiff @ int_sol.T) if relative else 1
+        norm = (
+            (int_sol @ mass @ int_sol.T + int_sol @ stiff @ int_sol.T)
+            if relative
+            else 1
+        )
 
         diff = num_sol - int_sol
         return np.sqrt((diff @ mass @ diff.T + diff @ stiff @ diff.T) / norm)
