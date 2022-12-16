@@ -174,6 +174,33 @@ class Discretization(pp.numerics.discretization.Discretization):
         """
         int_sol = self.interpolate(sd, ana_sol)
         mass = self.assemble_mass_matrix(sd)
-        norm = int_sol @ mass @ int_sol.T if relative else 1
 
-        return np.sqrt((num_sol - int_sol) @ mass @ (num_sol - int_sol).T / norm)
+        norm = (int_sol @ mass @ int_sol.T) if relative else 1
+
+        diff = num_sol - int_sol
+        return np.sqrt(diff @ mass @ diff.T / norm)
+
+    def error_stiff(self, sd, num_sol, ana_sol, relative=True):
+        """
+        Returns the l2 error of the differential computed against an analytical solution given as a function.
+        """
+        int_sol = self.interpolate(sd, ana_sol)
+        stiff = self.assemble_stiff_matrix(sd, None)
+
+        norm = (int_sol @ stiff @ int_sol.T) if relative else 1
+
+        diff = num_sol - int_sol
+        return np.sqrt(diff @ stiff @ diff.T / norm)
+
+    def error(self, sd, num_sol, ana_sol, relative=True):
+        """
+        Returns the full l2 error of the computed against an analytical solution given as a function.
+        """
+        int_sol = self.interpolate(sd, ana_sol)
+        mass = self.assemble_mass_matrix(sd)
+        stiff = self.assemble_stiff_matrix(sd, None)
+
+        norm = (int_sol @ mass @ int_sol.T + int_sol @ stiff @ int_sol.T) if relative else 1
+
+        diff = num_sol - int_sol
+        return np.sqrt((diff @ mass @ diff.T + diff @ stiff @ diff.T) / norm)
