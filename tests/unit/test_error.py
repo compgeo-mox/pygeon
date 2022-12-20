@@ -24,14 +24,11 @@ class ErrorTest(unittest.TestCase):
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
         self.assertTrue(np.isclose(err, 1))
 
+        err = discr.error_l2(sd, int_sol, fun, etype="standard")
+        self.assertTrue(np.isclose(err, 0))
+
         err = discr.error_l2(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
-
-        err = discr.error_stiff(sd, int_sol, fun, relative=False)
-        self.assertTrue(np.isclose(err, 0))
-
-        err = discr.error(sd, int_sol, fun, relative=False)
-        self.assertTrue(np.isclose(err, 0))
+        self.assertTrue(np.isclose(err, 0.22435590134827893))
 
     def test_1(self):
         sd = pp.StructuredTriangleGrid(2 * [3])
@@ -58,7 +55,7 @@ class ErrorTest(unittest.TestCase):
         err = discr.error_stiff(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
 
-        err = discr.error(sd, int_sol, fun)
+        err = discr.error_energy(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
 
     def test_2(self):
@@ -110,9 +107,9 @@ class ErrorTest(unittest.TestCase):
         err = discr.error_stiff(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
 
-        err = discr.error(sd, int_sol, fun)
+        err = discr.error_energy(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
 
-
 if __name__ == "__main__":
+    ErrorTest().test_0()
     unittest.main()
