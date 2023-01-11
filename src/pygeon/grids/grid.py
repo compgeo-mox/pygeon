@@ -154,3 +154,19 @@ class Grid(pp.Grid):
 
         bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
+
+    def compute_subvolumes(self):
+        """
+        Assigns the following attributes to the grid
+
+        subvolumes: a csc_matrix with each entry [face, cell] describing
+                      the signed measure of the associated sub-volume
+        """
+        self.sub_volumes = self.cell_faces.copy().astype(float)
+
+        faces, cells, orient = sps.find(self.cell_faces)
+
+        normals = self.face_normals[:, faces] * orient
+        rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
+
+        self.sub_volumes[faces, cells] = np.sum(normals * rays, 0) / self.dim
