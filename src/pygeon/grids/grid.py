@@ -157,16 +157,18 @@ class Grid(pp.Grid):
 
     def compute_subvolumes(self):
         """
-        Assigns the following attributes to the grid
+        Return the following attributes to the grid
 
-        subvolumes: a csc_matrix with each entry [face, cell] describing
+        subvolumes: a csc_matrix with each entry [node, cell] describing
                       the signed measure of the associated sub-volume
         """
-        self.sub_volumes = self.cell_faces.copy().astype(float)
+        sub_simplices = self.cell_faces.copy().astype(float)
 
         faces, cells, orient = sps.find(self.cell_faces)
 
         normals = self.face_normals[:, faces] * orient
         rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
 
-        self.sub_volumes[faces, cells] = np.sum(normals * rays, 0) / self.dim
+        sub_simplices[faces, cells] = np.sum(normals * rays, 0) / self.dim
+
+        return 0.5 * self.face_nodes * sub_simplices
