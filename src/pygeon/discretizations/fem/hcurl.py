@@ -104,8 +104,8 @@ class Nedelec0(pg.Discretization):
 
         return M.tocsc()
 
-    def assemble_diff_matrix(self, g: pg.Grid):
-        return g.face_ridges.T
+    def assemble_diff_matrix(self, sd: pg.Grid):
+        return sd.face_ridges.T
 
     def eval_at_cell_centers(self, sd):
 
@@ -171,21 +171,21 @@ class Nedelec1(pg.Discretization):
     Each degree of freedom is a first moment over a mesh edge in 3D.
     """
 
-    def ndof(self, g: pp.Grid) -> int:
+    def ndof(self, sd: pp.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
         In this case number of ridges.
 
         Parameter
         ---------
-        g: grid, or a subclass.
+        sd: grid, or a subclass.
 
         Return
         ------
         dof: the number of degrees of freedom.
 
         """
-        return 2 * g.num_ridges
+        return 2 * sd.num_ridges
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         raise NotImplementedError
@@ -250,6 +250,7 @@ class Nedelec1(pg.Discretization):
         proj_to_ne0 = self.proj_to_Ne0(sd)
 
         return Ne0_diff * proj_to_ne0
+        return sps.bmat([[pg.curl(sd), -pg.curl(sd)]]) / 2
 
     def interpolate(self, sd: pg.Grid, func):
 

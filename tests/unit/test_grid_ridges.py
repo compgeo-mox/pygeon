@@ -13,84 +13,84 @@ Module contains a unit tests to validate the computation of ridges (co-dimension
 class GridRidgesTest(unittest.TestCase):
     def test_grid_0d(self):
         # no ridges or peaks are defined in 0d, we should obtain an empty map with correct size
-        g = pp.PointGrid([0, 0, 0])
-        pg.convert_from_pp(g)
-        g.compute_geometry()
+        sd = pp.PointGrid([0, 0, 0])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
         # do the checks
-        self.assertEqual(g.num_ridges, 0)
-        self.assertEqual(g.num_peaks, 0)
+        self.assertEqual(sd.num_ridges, 0)
+        self.assertEqual(sd.num_peaks, 0)
 
-        self.assertEqual(g.ridge_peaks.shape, (0, 0))
-        self.assertEqual(g.face_ridges.shape, (0, 0))
+        self.assertEqual(sd.ridge_peaks.shape, (0, 0))
+        self.assertEqual(sd.face_ridges.shape, (0, 0))
 
     def test_grid_1d(self):
         # no ridges or peaks are defined in 1d, we should obtain an empty map with correct size
         N = 3
-        g = pp.CartGrid(N)
-        pg.convert_from_pp(g)
-        g.compute_geometry()
+        sd = pp.CartGrid(N)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
         # do the checks
-        self.assertEqual(g.num_ridges, 0)
-        self.assertEqual(g.num_peaks, 0)
+        self.assertEqual(sd.num_ridges, 0)
+        self.assertEqual(sd.num_peaks, 0)
 
-        self.assertEqual(g.ridge_peaks.shape, (0, 0))
-        self.assertEqual(g.face_ridges.shape, (0, N + 1))
+        self.assertEqual(sd.ridge_peaks.shape, (0, 0))
+        self.assertEqual(sd.face_ridges.shape, (0, N + 1))
 
     def test_grid_2d_cart(self):
         N = 2
-        g = pp.CartGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(g)
-        g.compute_geometry()
+        sd = pp.CartGrid([N] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
         # do the checks
-        self.assertEqual(g.num_ridges, (N + 1) ** 2)
-        self.assertEqual(g.num_peaks, 0)
+        self.assertEqual(sd.num_ridges, (N + 1) ** 2)
+        self.assertEqual(sd.num_peaks, 0)
 
-        self.assertEqual(g.ridge_peaks.shape, (0, (N + 1) ** 2))
-        self.assertEqual((g.face_ridges - self.known_fr_2d_cart()).nnz, 0)
+        self.assertEqual(sd.ridge_peaks.shape, (0, (N + 1) ** 2))
+        self.assertEqual((sd.face_ridges - self.known_fr_2d_cart()).nnz, 0)
 
     def test_grid_2d_tris(self):
         N = 2
-        g = pp.StructuredTriangleGrid([N] * 2)
-        pg.convert_from_pp(g)
-        g.compute_geometry()
+        sd = pp.StructuredTriangleGrid([N] * 2)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
         # do the checks
-        self.assertEqual(g.num_ridges, (N + 1) ** 2)
-        self.assertEqual(g.num_peaks, 0)
+        self.assertEqual(sd.num_ridges, (N + 1) ** 2)
+        self.assertEqual(sd.num_peaks, 0)
 
-        self.assertEqual(g.ridge_peaks.shape, (0, (N + 1) ** 2))
-        self.assertEqual((g.face_ridges - self.known_fr_2d_tris()).nnz, 0)
+        self.assertEqual(sd.ridge_peaks.shape, (0, (N + 1) ** 2))
+        self.assertEqual((sd.face_ridges - self.known_fr_2d_tris()).nnz, 0)
 
     def test_grid_3d_cart(self):
         N = 2
-        g = pp.CartGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(g)
-        g.compute_geometry()
+        sd = pp.CartGrid([N] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
         # do the checks
-        self.assertEqual(g.num_ridges, 3 * N * (N + 1) ** 2)
-        self.assertEqual(g.num_peaks, (N + 1) ** 3)
+        self.assertEqual(sd.num_ridges, 3 * N * (N + 1) ** 2)
+        self.assertEqual(sd.num_peaks, (N + 1) ** 3)
 
-        self.assertEqual((g.ridge_peaks - self.known_rp_3d_cart()).nnz, 0)
-        self.assertEqual((g.face_ridges - self.known_fr_3d_cart()).nnz, 0)
+        self.assertEqual((sd.ridge_peaks - self.known_rp_3d_cart()).nnz, 0)
+        self.assertEqual((sd.face_ridges - self.known_fr_3d_cart()).nnz, 0)
 
     def test_grid_3d_tet(self):
         N = 1
-        g = pp.StructuredTetrahedralGrid([N] * 3)
-        pg.convert_from_pp(g)
-        g.compute_geometry()
+        sd = pp.StructuredTetrahedralGrid([N] * 3)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
         # do the checks
-        self.assertEqual(g.num_ridges, 7 * N**3 + 9 * N**2 + 3 * N)
-        self.assertEqual(g.num_peaks, (N + 1) ** 3)
+        self.assertEqual(sd.num_ridges, 7 * N**3 + 9 * N**2 + 3 * N)
+        self.assertEqual(sd.num_peaks, (N + 1) ** 3)
 
-        self.assertEqual((g.ridge_peaks - self.known_rp_3d_tet()).nnz, 0)
-        self.assertEqual((g.face_ridges - self.known_fr_3d_tet()).nnz, 0)
+        self.assertEqual((sd.ridge_peaks - self.known_rp_3d_tet()).nnz, 0)
+        self.assertEqual((sd.face_ridges - self.known_fr_3d_tet()).nnz, 0)
 
-    def test_grid_bucket_2d(self):
+    def test_mdg_2d(self):
         def setup_problem():
             p = np.array([[0.0, 1.0], [0.5, 0.5]])
             e = np.array([[0], [1]])
@@ -117,7 +117,7 @@ class GridRidgesTest(unittest.TestCase):
         self.assertEqual(mg.ridge_peaks.shape, (0, 0))
         self.assertEqual((mg.face_ridges - known_face_ridges()).nnz, 0)
 
-    def test_grid_bucket_3d(self):
+    def test_mdg_3d(self):
         def setup_problem():
             f_1 = pp.PlaneFracture(
                 np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
@@ -154,7 +154,7 @@ class GridRidgesTest(unittest.TestCase):
         self.assertEqual((mg.ridge_peaks - known_ridge_peaks()).nnz, 0)
         self.assertEqual((mg.face_ridges - known_face_ridges()).nnz, 0)
 
-    def test_grid_bucket_3d_itsc(self):
+    def test_mdg_3d_itsc(self):
         def setup_problem():
             f_1 = pp.PlaneFracture(
                 np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
