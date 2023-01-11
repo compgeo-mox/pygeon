@@ -90,7 +90,18 @@ class SubVolumeTest(unittest.TestCase):
         sd.compute_geometry()
 
         sub_volumes = sd.compute_subvolumes()
-        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
+
+        known_sub_volumes = np.array(
+            [
+                [6.25e-02, 1.25e-01, 6.25e-02],
+                [0, 1.25e-01, 0],
+                [6.25e-02, 1.25e-01, 6.25e-02],
+                [1.25e-01, 0, 0],
+                [0, 1.25e-01, 0],
+                [0, 0, 1.25e-01],
+            ]
+        )
+        self.assertTrue(np.allclose(sub_volumes.todense(), known_sub_volumes))
 
 
 if __name__ == "__main__":
