@@ -8,6 +8,7 @@ from pygeon.grids.graph import Graph
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
+from pygeon.grids.structured import OctGrid
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
