@@ -111,3 +111,146 @@ class MVEM(pg.Discretization, pp.MVEM):
 
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
+
+class VBDM1(pg.Discretization):
+    def ndof(self, sd: pp.Grid) -> int:
+        """
+        Return the number of degrees of freedom associated to the method.
+        In this case the number of faces times the dimension.
+
+        Parameter
+        ---------
+        sd: grid, or a subclass.
+
+        Return
+        ------
+        dof: the number of degrees of freedom.
+
+        """
+        if isinstance(sd, pg.Grid):
+            return sd.face_nodes.nnz
+        else:
+            raise ValueError
+
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+        raise NotImplementedError
+
+    def local_inner_product(self, dim):
+        M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
+        M_loc /= (dim + 1) * (dim + 2)
+
+        M = sps.lil_matrix((3 * (dim + 1), 3 * (dim + 1)))
+        for i in np.arange(3):
+            mask = np.arange(i, i + 3 * (dim + 1), 3)
+            M[np.ix_(mask, mask)] = M_loc
+
+        return M.tocsc()
+
+#    def proj_to_RT0(self, sd: pg.Grid):
+#        return sps.hstack([sps.eye(sd.num_faces)] * sd.dim) / sd.dim
+#
+#    def proj_from_RT0(self, sd: pg.Grid):
+#        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
+#
+    def assemble_diff_matrix(self, sd: pg.Grid):
+        raise NotImplementedError
+#        """
+#        Assembles the matrix corresponding to the differential
+#
+#        Args
+#            sd: grid, or a subclass.
+#
+#        Returns
+#            csr_matrix: the differential matrix.
+#        """
+#        RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
+#        proj_to_rt0 = self.proj_to_RT0(sd)
+#
+#        return RT0_diff * proj_to_rt0
+
+    def eval_at_cell_centers(self, sd):
+        raise NotImplementedError
+
+    def interpolate(self, sd: pg.Grid, func):
+        raise NotImplementedError
+#        vals = np.zeros(self.ndof(sd))
+#
+#        for face in np.arange(sd.num_faces):
+#            func_loc = np.array(
+#                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+#            ).T
+#            vals_loc = sd.face_normals[:, face] @ func_loc
+#            vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc
+#
+#        return vals
+
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+        raise NotImplementedError
+#        """
+#        Assembles the natural boundary condition term
+#        (n dot q, func)_\Gamma
+#        """
+#        if b_faces.dtype == "bool":
+#            b_faces = np.where(b_faces)[0]
+#
+#        vals = np.zeros(self.ndof(sd))
+#        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
+#
+#        for face in b_faces:
+#            sign = np.sum(sd.cell_faces.tocsr()[face, :])
+#            loc_vals = np.array(
+#                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+#            )
+#
+#            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
+#
+#        return vals
+
+    def get_range_discr_class(self, dim: int):
+        return pg.PwConstants
+
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+
+        # Allocate the data to store matrix entries, that's the most efficient
+        # way to create a sparse matrix.
+        all_connectivity = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
+        size = int(np.sum(np.square(all_connectivity.data)))
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        subvolumes = sd.compute_subvolumes()
+        dof = sd.face_nodes.copy()
+        dof.data = np.arange(sd.face_nodes.nnz)
+        face_nodes = sd.face_nodes.tocsr()
+        tangents = sd.nodes * sd.face_ridges
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(subvolumes.indptr[c], subvolumes.indptr[c + 1])
+            nodes_loc = subvolumes.indices[loc]
+            subvolumes_loc = subvolumes.data[loc]
+
+            faces_of_cell = sd.cell_faces[:, c]
+
+            for node, subvolume in zip(nodes_loc, subvolumes_loc):
+                faces_of_node = face_nodes[node, :].T
+                faces_loc = faces_of_node.multiply(faces_of_cell).indices
+
+                tangents_loc = tangents[:, faces_loc]
+                normals_loc = sd.face_normals[:, faces_loc]
+
+                Bdm_basis = tangents_loc[:, ::-1] / np.sum(tangents_loc[:, ::-1] * normals_loc, axis=0)
+                A = subvolume * Bdm_basis.T @ Bdm_basis
+
+                # Save values for the local matrix in the global structure
+                loc_ind = dof[node, faces_loc].data
+                cols = np.tile(loc_ind, (loc_ind.size, 1))
+                loc_idx = slice(idx, idx + cols.size)
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_IJ[loc_idx] = A.ravel()
+                idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
