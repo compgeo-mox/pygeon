@@ -10,22 +10,46 @@ import pygeon as pg
 
 class VBDM1Test(unittest.TestCase):
     def test0(self):
-        N, dim = 1, 2
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        N, dim = 20, 2
+        sd = pg.OctGrid([N] * dim)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr_bdm1 = pg.VBDM1("flow")
-        mass_bdm1 = discr_bdm1.assemble_lumped_matrix(sd, None)
+        discr_vbdm1 = pg.VBDM1("flow")
 
-        discr_rt0 = pp.RT0("flow")
-        data = pp.initialize_default_data(sd, {}, "flow", {})
-        discr_rt0.discretize(sd, data)
-        mass_rt0 = data[pp.DISCRETIZATION_MATRICES]["flow"][discr_rt0.mass_matrix_key]
+        discr_p0 = pg.PwConstants("flow")
+        mass_p0 = discr_p0.assemble_mass_matrix(sd, None)
 
-        E = discr_bdm1.proj_from_RT0(sd)
+        mass_vbdm1 = discr_vbdm1.assemble_lumped_matrix(sd, None)
+        div  = mass_p0 * discr_vbdm1.assemble_diff_matrix(sd)
 
-        check = E.T * mass_bdm1 * E - mass_rt0
+        spp = sps.bmat([[mass_vbdm1, -div.T],
+                        [div, None]])
+        rhs = np.zeros(spp.shape[0])
+        rhs[-sd.num_cells:] = np.ones(sd.num_cells)
+
+        vx = sps.linalg.spsolve(spp, rhs)
+        vp = vx[-sd.num_cells:]
+
+
+#        discr_bdm1 = pg.BDM1("flow")
+#        mass_bdm1 = discr_bdm1.assemble_lumped_matrix(sd, None)
+#        diff_bdm1 = discr_bdm1.assemble_diff_matrix(sd)
+#
+#        spp = sps.bmat([[mass_bdm1, -diff_bdm1.T],
+#                        [diff_bdm1, None]])
+#        rhs = np.zeros(spp.shape[0])
+#        rhs[-sd.num_cells:] = sd.cell_volumes
+#
+#        x = sps.linalg.spsolve(spp, rhs)
+#        p = x[-sd.num_cells:]
+#
+#        import pdb; pdb.set_trace()
+
+        proj = discr_p0.eval_at_cell_centers(sd)
+
+        save = pp.Exporter(sd, "sol")
+        save.write_vtu([("p", proj * vp)])
 
         self.assertEqual(check.nnz, 0)
 

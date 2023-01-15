@@ -146,27 +146,27 @@ class VBDM1(pg.Discretization):
 
         return M.tocsc()
 
-#    def proj_to_RT0(self, sd: pg.Grid):
-#        return sps.hstack([sps.eye(sd.num_faces)] * sd.dim) / sd.dim
+    def proj_to_VRT0(self, sd: pg.Grid):
+        dof = self.get_dof_enumeration(sd).tocoo()
+        return sps.csc_matrix((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
 #
 #    def proj_from_RT0(self, sd: pg.Grid):
 #        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
 #
     def assemble_diff_matrix(self, sd: pg.Grid):
-        raise NotImplementedError
-#        """
-#        Assembles the matrix corresponding to the differential
-#
-#        Args
-#            sd: grid, or a subclass.
-#
-#        Returns
-#            csr_matrix: the differential matrix.
-#        """
-#        RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
-#        proj_to_rt0 = self.proj_to_RT0(sd)
-#
-#        return RT0_diff * proj_to_rt0
+        """
+        Assembles the matrix corresponding to the differential
+
+        Args
+            sd: grid, or a subclass.
+
+        Returns
+            csr_matrix: the differential matrix.
+        """
+        VRT0_diff = pg.MVEM.assemble_diff_matrix(self, sd)
+        proj_to_vrt0 = self.proj_to_VRT0(sd)
+
+        return VRT0_diff * proj_to_vrt0
 
     def eval_at_cell_centers(self, sd):
         raise NotImplementedError
@@ -209,6 +209,11 @@ class VBDM1(pg.Discretization):
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
 
+    def get_dof_enumeration(self, sd):
+        dof = sd.face_nodes.copy()
+        dof.data = np.arange(sd.face_nodes.nnz)
+        return dof
+
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
 
         # Allocate the data to store matrix entries, that's the most efficient
@@ -220,9 +225,8 @@ class VBDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
+        dof = self.get_dof_enumeration(sd)
         subvolumes = sd.compute_subvolumes()
-        dof = sd.face_nodes.copy()
-        dof.data = np.arange(sd.face_nodes.nnz)
         face_nodes = sd.face_nodes.tocsr()
         tangents = sd.nodes * sd.face_ridges
 
