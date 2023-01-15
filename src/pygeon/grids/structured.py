@@ -1,9 +1,9 @@
-import porepy as pp
+import pygeon as pg
 import numpy as np
 import scipy.sparse as sps
 
 
-class OctGrid(pp.Grid):
+class OctGrid(pg.Grid):
     """docstring for OctGrid."""
 
     def __init__(self, nx: np.array, physdims={}):
@@ -13,25 +13,20 @@ class OctGrid(pp.Grid):
 
         super().__init__(2, nodes, face_nodes, cell_faces, name)
 
-    def create_grid(self, nx: np.array, physdims: dict):
-        xmin = physdims.get("xmin", 0)
-        ymin = physdims.get("ymin", 0)
-        xmax = physdims.get("xmax", 1)
-        ymax = physdims.get("ymax", 1)
+    def create_grid(self, nx: np.array, physdims: np.ndarray):
 
-        n_oct = nx[0] * nx[1]
-        n_hf = n_oct + nx[0]
-        n_vf = n_oct + nx[1]
+        # Define the nodes as a 3 x num_nodes array
+        nodes = self.compute_nodes(nx, physdims)
 
-        h_first = np.arange(0, 2 * n_hf, 2)
-        h_second = np.arange(1, 2 * n_hf + 1, 2)
+        # Compute face-node connectivity
+        face_nodes = self.compute_face_nodes(nx)
 
-        v_indices = (2 * n_hf + np.arange(2 * n_vf)).reshape((-1, nx[0] + 1))
-        v_first = v_indices[::2, :].ravel()
-        v_second = v_indices[1::2, :].ravel()
-        corners = v_second[-1] + 1 + np.arange(4)
+        # Compute cell-face connectivity
+        cell_faces = self.compute_cell_faces(nx)
 
-        # Coordinates
+        return nodes, face_nodes, cell_faces
+
+    def compute_nodes(self, nx, physdims):
 
         factor = 1.0 / (2 + np.sqrt(2))
 
@@ -60,6 +55,44 @@ class OctGrid(pp.Grid):
         )
 
         nodes = np.hstack((horizontal, vertical, corners_coords))
+
+        return self.rescale_nodes(nodes, nx, physdims)
+
+    def rescale_nodes(self, nodes, nx, physdims):
+        xmin, ymin = 0.0, 0.0
+
+        if isinstance(physdims, dict):
+            xmin = physdims.get("xmin", 0)
+            ymin = physdims.get("ymin", 0)
+            xdims = physdims.get("xmax", 1) - xmin
+            ydims = physdims.get("ymax", 1) - ymin
+
+            physdims = np.array([xdims, ydims])
+
+        # Rescale according to physdims
+        nodes[0, :] *= physdims[0] / nx[0]
+        nodes[1, :] *= physdims[1] / nx[1]
+
+        # Shift according to xmin and ymin
+        nodes[0, :] += xmin
+        nodes[1, :] += ymin
+
+        return nodes
+
+    def compute_face_nodes(self, nx):
+        n_oct = nx[0] * nx[1]
+        n_hf = n_oct + nx[0]
+        n_vf = n_oct + nx[1]
+
+        # Compute the face-node connectivity
+
+        h_first = np.arange(0, 2 * n_hf, 2)
+        h_second = np.arange(1, 2 * n_hf + 1, 2)
+
+        v_indices = (2 * n_hf + np.arange(2 * n_vf)).reshape((-1, nx[0] + 1))
+        v_first = v_indices[::2, :].ravel()
+        v_second = v_indices[1::2, :].ravel()
+        corners = v_second[-1] + 1 + np.arange(4)
 
         # Face node connectivity
         fn_I = []
@@ -153,7 +186,12 @@ class OctGrid(pp.Grid):
         fn_I = np.concatenate(fn_I)
         fn_J = np.repeat(np.arange(fn_I.size / 2), 2).astype(int)
 
-        face_nodes = sps.csc_matrix((np.ones(fn_I.size), (fn_I, fn_J)))
+        return sps.csc_matrix((np.ones(fn_I.size), (fn_I, fn_J)))
+
+    def compute_cell_faces(self, nx):
+        n_oct = nx[0] * nx[1]
+        n_hf = n_oct + nx[0]
+        n_vf = n_oct + nx[1]
 
         # Cell faces
 
@@ -342,6 +380,4 @@ class OctGrid(pp.Grid):
         cf_J = np.concatenate(cf_J)
         cf_V = np.concatenate(cf_V)
 
-        cell_faces = sps.csc_matrix((cf_V, (cf_I, cf_J)))
-
-        return nodes, face_nodes, cell_faces
+        return sps.csc_matrix((cf_V, (cf_I, cf_J)))

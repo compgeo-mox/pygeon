@@ -8,12 +8,11 @@ import scipy.sparse as sps
 
 class OctGridTest(unittest.TestCase):
     def test_simple_case(self):
-        nx = [2, 2]
+        nx = [5, 5]
         sd = pg.OctGrid(nx)
         sd.compute_geometry()
 
         pp.plot_grid(sd, info="all", alpha=0)
-        pass
 
 
 if __name__ == "__main__":
