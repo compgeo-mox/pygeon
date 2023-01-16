@@ -4,16 +4,20 @@ import scipy.sparse as sps
 
 
 class OctGrid(pg.Grid):
-    """docstring for OctGrid."""
+    """
+    A structured grid with octagons and squares in the interior
+    and triangles near the boundary.
+    """
 
-    def __init__(self, nx: np.array, physdims={}):
+    def __init__(self, nx: np.array, physdims={}, name="Octagon grid"):
+        """Constructor for the 2D octagonal grid.
 
-        nodes, face_nodes, cell_faces = self.create_grid(nx, physdims)
-        name = "Octagon grid"
-
-        super().__init__(2, nodes, face_nodes, cell_faces, name)
-
-    def create_grid(self, nx: np.array, physdims: np.ndarray):
+        Args:
+            nx (np.ndarray): number of cells in the x and y directions
+            physdims (np.ndarray or dict): the physical dimensions, either
+                as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax"
+            name (str): Name of grid.
+        """
 
         # Define the nodes as a 3 x num_nodes array
         nodes = self.compute_nodes(nx, physdims)
@@ -24,13 +28,14 @@ class OctGrid(pg.Grid):
         # Compute cell-face connectivity
         cell_faces = self.compute_cell_faces(nx)
 
-        return nodes, face_nodes, cell_faces
+        super().__init__(2, nodes, face_nodes, cell_faces, name)
 
     def compute_nodes(self, nx, physdims):
+        # Compute the off-set for the coordinates of an octagon inside a unit square
+        offset = 1.0 / (2 + np.sqrt(2))
 
-        factor = 1.0 / (2 + np.sqrt(2))
-
-        horizontal_x = np.array([factor, 1 - factor] * nx[0])
+        # Compute the nodes on the horizontal faces
+        horizontal_x = np.array([offset, 1 - offset] * nx[0])
         horizontal_x += np.repeat(np.arange(nx[0]), 2)
         horizontal_y = np.arange(nx[1] + 1)
 
@@ -40,8 +45,9 @@ class OctGrid(pg.Grid):
             (meshgrid[0].ravel(), meshgrid[1].ravel(), np.zeros(meshgrid[0].size))
         )
 
+        # Compute the nodes on the vertical faces
         vertical_x = np.arange(nx[0] + 1)
-        vertical_y = np.array([factor, 1 - factor] * nx[1])
+        vertical_y = np.array([offset, 1 - offset] * nx[1])
         vertical_y += np.repeat(np.arange(nx[1]), 2)
 
         meshgrid = np.meshgrid(vertical_x, vertical_y)
@@ -50,26 +56,30 @@ class OctGrid(pg.Grid):
             (meshgrid[0].ravel(), meshgrid[1].ravel(), np.zeros(meshgrid[0].size))
         )
 
+        # Include the corners
         corners_coords = np.array(
             [[0, nx[0], 0, nx[0]], [0, 0, nx[1], nx[1]], np.zeros(4)]
         )
 
+        # Collect all nodes and rescale according to physdims
         nodes = np.hstack((horizontal, vertical, corners_coords))
+        nodes = self.rescale_nodes(nodes, nx, physdims)
 
-        return self.rescale_nodes(nodes, nx, physdims)
+        return nodes
 
     def rescale_nodes(self, nodes, nx, physdims):
+
         xmin, ymin = 0.0, 0.0
 
         if isinstance(physdims, dict):
             xmin = physdims.get("xmin", 0)
             ymin = physdims.get("ymin", 0)
-            xdims = physdims.get("xmax", 1) - xmin
-            ydims = physdims.get("ymax", 1) - ymin
 
-            physdims = np.array([xdims, ydims])
+            physdims = np.array(
+                [physdims.get("xmax", 1) - xmin, physdims.get("ymax", 1) - ymin]
+            )
 
-        # Rescale according to physdims
+        # Rescale according to physdims and nx
         nodes[0, :] *= physdims[0] / nx[0]
         nodes[1, :] *= physdims[1] / nx[1]
 
@@ -94,7 +104,6 @@ class OctGrid(pg.Grid):
         v_second = v_indices[1::2, :].ravel()
         corners = v_second[-1] + 1 + np.arange(4)
 
-        # Face node connectivity
         fn_I = []
 
         # Horizontal
@@ -105,7 +114,7 @@ class OctGrid(pg.Grid):
         start_end = np.vstack((v_first, v_second)).ravel("F")
         fn_I.append(start_end)
 
-        # SW
+        # South West
         starts = h_first[: -nx[0]]
 
         ends = v_first.reshape((-1, nx[0] + 1))
@@ -114,7 +123,7 @@ class OctGrid(pg.Grid):
         start_end = np.vstack((starts, ends)).ravel("F")
         fn_I.append(start_end)
 
-        # SE
+        # South East
         starts = h_second[: -nx[0]]
 
         ends = v_first.reshape((-1, nx[0] + 1))
@@ -123,7 +132,7 @@ class OctGrid(pg.Grid):
         start_end = np.vstack((starts, ends)).ravel("F")
         fn_I.append(start_end)
 
-        # NW
+        # North West
         starts = h_first[nx[0] :]
 
         ends = v_second.reshape((-1, nx[0] + 1))
@@ -132,7 +141,7 @@ class OctGrid(pg.Grid):
         start_end = np.vstack((starts, ends)).ravel("F")
         fn_I.append(start_end)
 
-        # NE
+        # North East
         starts = h_second[nx[0] :]
 
         ends = v_second.reshape((-1, nx[0] + 1))
@@ -193,50 +202,48 @@ class OctGrid(pg.Grid):
         n_hf = n_oct + nx[0]
         n_vf = n_oct + nx[1]
 
-        # Cell faces
-
         cf_I = []
         cf_J = []
         cf_V = []
 
-        # Bottoms of octagons
+        # Souths of octagons
         cf_I.append(np.arange(n_oct))
         cf_V.append(np.ones(n_oct))
 
-        # Tops of octagons
+        # Norths of octagons
         cf_I.append(nx[0] + np.arange(n_oct))
         cf_V.append(-np.ones(n_oct))
 
-        # Lefts of octagons
+        # Easts of octagons
         verticals = (n_hf + np.arange(n_vf)).reshape((-1, nx[0] + 1))
-        lefts = verticals[:, :-1].ravel()
+        easts = verticals[:, :-1].ravel()
 
-        cf_I.append(lefts)
+        cf_I.append(easts)
         cf_V.append(-np.ones(n_oct))
 
-        # Rights of octagons
-        rights = verticals[:, 1:].ravel()
+        # Wests of octagons
+        wests = verticals[:, 1:].ravel()
 
-        cf_I.append(rights)
+        cf_I.append(wests)
         cf_V.append(np.ones(n_oct))
 
-        # SW
+        # South West
         idx = n_hf + n_vf
         cf_I.append(idx + np.arange(n_oct))
         cf_V.append(-np.ones(n_oct))
         idx += n_oct
 
-        # SE
+        # South East
         cf_I.append(idx + np.arange(n_oct))
         cf_V.append(np.ones(n_oct))
         idx += n_oct
 
-        # NW
+        # North West
         cf_I.append(idx + np.arange(n_oct))
         cf_V.append(np.ones(n_oct))
         idx += n_oct
 
-        # NE
+        # North East
         cf_I.append(idx + np.arange(n_oct))
         cf_V.append(-np.ones(n_oct))
 
@@ -245,33 +252,33 @@ class OctGrid(pg.Grid):
         # Squares
         n_sqrs = (nx[0] - 1) * (nx[1] - 1)
 
-        # NE
+        # North East
         idx = n_hf + n_vf
         NE = np.reshape(idx + np.arange(n_oct), (-1, nx[0]))
         cf_I.append(NE[1:, 1:].ravel())
         cf_V.append(np.ones(n_sqrs))
         idx += n_oct
 
-        # NW
+        # North West
         NW = np.reshape(idx + np.arange(n_oct), (-1, nx[0]))
         cf_I.append(NW[1:, :-1].ravel())
         cf_V.append(-np.ones(n_sqrs))
         idx += n_oct
 
-        # SE
+        # South East
         SE = np.reshape(idx + np.arange(n_oct), (-1, nx[0]))
         cf_I.append(SE[:-1, 1:].ravel())
         cf_V.append(-np.ones(n_sqrs))
         idx += n_oct
 
-        # SW
+        # South West
         SW = np.reshape(idx + np.arange(n_oct), (-1, nx[0]))
         cf_I.append(SW[:-1, :-1].ravel())
         cf_V.append(np.ones(n_sqrs))
 
         cf_J.append(np.tile(n_oct + np.arange(n_sqrs), 4))
 
-        # BDRY Triangles
+        # Boundary triangles
         id_cell = n_oct + n_sqrs
 
         # South
@@ -345,7 +352,7 @@ class OctGrid(pg.Grid):
         # Corners
         idx += nx[1] - 1
 
-        # SW
+        # South West
         diag = n_hf + n_vf
         cf_I.append([idx, idx + 1, diag])
         cf_J.append(np.tile(id_cell, 3))
@@ -353,7 +360,7 @@ class OctGrid(pg.Grid):
         idx += 2
         id_cell += 1
 
-        # SE
+        # South East
         diag = n_hf + n_vf + n_oct + nx[0] - 1
         cf_I.append([idx, idx + 1, diag])
         cf_J.append(np.tile(id_cell, 3))
@@ -361,7 +368,7 @@ class OctGrid(pg.Grid):
         idx += 2
         id_cell += 1
 
-        # NW
+        # North West
         diag = n_hf + n_vf + 3 * n_oct - nx[0]
         cf_I.append([idx, idx + 1, diag])
         cf_J.append(np.tile(id_cell, 3))
@@ -369,7 +376,7 @@ class OctGrid(pg.Grid):
         idx += 2
         id_cell += 1
 
-        # NE
+        # North East
         diag = n_hf + n_vf + 4 * n_oct - 1
         cf_I.append([idx, idx + 1, diag])
         cf_J.append(np.tile(id_cell, 3))

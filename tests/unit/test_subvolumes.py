@@ -27,6 +27,13 @@ class SubVolumeTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
 
+    def test_oct(self):
+        sd = pg.OctGrid([5, 5])
+        sd.compute_geometry()
+        sub_volumes = sd.compute_subvolumes()
+
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
+
     # def test_tets(self):
     #     sd = pp.StructuredTetrahedralGrid([4, 4, 4])
     #     pg.convert_from_pp(sd)

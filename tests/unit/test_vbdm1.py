@@ -9,9 +9,9 @@ import pygeon as pg
 
 
 class VBDM1Test(unittest.TestCase):
-    def test0(self):
-        N, dim = 20, 2
-        sd = pg.OctGrid([N] * dim)
+    def test_on_Octgrid(self, N=2):
+        dim = 2
+        sd = pg.OctGrid([N] * dim, [1, 1])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
@@ -21,39 +21,38 @@ class VBDM1Test(unittest.TestCase):
         mass_p0 = discr_p0.assemble_mass_matrix(sd, None)
 
         mass_vbdm1 = discr_vbdm1.assemble_lumped_matrix(sd, None)
-        div  = mass_p0 * discr_vbdm1.assemble_diff_matrix(sd)
+        div = mass_p0 * discr_vbdm1.assemble_diff_matrix(sd)
 
-        spp = sps.bmat([[mass_vbdm1, -div.T],
-                        [div, None]])
+        spp = sps.bmat([[mass_vbdm1, -div.T], [div, None]], "csc")
         rhs = np.zeros(spp.shape[0])
-        rhs[-sd.num_cells:] = np.ones(sd.num_cells)
+        rhs[-sd.num_cells :] = np.ones(sd.num_cells)
 
         vx = sps.linalg.spsolve(spp, rhs)
-        vp = vx[-sd.num_cells:]
+        vp = vx[-sd.num_cells :]
 
+        # discr_bdm1 = pg.BDM1("flow")
+        # mass_bdm1 = discr_bdm1.assemble_lumped_matrix(sd, None)
+        # diff_bdm1 = discr_bdm1.assemble_diff_matrix(sd)
 
-#        discr_bdm1 = pg.BDM1("flow")
-#        mass_bdm1 = discr_bdm1.assemble_lumped_matrix(sd, None)
-#        diff_bdm1 = discr_bdm1.assemble_diff_matrix(sd)
-#
-#        spp = sps.bmat([[mass_bdm1, -diff_bdm1.T],
-#                        [diff_bdm1, None]])
-#        rhs = np.zeros(spp.shape[0])
-#        rhs[-sd.num_cells:] = sd.cell_volumes
-#
-#        x = sps.linalg.spsolve(spp, rhs)
-#        p = x[-sd.num_cells:]
-#
-#        import pdb; pdb.set_trace()
+        # spp = sps.bmat([[mass_bdm1, -diff_bdm1.T],
+        #                 [diff_bdm1, None]])
+        # rhs = np.zeros(spp.shape[0])
+        # rhs[-sd.num_cells:] = sd.cell_volumes
+
+        # x = sps.linalg.spsolve(spp, rhs)
+        # p = x[-sd.num_cells:]
 
         proj = discr_p0.eval_at_cell_centers(sd)
+        print(vp @ mass_p0 @ vp, (proj * vp).max())
+        discr_p0.interpolate()
 
         save = pp.Exporter(sd, "sol")
         save.write_vtu([("p", proj * vp)])
 
-        self.assertEqual(check.nnz, 0)
+    def test_conv(self):
+        for N in np.power(2.0, np.arange(7)):
+            self.test_on_Octgrid(N.astype(int))
+
 
 if __name__ == "__main__":
-    VBDM1Test().test0()
-
-
+    VBDM1Test().test_on_Octgrid()

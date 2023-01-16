@@ -87,7 +87,7 @@ class MVEM(pg.Discretization, pp.MVEM):
         ]
         return np.array(vals)
 
-    def eval_at_cell_centers(self, sd: pg.Grid, data = None):
+    def eval_at_cell_centers(self, sd: pg.Grid, data=None):
         """
         Assembles the matrix
 
@@ -112,6 +112,7 @@ class MVEM(pg.Discretization, pp.MVEM):
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
 
+
 class VBDM1(pg.Discretization):
     def ndof(self, sd: pp.Grid) -> int:
         """
@@ -135,24 +136,14 @@ class VBDM1(pg.Discretization):
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         raise NotImplementedError
 
-    def local_inner_product(self, dim):
-        M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        M_loc /= (dim + 1) * (dim + 2)
-
-        M = sps.lil_matrix((3 * (dim + 1), 3 * (dim + 1)))
-        for i in np.arange(3):
-            mask = np.arange(i, i + 3 * (dim + 1), 3)
-            M[np.ix_(mask, mask)] = M_loc
-
-        return M.tocsc()
-
     def proj_to_VRT0(self, sd: pg.Grid):
         dof = self.get_dof_enumeration(sd).tocoo()
         return sps.csc_matrix((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
-#
-#    def proj_from_RT0(self, sd: pg.Grid):
-#        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
-#
+
+    #
+    #    def proj_from_RT0(self, sd: pg.Grid):
+    #        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
+    #
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
         Assembles the matrix corresponding to the differential
@@ -173,38 +164,40 @@ class VBDM1(pg.Discretization):
 
     def interpolate(self, sd: pg.Grid, func):
         raise NotImplementedError
-#        vals = np.zeros(self.ndof(sd))
-#
-#        for face in np.arange(sd.num_faces):
-#            func_loc = np.array(
-#                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
-#            ).T
-#            vals_loc = sd.face_normals[:, face] @ func_loc
-#            vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc
-#
-#        return vals
+
+    #        vals = np.zeros(self.ndof(sd))
+    #
+    #        for face in np.arange(sd.num_faces):
+    #            func_loc = np.array(
+    #                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+    #            ).T
+    #            vals_loc = sd.face_normals[:, face] @ func_loc
+    #            vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc
+    #
+    #        return vals
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError
-#        """
-#        Assembles the natural boundary condition term
-#        (n dot q, func)_\Gamma
-#        """
-#        if b_faces.dtype == "bool":
-#            b_faces = np.where(b_faces)[0]
-#
-#        vals = np.zeros(self.ndof(sd))
-#        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
-#
-#        for face in b_faces:
-#            sign = np.sum(sd.cell_faces.tocsr()[face, :])
-#            loc_vals = np.array(
-#                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
-#            )
-#
-#            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
-#
-#        return vals
+
+    #        """
+    #        Assembles the natural boundary condition term
+    #        (n dot q, func)_\Gamma
+    #        """
+    #        if b_faces.dtype == "bool":
+    #            b_faces = np.where(b_faces)[0]
+    #
+    #        vals = np.zeros(self.ndof(sd))
+    #        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
+    #
+    #        for face in b_faces:
+    #            sign = np.sum(sd.cell_faces.tocsr()[face, :])
+    #            loc_vals = np.array(
+    #                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+    #            )
+    #
+    #            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
+    #
+    #        return vals
 
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
@@ -216,10 +209,9 @@ class VBDM1(pg.Discretization):
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        all_connectivity = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
-        size = int(np.sum(np.square(all_connectivity.data)))
+        # Allocate the data to store matrix entries
+        cell_node_pairs = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
+        size = int(np.sum(np.square(cell_node_pairs.data)))
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -244,13 +236,16 @@ class VBDM1(pg.Discretization):
                 tangents_loc = tangents[:, faces_loc]
                 normals_loc = sd.face_normals[:, faces_loc]
 
-                Bdm_basis = tangents_loc[:, ::-1] / np.sum(tangents_loc[:, ::-1] * normals_loc, axis=0)
+                Bdm_basis = tangents_loc[:, ::-1] / np.sum(
+                    tangents_loc[:, ::-1] * normals_loc, axis=0
+                )
                 A = subvolume * Bdm_basis.T @ Bdm_basis
 
                 # Save values for the local matrix in the global structure
                 loc_ind = dof[node, faces_loc].data
                 cols = np.tile(loc_ind, (loc_ind.size, 1))
                 loc_idx = slice(idx, idx + cols.size)
+
                 rows_I[loc_idx] = cols.T.ravel()
                 cols_J[loc_idx] = cols.ravel()
                 data_IJ[loc_idx] = A.ravel()
