@@ -9,7 +9,7 @@ class OctGrid(pg.Grid):
     def __init__(self, nx: np.array, physdims={}):
 
         nodes, face_nodes, cell_faces = self.create_grid(nx, physdims)
-        name = "Octagon grid"
+        name = ["Octagon grid"]
 
         super().__init__(2, nodes, face_nodes, cell_faces, name)
 
