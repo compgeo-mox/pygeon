@@ -191,9 +191,7 @@ class VBDM1(pg.Discretization):
         for face in b_faces:
             sign = np.sum(sd.cell_faces.tocsr()[face, :])
             nodes_loc = sd.face_nodes[:, face].indices
-            loc_vals = np.array(
-                [func(sd.nodes[:, node]) for node in nodes_loc]
-            )
+            loc_vals = np.array([func(sd.nodes[:, node]) for node in nodes_loc])
             dof_loc = dof[nodes_loc, face].data
 
             vals[dof_loc] = sign * local_mass @ loc_vals
@@ -213,7 +211,6 @@ class VBDM1(pg.Discretization):
         # Allocate the data to store matrix entries
         cell_node_pairs = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
         size = int(np.sum(np.square(cell_node_pairs.data)))
-        # size += int(np.sum(np.square(np.sum(cell_node_pairs, axis=0))))
 
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -232,10 +229,7 @@ class VBDM1(pg.Discretization):
 
             faces_of_cell = sd.cell_faces[:, c]
 
-            # basis_funcs = np.zeros((3, 2 * faces_of_cell.size))
-            # faces_funcs = np.zeros(2 * faces_of_cell.size)
-
-            for id, (node, subvolume) in enumerate(zip(nodes_loc, subvolumes_loc)):
+            for node, subvolume in zip(nodes_loc, subvolumes_loc):
                 faces_of_node = face_nodes[node, :].T
                 faces_loc = faces_of_node.multiply(faces_of_cell).indices
 
@@ -245,12 +239,69 @@ class VBDM1(pg.Discretization):
                 Bdm_basis = tangents_loc / np.sum(tangents_loc * normals_loc, axis=0)
                 A = subvolume * Bdm_basis.T @ Bdm_basis
 
-                # basis_funcs[:, 2 * id : 2 * (id + 1)] = Bdm_basis
-                # faces_funcs[2 * id : 2 * (id + 1)] = faces_loc
-
                 # Save values for the local matrix in the global structure
                 loc_ind = dof[node, faces_loc].data
                 cols = np.tile(loc_ind, (loc_ind.size, 1))
+                loc_idx = slice(idx, idx + cols.size)
+
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_V[loc_idx] = A.ravel()
+                idx += cols.size
+
+        # Construct the global matrix
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+
+    def assemble_lumped_matrix_quad(self, sd: pg.Grid, data: dict = None):
+
+        # Allocate the data to store matrix entries
+        size = int(16 * np.sum(np.abs(sd.cell_faces)))
+
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        dof = self.get_dof_enumeration(sd)
+        subsimplices = sd.compute_subvolumes(True)[1]
+
+        tangents = sd.nodes * sd.face_ridges
+        M_scaling = np.kron(np.ones((2, 2)) + np.eye(2), np.ones((2, 2)))
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(subsimplices.indptr[c], subsimplices.indptr[c + 1])
+            faces_loc = subsimplices.indices[loc]
+            subsimplices_loc = subsimplices.data[loc]
+
+            # Obtain local indices of dofs, oredered by associated node number
+            local_dof = dof[:, faces_loc].tocsr().tocoo()
+            dof_indx = local_dof.data
+            dof_node = local_dof.row
+            dof_face = faces_loc[local_dof.col]
+
+            # Compute the values of the basis functions
+            swapper = np.arange(dof_face.size)
+            swapper[::2] += 1
+            swapper[1::2] -= 1
+            swapped_tangents = tangents[:, dof_face[swapper]]
+
+            Bdm_basis = swapped_tangents / np.sum(
+                swapped_tangents * sd.face_normals[:, dof_face], axis=0
+            )
+
+            for face, subvolume in zip(faces_loc, subsimplices_loc):
+                nodes_of_face = sd.face_nodes[:, face].indices
+                loc_ind = np.logical_or(
+                    dof_node == nodes_of_face[0], dof_node == nodes_of_face[1]
+                )
+
+                loc_basis = Bdm_basis[:, loc_ind]
+
+                A = subvolume * loc_basis.T @ loc_basis / 6
+                A *= M_scaling
+
+                # Save values for the local matrix in the global structure
+                cols = np.tile(dof_indx[loc_ind], (loc_ind.sum(), 1))
                 loc_idx = slice(idx, idx + cols.size)
 
                 rows_I[loc_idx] = cols.T.ravel()

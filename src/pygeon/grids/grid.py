@@ -149,9 +149,9 @@ class Grid(pp.Grid):
         bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-    def compute_subvolumes(self):
+    def compute_subvolumes(self, return_subsimplices=False):
         """
-        Return the following attributes to the grid
+        Return the following attributes of the grid
 
         subvolumes: a csc_matrix with each entry [node, cell] describing
                       the signed measure of the associated sub-volume
@@ -165,4 +165,7 @@ class Grid(pp.Grid):
 
         sub_simplices[faces, cells] = np.sum(normals * rays, 0) / self.dim
 
-        return 0.5 * self.face_nodes * sub_simplices
+        if return_subsimplices:
+            return 0.5 * self.face_nodes * sub_simplices, sub_simplices
+        else:
+            return 0.5 * self.face_nodes * sub_simplices
