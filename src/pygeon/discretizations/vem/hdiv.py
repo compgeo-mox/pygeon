@@ -212,9 +212,11 @@ class VBDM1(pg.Discretization):
         # Allocate the data to store matrix entries
         cell_node_pairs = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
         size = int(np.sum(np.square(cell_node_pairs.data)))
+        # size += int(np.sum(np.square(np.sum(cell_node_pairs, axis=0))))
+
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
+        data_V = np.empty(size)
         idx = 0
 
         dof = self.get_dof_enumeration(sd)
@@ -229,17 +231,21 @@ class VBDM1(pg.Discretization):
 
             faces_of_cell = sd.cell_faces[:, c]
 
-            for node, subvolume in zip(nodes_loc, subvolumes_loc):
+            # basis_funcs = np.zeros((3, 2 * faces_of_cell.size))
+            # faces_funcs = np.zeros(2 * faces_of_cell.size)
+
+            for id, (node, subvolume) in enumerate(zip(nodes_loc, subvolumes_loc)):
                 faces_of_node = face_nodes[node, :].T
                 faces_loc = faces_of_node.multiply(faces_of_cell).indices
 
-                tangents_loc = tangents[:, faces_loc]
+                tangents_loc = tangents[:, faces_loc[::-1]]
                 normals_loc = sd.face_normals[:, faces_loc]
 
-                Bdm_basis = tangents_loc[:, ::-1] / np.sum(
-                    tangents_loc[:, ::-1] * normals_loc, axis=0
-                )
+                Bdm_basis = tangents_loc / np.sum(tangents_loc * normals_loc, axis=0)
                 A = subvolume * Bdm_basis.T @ Bdm_basis
+
+                # basis_funcs[:, 2 * id : 2 * (id + 1)] = Bdm_basis
+                # faces_funcs[2 * id : 2 * (id + 1)] = faces_loc
 
                 # Save values for the local matrix in the global structure
                 loc_ind = dof[node, faces_loc].data
@@ -248,8 +254,24 @@ class VBDM1(pg.Discretization):
 
                 rows_I[loc_idx] = cols.T.ravel()
                 cols_J[loc_idx] = cols.ravel()
-                data_IJ[loc_idx] = A.ravel()
+                data_V[loc_idx] = A.ravel()
                 idx += cols.size
 
+            # subvolumes_loc = np.repeat(subvolumes_loc, 2)
+
+            # A2 = (basis_funcs).T @ (basis_funcs)
+            # A2 *= sd.cell_volumes[c] / (3 * (nodes_loc.size) ** 2)
+
+            # # Save values for the local matrix in the global structure
+            # nodes_loc = np.repeat(nodes_loc, 2)
+            # loc_ind = dof[nodes_loc, faces_funcs]
+            # cols = np.tile(loc_ind, (loc_ind.size, 1))
+            # loc_idx = slice(idx, idx + cols.size)
+
+            # rows_I[loc_idx] = cols.T.ravel()
+            # cols_J[loc_idx] = cols.ravel()
+            # data_V[loc_idx] = A2.ravel()
+            # idx += cols.size
+
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
