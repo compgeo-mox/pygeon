@@ -185,26 +185,28 @@ class VBDM1(pg.Discretization):
 #        return vals
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
-        raise NotImplementedError
-#        """
-#        Assembles the natural boundary condition term
-#        (n dot q, func)_\Gamma
-#        """
-#        if b_faces.dtype == "bool":
-#            b_faces = np.where(b_faces)[0]
-#
-#        vals = np.zeros(self.ndof(sd))
-#        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
-#
-#        for face in b_faces:
-#            sign = np.sum(sd.cell_faces.tocsr()[face, :])
-#            loc_vals = np.array(
-#                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
-#            )
-#
-#            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
-#
-#        return vals
+        """
+        Assembles the natural boundary condition term
+        (n dot q, func)_\Gamma
+        """
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
+        vals = np.zeros(self.ndof(sd))
+        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
+        dof = self.get_dof_enumeration(sd)
+
+        for face in b_faces:
+            sign = np.sum(sd.cell_faces.tocsr()[face, :])
+            nodes_loc = sd.face_nodes[:, face].indices
+            loc_vals = np.array(
+                [func(sd.nodes[:, node]) for node in nodes_loc]
+            )
+            dof_loc = dof[nodes_loc, face].data
+
+            vals[dof_loc] = sign * local_mass @ loc_vals
+
+        return vals
 
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
@@ -241,10 +243,10 @@ class VBDM1(pg.Discretization):
                 faces_of_node = face_nodes[node, :].T
                 faces_loc = faces_of_node.multiply(faces_of_cell).indices
 
-                tangents_loc = tangents[:, faces_loc]
+                tangents_loc = tangents[:, faces_loc[::-1]]
                 normals_loc = sd.face_normals[:, faces_loc]
 
-                Bdm_basis = tangents_loc[:, ::-1] / np.sum(tangents_loc[:, ::-1] * normals_loc, axis=0)
+                Bdm_basis = tangents_loc / np.sum(tangents_loc * normals_loc, axis=0)
                 A = subvolume * Bdm_basis.T @ Bdm_basis
 
                 # Save values for the local matrix in the global structure
