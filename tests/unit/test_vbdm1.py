@@ -13,6 +13,8 @@ class VBDM1Test(unittest.TestCase):
         dim = 2
         sd = pg.OctGrid([N] * dim, [1, 1])
         pg.convert_from_pp(sd)
+        sd.nodes /= 40
+
         sd.compute_geometry()
 
         discr_vbdm1 = pg.VBDM1("flow")
@@ -46,7 +48,7 @@ class VBDM1Test(unittest.TestCase):
         print(vp @ mass_p0 @ vp, (proj * vp).max())
         discr_p0.interpolate()
 
-        save = pp.Exporter(sd, "sol")
+        save = pp.Exporter(sd, "solref")
         save.write_vtu([("p", proj * vp)])
 
     def test_conv(self):

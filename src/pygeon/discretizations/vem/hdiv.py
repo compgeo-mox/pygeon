@@ -177,27 +177,28 @@ class VBDM1(pg.Discretization):
     #        return vals
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
-        raise NotImplementedError
+        """
+        Assembles the natural boundary condition term
+        (n dot q, func)_\Gamma
+        """
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
 
-    #        """
-    #        Assembles the natural boundary condition term
-    #        (n dot q, func)_\Gamma
-    #        """
-    #        if b_faces.dtype == "bool":
-    #            b_faces = np.where(b_faces)[0]
-    #
-    #        vals = np.zeros(self.ndof(sd))
-    #        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
-    #
-    #        for face in b_faces:
-    #            sign = np.sum(sd.cell_faces.tocsr()[face, :])
-    #            loc_vals = np.array(
-    #                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
-    #            )
-    #
-    #            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
-    #
-    #        return vals
+        vals = np.zeros(self.ndof(sd))
+        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
+        dof = self.get_dof_enumeration(sd)
+
+        for face in b_faces:
+            sign = np.sum(sd.cell_faces.tocsr()[face, :])
+            nodes_loc = sd.face_nodes[:, face].indices
+            loc_vals = np.array(
+                [func(sd.nodes[:, node]) for node in nodes_loc]
+            )
+            dof_loc = dof[nodes_loc, face].data
+
+            vals[dof_loc] = sign * local_mass @ loc_vals
+
+        return vals
 
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
