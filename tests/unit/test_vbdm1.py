@@ -10,9 +10,11 @@ import pygeon as pg
 
 class VBDM1Test(unittest.TestCase):
     def test0(self):
-        N, dim = 20, 2
+        N, dim = 40, 2
         sd = pg.OctGrid([N] * dim)
         pg.convert_from_pp(sd)
+        sd.nodes /= 40
+
         sd.compute_geometry()
 
         discr_vbdm1 = pg.VBDM1("flow")
@@ -48,7 +50,7 @@ class VBDM1Test(unittest.TestCase):
 
         proj = discr_p0.eval_at_cell_centers(sd)
 
-        save = pp.Exporter(sd, "sol")
+        save = pp.Exporter(sd, "solref")
         save.write_vtu([("p", proj * vp)])
 
         self.assertEqual(check.nnz, 0)
