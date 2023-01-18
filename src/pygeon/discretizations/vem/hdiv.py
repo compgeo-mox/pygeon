@@ -207,6 +207,28 @@ class VBDM1(pg.Discretization):
         return dof
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+        # Overleaf version
+        return self.assemble_lumped_matrix_overleaf(sd, data)
+
+        # # Overleaf version with midpoints
+        # return (
+        #     2.0 * self.assemble_lumped_matrix_overleaf(sd, data)
+        #     + self.assemble_lumped_matrix_midpoint(sd, data)
+        # ) / 3.0
+
+        # # Simpson's rule on the face
+        # return (
+        #     2.0 * self.assemble_lumped_matrix_quad(sd, data)
+        #     + self.assemble_lumped_matrix_midpoint(sd, data)
+        # ) / 3
+
+        # With subtriangulation of the patches
+        # return (
+        #     self.assemble_lumped_matrix_subtriangulation(sd, data)
+        #     + self.assemble_lumped_matrix_midpoint(sd, data) / 3
+        # )
+
+    def assemble_lumped_matrix_overleaf(self, sd: pg.Grid, data: dict = None):
         """
         Quadrature that is in the Overleaf.
         Assumes uv is linear and uses three-point quadrature per subsimplex
@@ -321,8 +343,8 @@ class VBDM1(pg.Discretization):
 
     def assemble_lumped_matrix_midpoint(self, sd: pg.Grid, data: dict = None):
         """
-        Assumes that u and v are piecewise linear in the interior and applies a
-        three-point quadrature on the subsimplices
+        Multiplies the expected centroid values and integrates over the cells
+        (unstable unless combined with another lumped matrix)
         """
 
         # Allocate the data to store matrix entries
@@ -371,6 +393,70 @@ class VBDM1(pg.Discretization):
             cols_J[loc_idx] = cols.ravel()
             data_V[loc_idx] = A.ravel()
             idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+
+    def assemble_lumped_matrix_subtriangulation(self, sd: pg.Grid, data: dict = None):
+        """
+        Triangulates the patches and computes the local mass matrices
+        using a three-point rule
+        """
+
+        # Allocate the data to store matrix entries
+        size = int(16 * np.sum(np.abs(sd.cell_faces)))
+
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        dof = self.get_dof_enumeration(sd)
+        subsimplices = sd.compute_subvolumes(True)[1]
+
+        tangents = sd.nodes * sd.face_ridges
+        M_scaling = np.kron(np.ones((2, 2)) + np.eye(2), np.ones((2, 2)))
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(subsimplices.indptr[c], subsimplices.indptr[c + 1])
+            faces_loc = subsimplices.indices[loc]
+            subsimplices_loc = subsimplices.data[loc]
+
+            # Obtain local indices of dofs, oredered by associated node number
+            local_dof = dof[:, faces_loc].tocsr().tocoo()
+            dof_indx = local_dof.data
+            dof_node = local_dof.row
+            dof_face = faces_loc[local_dof.col]
+
+            # Compute the values of the basis functions
+            swapper = np.arange(dof_face.size)
+            swapper[::2] += 1
+            swapper[1::2] -= 1
+            swapped_tangents = tangents[:, dof_face[swapper]]
+
+            BDM_basis = swapped_tangents / np.sum(
+                swapped_tangents * sd.face_normals[:, dof_face], axis=0
+            )
+
+            for face, subvolume in zip(faces_loc, subsimplices_loc):
+                nodes_of_face = sd.face_nodes[:, face].indices
+                loc_ind = np.logical_or(
+                    dof_node == nodes_of_face[0], dof_node == nodes_of_face[1]
+                )
+
+                loc_basis = BDM_basis[:, loc_ind]
+
+                A = subvolume * loc_basis.T @ loc_basis / 6
+                A *= M_scaling
+
+                # Save values for the local matrix in the global structure
+                cols = np.tile(dof_indx[loc_ind], (loc_ind.sum(), 1))
+                loc_idx = slice(idx, idx + cols.size)
+
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_V[loc_idx] = A.ravel()
+                idx += cols.size
 
         # Construct the global matrices
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
