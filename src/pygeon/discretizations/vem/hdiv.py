@@ -207,6 +207,10 @@ class VBDM1(pg.Discretization):
         return dof
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+        """
+        Quadrature that is in the Overleaf.
+        Assumes uv is linear and uses three-point quadrature per subsimplex
+        """
 
         # Allocate the data to store matrix entries
         cell_node_pairs = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
@@ -253,6 +257,9 @@ class VBDM1(pg.Discretization):
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
     def assemble_lumped_matrix_quad(self, sd: pg.Grid, data: dict = None):
+        """
+        Uses Simpson's rule on the faces and assumes that uv is linear in the interior
+        """
 
         # Allocate the data to store matrix entries
         size = int(16 * np.sum(np.abs(sd.cell_faces)))
@@ -285,7 +292,7 @@ class VBDM1(pg.Discretization):
             swapper[1::2] -= 1
             swapped_tangents = tangents[:, dof_face[swapper]]
 
-            Bdm_basis = swapped_tangents / np.sum(
+            BDM_basis = swapped_tangents / np.sum(
                 swapped_tangents * sd.face_normals[:, dof_face], axis=0
             )
 
@@ -295,7 +302,7 @@ class VBDM1(pg.Discretization):
                     dof_node == nodes_of_face[0], dof_node == nodes_of_face[1]
                 )
 
-                loc_basis = Bdm_basis[:, loc_ind]
+                loc_basis = BDM_basis[:, loc_ind]
 
                 A = subvolume * loc_basis.T @ loc_basis / 6
                 A *= M_scaling
@@ -309,21 +316,61 @@ class VBDM1(pg.Discretization):
                 data_V[loc_idx] = A.ravel()
                 idx += cols.size
 
-            # subvolumes_loc = np.repeat(subvolumes_loc, 2)
+        # Construct the global matrices
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
-            # A2 = (basis_funcs).T @ (basis_funcs)
-            # A2 *= sd.cell_volumes[c] / (3 * (nodes_loc.size) ** 2)
+    def assemble_lumped_matrix_midpoint(self, sd: pg.Grid, data: dict = None):
+        """
+        Assumes that u and v are piecewise linear in the interior and applies a
+        three-point quadrature on the subsimplices
+        """
 
-            # # Save values for the local matrix in the global structure
-            # nodes_loc = np.repeat(nodes_loc, 2)
-            # loc_ind = dof[nodes_loc, faces_funcs]
-            # cols = np.tile(loc_ind, (loc_ind.size, 1))
-            # loc_idx = slice(idx, idx + cols.size)
+        # Allocate the data to store matrix entries
+        size = int(np.sum(np.square(2 * np.sum(np.abs(sd.cell_faces), 0))))
 
-            # rows_I[loc_idx] = cols.T.ravel()
-            # cols_J[loc_idx] = cols.ravel()
-            # data_V[loc_idx] = A2.ravel()
-            # idx += cols.size
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        dof = self.get_dof_enumeration(sd)
+        subvolumes = sd.compute_subvolumes()
+
+        tangents = sd.nodes * sd.face_ridges
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+
+            # Obtain local indices of dofs, oredered by associated node number
+            local_dof = dof[:, faces_loc].tocsr().tocoo()
+            dof_indx = local_dof.data
+            dof_node = local_dof.row
+            dof_face = faces_loc[local_dof.col]
+
+            dof_subvolume = subvolumes[dof_node, c].data
+
+            # Compute the values of the basis functions
+            swapper = np.arange(dof_face.size)
+            swapper[::2] += 1
+            swapper[1::2] -= 1
+            swapped_tangents = tangents[:, dof_face[swapper]]
+
+            BDM_basis = swapped_tangents / np.sum(
+                swapped_tangents * sd.face_normals[:, dof_face], axis=0
+            )
+
+            A = (dof_subvolume * BDM_basis).T @ (dof_subvolume * BDM_basis)
+            A /= sd.cell_volumes[c]
+
+            # Save values for the local matrix in the global structure
+            cols = np.tile(dof_indx, (dof_indx.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_V[loc_idx] = A.ravel()
+            idx += cols.size
 
         # Construct the global matrices
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
