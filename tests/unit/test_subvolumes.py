@@ -55,9 +55,9 @@ class SubVolumeTest(unittest.TestCase):
     def test_hitchhiker_pentagon(self):
 
         nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])
-        cols = np.repeat(np.arange(5), 2)
-        rows = np.roll(cols, -1)
-        face_nodes = sps.csc_matrix((np.ones(10), (rows, cols)))
+        indptr = np.arange(0, 11, 2)
+        indices = np.roll(np.repeat(np.arange(5), 2), -1)
+        face_nodes = sps.csc_matrix((np.ones(10), indices, indptr))
         cell_faces = sps.csc_matrix(np.ones((5, 1)))
 
         sd = pp.Grid(2, nodes, face_nodes, cell_faces, "pentagon")

@@ -228,6 +228,8 @@ class VBDM1(pg.Discretization):
         #     + self.assemble_lumped_matrix_midpoint(sd, data) / 3
         # )
 
+        # return self.assemble_lumped_matrix_lipnikov_shashkov_yotov(sd, data)
+
     def assemble_lumped_matrix_overleaf(self, sd: pg.Grid, data: dict = None):
         """
         Quadrature that is in the Overleaf.
@@ -459,4 +461,68 @@ class VBDM1(pg.Discretization):
                 idx += cols.size
 
         # Construct the global matrices
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+
+    def assemble_lumped_matrix_lipnikov_shashkov_yotov(
+        self, sd: pg.Grid, data: dict = None
+    ):
+        """
+        Quadrature that is in the paper of Lipnikov, Shashkov and Yotov.
+        """
+
+        # Allocate the data to store matrix entries
+        cell_node_pairs = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
+        size = int(np.sum(np.square(cell_node_pairs.data)))
+
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        dof = self.get_dof_enumeration(sd)
+        subvolumes = sd.compute_subvolumes()
+        face_nodes = sd.face_nodes.tocsr()
+        tangents = sd.nodes * sd.face_ridges
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(subvolumes.indptr[c], subvolumes.indptr[c + 1])
+            nodes_loc = subvolumes.indices[loc]
+            subvolumes_loc = subvolumes.data[loc]
+
+            faces_of_cell = sd.cell_faces[:, c]
+
+            for node, subvolume in zip(nodes_loc, subvolumes_loc):
+                faces_of_node = face_nodes[node, :].T
+                faces_loc = faces_of_node.multiply(faces_of_cell).indices
+
+                tangents_loc = (
+                    sd.nodes[:, [node, node]] - sd.face_centers[:, faces_loc[::-1]]
+                )
+                normals_loc = (
+                    sd.face_normals[:, faces_loc] * sd.cell_faces[faces_loc, c].data
+                )
+
+                Bdm_basis = (
+                    tangents_loc
+                    * sd.face_areas[faces_loc]
+                    / np.sum(tangents_loc * normals_loc, axis=0)
+                )
+                rays = (
+                    0.5 * (sd.nodes[:, [node, node]] + sd.face_centers[:, faces_loc])
+                    - sd.cell_centers[:, [c, c]]
+                )
+
+                A = rays.T @ Bdm_basis
+
+                # Save values for the local matrix in the global structure
+                loc_ind = dof[node, faces_loc].data
+                cols = np.tile(loc_ind, (loc_ind.size, 1))
+                loc_idx = slice(idx, idx + cols.size)
+
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_V[loc_idx] = A.ravel()
+                idx += cols.size
+
+        # Construct the global matrix
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
