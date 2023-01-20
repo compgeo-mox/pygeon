@@ -9,6 +9,7 @@ from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.structured import OctGrid
+from pygeon.grids.voronoi import VoronoiGrid
 
 from pygeon.discretizations.discretization import Discretization
 

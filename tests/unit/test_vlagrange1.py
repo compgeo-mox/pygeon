@@ -9,9 +9,9 @@ import pygeon as pg
 
 
 class VLagrange1Test(unittest.TestCase):
-    def test_on_Octgrid(self, N=2):
+    def test_on_pentagon(self, N=2):
         dim = 2
-        sd = pg.OctGrid([N] * dim, [1, 1])
+        # sd = pg.OctGrid([N] * dim, [1, 1])
 
         nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])
         indptr = np.arange(0, 11, 2)
