@@ -134,7 +134,61 @@ class VBDM1(pg.Discretization):
             raise ValueError
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
-        raise NotImplementedError
+        """
+        Computes the mass matrix
+        """
+
+        # Allocate the data to store matrix entries
+        cell_nodes = sd.cell_nodes()
+        size = int(np.sum(np.square(2 * np.sum(cell_nodes, 0))))
+
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        dof = self.get_dof_enumeration(sd)
+        disc_VL1 = pg.VLagrange1("dummy")
+
+        tangents = sd.nodes * sd.face_ridges
+        cell_diams = sd.cell_diameters(cell_nodes)
+
+        for (cell, diam) in enumerate(cell_diams):
+            faces_loc = sd.cell_faces[:, cell].indices
+
+            # Obtain local indices of dofs, ordered by associated node number
+            local_dof = dof[:, faces_loc].tocsr().tocoo()
+            dof_indx = local_dof.data
+            dof_node = local_dof.row
+            dof_face = faces_loc[local_dof.col]
+
+            # Compute the values of the basis functions
+            swapper = np.arange(dof_face.size)
+            swapper[::2] += 1
+            swapper[1::2] -= 1
+            swapped_tangents = tangents[:, dof_face[swapper]]
+
+            BDM_basis = swapped_tangents / np.sum(
+                swapped_tangents * sd.face_normals[:, dof_face], axis=0
+            )
+
+            vals = BDM_basis.T @ BDM_basis
+            VL_mass = disc_VL1.assemble_loc_mass_matrix(sd, cell, diam, dof_node[::2])
+            VL_mass = np.kron(VL_mass, np.ones((2, 2)))
+
+            A = np.multiply(vals, VL_mass)
+
+            # Save values for the local matrix in the global structure
+            cols = np.tile(dof_indx, (dof_indx.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_V[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
     def proj_to_VRT0(self, sd: pg.Grid):
         dof = self.get_dof_enumeration(sd).tocoo()
@@ -208,7 +262,10 @@ class VBDM1(pg.Discretization):
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         # Overleaf version
-        return self.assemble_lumped_matrix_overleaf(sd, data)
+        # return self.assemble_lumped_matrix_overleaf(sd, data)
+
+        # Based on lumping local Virtual Lagrange mass matrices
+        return self.assemble_lumped_matrix_VL1(sd, data)
 
         # # Overleaf version with midpoints
         # return (
@@ -482,7 +539,6 @@ class VBDM1(pg.Discretization):
         dof = self.get_dof_enumeration(sd)
         subvolumes = sd.compute_subvolumes()
         face_nodes = sd.face_nodes.tocsr()
-        tangents = sd.nodes * sd.face_ridges
 
         for c in np.arange(sd.num_cells):
             loc = slice(subvolumes.indptr[c], subvolumes.indptr[c + 1])
@@ -513,6 +569,61 @@ class VBDM1(pg.Discretization):
                 )
 
                 A = rays.T @ Bdm_basis
+
+                # Save values for the local matrix in the global structure
+                loc_ind = dof[node, faces_loc].data
+                cols = np.tile(loc_ind, (loc_ind.size, 1))
+                loc_idx = slice(idx, idx + cols.size)
+
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_V[loc_idx] = A.ravel()
+                idx += cols.size
+
+        # Construct the global matrix
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+
+    def assemble_lumped_matrix_VL1(self, sd: pg.Grid, data: dict = None):
+        """
+        Uses the lumped mass matrix of the Virtual Lagrange element
+        """
+
+        # Allocate the data to store matrix entries
+        cell_node_pairs = np.abs(sd.face_nodes) * np.abs(sd.cell_faces)
+        size = int(np.sum(np.square(cell_node_pairs.data)))
+
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        dof = self.get_dof_enumeration(sd)
+
+        cell_diams = sd.cell_diameters()
+        face_nodes = sd.face_nodes.tocsr()
+        tangents = sd.nodes * sd.face_ridges
+
+        discr_VL1 = pg.VLagrange1("dummy")
+
+        for (cell, diam) in enumerate(cell_diams):
+            loc = slice(cell_node_pairs.indptr[cell], cell_node_pairs.indptr[cell + 1])
+            nodes_loc = cell_node_pairs.indices[loc]
+
+            faces_of_cell = sd.cell_faces[:, cell]
+
+            weights = discr_VL1.assemble_loc_mass_matrix(sd, cell, diam, nodes_loc).sum(
+                0
+            )
+
+            for node, weight in zip(nodes_loc, weights):
+                faces_of_node = face_nodes[node, :].T
+                faces_loc = faces_of_node.multiply(faces_of_cell).indices
+
+                tangents_loc = tangents[:, faces_loc[::-1]]
+                normals_loc = sd.face_normals[:, faces_loc]
+
+                Bdm_basis = tangents_loc / np.sum(tangents_loc * normals_loc, axis=0)
+                A = weight * Bdm_basis.T @ Bdm_basis
 
                 # Save values for the local matrix in the global structure
                 loc_ind = dof[node, faces_loc].data

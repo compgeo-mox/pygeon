@@ -36,16 +36,54 @@ class VLagrange1(pg.Discretization):
         cell_nodes = sd.cell_nodes()
         cell_diams = sd.cell_diameters(cell_nodes)
 
+        # Data allocation
+        size = np.sum(np.square(cell_nodes.sum(0)))
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
         for (cell, diam) in enumerate(cell_diams):
             loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
-            nodes = cell_nodes.indices[loc]
+            nodes_loc = cell_nodes.indices[loc]
 
-            G = self.assemble_loc_L2proj_lhs(sd, cell, diam, nodes)
-            B = self.assemble_loc_L2proj_rhs(sd, cell, diam, nodes)
-            D = self.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
+            M_loc = self.assemble_loc_mass_matrix(sd, cell, diam, nodes_loc)
 
-            print("dude")
-        raise NotImplementedError
+            # Save values for local mass matrix in the global structure
+            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_V[loc_idx] = M_loc.ravel()
+            idx += cols.size
+
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+
+    def assemble_loc_mass_matrix(self, sd: pg.Grid, cell, diam, nodes):
+        """
+        Computes the local VEM mass matrix on a given cell
+        according to the Hitchhiker's (6.5)
+        """
+
+        proj = self.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        H = self.assemble_loc_monomial_mass(sd, cell, diam)
+
+        D = self.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
+        I_minus_Pi = np.eye(nodes.size) - D @ proj
+
+        return proj.T @ H @ proj + sd.cell_volumes[cell] * I_minus_Pi.T @ I_minus_Pi
+
+    def assemble_loc_proj_to_mon(self, sd: pg.Grid, cell, diam, nodes):
+        """
+        Computes the local projection onto the monomials
+        Returns the coefficients {a_i} in a_0 + [a_1, a_2] \dot (x - c) / d
+        for each VL1 basis function.
+        """
+
+        G = self.assemble_loc_L2proj_lhs(sd, cell, diam, nodes)
+        B = self.assemble_loc_L2proj_rhs(sd, cell, diam, nodes)
+
+        return np.linalg.solve(G, B)
 
     def assemble_loc_L2proj_lhs(self, sd: pg.Grid, cell, diam, nodes):
         """
@@ -75,6 +113,35 @@ class VLagrange1(pg.Discretization):
 
         return B
 
+    def assemble_loc_monomial_mass(self, sd: pg.Grid, cell, diam):
+        """
+        Computes the inner products of the monomials
+        {1, (x - c)/d, (y - c)/d}
+        Hitchhiker's (5.3)
+        """
+        H = np.zeros((3, 3))
+        H[0, 0] = sd.cell_volumes[cell]
+
+        M = np.ones((2, 2)) + np.eye(2)
+
+        for face in sd.cell_faces[:, cell].indices:
+            sub_volume = (
+                np.dot(
+                    sd.face_centers[:, face] - sd.cell_centers[:, cell],
+                    sd.face_normals[:, face] * sd.cell_faces[face, cell],
+                )
+                / 2
+            )
+
+            vals = (
+                sd.nodes[:2, sd.face_nodes[:, face].indices]
+                - sd.cell_centers[:2, [cell] * 2]
+            ) / diam
+
+            H[1:, 1:] += sub_volume * vals @ M @ vals.T / 12
+
+        return H
+
     def assemble_loc_dofs_of_monomials(self, sd: pg.Grid, cell, diam, nodes):
         """
         Returns the matrix D from the hitchhiker's (3.17)
@@ -87,16 +154,6 @@ class VLagrange1(pg.Discretization):
         ).T / diam
 
         return D
-
-    def assemble_loc_monomial_mass(self, sd: pg.Grid, cell, diam):
-        """
-        Computes the inner products of the monomials
-        {1, (x - c)/d, (y - c)/d}
-        """
-        H = np.zeros((3, 3))
-        H[0, 0] = 1.0
-        raise NotImplementedError
-        return sd.cell_volumes[cell] * H
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
