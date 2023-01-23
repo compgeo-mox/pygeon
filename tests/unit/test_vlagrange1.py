@@ -11,21 +11,41 @@ import pygeon as pg
 class VLagrange1Test(unittest.TestCase):
     def test_on_pentagon(self, N=2):
         dim = 2
-        # sd = pg.OctGrid([N] * dim, [1, 1])
 
-        nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])
-        indptr = np.arange(0, 11, 2)
-        indices = np.roll(np.repeat(np.arange(5), 2), -1)
-        face_nodes = sps.csc_matrix((np.ones(10), indices, indptr))
-        cell_faces = sps.csc_matrix(np.ones((5, 1)))
+        # nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])
+        # indptr = np.arange(0, 11, 2)
+        # indices = np.roll(np.repeat(np.arange(5), 2), -1)
+        # face_nodes = sps.csc_matrix((np.ones(10), indices, indptr))
+        # cell_faces = sps.csc_matrix(np.ones((5, 1)))
 
-        sd = pp.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
-        pg.convert_from_pp(sd)
+        # sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
+        # sd.compute_geometry()
+
+        # sd = pp.CartGrid([2] * dim, [1, 1])
+        # pg.convert_from_pp(sd)
+
+        # sd = pg.OctGrid([10, 10])
+        sd = pg.VoronoiGrid(0.05, 250, 0)
         sd.compute_geometry()
 
         discr = pg.VLagrange1("flow")
 
         mass = discr.assemble_mass_matrix(sd)
+        stiff = discr.assemble_stiff_matrix(sd)
+
+        eval = discr.eval_at_cell_centers(sd)
+        rhs = sd.cell_volumes * eval
+
+        ls = pg.LinearSystem(stiff, rhs)
+        ls.flag_ess_bc(sd.tags["domain_boundary_nodes"], np.zeros(discr.ndof(sd)))
+
+        u = ls.solve()
+
+        u_cc = eval * u
+
+        exp = pp.Exporter(sd, "voronoi", binary=False)
+        exp.write_vtu(("u", u_cc))
+        print("")
 
         # discr_p0 = pg.PwConstants("flow")
         # mass_p0 = discr_p0.assemble_mass_matrix(sd, None)
@@ -65,4 +85,4 @@ class VLagrange1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    VLagrange1Test().test_on_Octgrid()
+    VLagrange1Test().test_on_pentagon()

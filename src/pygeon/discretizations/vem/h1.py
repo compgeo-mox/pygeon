@@ -155,6 +155,61 @@ class VLagrange1(pg.Discretization):
 
         return D
 
+    def assemble_stiff_matrix(self, sd):
+        """
+        Returns the stiffness matrix
+
+        Args
+            sd : grid.
+
+        Returns
+            matrix: sparse (sd.num_nodes, sd.num_nodes)
+                Stiffness matrix obtained from the discretization.
+
+        """
+
+        # Precomputations
+        cell_nodes = sd.cell_nodes()
+        cell_diams = sd.cell_diameters(cell_nodes)
+
+        # Data allocation
+        size = np.sum(np.square(cell_nodes.sum(0)))
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        for (cell, diam) in enumerate(cell_diams):
+            loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
+            nodes_loc = cell_nodes.indices[loc]
+
+            M_loc = self.assemble_loc_stiff_matrix(sd, cell, diam, nodes_loc)
+
+            # Save values for local mass matrix in the global structure
+            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_V[loc_idx] = M_loc.ravel()
+            idx += cols.size
+
+        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+
+    def assemble_loc_stiff_matrix(self, sd: pg.Grid, cell, diam, nodes):
+        """
+        Computes the local VEM stiffness matrix on a given cell
+        according to the Hitchhiker's (3.25)
+        """
+
+        proj = self.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        G = self.assemble_loc_L2proj_lhs(sd, cell, diam, nodes)
+        G[0, :] = 0.0
+
+        D = self.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
+        I_minus_Pi = np.eye(nodes.size) - D @ proj
+
+        return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
+
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
         Returns the differential mapping in the discrete cochain complex.
@@ -163,7 +218,11 @@ class VLagrange1(pg.Discretization):
         pg.Lagrange1.assemble_diff_matrix(self, sd)
 
     def eval_at_cell_centers(self, sd: pg.Grid):
-        raise NotImplementedError
+
+        eval = sd.cell_nodes()
+        num_nodes = sps.diags(1.0 / sd.num_cell_nodes())
+
+        return (eval @ num_nodes).T.tocsc()
 
     def interpolate(self, sd: pg.Grid, func):
         return np.array([func(x) for x in sd.nodes.T])

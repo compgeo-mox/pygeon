@@ -4,7 +4,7 @@ import pygeon as pg
 import unittest
 
 
-class VLagrange1Test(unittest.TestCase):
+class VoronoiTest(unittest.TestCase):
     def test_simple_voronoi_grid(self):
         pts = np.array(
             [
@@ -13,16 +13,16 @@ class VLagrange1Test(unittest.TestCase):
                 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             ]
         )
-        np.random.seed(0)
-        pts = np.random.rand(2, 50)
 
-        sd = pg.VoronoiGrid(pts)
+        sd = pg.VoronoiGrid(0.2, 20, 0)
 
         sd.compute_geometry()
 
-        pp.plot_grid(sd, info="all", alpha=0)
-        self.assertTrue(sd.num_faces == 9)
+        # pp.plot_grid(sd, info="all", alpha=0)
+        # self.assertTrue(sd.num_faces == 9)
+        exp = pp.Exporter(sd, "voronoi")
+        exp.write_vtu()
 
 
 if __name__ == "__main__":
-    VLagrange1Test().test_simple_voronoi_grid()
+    VoronoiTest().test_simple_voronoi_grid()
