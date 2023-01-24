@@ -9,18 +9,59 @@ import pygeon as pg
 
 
 class VLagrange1Test(unittest.TestCase):
-    def test_on_pentagon(self, N=2):
+    def test_on_pentagon(self):
+
+        nodes = np.array([[0, 3, 3, 3.0 / 2.0, 0], [0, 0, 2, 4, 4], np.zeros(5)])
+        indptr = np.arange(0, 11, 2)
+        indices = np.roll(np.repeat(np.arange(5), 2), -1)
+        face_nodes = sps.csc_matrix((np.ones(10), indices, indptr))
+        cell_faces = sps.csc_matrix(np.ones((5, 1)))
+
+        sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
+        sd.compute_geometry()
+
+        discr = pg.VLagrange1("flow")
+        diam = sd.cell_diameters()[0]
+        loc_nodes = np.arange(5)
+
+        # Test the three matrices from Hitchhikers sec 4.2
+        B = discr.assemble_loc_L2proj_rhs(sd, 0, diam, loc_nodes)
+        B_known = (
+            np.array(
+                [
+                    [4.0, 4.0, 4.0, 4.0, 4.0],
+                    [-8.0, 4.0, 8.0, 4.0, -8.0],
+                    [-6.0, -6.0, 3.0, 6.0, 3.0],
+                ]
+            )
+            / 20
+        )
+        self.assertTrue(np.allclose(B, B_known))
+
+        D = discr.assemble_loc_dofs_of_monomials(sd, 0, diam, loc_nodes)
+        D_known = (
+            np.array(
+                [
+                    [1470.0, -399.0, -532.0],
+                    [1470.0, 483.0, -532.0],
+                    [1470.0, 483.0, 56.0],
+                    [1470.0, 42.0, 644.0],
+                    [1470.0, -399.0, 644.0],
+                ]
+            )
+            / 1470
+        )
+        self.assertTrue(np.allclose(D, D_known))
+
+        G = discr.assemble_loc_L2proj_lhs(sd, 0, diam, loc_nodes)
+        G_known = (
+            np.array([[1050.0, 30.0, 40.0], [0.0, 441.0, 0.0], [0.0, 0.0, 441.0]])
+            / 1050
+        )
+        self.assertTrue(np.allclose(G, G_known))
+
+    def test_on_Cart_grid(self):
         dim = 2
-
-        # nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])
-        # indptr = np.arange(0, 11, 2)
-        # indices = np.roll(np.repeat(np.arange(5), 2), -1)
-        # face_nodes = sps.csc_matrix((np.ones(10), indices, indptr))
-        # cell_faces = sps.csc_matrix(np.ones((5, 1)))
-
-        # sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
-        # sd.compute_geometry()
-
         # sd = pp.CartGrid([2] * dim, [1, 1])
         # pg.convert_from_pp(sd)
 
@@ -47,42 +88,6 @@ class VLagrange1Test(unittest.TestCase):
         exp.write_vtu(("u", u_cc))
         print("")
 
-        # discr_p0 = pg.PwConstants("flow")
-        # mass_p0 = discr_p0.assemble_mass_matrix(sd, None)
-
-        # mass_vbdm1 = discr_vbdm1.assemble_lumped_matrix(sd, None)
-        # div = mass_p0 * discr_vbdm1.assemble_diff_matrix(sd)
-
-        # spp = sps.bmat([[mass_vbdm1, -div.T], [div, None]], "csc")
-        # rhs = np.zeros(spp.shape[0])
-        # rhs[-sd.num_cells :] = np.ones(sd.num_cells)
-
-        # vx = sps.linalg.spsolve(spp, rhs)
-        # vp = vx[-sd.num_cells :]
-
-        # discr_bdm1 = pg.BDM1("flow")
-        # mass_bdm1 = discr_bdm1.assemble_lumped_matrix(sd, None)
-        # diff_bdm1 = discr_bdm1.assemble_diff_matrix(sd)
-
-        # spp = sps.bmat([[mass_bdm1, -diff_bdm1.T],
-        #                 [diff_bdm1, None]])
-        # rhs = np.zeros(spp.shape[0])
-        # rhs[-sd.num_cells:] = sd.cell_volumes
-
-        # x = sps.linalg.spsolve(spp, rhs)
-        # p = x[-sd.num_cells:]
-
-        # proj = discr_p0.eval_at_cell_centers(sd)
-        # print(vp @ mass_p0 @ vp, (proj * vp).max())
-        # discr_p0.interpolate()
-
-        # save = pp.Exporter(sd, "solref")
-        # save.write_vtu([("p", proj * vp)])
-
-    # def test_conv(self):
-    #     for N in np.power(2.0, np.arange(7)):
-    #         self.test_on_Octgrid(N.astype(int))
-
 
 if __name__ == "__main__":
-    VLagrange1Test().test_on_pentagon()
+    unittest.main()

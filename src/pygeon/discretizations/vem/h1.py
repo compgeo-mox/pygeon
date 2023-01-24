@@ -235,3 +235,78 @@ class VLagrange1(pg.Discretization):
 
     def get_range_discr_class(self, dim):
         raise NotImplementedError
+
+
+class VLagrange1_vec(VLagrange1):
+    """docstring for Vec_VLagrange1."""
+
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+        In this case dim x number of nodes.
+
+        Args
+            sd: grid, or a subclass.
+
+        Returns
+            ndof: the number of degrees of freedom.
+        """
+        return sd.dim * super().ndof(sd)
+
+    def assemble_mass_matrix(self, sd: pg.Grid, data=None):
+        """
+        Returns the mass matrix
+
+        Args
+            sd : grid.
+
+        Returns
+            matrix: sparse (sd.num_nodes, sd.num_nodes)
+                Mass matrix obtained from the discretization.
+
+        """
+
+        M_VL1 = super().assemble_mass_matrix(sd, data)
+        return sps.block_diag([M_VL1] * sd.dim, "csc")
+
+    def assemble_stiff_matrix(self, sd):
+        """
+        Returns the stiffness matrix
+
+        Args
+            sd : grid.
+
+        Returns
+            matrix: sparse (sd.num_nodes, sd.num_nodes)
+                Stiffness matrix obtained from the discretization.
+
+        """
+
+        A_VL1 = super().assemble_stiff_matrix(sd)
+        return sps.block_diag([A_VL1] * sd.dim, "csc")
+
+    def assemble_diff_matrix(self, sd: pg.Grid):
+        """
+        Returns the differential mapping in the discrete cochain complex.
+        """
+
+        diff = pg.Lagrange1.assemble_diff_matrix(self, sd)
+        return sps.block_diag([diff] * sd.dim, "csc")
+
+    def eval_at_cell_centers(self, sd: pg.Grid):
+
+        eval = super().eval_at_cell_centers(sd)
+        return sps.block_diag([eval] * sd.dim, "csc")
+
+    def interpolate(self, sd: pg.Grid, func):
+        return np.array([func(x) for x in sd.nodes.T])
+
+    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+        """
+        Assembles the 'natural' boundary condition
+        (u, func)_Gamma with u a test function in Lagrange1
+        """
+        raise NotImplementedError
+
+    def get_range_discr_class(self, dim):
+        raise NotImplementedError

@@ -19,7 +19,7 @@ from pygeon.discretizations.fem.h1 import Lagrange1
 from pygeon.discretizations.fem.l2 import PwConstants
 
 from pygeon.discretizations.vem.hdiv import MVEM, VBDM1
-from pygeon.discretizations.vem.h1 import VLagrange1
+from pygeon.discretizations.vem.h1 import VLagrange1, VLagrange1_vec
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass
