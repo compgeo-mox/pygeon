@@ -14,7 +14,7 @@ class VoronoiTest(unittest.TestCase):
             ]
         )
 
-        sd = pg.VoronoiGrid(0.2, 20, 0)
+        sd = pg.VoronoiGrid(4, 200, 0)
 
         sd.compute_geometry()
 

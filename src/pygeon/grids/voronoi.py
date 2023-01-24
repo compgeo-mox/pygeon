@@ -9,30 +9,35 @@ import pygeon as pg
 class VoronoiGrid(pg.Grid):
     """docstring for VoronoiGrid."""
 
-    def __init__(self, bdry_mesh_size, num_pts, seed=None, name="VoronoiGrid"):
+    def __init__(self, num_bdry_els, num_pts, seed=None, name="VoronoiGrid"):
+
+        # Generate the internal seed points for the Voronoi grid
 
         if seed is not None:
             np.random.seed(seed)
         pts = np.random.rand(2, num_pts)
 
-        scaling = np.sqrt(0.75) * bdry_mesh_size
-        pts = scaling + pts * (1 - 2 * scaling)
+        bdry_mesh_size = 1.0 / num_bdry_els
+        bdry_margin = 0.5 * bdry_mesh_size
+        pts = bdry_margin + pts * (1 - 2 * bdry_margin)
 
-        bdr_pts = np.linspace(
-            bdry_mesh_size, 1 - bdry_mesh_size, int(1 / bdry_mesh_size - 1)
-        )
-        east = np.vstack((np.ones_like(bdr_pts), bdr_pts))
-        north = np.vstack((bdr_pts[::-1], np.ones_like(bdr_pts)))
-        west = np.vstack((np.zeros_like(bdr_pts), bdr_pts[::-1]))
-        south = np.vstack((bdr_pts, np.zeros_like(bdr_pts)))
+        # Append the boundary seeds
+        bdry_pts = np.linspace(bdry_mesh_size / 2, 1 - bdry_mesh_size / 2, num_bdry_els)
+
+        east = np.vstack((np.ones_like(bdry_pts), bdry_pts))
+        north = np.vstack((bdry_pts[::-1], np.ones_like(bdry_pts)))
+        west = np.vstack((np.zeros_like(bdry_pts), bdry_pts[::-1]))
+        south = np.vstack((bdry_pts, np.zeros_like(bdry_pts)))
+
         pts = np.hstack((east, north, west, south, pts))
 
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(pts[:2, :].T)
 
+        # Connect infinite faces to a boundary node
         ridge_dict = dict((tuple(sorted(k)), v) for k, v in vor.ridge_dict.items())
 
-        bdry_ind_0 = np.arange(4 * bdr_pts.size)
+        bdry_ind_0 = np.arange(4 * num_bdry_els)
         bdry_ind_1 = np.roll(bdry_ind_0, -1)
 
         new_verts = np.zeros((2, bdry_ind_0.size))
@@ -50,12 +55,11 @@ class VoronoiGrid(pg.Grid):
             vor.ridge_vertices[face_indx][0] = num_verts + id0
             vor.ridge_vertices.append([num_verts + id0, num_verts + id1])
 
+        # Sort ridge_vertices for quick lookup
         [rv.sort() for rv in vor.ridge_vertices]
 
-        bdry_ind_prev = np.roll(bdry_ind_0, 1)
-
-        for id0, id_prev in zip(bdry_ind_0, bdry_ind_prev):
-
+        # Complete regions at the boundary
+        for id0 in bdry_ind_0:
             region_nodes = vor.regions[vor.point_region[id0]]
 
             idx = region_nodes.index(-1)
@@ -64,7 +68,7 @@ class VoronoiGrid(pg.Grid):
                 int_to_bdry[region_nodes[idx - len(region_nodes) + 1]],
             ]
 
-        corner_idx = np.arange(bdr_pts.size - 1, new_verts.shape[1], bdr_pts.size)
+        corner_idx = np.arange(num_bdry_els - 1, 4 * num_bdry_els, num_bdry_els)
         new_verts[:, corner_idx] = np.round(new_verts[:, corner_idx])
 
         vor.vertices = np.vstack((vor.vertices, new_verts.T))
@@ -110,5 +114,5 @@ class VoronoiGrid(pg.Grid):
 
         cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
 
-        # Generate a PyGeon grid
+        # Generate a PyGeoN grid
         super().__init__(2, nodes, face_nodes, cell_faces, name)
