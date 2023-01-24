@@ -1,6 +1,7 @@
-import pygeon as pg
 import numpy as np
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 class OctGrid(pg.Grid):

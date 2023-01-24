@@ -1,8 +1,8 @@
 import numpy as np
-import scipy.spatial
-import scipy.sparse as sps
-
 import porepy as pp
+import scipy.sparse as sps
+import scipy.spatial
+
 import pygeon as pg
 
 
