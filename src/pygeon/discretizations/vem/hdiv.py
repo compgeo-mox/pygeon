@@ -262,10 +262,10 @@ class VBDM1(pg.Discretization):
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         # Overleaf version
-        # return self.assemble_lumped_matrix_overleaf(sd, data)
+        return self.assemble_lumped_matrix_overleaf(sd, data)
 
         # Based on lumping local Virtual Lagrange mass matrices
-        return self.assemble_lumped_matrix_VL1(sd, data)
+        # return self.assemble_lumped_matrix_VL1(sd, data)
 
         # # Overleaf version with midpoints
         # return (

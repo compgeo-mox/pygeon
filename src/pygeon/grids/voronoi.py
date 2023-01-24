@@ -112,6 +112,10 @@ class VoronoiGrid(pg.Grid):
         cf_indices = FaFi.indices[FaFi.data == 2]
         cf_indptr = np.hstack((0, np.cumsum([len(r) for r in internal_regions])))
 
+        assert (
+            cf_data.size == cf_indices.size
+        ), "Try coarsening the boundaries or increasing the number of interior points"
+
         cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
 
         # Generate a PyGeoN grid

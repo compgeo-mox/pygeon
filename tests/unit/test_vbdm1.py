@@ -46,7 +46,6 @@ class VBDM1Test(unittest.TestCase):
 
         proj = discr_p0.eval_at_cell_centers(sd)
         print(vp @ mass_p0 @ vp, (proj * vp).max())
-        discr_p0.interpolate()
 
         save = pp.Exporter(sd, "solref")
         save.write_vtu([("p", proj * vp)])
