@@ -62,7 +62,7 @@ class BlockMatrixTest(unittest.TestCase):
 
     def test_mat_multiplication(self):
         """
-        Test if the produce of the bmat is the same as the bmat of the product
+        Test if the product of the bmat is the same as the bmat of the product
         """
 
         M = self.create_block_mat()
@@ -74,6 +74,21 @@ class BlockMatrixTest(unittest.TestCase):
         full_prod = M_full @ M_full
 
         assert np.all(block_prod.A == full_prod.A)
+
+    def test_mat_addition(self):
+        """
+        Test if the sum of the bmat is the same as the bmat of the sum
+        """
+
+        M = self.create_block_mat()
+        pg.bmat.replace_nones_with_zeros(M)
+
+        M_full = sps.bmat(M)
+
+        block_sum = sps.bmat(M + 4 * M)
+        full_sum = M_full + 4 * M_full
+
+        assert np.all(block_sum.A == full_sum.A)
 
     def test_transpose(self):
         """
