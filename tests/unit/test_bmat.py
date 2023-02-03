@@ -5,7 +5,7 @@ import pygeon as pg
 import scipy.sparse as sps
 
 
-class DummyTest(unittest.TestCase):
+class BlockMatrixTest(unittest.TestCase):
     def create_block_mat(self):
         """
         Creates a single block matrix for testing
@@ -22,6 +22,23 @@ class DummyTest(unittest.TestCase):
         M[[0, 1, 2], [0, 1, 2]] = None
 
         return M
+
+    def test_row_col_lengths(self):
+        """
+        Test the row and column lengths of a known matrix
+        with a row of Nones.
+        """
+
+        M = np.empty(shape=(4, 3), dtype=sps.spmatrix)
+        M[np.ix_([0, 1, 2], [0, 1, 2])] = self.create_block_mat()
+
+        row, col = pg.bmat.find_row_col_lengths(M)
+
+        known_row = np.array([1, 2, 3, 0])
+        known_col = np.array([1, 2, 3])
+
+        self.assertTrue(np.all(known_row == row))
+        self.assertTrue(np.all(known_col == col))
 
     def test_replace_nones(self):
         """
