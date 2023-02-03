@@ -16,7 +16,7 @@ class BlockMatrixTest(unittest.TestCase):
         # Fill matrix with matrices of different sizes
         for i in np.arange(M.shape[0]):
             for j in np.arange(M.shape[1]):
-                M[i, j] = (i + 2) * sps.eye(i + 1, j + 1, format="csc")
+                M[i, j] = (i + 2 * j) * sps.eye(i + 1, j + 1, format="csc")
 
         # Put nones on the diagonal
         M[[0, 1, 2], [0, 1, 2]] = None
@@ -49,10 +49,10 @@ class BlockMatrixTest(unittest.TestCase):
 
         M_known = np.array(
             [
-                [0.0, 2.0, 0.0, 2.0, 0.0, 0.0],
-                [3.0, 0.0, 0.0, 3.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0, 0.0, 3.0, 0.0],
-                [4.0, 4.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 4.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 5.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 5.0, 0.0],
+                [2.0, 4.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 4.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             ]
