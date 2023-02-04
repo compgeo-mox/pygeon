@@ -12,10 +12,10 @@ def replace_nones_with_zeros(M: np.ndarray):
     if None not in M:
         return
 
-    # Otherwise, we first find the right shapes
+    # Otherwise, we retrieve the row and column lengths for the shapes
     row_lengths, col_lengths = find_row_col_lengths(M)
 
-    # and then we replace each None that we find with a coo_matrix
+    # We then replace each None with a coo_matrix
     for (i, j), block in np.ndenumerate(M):
         if block is None:
             M[i, j] = sps.coo_matrix((row_lengths[i], col_lengths[j]))
