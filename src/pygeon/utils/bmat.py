@@ -44,12 +44,11 @@ def transpose(M: np.ndarray):
     because M.T does not transpose the blocks themselves.
     """
 
-    # Make sure there are no Nones
-    replace_nones_with_zeros(M)
+    # Initialize and loop through all blocks
+    M_T = np.empty_like(M.T)
 
-    # Loop through all the blocks
-    M_T = np.empty_like(M)
     for (i, j), block in np.ndenumerate(M):
-        M_T[j, i] = block.T
+        if block is not None:
+            M_T[j, i] = block.T
 
     return M_T
