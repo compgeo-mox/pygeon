@@ -70,11 +70,12 @@ def peak_mass(mdg, discr=None, **kwargs):
 # ---------------------------------- General ---------------------------------- #
 
 
-def default_discr(sd, n_minus_k, keyword="flow"):
+def default_discr(sd, n_minus_k, **kwargs):
     """
     Construct the default discretization operator depending on n_minus_k.
     These correspond to the Whitney forms.
     """
+    keyword = kwargs.get("keyword", "flow")
     if n_minus_k == 0:
         return pg.PwConstants(keyword)
     elif n_minus_k == 1:
@@ -216,6 +217,6 @@ def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
         return sps.csc_matrix((0, 0))
 
     if discr is None:
-        discr = default_discr(sd, n_minus_k)
+        discr = default_discr(sd, n_minus_k, **kwargs)
 
     return discr.assemble_lumped_matrix(sd, data)
