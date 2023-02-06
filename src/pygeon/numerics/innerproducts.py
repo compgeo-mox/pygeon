@@ -128,19 +128,16 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
         discr (pp discretization object).
         data (dict): the data object associated to the grid.
         local_matrix (function): function that generates the local mass matrix on a grid
+        kwargs: Optional parameters
+            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
+            sps_format: Format of the sparse matrix when converted. Delfault csc.
 
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
-    bmats = mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix, **kwargs)
+    to_sparse = kwargs.get("to_sparse", True)
+    sps_format = kwargs.get("sps_format", "csc")
 
-    return np.sum([sps.bmat(bmat, format="csc") for bmat in bmats])
-
-
-def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
-    """
-    Computes the block matrices of the mass matrix
-    """
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
@@ -170,13 +167,18 @@ def mass_matrix_bmats(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs
                 * intf.signed_mortar_to_primary.T
             )
 
-    return bmat_sd, bmat_mg
+    pg.bmat.replace_nones_with_zeros(bmat_sd)
+    pg.bmat.replace_nones_with_zeros(bmat_mg)
 
+    # create the full block matrix
+    bmat = bmat_sd + bmat_mg
+
+    return sps.bmat(bmat, format=sps_format) if to_sparse else bmat
 
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_mass_matrix(mdg, n_minus_k, discr=None):
+def lumped_mass_matrix(mdg, n_minus_k, discr=None, **kwargs):
     """
     Compute the mass-lumped mass matrix on a mixed-dimensional grid
 
@@ -185,12 +187,15 @@ def lumped_mass_matrix(mdg, n_minus_k, discr=None):
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
         discr (pp discretization object).
+        kwargs: Optional parameters
+            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
+            sps_format: Format of the sparse matrix when converted. Delfault csc.
 
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
 
-    return mass_matrix(mdg, n_minus_k, discr, _sd_lumped_mass)
+    return mass_matrix(mdg, n_minus_k, discr, _sd_lumped_mass, **kwargs)
 
 
 def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
