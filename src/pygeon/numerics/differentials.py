@@ -13,49 +13,58 @@ Acknowledgements:
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def div(grid):
+def div(grid, **kwargs):
     """
     Compute the divergence.
 
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        kwargs: Optional parameters
+            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
+            sps_format: Format of the sparse matrix when converted. Delfault csc.
 
     Returns:
         sps.csr_matrix. The divergence operator.
     """
-    return exterior_derivative(grid, 1)
+    return exterior_derivative(grid, 1, **kwargs)
 
 
-def curl(grid):
+def curl(grid, **kwargs):
     """
     Compute the curl.
 
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        kwargs: Optional parameters
+            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
+            sps_format: Format of the sparse matrix when converted. Delfault csc.
 
     Returns:
         sps.csr_matrix. The curl operator.
     """
-    return exterior_derivative(grid, 2)
+    return exterior_derivative(grid, 2, **kwargs)
 
 
-def grad(grid):
+def grad(grid, **kwargs):
     """
     Compute the gradient.
 
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        kwargs: Optional parameters
+            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
+            sps_format: Format of the sparse matrix when converted. Delfault csc.
 
     Returns:
         sps.csr_matrix. The gradient operator.
     """
-    return exterior_derivative(grid, 3)
+    return exterior_derivative(grid, 3, **kwargs)
 
 
 # --------------------------- MD exterior derivative --------------------------- #
 
 
-def exterior_derivative(grid, n_minus_k):
+def exterior_derivative(grid, n_minus_k, **kwargs):
     """
     Compute the (mixed-dimensional) exterior derivative for the differential forms of
     order n - k.
@@ -70,10 +79,10 @@ def exterior_derivative(grid, n_minus_k):
     """
 
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
-        return _g_exterior_derivative(grid, n_minus_k)
+        return _g_exterior_derivative(grid, n_minus_k, **kwargs)
 
     elif isinstance(grid, pp.MixedDimensionalGrid):
-        return _mdg_exterior_derivative(grid, n_minus_k)
+        return _mdg_exterior_derivative(grid, n_minus_k, **kwargs)
 
     else:
         raise TypeError(
@@ -81,7 +90,7 @@ def exterior_derivative(grid, n_minus_k):
         )
 
 
-def _g_exterior_derivative(grid, n_minus_k):
+def _g_exterior_derivative(grid, n_minus_k, **kwargs):
     """
     Compute the exterior derivative on a grid.
 
@@ -109,7 +118,7 @@ def _g_exterior_derivative(grid, n_minus_k):
         return sps.csr_matrix((0, 0))
 
 
-def _mdg_exterior_derivative(mdg, n_minus_k):
+def _mdg_exterior_derivative(mdg, n_minus_k, **kwargs):
     """
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
@@ -117,7 +126,12 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
         grid (pp.MixedDimensionalGrid): The grid bucket.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
+        kwargs: Optional parameters
+            to_sparse: Convert to a sparse matrix from sparse sub-blocks. Default True.
+            sps_format: Format of the sparse matrix when converted. Delfault csc.
     """
+    to_sparse = kwargs.get("to_sparse", True)
+    sps_format = kwargs.get("sps_format", "csc")
 
     # Pre-allocation of the block-matrix
     bmat = np.empty(
@@ -125,8 +139,8 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
     )
 
     # Compute local differential operator
-    for (id, sd) in enumerate(mdg.subdomains()):
-        bmat[id, id] = exterior_derivative(sd, n_minus_k)
+    for (idx, sd) in enumerate(mdg.subdomains()):
+        bmat[idx, idx] = exterior_derivative(sd, n_minus_k)
 
     # Compute mixed-dimensional jump operator
     for intf in mdg.interfaces():
@@ -139,6 +153,9 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
             # Place the jump term in the block-matrix
             bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)
 
-    return sps.bmat(bmat, format="csc") * pg.numerics.restrictions.zero_tip_dofs(
-        mdg, n_minus_k
-    )
+    pg.bmat.replace_nones_with_zeros(bmat)
+    # remove the tips
+    is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
+
+    bmat = sps.bmat(bmat, format=sps_format) if to_sparse else bmat
+    return bmat @ is_tip_dof
