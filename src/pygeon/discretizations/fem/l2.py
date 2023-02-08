@@ -33,7 +33,7 @@ class PwConstants(pg.Discretization):
             data: dictionary with possible scaling
 
         Returns
-            matrix: sparse csr (sd.num_cells, sd.num_cells)
+            matrix: sparse csc (sd.num_cells, sd.num_cells)
         """
 
         return sps.diags(1 / sd.cell_volumes).tocsc()
@@ -56,7 +56,7 @@ class PwConstants(pg.Discretization):
             diff_matrix: the differential matrix.
         """
 
-        return sps.csr_matrix((0, self.ndof(sd)))
+        return sps.csc_matrix((0, self.ndof(sd)))
 
     def assemble_stiff_matrix(self, sd: pg.Grid, data):
         """
@@ -69,7 +69,7 @@ class PwConstants(pg.Discretization):
             diff_matrix: the differential matrix.
         """
 
-        return sps.csr_matrix((self.ndof(sd), self.ndof(sd)))
+        return sps.csc_matrix((self.ndof(sd), self.ndof(sd)))
 
     def interpolate(self, sd: pg.Grid, func):
         """

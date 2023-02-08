@@ -38,7 +38,7 @@ class Nedelec0(pg.Discretization):
 
         Returns
         ------
-        matrix: sparse csr (sd.num_ridges, sd.num_ridges)
+        matrix: sparse csc (sd.num_ridges, sd.num_ridges)
             Matrix obtained from the discretization.
 
         """
@@ -91,7 +91,7 @@ class Nedelec0(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_inner_product(self, dim):
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
@@ -148,7 +148,7 @@ class Nedelec0(pg.Discretization):
             idx += Psi.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError
@@ -240,7 +240,7 @@ class Nedelec1(pg.Discretization):
                 idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def proj_to_Ne0(self, sd: pg.Grid):
         return sps.hstack([sps.eye(sd.num_ridges), -sps.eye(sd.num_ridges)]) / 2
@@ -309,7 +309,7 @@ class Nedelec1(pg.Discretization):
             idx += Ne_basis.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError

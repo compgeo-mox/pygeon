@@ -108,7 +108,7 @@ class RT0(pg.Discretization, pp.RT0):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
         return sd.cell_faces.T
 
@@ -269,7 +269,7 @@ class BDM1(pg.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
         RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
