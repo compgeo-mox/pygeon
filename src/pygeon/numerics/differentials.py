@@ -20,8 +20,7 @@ def div(grid, **kwargs):
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
-            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
-            sps_format: Format of the sparse matrix when converted. Delfault csc.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
 
     Returns:
         sps.csr_matrix. The divergence operator.
@@ -36,8 +35,7 @@ def curl(grid, **kwargs):
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
-            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
-            sps_format: Format of the sparse matrix when converted. Delfault csc.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
 
     Returns:
         sps.csr_matrix. The curl operator.
@@ -52,8 +50,7 @@ def grad(grid, **kwargs):
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
-            to_sparse: In case of mixed-dimensional, convert to a sparse matrix from sparse sub-blocks. Default True.
-            sps_format: Format of the sparse matrix when converted. Delfault csc.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
 
     Returns:
         sps.csr_matrix. The gradient operator.
@@ -127,11 +124,9 @@ def _mdg_exterior_derivative(mdg, n_minus_k, **kwargs):
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
         kwargs: Optional parameters
-            to_sparse: Convert to a sparse matrix from sparse sub-blocks. Default True.
-            sps_format: Format of the sparse matrix when converted. Delfault csc.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
     """
-    to_sparse = kwargs.get("to_sparse", True)
-    sps_format = kwargs.get("sps_format", "csc")
+    as_bmat = kwargs.get("as_bmat", False)
 
     # Pre-allocation of the block-matrix
     bmat = np.empty(
@@ -157,5 +152,5 @@ def _mdg_exterior_derivative(mdg, n_minus_k, **kwargs):
     # remove the tips
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
-    bmat = sps.bmat(bmat, format=sps_format) if to_sparse else bmat
+    bmat = bmat if as_bmat else sps.bmat(bmat, format="csc")
     return bmat @ is_tip_dof

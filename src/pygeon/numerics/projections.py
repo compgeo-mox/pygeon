@@ -1,7 +1,7 @@
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
-
+import pygeon as pg
 
 def eval_at_cell_centers(mdg, discr=None, **kwargs):
     """
@@ -12,12 +12,9 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
         discr: The discretization used for th evaluation, if not provided a standard discretization is used. Default to
         None.
         kwargs: Optional parameters
-            to_sparse: Convert to a sparse matrix from sparse sub-blocks. Default True.
-            sps_format: Format of the sparse matrix when converted. Delfault csc.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
     """
-
-    to_sparse = kwargs.get("to_sparse", True)
-    sps_format = kwargs.get("sps_format", "csc")
+    as_bmat = kwargs.get("as_bmat", False)
 
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
@@ -28,7 +25,7 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
         bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
-    return sps.bmat(bmat_sd, format=sps_format) if to_sparse else bmat_sd
+    return bmat_sd if as_bmat else sps.bmat(bmat_sd, format="csc")
 
 
 def proj_faces_to_cells(mdg, discr=None, **kwargs):
@@ -40,12 +37,9 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
         discr: The discretization used for th evaluation, if not provided a standard discretization is used. Default to
         None.
         kwargs: Optional parameters
-            to_sparse: Convert to a sparse matrix from sparse sub-blocks. Default True.
-            sps_format: Format of the sparse matrix when converted. Delfault csc.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
     """
-
-    to_sparse = kwargs.get("to_sparse", True)
-    sps_format = kwargs.get("sps_format", "csc")
+    as_bmat = kwargs.get("as_bmat", False)
 
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
@@ -62,4 +56,4 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
         ]
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
-    return sps.bmat(bmat_sd, format=sps_format) if to_sparse else bmat_sd
+    return bmat_sd if as_bmat else sps.bmat(bmat_sd, format="csc")

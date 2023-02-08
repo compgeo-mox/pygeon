@@ -12,12 +12,12 @@ def zero_tip_dofs(mdg, n_minus_k, **kwargs):
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
         kwargs: Optional parameters
-            to_sparse: Convert to a sparse matrix from sparse sub-blocks. Default True.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
 
     Returns:
         sps.dia_matrix
     """
-    to_sparse = kwargs.get("to_sparse", True)
+    as_bmat = kwargs.get("as_bmat", False)
 
     if n_minus_k == 0:
         return sps.diags(np.ones(mdg.num_subdomain_cells()), dtype=int)
@@ -38,7 +38,7 @@ def zero_tip_dofs(mdg, n_minus_k, **kwargs):
             )
 
     pg.bmat.replace_nones_with_zeros(is_tip_dof)
-    return sps.bmat(is_tip_dof) if to_sparse else is_tip_dof
+    return is_tip_dof if as_bmat else sps.bmat(is_tip_dof)
 
 
 def remove_tip_dofs(mdg, n_minus_k, **kwargs):
