@@ -1,4 +1,3 @@
-git+https://github.com/pmgbergen/porepy.git
 meshio>=5.0
 networkx
 numpy
