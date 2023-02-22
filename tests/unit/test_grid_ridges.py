@@ -132,7 +132,7 @@ class GridRidgesTest(unittest.TestCase):
             return network.mesh(mesh_args)
 
         def known_face_ridges():
-            data = np.array([-1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1])
+            data = np.array([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1])
             indices = np.array(
                 [0, 6, 1, 7, 5, 11, 12, 17, 16, 21, 22, 27, 26, 31, 35, 39]
             )
@@ -241,18 +241,13 @@ class GridRidgesTest(unittest.TestCase):
             [
                 -1,
                 1,
-                1,
-                -1,
-                1,
-                -1,
                 -1,
                 1,
                 -1,
                 1,
-                1,
-                -1,
                 -1,
                 1,
+                -1,
                 1,
                 -1,
                 1,
@@ -261,16 +256,21 @@ class GridRidgesTest(unittest.TestCase):
                 -1,
                 1,
                 -1,
-                -1,
-                1,
-                1,
-                -1,
-                -1,
-                1,
                 1,
                 -1,
                 1,
                 -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
             ]
         )
         indices = np.array(
@@ -1156,5 +1156,4 @@ class GridRidgesTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()
