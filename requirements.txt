@@ -8,3 +8,6 @@ future
 six
 numba>=0.53.0
 gmsh
+shapely
+shapely[vectorized]
+
