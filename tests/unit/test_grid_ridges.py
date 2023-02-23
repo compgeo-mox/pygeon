@@ -95,7 +95,8 @@ class GridRidgesTest(unittest.TestCase):
             p = np.array([[0.0, 1.0], [0.5, 0.5]])
             e = np.array([[0], [1]])
 
-            domain = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
+            bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
+            domain = pp.Domain(bounding_box=bbox)
             network = pp.FractureNetwork2d(p, e, domain)
             mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
@@ -123,14 +124,15 @@ class GridRidgesTest(unittest.TestCase):
                 np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
             )
 
-            domain = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
+            bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
+            domain = pp.Domain(bounding_box=bbox)
             network = pp.FractureNetwork3d([f_1], domain=domain)
             mesh_args = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
             return network.mesh(mesh_args)
 
         def known_face_ridges():
-            data = np.array([-1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, -1, 1, 1, -1])
+            data = np.array([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1])
             indices = np.array(
                 [0, 6, 1, 7, 5, 11, 12, 17, 16, 21, 22, 27, 26, 31, 35, 39]
             )
@@ -163,7 +165,8 @@ class GridRidgesTest(unittest.TestCase):
                 np.array([[0, 1, 1, 0], [0.5, 0.5, 0.5, 0.5], [0, 0, 1, 1]])
             )
 
-            domain = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
+            bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
+            domain = pp.Domain(bounding_box=bbox)
             network = pp.FractureNetwork3d([f_1, f_2], domain=domain)
             mesh_args = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
@@ -238,18 +241,13 @@ class GridRidgesTest(unittest.TestCase):
             [
                 -1,
                 1,
-                1,
-                -1,
-                1,
-                -1,
                 -1,
                 1,
                 -1,
                 1,
-                1,
-                -1,
                 -1,
                 1,
+                -1,
                 1,
                 -1,
                 1,
@@ -258,16 +256,21 @@ class GridRidgesTest(unittest.TestCase):
                 -1,
                 1,
                 -1,
-                -1,
-                1,
-                1,
-                -1,
-                -1,
-                1,
                 1,
                 -1,
                 1,
                 -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
+                -1,
+                1,
             ]
         )
         indices = np.array(
@@ -1153,5 +1156,4 @@ class GridRidgesTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()
