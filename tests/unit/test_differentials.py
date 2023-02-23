@@ -28,8 +28,8 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((0, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -47,38 +47,38 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         # fmt: off
         known_div = np.array([
-        [ 1.,  0.,  1.,  0.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
-        [ 0.,  1., -1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0., -1., -1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.,  0.,  0.,  0., -1.,  0.,  1.,  0.,  1.,  0.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  1., -1.,  0.,  0.,  0.,  0.,  1.,  0.],
-        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0., -1.,  0.,  1.,  1.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0., -1., -1.,  0.,  0.,  1.]])
+        [ 1.,  0., -1.,  0.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [ 0., -1.,  1.,  0.,  0.,  0.,  0., -1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [ 0.,  0.,  0.,  1.,  0., -1.,  1.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [ 0.,  0.,  0.,  0., -1.,  1.,  0.,  0.,  0.,  0., -1.,  0.,  0.,  0.,  0.,  0.],
+        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  1.,  0., -1.,  0.,  1.,  0.,  0.,  0.,  0.],
+        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0., -1.,  1.,  0.,  0.,  0.,  0., -1.,  0.],
+        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  1.,  0., -1.,  1.,  0.,  0.],
+        [ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0., -1.,  1.,  0.,  0., -1.]])
 
         known_curl = np.array([
         [-1,  1,  0,  0,  0,  0,  0,  0,  0],
-        [ 1,  0,  0, -1,  0,  0,  0,  0,  0],
-        [ 1,  0,  0,  0, -1,  0,  0,  0,  0],
+        [-1,  0,  0,  1,  0,  0,  0,  0,  0],
+        [-1,  0,  0,  0,  1,  0,  0,  0,  0],
         [ 0, -1,  1,  0,  0,  0,  0,  0,  0],
         [ 0, -1,  0,  0,  1,  0,  0,  0,  0],
-        [ 0,  1,  0,  0,  0, -1,  0,  0,  0],
+        [ 0, -1,  0,  0,  0,  1,  0,  0,  0],
         [ 0,  0, -1,  0,  0,  1,  0,  0,  0],
-        [ 0,  0,  0,  1, -1,  0,  0,  0,  0],
-        [ 0,  0,  0,  1,  0,  0, -1,  0,  0],
-        [ 0,  0,  0,  1,  0,  0,  0, -1,  0],
-        [ 0,  0,  0,  0,  1, -1,  0,  0,  0],
+        [ 0,  0,  0, -1,  1,  0,  0,  0,  0],
+        [ 0,  0,  0, -1,  0,  0,  1,  0,  0],
+        [ 0,  0,  0, -1,  0,  0,  0,  1,  0],
+        [ 0,  0,  0,  0, -1,  1,  0,  0,  0],
         [ 0,  0,  0,  0, -1,  0,  0,  1,  0],
-        [ 0,  0,  0,  0,  1,  0,  0,  0, -1],
+        [ 0,  0,  0,  0, -1,  0,  0,  0,  1],
         [ 0,  0,  0,  0,  0, -1,  0,  0,  1],
-        [ 0,  0,  0,  0,  0,  0,  1, -1,  0],
-        [ 0,  0,  0,  0,  0,  0,  0,  1, -1]])
+        [ 0,  0,  0,  0,  0,  0, -1,  1,  0],
+        [ 0,  0,  0,  0,  0,  0,  0, -1,  1]])
 
         known_grad = np.zeros((9, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -118,8 +118,8 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -137,8 +137,8 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_simplicial_grid()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -156,8 +156,8 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_cartesian_grid()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
