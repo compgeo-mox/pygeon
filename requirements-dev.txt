@@ -1,9 +1,9 @@
+black == 22.*
+deepdiff
+flake8
+isort
+mypy >= 0.981
 pytest >= 4.6
 pytest-cov
 pytest-runner
-flake8
-mypy
-black == 22.6.0
-isort
-typing_extensions
-deepdiff
+
