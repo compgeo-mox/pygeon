@@ -6,7 +6,7 @@ networkx
 numba >= 0.56.3
 numpy
 requests
-scipy <= 1.9.3
+scipy
 shapely
 shapely[vectorized]
 six
