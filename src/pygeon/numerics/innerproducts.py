@@ -148,7 +148,8 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
         bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_sd[nn_sd, nn_sd].shape)
 
     # Mortar contribution
-    if n_minus_k == 1:
+    trace_contribution = kwargs.get("trace_contribution", True)
+    if n_minus_k == 1 and trace_contribution:
         for intf, d_intf in mdg.interfaces(return_data=True):
             # Get the node number of the upper-dimensional neighbor
             sd = mdg.interface_to_subdomain_pair(intf)[0]
