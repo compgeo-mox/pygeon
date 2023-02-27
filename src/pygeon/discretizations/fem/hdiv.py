@@ -395,7 +395,7 @@ class BDM1(pg.Discretization):
             for node in nodes_uniq:
                 bf_is_at_node = dof_loc.flatten() == node
                 basis = Bdm_basis[:, bf_is_at_node]
-                A = basis.T @ basis # PUT INV PERM HERE
+                A = basis.T @ basis  # PUT INV PERM HERE
                 A *= sd.cell_volumes[c] / (sd.dim + 1)
 
                 loc_ind = Bdm_indices[bf_is_at_node]
