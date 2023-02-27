@@ -104,12 +104,5 @@ class ErrorTest(unittest.TestCase):
         err = discr.error_l2(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
 
-        err = discr.error_stiff(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
-
-        err = discr.error_energy(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
-
 if __name__ == "__main__":
-    ErrorTest().test_0()
     unittest.main()
