@@ -39,9 +39,9 @@ class ErrorTest(unittest.TestCase):
             return np.array([pt[0] + 2 * pt[1], 2 * pt[0] + pt[1], 0])
 
         # fmt: off
-        int_sol = np.array([-1., -1.,  0., -3.,  2.,  1., -5.,  3.,  2.,  4.,  2., -3., -1.,
-        4.,  4.,  0.,  6.,  5.,  1.,  6.,  3., -5., -2.,  5.,  6., -1.,
-        7.,  7.,  0.,  8.,  4.,  6.,  8.])
+        int_sol = np.array([-1.,  1.,  0., -3.,  2., -1., -5.,  3., -2.,  4., -2.,  3.,  1.,
+       -4.,  4.,  0., -6.,  5., -1.,  6., -3.,  5.,  2., -5.,  6.,  1.,
+       -7.,  7.,  0.,  8., -4., -6., -8.])
         # fmt: on
 
         discr = pg.RT0("flow")
@@ -49,14 +49,11 @@ class ErrorTest(unittest.TestCase):
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
         self.assertTrue(np.isclose(err, 1))
 
+        err = discr.error_l2(sd, int_sol, fun, etype="standard")
+        self.assertTrue(np.isclose(err, 0))
+
         err = discr.error_l2(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
-
-        err = discr.error_stiff(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
-
-        err = discr.error_energy(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
+        self.assertTrue(np.isclose(err, 0.06859943405700351))
 
     def test_2(self):
         sd = pp.StructuredTetrahedralGrid(3 * [3])
@@ -103,6 +100,7 @@ class ErrorTest(unittest.TestCase):
 
         err = discr.error_l2(sd, int_sol, fun)
         self.assertTrue(np.isclose(err, 0))
+
 
 if __name__ == "__main__":
     unittest.main()
