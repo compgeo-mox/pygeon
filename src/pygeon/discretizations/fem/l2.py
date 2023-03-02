@@ -113,3 +113,39 @@ class PwConstants(pg.Discretization):
         """
 
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
+
+    def error_l2(self, sd, num_sol, ana_sol, relative=True, etype="specific"):
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+
+        Args
+            sd: grid, or a subclass.
+            num_sol: np.array, vector of the numerical solution
+            ana_sol: callable, function that represent the analytical solution
+            relative=True: boolean, compute the relative error or not
+            etype="specific": string, type of error computed.
+
+        Returns
+            error: the error computed.
+
+        """
+        if etype == "standard":
+            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
+
+        int_sol = np.array([ana_sol(x) for x in sd.nodes.T])
+        proj = self.eval_at_cell_centers(sd)
+        num_sol = proj * num_sol
+
+        norm = self._cell_error(sd, np.zeros_like(num_sol), int_sol) if relative else 1
+        return self._cell_error(sd, num_sol, int_sol) / norm
+
+    def _cell_error(self, sd, num_sol, int_sol):
+        cell_nodes = sd.cell_nodes()
+        err = 0
+        for c in np.arange(sd.num_cells):
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+            nodes_loc = cell_nodes.indices[loc]
+            diff = int_sol[nodes_loc] - num_sol[c]
+
+            err += sd.cell_volumes[c] * diff @ diff.T
+        return np.sqrt(err / (sd.dim + 1))

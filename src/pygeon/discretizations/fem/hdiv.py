@@ -164,6 +164,34 @@ class RT0(pg.Discretization, pp.RT0):
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
 
+    def error_l2(self, sd, num_sol, ana_sol, relative=True, etype="specific"):
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+
+        Args
+            sd: grid, or a subclass.
+            num_sol: np.array, vector of the numerical solution
+            ana_sol: callable, function that represent the analytical solution
+            relative=True: boolean, compute the relative error or not
+            etype="specific": string, type of error computed.
+
+        Returns
+            error: the error computed.
+
+        """
+        if etype == "standard":
+            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
+
+        proj = self.eval_at_cell_centers(sd)
+        int_sol = np.vstack([ana_sol(x).T for x in sd.cell_centers.T]).T
+        num_sol = (proj * num_sol).reshape((3, -1), order="F")
+
+        D = sps.diags(sd.cell_volumes)
+        norm = np.trace(int_sol @ D @ int_sol.T) if relative else 1
+
+        diff = num_sol - int_sol
+        return np.sqrt(np.trace(diff @ D @ diff.T) / norm)
+
 
 class BDM1(pg.Discretization):
     def ndof(self, sd: pp.Grid) -> int:
@@ -367,7 +395,7 @@ class BDM1(pg.Discretization):
             for node in nodes_uniq:
                 bf_is_at_node = dof_loc.flatten() == node
                 basis = Bdm_basis[:, bf_is_at_node]
-                A = basis.T @ basis
+                A = basis.T @ basis  # PUT INV PERM HERE
                 A *= sd.cell_volumes[c] / (sd.dim + 1)
 
                 loc_ind = Bdm_indices[bf_is_at_node]
