@@ -16,7 +16,7 @@ from pygeon.discretizations.fem.h1 import Lagrange1
 from pygeon.discretizations.fem.l2 import PwConstants
 
 from pygeon.numerics.differentials import grad, curl, div
-from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass
+from pygeon.numerics.innerproducts import cell_mass, face_mass, ridge_mass, peak_mass, default_discr
 from pygeon.numerics.stiffness import cell_stiff, face_stiff, ridge_stiff, peak_stiff
 from pygeon.numerics.restrictions import remove_tip_dofs
 from pygeon.numerics.linear_system import LinearSystem
