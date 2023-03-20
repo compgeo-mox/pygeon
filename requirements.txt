@@ -12,4 +12,4 @@ shapely[vectorized]
 six
 sympy
 typing_extensions
-git+https://github.com/pmgbergen/porepy.git@develop
+porepy @ git+https://github.com/pmgbergen/porepy.git@develop
