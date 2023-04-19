@@ -178,6 +178,9 @@ class Lagrange1(pg.Discretization):
 
     def eval_at_cell_centers(self, sd: pg.Grid):
 
+        if sd.dim == 0:
+            return sd.cell_nodes().T.tocsc()
+
         # Allocation
         size = (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -190,6 +193,7 @@ class Lagrange1(pg.Discretization):
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+
             nodes_loc = cell_nodes.indices[loc]
 
             loc_idx = slice(idx, idx + nodes_loc.size)
