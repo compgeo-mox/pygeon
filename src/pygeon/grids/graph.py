@@ -103,7 +103,7 @@ class Graph(pp.Grid):
         data_IJ = np.zeros(n)
 
         ind = 0
-        for (i_c, cycle) in enumerate(cb):
+        for i_c, cycle in enumerate(cb):
             for i in np.arange(len(cycle)):
                 start = cycle[i - 1]
                 stop = cycle[i]

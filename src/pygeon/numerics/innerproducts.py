@@ -143,7 +143,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     bmat_mg = bmat_sd.copy()
 
     # Local mass matrices
-    for (nn_sd, (sd, d_sd)) in enumerate(mdg.subdomains(return_data=True)):
+    for nn_sd, (sd, d_sd) in enumerate(mdg.subdomains(return_data=True)):
         bmat_sd[nn_sd, nn_sd] = local_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
         bmat_mg[nn_sd, nn_sd] = sps.csc_matrix(bmat_sd[nn_sd, nn_sd].shape)
 
@@ -174,6 +174,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     bmat = bmat_sd + bmat_mg
 
     return bmat if as_bmat else sps.bmat(bmat, format="csc")
+
 
 # ---------------------------------- Lumped ---------------------------------- #
 

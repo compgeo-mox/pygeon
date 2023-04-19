@@ -52,7 +52,7 @@ class MortarGrid(pp.MortarGrid):
             R = pp.map_geometry.project_plane_matrix(sd_down.nodes)
             normal_to_sd_down = np.dot(R.T, [0, 0, 1])
 
-        for (face_up, cell_down) in zip(*sps.find(self.cell_faces)[:-1]):
+        for face_up, cell_down in zip(*sps.find(self.cell_faces)[:-1]):
             # Faces of cell in lower-dim grid
             cf_down = sd_down.cell_faces
             faces_down = cf_down.indices[
