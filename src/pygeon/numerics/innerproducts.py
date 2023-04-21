@@ -1,7 +1,8 @@
 import numpy as np
 import porepy as pp
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 # ---------------------------------- Aliases ---------------------------------- #
 
