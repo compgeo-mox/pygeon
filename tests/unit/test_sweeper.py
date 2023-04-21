@@ -12,14 +12,14 @@ class SweeperUnitTest(unittest.TestCase):
         f = np.arange(sd.num_cells)
         q_f = swp.sweep(f)
 
-        self.assertTrue(np.allclose(pg.div(sd) @ q_f, f))
+        self.assertTrue(np.allclose(pg.cell_mass(sd) @ pg.div(sd) @ q_f, f))
 
     def check_mdg(self, mdg):
         swp = pg.Sweeper(mdg)
         f = np.arange(mdg.num_subdomain_cells())
         q_f = swp.sweep(f)
 
-        self.assertTrue(np.allclose(pg.div(mdg) @ q_f, f))
+        self.assertTrue(np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f))
 
     def test_cart_grid(self):
         N = 3
@@ -41,8 +41,11 @@ class SweeperUnitTest(unittest.TestCase):
         self.check(sd)
 
     def test_2d_mdg(self):
-        grids = [pp.md_grids_2d.single_horizontal,
-                 pp.md_grids_2d.single_vertical, pp.md_grids_2d.two_intersecting]
+        grids = [
+            pp.md_grids_2d.single_horizontal,
+            pp.md_grids_2d.single_vertical,
+            pp.md_grids_2d.two_intersecting,
+        ]
 
         for g in grids:
             mdg, _ = g()
