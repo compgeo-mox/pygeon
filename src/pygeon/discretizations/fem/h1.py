@@ -19,7 +19,7 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data=None):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Returns the mass matrix for the lowest order Lagrange element
 

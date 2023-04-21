@@ -38,7 +38,7 @@ class PwConstants(pg.Discretization):
 
         return sps.diags(1 / sd.cell_volumes).tocsc()
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Computes the lumped mass matrix, which coincides with the mass matrix for P0.
         """
@@ -58,7 +58,7 @@ class PwConstants(pg.Discretization):
 
         return sps.csc_matrix((0, self.ndof(sd)))
 
-    def assemble_stiff_matrix(self, sd: pg.Grid, data):
+    def assemble_stiff_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Returns a zero matrix.
 
@@ -71,7 +71,7 @@ class PwConstants(pg.Discretization):
 
         return sps.csc_matrix((self.ndof(sd), self.ndof(sd)))
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(self, sd: pg.Grid, func: callable):
         """
         Interpolates a function onto the finite element space
 
@@ -114,7 +114,7 @@ class PwConstants(pg.Discretization):
 
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
-    def error_l2(self, sd, num_sol, ana_sol, relative=True, etype="specific"):
+    def error_l2(self, sd: pg.Grid, num_sol, ana_sol, relative=True, etype="specific"):
         """
         Returns the l2 error computed against an analytical solution given as a function.
 
