@@ -93,11 +93,12 @@ class GridRidgesTest(unittest.TestCase):
     def test_mdg_2d(self):
         def setup_problem():
             p = np.array([[0.0, 1.0], [0.5, 0.5]])
-            e = np.array([[0], [1]])
+
+            fracs = [pp.LineFracture(p)]
 
             bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
             domain = pp.Domain(bounding_box=bbox)
-            network = pp.FractureNetwork2d(p, e, domain)
+            network = pp.FractureNetwork2d(fracs, domain)
             mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
             return network.mesh(mesh_kwargs)

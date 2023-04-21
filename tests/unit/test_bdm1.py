@@ -93,7 +93,6 @@ class BDM1Test(unittest.TestCase):
         self.linear_distribution_test(sd)
 
     def linear_distribution_test(self, sd):
-
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
@@ -144,5 +143,4 @@ class BDM1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()
