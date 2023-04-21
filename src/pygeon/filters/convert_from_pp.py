@@ -16,3 +16,12 @@ def convert_from_pp(obj):
         obj.__class__ = pg.MixedDimensionalGrid
     else:
         raise TypeError
+
+
+def as_mdg(sd):
+    if isinstance(sd, pp.MixedDimensionalGrid):
+        return sd
+    elif isinstance(sd, pp.Grid):
+        return pp.meshing.subdomains_to_mdg([[sd]])
+    else:
+        raise ValueError

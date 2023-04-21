@@ -2,7 +2,7 @@
 
 from pygeon.filters.importer import graph_from_file
 import pygeon.geometry.transformation as transformation
-from pygeon.filters.convert_from_pp import convert_from_pp
+from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.filters.exporter import Exporter
 from pygeon.grids.graph import Graph
 from pygeon.grids.grid import Grid
