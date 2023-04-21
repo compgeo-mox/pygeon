@@ -9,8 +9,14 @@ class Sweeper():
     def __init__(self, sd) -> None:
         div_op = pg.div(sd)
 
-        starting_face = np.argmax(sd.tags["domain_boundary_faces"])
-        starting_cell = sd.cell_faces.tocsr()[starting_face, :].indices[0]
+        if isinstance(sd, pp.Grid):
+            starting_face = np.argmax(sd.tags["domain_boundary_faces"])
+        else:
+            sd_first = sd.subdomains()[0]
+            assert sd_first.dim == sd.dim_max()
+            starting_face = np.argmax(sd_first.tags["domain_boundary_faces"])
+
+        starting_cell = div_op.T.tocsr()[starting_face, :].indices[0]
 
         tree = sps.csgraph.breadth_first_tree(
             div_op @ div_op.T, starting_cell, directed=False)
@@ -21,12 +27,12 @@ class Sweeper():
         vals = np.ones_like(rows)
 
         face_finder = sps.csc_matrix((vals, (rows, cols)))
-        face_finder = np.abs(sd.cell_faces) @ face_finder
+        face_finder = np.abs(div_op.T) @ face_finder
         I, _, V = sps.find(face_finder)
 
         active_faces = I[V == 2]
 
-        flag = np.zeros(sd.num_faces, dtype=bool)
+        flag = np.zeros(div_op.shape[1], dtype=bool)
         flag[starting_face] = True
         flag[active_faces] = True
 
@@ -35,18 +41,3 @@ class Sweeper():
 
     def sweep(self, f) -> np.ndarray:
         return self.expand @ sps.linalg.spsolve(self.system, f)
-
-
-if __name__ == "__main__":
-    sd = pp.CartGrid([5] * 2)
-    pg.convert_from_pp(sd)
-
-    swp = Sweeper(sd)
-
-    f = np.random.rand(sd.num_cells)
-
-    q_f = swp.sweep(f)
-
-    div_op = pg.div(sd)
-
-    assert np.allclose(div_op @ q_f, f)
