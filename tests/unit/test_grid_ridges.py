@@ -1,9 +1,10 @@
 import unittest
-import numpy as np
 
+import numpy as np
 import porepy as pp
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 """
 Module contains a unit tests to validate the computation of ridges (co-dimension 2 from a cell).
