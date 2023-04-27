@@ -1,21 +1,21 @@
-import numpy as np
 import gmsh
+import numpy as np
 import porepy as pp
-
 from pygeon.filters.convert_from_pp import convert_from_pp
 
 
 def grid_2d_from_coords(coords, mesh_size, **kwargs):
     """
-    Create a bi-dimensional grid from a list of counter-clock wise ordered points and a mesh size.
-    The grid can be immersed in 3d but its coordinates must lie on a plane.
+    Create a bi-dimensional grid from a list of counter-clock wise ordered points and a
+    mesh size.     The grid can be immersed in 3d but its coordinates must lie on a plane.
 
     Parameters:
         coords (np.ndarray): ordered list of the coordinates, they must be num_points x 3
-        mesh_size (np.ndarray or double): if double is the mesh size associated to all the coordinates,
-            if np.ndarray the mesh size for each coordinate.
+        mesh_size (np.ndarray or double): if double is the mesh size associated to all the
+            coordinates, if np.ndarray the mesh size for each coordinate.
         kwargs: used parameters are
-            as_mdg (bool, default = True): to return the grid as a MixedDimensionalGrid (default) or Grid.
+            as_mdg (bool, default = True): to return the grid as a MixedDimensionalGrid
+                (default) or Grid.
             open_gmsh (bool, default = False): to open gmsh, useful for debugging
             file_name (str, default = "grid.msh"): file name of the gmsh file
 
@@ -44,7 +44,10 @@ def grid_2d_from_coords(coords, mesh_size, **kwargs):
         [gmsh.model.geo.addLine(p0, p1) for p0, p1 in zip(pts, np.roll(pts, -1))]
     )
     # add the created lines to a specific group requested by porepy
-    [_add_group(1, l, gmsh_flag.DOMAIN_BOUNDARY_LINE.value + str(l)) for l in lines]
+    [
+        _add_group(1, line, gmsh_flag.DOMAIN_BOUNDARY_LINE.value + str(line))
+        for line in lines
+    ]
 
     # construct the line loop from the lines and the domain from the line loop
     loop = gmsh.model.geo.addCurveLoop(lines)
@@ -80,8 +83,8 @@ def grid_unit_square(mesh_size, **kwargs):
     np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0, 0, 0, 0]])
 
     Parameters:
-        mesh_size (np.ndarray or double): if double is the mesh size associated to all the four coordinates,
-            if np.ndarray the mesh size for each coordinate.
+        mesh_size (np.ndarray or double): if double is the mesh size associated to
+            all the four coordinates, if np.ndarray the mesh size for each coordinate.
         kwargs: refer to the function grid_2d_from_coords
 
         Returns:
