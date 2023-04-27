@@ -1,11 +1,12 @@
 """ Module contains a unit test for the error computation.
 """
 import unittest
-import numpy as np
 
+import numpy as np
 import porepy as pp
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 class ErrorTest(unittest.TestCase):
