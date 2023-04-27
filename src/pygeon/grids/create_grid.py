@@ -1,5 +1,5 @@
-import gmsh
 import numpy as np
+import gmsh
 import porepy as pp
 from pygeon.filters.convert_from_pp import convert_from_pp
 
