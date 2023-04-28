@@ -125,7 +125,7 @@ def _mdg_exterior_derivative(mdg, n_minus_k):
     )
 
     # Compute local differential operator
-    for (id, sd) in enumerate(mdg.subdomains()):
+    for id, sd in enumerate(mdg.subdomains()):
         bmat[id, id] = exterior_derivative(sd, n_minus_k)
 
     # Compute mixed-dimensional jump operator
