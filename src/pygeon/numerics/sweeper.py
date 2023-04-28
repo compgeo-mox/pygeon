@@ -79,7 +79,8 @@ class Sweeper:
         Post-process the pressure by performing a transposed sweep.
 
         Parameters:
-            rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux - boundary terms.
+            rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
+                              minus boundary terms.
 
         Returns:
             np.ndarray: the post-processed pressure field
