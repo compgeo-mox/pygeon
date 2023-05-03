@@ -99,7 +99,7 @@ class GridRidgesTest(unittest.TestCase):
 
             bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
             domain = pp.Domain(bounding_box=bbox)
-            network = pp.FractureNetwork2d(fracs, domain)
+            network = pp.create_fracture_network(fracs, domain)
             mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
             return network.mesh(mesh_kwargs)
@@ -128,7 +128,7 @@ class GridRidgesTest(unittest.TestCase):
 
             bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
             domain = pp.Domain(bounding_box=bbox)
-            network = pp.FractureNetwork3d([f_1], domain=domain)
+            network = pp.create_fracture_network([f_1], domain=domain)
             mesh_args = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
             return network.mesh(mesh_args)
@@ -169,7 +169,7 @@ class GridRidgesTest(unittest.TestCase):
 
             bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
             domain = pp.Domain(bounding_box=bbox)
-            network = pp.FractureNetwork3d([f_1, f_2], domain=domain)
+            network = pp.create_fracture_network([f_1, f_2], domain=domain)
             mesh_args = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
             return network.mesh(mesh_args)
