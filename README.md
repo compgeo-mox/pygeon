@@ -4,7 +4,7 @@
 
 ## Installation for Linux
 
-PyGeoN requires Python >= 3.7
+PyGeoN requires Python >= 3.10
 
 Since for many functionalities PyGeoN depends on [PorePy](https://github.com/pmgbergen/porepy), we assume that the latter is accessible in your PYTHONPATH.
 
@@ -27,4 +27,4 @@ It might be useful to add PyGeoN to your PYTHONPATH.
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 
 ## License
-See 
+See
