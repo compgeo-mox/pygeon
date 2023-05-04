@@ -39,7 +39,7 @@ class DifferentialsTest(unittest.TestCase):
 
         bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
         domain = pp.Domain(bounding_box=bbox)
-        network = pp.FractureNetwork2d(fracs, domain)
+        network = pp.create_fracture_network(fracs, domain)
         mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
         mdg = network.mesh(mesh_kwargs)
