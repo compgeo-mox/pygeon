@@ -177,7 +177,6 @@ class Lagrange1(pg.Discretization):
         return sps.diags(volumes)
 
     def eval_at_cell_centers(self, sd: pg.Grid):
-
         # Allocation
         size = (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)

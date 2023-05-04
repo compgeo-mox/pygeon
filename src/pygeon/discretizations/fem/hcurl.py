@@ -74,7 +74,7 @@ class Nedelec0(pg.Discretization):
 
             # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
             Psi = np.empty((6, 4), np.ndarray)
-            for (ridge, peaks) in enumerate(indices.T):
+            for ridge, peaks in enumerate(indices.T):
                 Psi[ridge, peaks[0]] = dphi[:, peaks[1]]
                 Psi[ridge, peaks[1]] = -dphi[:, peaks[0]]
             Psi = sps.bmat(Psi)
@@ -108,7 +108,6 @@ class Nedelec0(pg.Discretization):
         return sd.face_ridges.T
 
     def eval_at_cell_centers(self, sd):
-
         # Allocation
         size = 6 * 3 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -137,7 +136,7 @@ class Nedelec0(pg.Discretization):
             dphi = pg.Lagrange1.local_grads(coords, sd.dim)
 
             Psi = np.zeros((3, 6))
-            for (ridge, peaks) in enumerate(indices.T):
+            for ridge, peaks in enumerate(indices.T):
                 Psi[:, ridge] = dphi[:, peaks[1]] - dphi[:, peaks[0]]
 
             # Put in the right spot
@@ -191,7 +190,6 @@ class Nedelec1(pg.Discretization):
         raise NotImplementedError
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
-
         # Allocation
         size = 9 * 4 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -253,7 +251,6 @@ class Nedelec1(pg.Discretization):
         return sps.bmat([[pg.curl(sd), -pg.curl(sd)]]) / 2
 
     def interpolate(self, sd: pg.Grid, func):
-
         tangents = sd.nodes * sd.ridge_peaks
 
         vals = np.zeros(self.ndof(sd))
@@ -269,7 +266,6 @@ class Nedelec1(pg.Discretization):
         return vals
 
     def eval_at_cell_centers(self, sd):
-
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 12 * 3 * sd.num_cells
