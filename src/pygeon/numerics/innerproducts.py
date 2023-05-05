@@ -70,7 +70,7 @@ def peak_mass(mdg, discr=None, **kwargs):
 # ---------------------------------- General ---------------------------------- #
 
 
-def default_discr(sd, n_minus_k, keyword="flow"):
+def default_discr(sd, n_minus_k, keyword="default"):
     """
     Construct the default discretization operator depending on n_minus_k.
     These correspond to the Whitney forms.
