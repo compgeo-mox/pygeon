@@ -15,6 +15,7 @@ def fracture_network_to_graph(network):
     else:
         return _fracture_network_to_graph_3d(network)
 
+
 def _fracture_network_to_graph_2d(network):
     """Represent the fracture set as a graph, using the networkx data structure.
 
@@ -48,6 +49,7 @@ def _fracture_network_to_graph_2d(network):
 
     return graph
 
+
 def _fracture_network_to_graph_2d(network):
     """Represent the fracture set as a graph, using the networkx data structure.
 
@@ -73,7 +75,9 @@ def _fracture_network_to_graph_2d(network):
         attrs[e] = {"dim": 2}
 
     # then add the intersection of fractures as graph node and set the graph edges
-    for idx, (first, second) in enumerate(zip(network.intersections["first"], network.intersections["second"])):
+    for idx, (first, second) in enumerate(
+        zip(network.intersections["first"], network.intersections["second"])
+    ):
         node_name = idx + num_frac
         # add the intersection as graph node
         graph.add_node(node_name)
