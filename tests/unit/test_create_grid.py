@@ -10,7 +10,7 @@ import pygeon as pg
 class StandardGridTest(unittest.TestCase):
     def test_unit_square(self):
         mesh_size = 0.5
-        sd = pg.grid_unitary(2, mesh_size, as_mdg=False)
+        sd = pg.unit_grid(2, mesh_size, as_mdg=False)
 
         self.assertTrue(np.isclose(sd.num_cells, 14))
         self.assertTrue(np.isclose(sd.num_faces, 25))
@@ -18,7 +18,7 @@ class StandardGridTest(unittest.TestCase):
 
     def test_unit_cube(self):
         mesh_size = 0.5
-        sd = pg.grid_unitary(3, mesh_size, as_mdg=False)
+        sd = pg.unit_grid(3, mesh_size, as_mdg=False)
 
         self.assertTrue(np.isclose(sd.num_cells, 100))
         self.assertTrue(np.isclose(sd.num_faces, 242))

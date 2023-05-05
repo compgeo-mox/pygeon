@@ -1,9 +1,9 @@
 import porepy as pp
 
-from pygeon.filters.convert_from_pp import convert_from_pp
+import pygeon as pg
 
 
-def grid_unitary(dim, mesh_size, **kwargs):
+def unit_grid(dim, mesh_size, **kwargs):
     """
     Create a unit square or cube grid with a mesh size.
 
@@ -28,7 +28,7 @@ def grid_unitary(dim, mesh_size, **kwargs):
     mesh_kwargs = {"mesh_size_frac": mesh_size, "mesh_size_min": mesh_size_min}
     mdg = pp.create_fracture_network(domain=domain).mesh(mesh_kwargs)
 
-    convert_from_pp(mdg)
+    pg.convert_from_pp(mdg)
     if kwargs.get("as_mdg", True):
         return mdg
     else:
