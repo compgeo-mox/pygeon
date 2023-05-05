@@ -5,13 +5,14 @@ from pygeon.filters.convert_from_pp import convert_from_pp
 
 def grid_unitary(dim, mesh_size, **kwargs):
     """
-    Create a bi-dimensional unit square grid with a mesh size.
+    Create a unit square or cube grid with a mesh size.
 
     Parameters:
-        dim (int): the dimension of the grid
-        mesh_size (np.ndarray or double): if double is the mesh size associated to
-            all the four coordinates, if np.ndarray the mesh size for each coordinate.
-        kwargs: refer to the function grid_2d_from_coords
+        dim (int): the dimension of the grid, must be 2 or 3
+        mesh_size (double): the mesh size
+        kwargs: additional options are the following
+            mesh_size_min (double): the minimum mesh size, default is mesh_size
+            as_mdg (bool): return the grid as a mixed-dimensional grid
 
         Returns:
             Either a pg.MixedDimensionalGrid or a pg.Grid.
