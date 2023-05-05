@@ -1,4 +1,7 @@
+![Pytest](https://github.com/compgeo-mox/pygeon/actions/workflows/run-pytest.yml/badge.svg)
+![Mypy, black, isort, flake8](https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml/badge.svg)
 [![DOI](https://zenodo.org/badge/455087135.svg)](https://zenodo.org/badge/latestdoi/455087135)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # PyGeoN: a Python package for Geo-Numerics
 
@@ -13,7 +16,12 @@ To install PyGeoN, first clone the current version of the code and then install 
 pip install -r requirements.txt
 
 ```
-then to install PyGeoN at user level (see also below) type
+Additional dependencies can be installed by
+```bash
+pip install -r requirements-dev.txt
+
+```
+Then to install PyGeoN at user level (see also below) type
 ```bash
 pip install .
 ```
@@ -26,5 +34,8 @@ It might be useful to add PyGeoN to your PYTHONPATH.
 ## Issues
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 
+## Getting started
+See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).
+
 ## License
-See
+See [license](./LICENSE.md).
