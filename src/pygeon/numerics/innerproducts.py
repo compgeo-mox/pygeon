@@ -179,6 +179,66 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
 # ---------------------------------- Lumped ---------------------------------- #
 
 
+def lumped_cell_mass(mdg, discr=None, **kwargs):
+    """
+    Compute the lumped mass matrix for the piecewise constants on a (MD-)grid
+
+    Args:
+        mdg (pp.MixedDimensionalGrid).
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_cells x num_cells
+    """
+
+    return lumped_mass_matrix(mdg, 0, discr, **kwargs)
+
+
+def lumped_face_mass(mdg, discr=None, **kwargs):
+    """
+    Compute the lumped mass matrix for discretization defined on the faces of a (MD-)grid
+
+    Args:
+        mdg (pp.MixedDimensionalGrid).
+        discr (pp.RT0 or pp.MVEM).
+
+    Returns:
+        sps.csc_matrix, num_faces x num_faces
+    """
+
+    return lumped_mass_matrix(mdg, 1, discr, **kwargs)
+
+
+def lumped_ridge_mass(mdg, discr=None, **kwargs):
+    """
+    Compute the lumped mass matrix for discretization defined on the ridges of a (MD-)grid
+
+    Args:
+        mdg (pp.MixedDimensionalGrid).
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_ridges x num_ridges
+    """
+
+    return lumped_mass_matrix(mdg, 2, discr, **kwargs)
+
+
+def lumped_peak_mass(mdg, discr=None, **kwargs):
+    """
+    Compute the lumped mass matrix for discretization defined on the peaks of a (MD-)grid
+
+    Args:
+        mdg (pp.MixedDimensionalGrid).
+        discr (pp discretization object).
+
+    Returns:
+        sps.csc_matrix, num_peaks x num_peaks
+    """
+
+    return lumped_mass_matrix(mdg, 3, discr, **kwargs)
+
+
 def lumped_mass_matrix(mdg, n_minus_k, discr=None, **kwargs):
     """
     Compute the mass-lumped mass matrix on a mixed-dimensional grid

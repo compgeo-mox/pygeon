@@ -133,8 +133,8 @@ class Graph(pp.Grid):
         Dummy tags for the peaks and ridges.
         """
 
-        self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=np.bool)
-        self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=np.bool)
+        self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=bool)
+        self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
 
     def tag_boundary(self):
         """
@@ -230,7 +230,7 @@ class Graph(pp.Grid):
         nsp = np.array(list(nsp), dtype=np.object)
 
         # remove from the not shortest paths variables the shortest paths variable
-        to_keep = np.ones(nsp.size, dtype=np.bool)
+        to_keep = np.ones(nsp.size, dtype=bool)
         for s in sp:
             for idx, ns in enumerate(nsp):
                 if np.array_equal(np.sort(s), np.sort(ns)):

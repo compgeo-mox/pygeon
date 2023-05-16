@@ -177,7 +177,6 @@ class Lagrange1(pg.Discretization):
         return sps.diags(volumes)
 
     def eval_at_cell_centers(self, sd: pg.Grid):
-
         if sd.dim == 0:
             return sd.cell_nodes().T.tocsc()
 
