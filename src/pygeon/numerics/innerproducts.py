@@ -137,6 +137,13 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     """
     as_bmat = kwargs.get("as_bmat", False)
 
+    if "keyword" in kwargs:
+        keyword = kwargs["keyword"]
+    elif discr is not None:
+        keyword = discr.keyword
+    else:
+        raise ValueError("A keyword or a discretization should be specified")
+
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
@@ -157,7 +164,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
 
             # Local mortar mass matrix
             try:
-                kn = d_intf["parameters"][discr.keyword]["normal_diffusivity"]
+                kn = d_intf["parameters"][keyword]["normal_diffusivity"]
             except KeyError:
                 kn = 1
 
