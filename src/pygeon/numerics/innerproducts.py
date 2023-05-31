@@ -75,7 +75,7 @@ def default_discr(sd, n_minus_k, **kwargs):
     Construct the default discretization operator depending on n_minus_k.
     These correspond to the Whitney forms.
     """
-    keyword = kwargs.get("keyword", "flow")
+    keyword = kwargs.get("keyword", "unit")
     if n_minus_k == 0:
         return pg.PwConstants(keyword)
     elif n_minus_k == 1:
@@ -142,7 +142,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
     elif discr is not None:
         keyword = discr.keyword
     else:
-        raise ValueError("A keyword or a discretization should be specified")
+        keyword = "unit"
 
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
@@ -164,7 +164,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
 
             # Local mortar mass matrix
             try:
-                kn = d_intf["parameters"][keyword]["normal_diffusivity"]
+                kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
             except KeyError:
                 kn = 1
 
