@@ -73,7 +73,9 @@ class RT0(pg.Discretization, pp.RT0):
 
         data = self.create_dummy_data(sd, data)
         pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
+        return data[pp.DISCRETIZATION_MATRICES][self.keyword][
+            self.mass_matrix_key
+        ].tocsc()
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         """
@@ -87,6 +89,9 @@ class RT0(pg.Discretization, pp.RT0):
         Returns
             lumped_matrix: the lumped mass matrix.
         """
+        if data is None:
+            data = self.create_dummy_data(sd, data)
+
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
         # Retrieve the permeability
@@ -98,7 +103,7 @@ class RT0(pg.Discretization, pp.RT0):
             dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
             h_perp[face] += dist.T @ inv_k @ dist / np.linalg.norm(dist)
 
-        return sps.diags(h_perp / sd.face_areas)
+        return sps.diags(h_perp / sd.face_areas).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
@@ -108,7 +113,7 @@ class RT0(pg.Discretization, pp.RT0):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
         return sd.cell_faces.T
 
@@ -296,7 +301,7 @@ class BDM1(pg.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
         RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
