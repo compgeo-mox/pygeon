@@ -44,7 +44,7 @@ class SweeperUnitTest(unittest.TestCase):
         for dim in np.arange(1, 4):
             sd = pp.CartGrid([N] * dim, [1] * dim)
             mdg = pg.as_mdg(sd)
-            pg.convert_from_pp(sd)
+            pg.convert_from_pp(mdg)
             mdg.compute_geometry()
             self.check_flux(mdg)
 
@@ -52,7 +52,7 @@ class SweeperUnitTest(unittest.TestCase):
         N, dim = 3, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
         mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(sd)
+        pg.convert_from_pp(mdg)
         mdg.compute_geometry()
         self.check_flux(mdg)
         self.check_pressure(mdg)
@@ -61,6 +61,7 @@ class SweeperUnitTest(unittest.TestCase):
         N, dim = 3, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
         mdg.compute_geometry()
         self.check_flux(mdg)
         self.check_pressure(mdg)
@@ -88,4 +89,5 @@ class SweeperUnitTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    SweeperUnitTest().test_structured_tetra()
     unittest.main()
