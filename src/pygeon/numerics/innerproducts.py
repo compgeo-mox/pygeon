@@ -163,10 +163,7 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
             nn_sd = mdg.subdomains().index(sd)
 
             # Local mortar mass matrix
-            try:
-                kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
-            except KeyError:
-                kn = 1
+            kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
 
             bmat_mg[nn_sd, nn_sd] += (
                 intf.signed_mortar_to_primary

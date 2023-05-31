@@ -22,12 +22,16 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         self.tag_leafs()
 
     def initialize_data(self) -> None:
-        for _, data in self.subdomains(return_data=True):
-            data[pp.PARAMETERS] = {}
+        for sd, data in self.subdomains(return_data=True):
+            data[pp.PARAMETERS] = {"unit": {}}
+            data[pp.PARAMETERS]["unit"]["second_order_tensor"] = pp.SecondOrderTensor(
+                np.ones(sd.num_cells)
+            )
             data[pp.DISCRETIZATION_MATRICES] = {}
 
         for _, data in self.interfaces(return_data=True):
-            data[pp.PARAMETERS] = {}
+            data[pp.PARAMETERS] = {"unit": {}}
+            data[pp.PARAMETERS]["unit"]["normal_diffusivity"] = 1.0
             data[pp.DISCRETIZATION_MATRICES] = {}
 
     def num_subdomain_faces(self, cond=None) -> int:
