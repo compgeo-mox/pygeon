@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sps
+
 import pygeon as pg
 
 
@@ -12,7 +13,8 @@ def zero_tip_dofs(mdg, n_minus_k, **kwargs):
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
 
     Returns:
         sps.dia_matrix

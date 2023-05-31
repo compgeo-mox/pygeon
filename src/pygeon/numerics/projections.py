@@ -1,6 +1,7 @@
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
+
 import pygeon as pg
 
 
@@ -10,10 +11,12 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
 
     Parameters:
         mdg (pp.MixedDimensionalGrid): The mixed dimensional grid.
-        discr: The discretization used for th evaluation, if not provided a standard discretization is used. Default to
-        None.
+        discr: The discretization used for th evaluation, if not provided
+            a standard discretization is used. Default to
+            None.
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -35,10 +38,11 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
 
     Parameters:
         mdg (pp.MixedDimensionalGrid): The mixed dimensional grid.
-        discr: The discretization used for th evaluation, if not provided a standard discretization is used. Default to
-        None.
+        discr: The discretization used for th evaluation, if not provided a standard
+            discretization is used. Default to None.
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
     """
     as_bmat = kwargs.get("as_bmat", False)
 

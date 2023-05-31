@@ -130,7 +130,8 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
         data (dict): the data object associated to the grid.
         local_matrix (function): function that generates the local mass matrix on a grid
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
 
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
@@ -253,7 +254,8 @@ def lumped_mass_matrix(mdg, n_minus_k, discr=None, **kwargs):
             the differential.
         discr (pp discretization object).
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
 
     Returns:
         sps.csc_matrix, num_dofs x num_dofs

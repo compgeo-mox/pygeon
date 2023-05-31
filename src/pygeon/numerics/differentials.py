@@ -20,7 +20,8 @@ def div(grid, **kwargs):
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
 
     Returns:
         sps.csr_matrix. The divergence operator.
@@ -35,7 +36,8 @@ def curl(grid, **kwargs):
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
 
     Returns:
         sps.csr_matrix. The curl operator.
@@ -50,7 +52,8 @@ def grad(grid, **kwargs):
     Parameters:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
 
     Returns:
         sps.csr_matrix. The gradient operator.
@@ -124,7 +127,8 @@ def _mdg_exterior_derivative(mdg, n_minus_k, **kwargs):
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks. Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
+                Default False.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
