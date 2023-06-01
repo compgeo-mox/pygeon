@@ -17,27 +17,8 @@ class Sweeper:
     """
 
     def __init__(self, mdg, starting_face=None) -> None:
-        # Find the starting face for the spanning tree
-        if starting_face is None:
-            # Extract the top-dimensional grid
-            if isinstance(mdg, pp.Grid):
-                sd = mdg
-            elif isinstance(mdg, pp.MixedDimensionalGrid):
-                sd = mdg.subdomains()[0]
-                assert sd.dim == mdg.dim_max()
-            else:
-                raise TypeError
-
-            starting_face = np.argmax(sd.tags["domain_boundary_faces"])
-
-        # Find the starting cell for the spanning tree
         div = pg.div(mdg)
-        starting_cell = div.T.tocsr()[starting_face, :].indices[0]
-
-        # Construct a spanning tree of the elements
-        tree = sps.csgraph.breadth_first_tree(
-            div @ div.T, starting_cell, directed=False
-        )
+        tree, starting_face = self.compute_tree(mdg, div, starting_face)
 
         # Extract start/end cells for each edge of the tree
         c_start, c_end, _ = sps.find(tree)
@@ -60,6 +41,29 @@ class Sweeper:
 
         self.expand = pg.numerics.linear_system.create_restriction(flag).T.tocsc()
         self.system = pg.cell_mass(mdg) @ div @ self.expand
+
+    def compute_tree(self, mdg, div, starting_face=None):
+        # Find the starting face for the spanning tree
+        if starting_face is None:
+            # Extract the top-dimensional grid
+            if isinstance(mdg, pp.Grid):
+                sd = mdg
+            elif isinstance(mdg, pp.MixedDimensionalGrid):
+                sd = mdg.subdomains()[0]
+                assert sd.dim == mdg.dim_max()
+            else:
+                raise TypeError
+
+            starting_face = np.argmax(sd.tags["domain_boundary_faces"])
+
+        # Find the starting cell for the spanning tree
+        starting_cell = div.T.tocsr()[starting_face, :].indices[0]
+
+        # Construct a spanning tree of the elements
+        tree = sps.csgraph.breadth_first_tree(
+            div @ div.T, starting_cell, directed=False
+        )
+        return tree, starting_face
 
     def sweep(self, f) -> np.ndarray:
         """
@@ -87,3 +91,18 @@ class Sweeper:
         """
 
         return sps.linalg.spsolve(self.system.T, self.expand.T @ rhs)
+
+    def visualize(self, mdg, starting_face=None):
+        div = pg.div(mdg)
+        tree, _ = self.compute_tree(mdg, div, starting_face)
+
+        import networkx as nx
+        import matplotlib.pyplot as plt
+
+        graph = nx.from_scipy_sparse_array(tree)
+        cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+
+        pp.plot_grid(mdg, alpha=0)
+        plt.figure(1)
+        nx.draw(graph, cell_centers[:2, :].T, ax=plt.gca())
+        plt.show()
