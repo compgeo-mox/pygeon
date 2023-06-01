@@ -18,7 +18,7 @@ class Sweeper:
 
     def __init__(self, mdg, starting_face=None) -> None:
         div = pg.div(mdg)
-        tree, starting_face = self.compute_tree(mdg, div, starting_face)
+        tree, starting_face, _ = self.compute_tree(mdg, div, starting_face)
 
         # Extract start/end cells for each edge of the tree
         c_start, c_end, _ = sps.find(tree)
@@ -63,7 +63,7 @@ class Sweeper:
         tree = sps.csgraph.breadth_first_tree(
             div @ div.T, starting_cell, directed=False
         )
-        return tree, starting_face
+        return tree, starting_face, starting_cell
 
     def sweep(self, f) -> np.ndarray:
         """
@@ -92,9 +92,9 @@ class Sweeper:
 
         return sps.linalg.spsolve(self.system.T, self.expand.T @ rhs)
 
-    def visualize(self, mdg, starting_face=None):
+    def visualize(self, mdg, starting_face=None, fig_name=None):
         div = pg.div(mdg)
-        tree, _ = self.compute_tree(mdg, div, starting_face)
+        tree, _, starting_cell = self.compute_tree(mdg, div, starting_face)
 
         import networkx as nx
         import matplotlib.pyplot as plt
@@ -102,7 +102,32 @@ class Sweeper:
         graph = nx.from_scipy_sparse_array(tree)
         cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
 
-        pp.plot_grid(mdg, alpha=0)
-        plt.figure(1)
-        nx.draw(graph, cell_centers[:2, :].T, ax=plt.gca())
-        plt.show()
+        fig_num = 1
+
+        pp.plot_grid(
+            mdg,
+            alpha=0,
+            fig_num=fig_num,
+            plot_2d=mdg.dim_max() == 2,
+            if_plot=False,
+        )
+
+        fig = plt.figure(fig_num)
+        ax = fig.add_subplot(111)
+
+        node_color = ["blue"] * cell_centers.shape[1]
+        node_color[starting_cell] = "green"
+
+        ax.autoscale(False)
+        nx.draw(
+            graph,
+            cell_centers[: mdg.dim_max(), :].T,
+            node_color=node_color,
+            node_size=40,
+            edge_color="red",
+            ax=ax,
+        )
+
+        plt.draw()
+        if fig_name is not None:
+            plt.savefig(fig_name, bbox_inches="tight", pad_inches=0)
