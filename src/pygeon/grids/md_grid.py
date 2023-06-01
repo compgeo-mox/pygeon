@@ -5,6 +5,7 @@ import porepy as pp
 class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     def __init__(self, *args, **kwargs):
         super(MixedDimensionalGrid, self).__init__(*args, **kwargs)
+        self.initialize_data()
 
     def compute_geometry(self):
         """
@@ -19,6 +20,28 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             intf.compute_geometry(sd_pair)
 
         self.tag_leafs()
+
+    def initialize_data(self) -> None:
+        for sd, data in self.subdomains(return_data=True):
+            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+            data[pp.PARAMETERS] = pp.Parameters(
+                sd,
+                ["unit"],
+                [
+                    {"second_order_tensor": perm},
+                ],
+            )
+            data[pp.DISCRETIZATION_MATRICES] = {}
+
+        for _, data in self.interfaces(return_data=True):
+            data[pp.PARAMETERS] = pp.Parameters(
+                sd,
+                ["unit"],
+                [
+                    {"normal_diffusivity": 1.0},
+                ],
+            )
+            data[pp.DISCRETIZATION_MATRICES] = {}
 
     def num_subdomain_faces(self, cond=None) -> int:
         """Compute the total number of faces of the mixed-dimensional grid.

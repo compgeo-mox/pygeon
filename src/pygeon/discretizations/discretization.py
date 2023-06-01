@@ -78,7 +78,7 @@ class Discretization(pp.numerics.discretization.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
 
         pass
@@ -91,7 +91,7 @@ class Discretization(pp.numerics.discretization.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
 
         B = self.assemble_diff_matrix(sd)
