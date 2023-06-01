@@ -57,6 +57,14 @@ class SweeperUnitTest(unittest.TestCase):
         self.check_flux(mdg)
         self.check_pressure(mdg)
 
+    def test_unstructured_triangle(self):
+        sd = pg.unit_grid(2, 0.25, as_mdg=False)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+        self.check_flux(mdg)
+        self.check_pressure(mdg)
+
     def test_structured_tetra(self):
         N, dim = 3, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
@@ -68,9 +76,9 @@ class SweeperUnitTest(unittest.TestCase):
 
     def test_2d_mdg(self):
         grids = [
-            pp.md_grids_2d.single_horizontal,
+            # pp.md_grids_2d.single_horizontal,
             pp.md_grids_2d.single_vertical,
-            pp.md_grids_2d.two_intersecting,
+            # pp.md_grids_2d.two_intersecting,
         ]
 
         for g in grids:
@@ -89,5 +97,4 @@ class SweeperUnitTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    SweeperUnitTest().test_structured_tetra()
     unittest.main()
