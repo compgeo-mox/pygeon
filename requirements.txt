@@ -3,8 +3,8 @@ gmsh
 matplotlib
 meshio >= 5.0
 networkx
-numba >= 0.57
 numpy
+numba >= 0.57
 requests
 scipy
 shapely
