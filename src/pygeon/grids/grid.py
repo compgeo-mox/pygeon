@@ -79,7 +79,7 @@ class Grid(pp.Grid):
         # coincides with the difference vector between the ridges.
         face_ridges = self.face_nodes.copy().astype(int)
 
-        nodes = sps.find(self.face_nodes)[0]
+        nodes = self.face_nodes.indices
         for face in np.arange(self.num_faces):
             loc = slice(self.face_nodes.indptr[face], self.face_nodes.indptr[face + 1])
             nodes_loc = np.sort(nodes[loc])
