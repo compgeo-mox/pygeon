@@ -174,7 +174,7 @@ class Lagrange1(pg.Discretization):
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         volumes = sd.cell_nodes() * sd.cell_volumes / (sd.dim + 1)
-        return sps.diags(volumes)
+        return sps.diags(volumes).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid):
         if sd.dim == 0:
