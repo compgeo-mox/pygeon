@@ -154,7 +154,8 @@ class MortarGrid(pp.MortarGrid):
         """
         sd_up = sd_pair[0]
         cells, faces, _ = sps.find(self.primary_to_mortar_int())
-        signs = [sd_up.cell_faces.tocsr()[face, :].data[0] for face in faces]
+        cf_csr = sd_up.cell_faces.tocsr()
+        signs = [cf_csr[face, :].data[0] for face in faces]
 
         self.signed_mortar_to_primary = sps.csc_matrix(
             (signs, (faces, cells)), (sd_up.num_faces, self.num_cells)
