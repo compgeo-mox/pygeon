@@ -39,6 +39,13 @@ class SweeperUnitTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(p, p_sptr))
 
+    def check_vis(self, mdg):
+        """
+        Test if the visualization raises any errors
+        """
+        sptr = pg.SpanningTree(mdg)
+        sptr.visualize_2d(mdg)
+
     def test_cart_grid(self):
         N = 3
         for dim in np.arange(1, 4):
@@ -56,6 +63,7 @@ class SweeperUnitTest(unittest.TestCase):
         mdg.compute_geometry()
         self.check_flux(mdg)
         self.check_pressure(mdg)
+        self.check_vis(mdg)
 
     def test_unstructured_triangle(self):
         sd = pg.unit_grid(2, 0.25, as_mdg=False)
@@ -64,6 +72,7 @@ class SweeperUnitTest(unittest.TestCase):
         mdg.compute_geometry()
         self.check_flux(mdg)
         self.check_pressure(mdg)
+        self.check_vis(mdg)
 
     def test_structured_tetra(self):
         N, dim = 3, 3
@@ -87,6 +96,7 @@ class SweeperUnitTest(unittest.TestCase):
             mdg.compute_geometry()
             self.check_flux(mdg)
             self.check_pressure(mdg)
+            self.check_vis(mdg)
 
     def test_3d_mdg(self):
         mdg, _ = pp.md_grids_3d.single_horizontal()

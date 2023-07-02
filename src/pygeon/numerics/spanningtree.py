@@ -126,12 +126,14 @@ class SpanningTree:
 
         return sps.linalg.spsolve(self.system.T, self.expand.T @ rhs)
 
-    def visualize(self, mdg, fig_name=None):
+    def visualize_2d(self, mdg, fig_name=None):
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
         """
         import matplotlib.pyplot as plt
         import networkx as nx
+
+        assert mdg.dim_max() == 2
 
         graph = nx.from_scipy_sparse_array(self.tree)
         cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
@@ -142,7 +144,7 @@ class SpanningTree:
             mdg,
             alpha=0,
             fig_num=fig_num,
-            plot_2d=mdg.dim_max() == 2,
+            plot_2d=True,
             if_plot=False,
         )
 
@@ -165,3 +167,5 @@ class SpanningTree:
         plt.draw()
         if fig_name is not None:
             plt.savefig(fig_name, bbox_inches="tight", pad_inches=0)
+
+        plt.close()
