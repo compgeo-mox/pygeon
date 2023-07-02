@@ -6,7 +6,7 @@ import pygeon as pg
 import scipy.sparse as sps
 
 
-class OctGridTest(unittest.TestCase):
+class OctagonGridTest(unittest.TestCase):
     def test_single_octagon(self):
         nx = [1, 1]
         sd = pg.OctagonGrid(nx)
