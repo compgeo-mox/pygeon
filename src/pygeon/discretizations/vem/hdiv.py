@@ -194,10 +194,9 @@ class VBDM1(pg.Discretization):
         dof = self.get_dof_enumeration(sd).tocoo()
         return sps.csc_matrix((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
 
-    #
-    #    def proj_from_RT0(self, sd: pg.Grid):
-    #        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
-    #
+    def proj_from_RT0(self, sd: pg.Grid):
+        raise NotImplementedError
+
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
         Assembles the matrix corresponding to the differential
@@ -218,17 +217,6 @@ class VBDM1(pg.Discretization):
 
     def interpolate(self, sd: pg.Grid, func):
         raise NotImplementedError
-
-    #        vals = np.zeros(self.ndof(sd))
-    #
-    #        for face in np.arange(sd.num_faces):
-    #            func_loc = np.array(
-    #                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
-    #            ).T
-    #            vals_loc = sd.face_normals[:, face] @ func_loc
-    #            vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc
-    #
-    #        return vals
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
