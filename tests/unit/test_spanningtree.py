@@ -13,9 +13,9 @@ class SweeperUnitTest(unittest.TestCase):
         """
         Check whether the constructed flux balances the given mass-source
         """
-        swp = pg.Sweeper(mdg)
-        f = np.arange(swp.expand.shape[1])
-        q_f = swp.sweep(f)
+        sptr = pg.SpanningTree(mdg)
+        f = np.arange(sptr.expand.shape[1])
+        q_f = sptr.solve(f)
 
         self.assertTrue(np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f))
 
@@ -34,10 +34,17 @@ class SweeperUnitTest(unittest.TestCase):
         q = x[: div.shape[1]]
         p = x[div.shape[1] :]
 
-        swp = pg.Sweeper(mdg)
-        p_swp = swp.sweep_transpose(face_mass @ q)
+        sptr = pg.SpanningTree(mdg)
+        p_sptr = sptr.solve_transpose(face_mass @ q)
 
-        self.assertTrue(np.allclose(p, p_swp))
+        self.assertTrue(np.allclose(p, p_sptr))
+
+    def check_vis(self, mdg):
+        """
+        Test if the visualization raises any errors
+        """
+        sptr = pg.SpanningTree(mdg)
+        sptr.visualize_2d(mdg)
 
     def test_cart_grid(self):
         N = 3
@@ -56,6 +63,16 @@ class SweeperUnitTest(unittest.TestCase):
         mdg.compute_geometry()
         self.check_flux(mdg)
         self.check_pressure(mdg)
+        self.check_vis(mdg)
+
+    def test_unstructured_triangle(self):
+        sd = pg.unit_grid(2, 0.25, as_mdg=False)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+        self.check_flux(mdg)
+        self.check_pressure(mdg)
+        self.check_vis(mdg)
 
     def test_structured_tetra(self):
         N, dim = 3, 3
@@ -79,6 +96,7 @@ class SweeperUnitTest(unittest.TestCase):
             mdg.compute_geometry()
             self.check_flux(mdg)
             self.check_pressure(mdg)
+            self.check_vis(mdg)
 
     def test_3d_mdg(self):
         mdg, _ = pp.md_grids_3d.single_horizontal()
@@ -89,5 +107,4 @@ class SweeperUnitTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    SweeperUnitTest().test_structured_tetra()
     unittest.main()
