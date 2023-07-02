@@ -8,7 +8,7 @@ from pygeon.grids.graph import Graph
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
-from pygeon.grids.structured import OctGrid
+from pygeon.grids.octagon import OctGrid
 from pygeon.grids.voronoi import VoronoiGrid
 from pygeon.grids.create_grid import grid_from_domain, grid_from_boundary_pts, unit_grid
 
