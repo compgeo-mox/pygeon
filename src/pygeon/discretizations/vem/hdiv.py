@@ -153,7 +153,7 @@ class VBDM1(pg.Discretization):
         tangents = sd.nodes * sd.face_ridges
         cell_diams = sd.cell_diameters(cell_nodes)
 
-        for (cell, diam) in enumerate(cell_diams):
+        for cell, diam in enumerate(cell_diams):
             faces_loc = sd.cell_faces[:, cell].indices
 
             # Obtain local indices of dofs, ordered by associated node number
@@ -605,7 +605,7 @@ class VBDM1(pg.Discretization):
 
         discr_VL1 = pg.VLagrange1("dummy")
 
-        for (cell, diam) in enumerate(cell_diams):
+        for cell, diam in enumerate(cell_diams):
             loc = slice(cell_node_pairs.indptr[cell], cell_node_pairs.indptr[cell + 1])
             nodes_loc = cell_node_pairs.indices[loc]
 

@@ -42,7 +42,7 @@ class VLagrange1(pg.Discretization):
         data_V = np.empty(size)
         idx = 0
 
-        for (cell, diam) in enumerate(cell_diams):
+        for cell, diam in enumerate(cell_diams):
             loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
             nodes_loc = cell_nodes.indices[loc]
 
@@ -178,7 +178,7 @@ class VLagrange1(pg.Discretization):
         data_V = np.empty(size)
         idx = 0
 
-        for (cell, diam) in enumerate(cell_diams):
+        for cell, diam in enumerate(cell_diams):
             loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
             nodes_loc = cell_nodes.indices[loc]
 
@@ -217,7 +217,6 @@ class VLagrange1(pg.Discretization):
         pg.Lagrange1.assemble_diff_matrix(self, sd)
 
     def eval_at_cell_centers(self, sd: pg.Grid):
-
         eval = sd.cell_nodes()
         num_nodes = sps.diags(1.0 / sd.num_cell_nodes())
 
@@ -294,7 +293,6 @@ class VLagrange1_vec(VLagrange1):
         return sps.block_diag([diff] * sd.dim, "csc")
 
     def eval_at_cell_centers(self, sd: pg.Grid):
-
         eval = super().eval_at_cell_centers(sd)
         return sps.block_diag([eval] * sd.dim, "csc")
 

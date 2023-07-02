@@ -10,7 +10,6 @@ class VoronoiGrid(pg.Grid):
     """docstring for VoronoiGrid."""
 
     def __init__(self, num_bdry_els, num_pts, seed=None, name="VoronoiGrid"):
-
         # Generate the internal seed points for the Voronoi grid
 
         if seed is not None:
@@ -90,7 +89,7 @@ class VoronoiGrid(pg.Grid):
         # Extract the start and end nodes of the region faces
         internal_regions = [r for r in vor.regions if len(r) > 0]
 
-        for (indx, r) in enumerate(internal_regions):
+        for indx, r in enumerate(internal_regions):
             check = pp.geometry_property_checks.is_ccw_polygon(nodes[:2, r])
             internal_regions[indx] = r[:: 2 * check - 1]
 

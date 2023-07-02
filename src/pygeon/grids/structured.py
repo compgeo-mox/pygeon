@@ -69,7 +69,6 @@ class OctGrid(pg.Grid):
         return nodes
 
     def rescale_nodes(self, nodes, nx, physdims):
-
         xmin, ymin = 0.0, 0.0
 
         if isinstance(physdims, dict):
