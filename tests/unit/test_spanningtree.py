@@ -85,9 +85,9 @@ class SweeperUnitTest(unittest.TestCase):
 
     def test_2d_mdg(self):
         grids = [
-            # pp.md_grids_2d.single_horizontal,
+            pp.md_grids_2d.single_horizontal,
             pp.md_grids_2d.single_vertical,
-            # pp.md_grids_2d.two_intersecting,
+            pp.md_grids_2d.two_intersecting,
         ]
 
         for g in grids:
