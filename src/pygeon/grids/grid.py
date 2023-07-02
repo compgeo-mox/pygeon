@@ -165,7 +165,13 @@ class Grid(pp.Grid):
 
         sub_simplices[faces, cells] = np.sum(normals * rays, 0) / self.dim
 
+        nodes_per_face = np.array(np.sum(self.face_nodes, 0)).flatten()
+        div_by_nodes_per_face = sps.diags(1.0 / nodes_per_face)
+
         if return_subsimplices:
-            return 0.5 * self.face_nodes * sub_simplices, sub_simplices
+            return (
+                self.face_nodes @ div_by_nodes_per_face @ sub_simplices,
+                sub_simplices,
+            )
         else:
-            return 0.5 * self.face_nodes * sub_simplices
+            return self.face_nodes @ div_by_nodes_per_face @ sub_simplices

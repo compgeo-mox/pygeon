@@ -34,26 +34,25 @@ class SubVolumeTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
 
-    # def test_tets(self):
-    #     sd = pp.StructuredTetrahedralGrid([4, 4, 4])
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
+    def test_tets(self):
+        sd = pp.StructuredTetrahedralGrid([4, 4, 4])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
-    #     sub_volumes = sd.compute_subvolumes()
+        sub_volumes = sd.compute_subvolumes()
 
-    #     self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
 
-    # def test_hexes(self):
-    #     sd = pp.CartGrid([4, 4, 4])
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
+    def test_hexes(self):
+        sd = pp.CartGrid([4, 4, 4])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
 
-    #     sub_volumes = sd.compute_subvolumes()
+        sub_volumes = sd.compute_subvolumes()
 
-    #     self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
+        self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
 
     def test_hitchhiker_pentagon(self):
-
         nodes = np.array([[0, 3, 3, 3.0 / 2, 0], [0, 0, 2, 4, 4], np.zeros(5)])
         indptr = np.arange(0, 11, 2)
         indices = np.roll(np.repeat(np.arange(5), 2), -1)
@@ -68,7 +67,6 @@ class SubVolumeTest(unittest.TestCase):
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
 
     def test_concave_quad(self):
-
         nodes = np.array([[0, 0.5, 1, 0.5], [0, 0.5, 0, 1], np.zeros(4)])
         indices = np.array([0, 1, 1, 2, 2, 3, 3, 0])
         face_nodes = sps.csc_matrix((np.ones(8), indices, np.arange(0, 9, 2)))
@@ -112,4 +110,5 @@ class SubVolumeTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    SubVolumeTest().test_hexes()
     unittest.main()
