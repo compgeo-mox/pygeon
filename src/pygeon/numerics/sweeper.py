@@ -5,13 +5,13 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class Sweeper:
+class SpanningTree:
     """
-    Class that can perform a grid sweep.
+    Class that can perform a spanning tree solve, or "grid sweep".
     Useful to rapidly compute a flux field that balances a mass source.
 
     Attributes:
-        system (sps.csc_matrix): The matrix used to perform the sweep,
+        system (sps.csc_matrix): The matrix used in the solve,
             which is triangular up to row/column permutations.
         expand (sps.csc_matrix): Expansion matrix from tree to global ordering.
     """
@@ -61,9 +61,9 @@ class Sweeper:
         self.expand = pg.numerics.linear_system.create_restriction(flag).T.tocsc()
         self.system = pg.cell_mass(mdg) @ div @ self.expand
 
-    def sweep(self, f) -> np.ndarray:
+    def solve(self, f) -> np.ndarray:
         """
-        Perform a grid sweep to compute a conservative flux field for given mass source.
+        Perform a spanning tree solve to compute a conservative flux field for given mass source.
 
         Parameters:
             f (np.ndarray): Mass source, integrated against PwConstants.
@@ -74,9 +74,9 @@ class Sweeper:
 
         return self.expand @ sps.linalg.spsolve(self.system, f)
 
-    def sweep_transpose(self, rhs) -> np.ndarray:
+    def solve_transpose(self, rhs) -> np.ndarray:
         """
-        Post-process the pressure by performing a transposed sweep.
+        Post-process the pressure by performing a transposed solve.
 
         Parameters:
             rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux

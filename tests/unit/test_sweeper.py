@@ -13,9 +13,9 @@ class SweeperUnitTest(unittest.TestCase):
         """
         Check whether the constructed flux balances the given mass-source
         """
-        swp = pg.Sweeper(mdg)
-        f = np.arange(swp.expand.shape[1])
-        q_f = swp.sweep(f)
+        sptr = pg.SpanningTree(mdg)
+        f = np.arange(sptr.expand.shape[1])
+        q_f = sptr.solve(f)
 
         self.assertTrue(np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f))
 
@@ -34,10 +34,10 @@ class SweeperUnitTest(unittest.TestCase):
         q = x[: div.shape[1]]
         p = x[div.shape[1] :]
 
-        swp = pg.Sweeper(mdg)
-        p_swp = swp.sweep_transpose(face_mass @ q)
+        sptr = pg.SpanningTree(mdg)
+        p_sptr = sptr.solve_transpose(face_mass @ q)
 
-        self.assertTrue(np.allclose(p, p_swp))
+        self.assertTrue(np.allclose(p, p_sptr))
 
     def test_cart_grid(self):
         N = 3
