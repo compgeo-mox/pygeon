@@ -50,7 +50,7 @@ class Grid(pp.Grid):
     def _compute_ridges_01d(self):
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
-        grid of dimension 2.
+        grid of dimension 0 or 1.
         """
 
         self.num_peaks = 0
@@ -73,23 +73,17 @@ class Grid(pp.Grid):
         R = pp.map_geometry.project_plane_matrix(self.nodes)
         loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
         rot = R.T @ loc_rot @ R
-        face_tangential = rot.dot(self.face_normals)
+        rotated_normal = rot.dot(self.face_normals)
 
         # The face-ridge orientation is determined by whether the rotated normal
         # coincides with the difference vector between the ridges.
         face_ridges = self.face_nodes.copy().astype(int)
+        face_ridges.data[::2] *= -1
+        face_tangents = self.nodes @ face_ridges
 
-        nodes = sps.find(self.face_nodes)[0]
-        for face in np.arange(self.num_faces):
-            loc = slice(self.face_nodes.indptr[face], self.face_nodes.indptr[face + 1])
-            nodes_loc = np.sort(nodes[loc])
+        orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-            tangent = self.nodes[:, nodes_loc[1]] - self.nodes[:, nodes_loc[0]]
-            sign = np.sign(np.dot(face_tangential[:, face], tangent))
-
-            face_ridges.data[loc] = [-sign, sign]
-
-        self.face_ridges = face_ridges
+        self.face_ridges = face_ridges * sps.diags(orients)
 
     def _compute_ridges_3d(self):
         """
@@ -145,12 +139,39 @@ class Grid(pp.Grid):
         """
 
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
+        fr_bool = self.face_ridges.astype("bool")
 
         if self.dim == 2:
-            fr_bool = self.face_ridges.astype("bool")
             self.tags["tip_ridges"] = fr_bool * self.tags["tip_faces"]
         else:
             self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=bool)
 
-        bd_ridges = self.face_ridges * self.tags["domain_boundary_faces"]
+        bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
+
+    def compute_subvolumes(self, return_subsimplices=False):
+        """
+        Return the following attributes of the grid
+
+        subvolumes: a csc_matrix with each entry [node, cell] describing
+                      the signed measure of the associated sub-volume
+        """
+        sub_simplices = self.cell_faces.copy().astype(float)
+
+        faces, cells, orient = sps.find(self.cell_faces)
+
+        normals = self.face_normals[:, faces] * orient
+        rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
+
+        sub_simplices[faces, cells] = np.sum(normals * rays, 0) / self.dim
+
+        nodes_per_face = np.array(np.sum(self.face_nodes, 0)).flatten()
+        div_by_nodes_per_face = sps.diags(1.0 / nodes_per_face)
+
+        if return_subsimplices:
+            return (
+                self.face_nodes @ div_by_nodes_per_face @ sub_simplices,
+                sub_simplices,
+            )
+        else:
+            return self.face_nodes @ div_by_nodes_per_face @ sub_simplices

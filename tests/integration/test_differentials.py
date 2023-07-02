@@ -1,9 +1,11 @@
 import unittest
+
 import numpy as np
 import porepy as pp
+
 import pygeon as pg
 
-""" 
+"""
 Module contains a unit tests to validate the differential operators.
 """
 
@@ -30,8 +32,14 @@ class DifferentialsTest(unittest.TestCase):
         p = np.array([[0.0, 1.0, 0.5, 0.5], [0.5, 0.5, 0.0, 1.0]])
         e = np.array([[0, 2], [1, 3]])
 
-        domain = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
-        network = pp.FractureNetwork2d(p, e, domain)
+        frac1 = pp.LineFracture(p[:, e[0]])
+        frac2 = pp.LineFracture(p[:, e[1]])
+
+        fracs = [frac1, frac2]
+
+        bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
+        domain = pp.Domain(bounding_box=bbox)
+        network = pp.create_fracture_network(fracs, domain)
         mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
 
         mdg = network.mesh(mesh_kwargs)

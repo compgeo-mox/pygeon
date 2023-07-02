@@ -19,7 +19,7 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
         """
         Returns the mass matrix for the lowest order Lagrange element
 
@@ -58,7 +58,7 @@ class Lagrange1(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrix
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_mass(self, c_volume, dim):
         """Compute the local mass matrix.
@@ -69,8 +69,8 @@ class Lagrange1(pg.Discretization):
 
         Return
         ------
-        out: ndarray (num_faces_of_cell, num_faces_of_cell)
-            Local mass Hdiv matrix.
+        out: ndarray (num_nodes_of_cell, num_nodes_of_cell)
+            Local mass matrix.
         """
 
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
@@ -79,7 +79,7 @@ class Lagrange1(pg.Discretization):
     def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict):
         # If a 0-d grid is given then we return a zero matrix
         if sd.dim == 0:
-            return sps.csr_matrix((1, 1))
+            return sps.csc_matrix((1, 1))
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -133,7 +133,7 @@ class Lagrange1(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         if sd.dim == 3:
@@ -143,7 +143,7 @@ class Lagrange1(pg.Discretization):
         elif sd.dim == 1:
             return sd.cell_faces.T
         elif sd.dim == 0:
-            return sps.csr_matrix((0, 1))
+            return sps.csc_matrix((0, 1))
         else:
             raise ValueError
 
@@ -174,9 +174,11 @@ class Lagrange1(pg.Discretization):
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         volumes = sd.cell_nodes() * sd.cell_volumes / (sd.dim + 1)
-        return sps.diags(volumes)
+        return sps.diags(volumes).tocsc()
 
-    def eval_at_cell_centers(self, sd: pg.Grid, data=None):
+    def eval_at_cell_centers(self, sd: pg.Grid):
+        if sd.dim == 0:
+            return sd.cell_nodes().T.tocsc()
 
         # Allocation
         size = (sd.dim + 1) * sd.num_cells
@@ -190,6 +192,7 @@ class Lagrange1(pg.Discretization):
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+
             nodes_loc = cell_nodes.indices[loc]
 
             loc_idx = slice(idx, idx + nodes_loc.size)
@@ -199,10 +202,10 @@ class Lagrange1(pg.Discretization):
             idx += nodes_loc.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def interpolate(self, sd: pg.Grid, func):
-        return np.array([func(x) for x in sd.nodes])
+        return np.array([func(x) for x in sd.nodes.T])
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """

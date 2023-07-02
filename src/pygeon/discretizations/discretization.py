@@ -66,7 +66,8 @@ class Discretization(pp.numerics.discretization.Discretization):
             lumped_matrix: the lumped mass matrix.
         """
 
-        return sps.diags(np.sum(self.assemble_mass_matrix(sd, data), axis=0))
+        diag_mass = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
+        return sps.diags(np.asarray(diag_mass).flatten())
 
     @abc.abstractmethod
     def assemble_diff_matrix(self, sd: pg.Grid):
@@ -77,7 +78,7 @@ class Discretization(pp.numerics.discretization.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
 
         pass
@@ -90,7 +91,7 @@ class Discretization(pp.numerics.discretization.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
 
         B = self.assemble_diff_matrix(sd)
@@ -166,3 +167,27 @@ class Discretization(pp.numerics.discretization.Discretization):
         """
 
         return self.assemble_mass_matrix(sd, data), np.zeros(self.ndof(sd))
+
+    def error_l2(self, sd, num_sol, ana_sol, relative=True, etype="standard"):
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+
+        Args
+            sd: grid, or a subclass.
+            num_sol: np.array, vector of the numerical solution
+            ana_sol: callable, function that represent the analytical solution
+            relative=True: boolean, compute the relative error or not
+            etype="standard": string, type of error computed.
+                For "standard" the current implementation
+
+        Returns
+            error: the error computed.
+
+        """
+        int_sol = self.interpolate(sd, ana_sol)
+        mass = self.assemble_mass_matrix(sd)
+
+        norm = (int_sol @ mass @ int_sol.T) if relative else 1
+
+        diff = num_sol - int_sol
+        return np.sqrt(diff @ mass @ diff.T / norm)

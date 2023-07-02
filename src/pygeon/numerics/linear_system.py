@@ -35,15 +35,15 @@ class LinearSystem:
 
     def reduce_system(self):
         R_0 = create_restriction(self.is_dof)
-        A_0 = R_0 * self.A * R_0.T
-        b_0 = R_0 * (self.b - self.A * self.repeat_ess_vals())
+        A_0 = R_0 @ self.A @ R_0.T
+        b_0 = R_0 @ (self.b - self.A @ self.repeat_ess_vals())
 
         return A_0, b_0, R_0
 
     def solve(self, solver=sps.linalg.spsolve):
         A_0, b_0, R_0 = self.reduce_system()
         sol_0 = solver(A_0.tocsc(), b_0)
-        sol = self.repeat_ess_vals() + R_0.T * sol_0
+        sol = self.repeat_ess_vals() + R_0.T @ sol_0
 
         return sol
 
@@ -51,7 +51,7 @@ class LinearSystem:
         if self.b.ndim == 1:
             return self.ess_vals
         else:
-            return sps.csr_matrix(self.ess_vals).T * sps.csc_matrix(
+            return sps.csr_matrix(self.ess_vals).T @ sps.csc_matrix(
                 np.ones(self.b.shape[1])
             )
 
@@ -67,5 +67,5 @@ def create_restriction(keep_dof):
     Returns:
         sps.csr_matrix: the restriction mapping.
     """
-    R = sps.diags(keep_dof, dtype=np.int).tocsr()
+    R = sps.diags(keep_dof, dtype=int).tocsr()
     return R[R.indices, :].tocsc()
