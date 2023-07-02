@@ -92,12 +92,17 @@ class Graph(pp.Grid):
         face_ridges: the map from the faces to the ridges
         ridge_peaks: an empty matrix that maps the ridges to peaks
         """
+        self.num_ridges = 0
+        self.num_peaks = 0
+        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
+
+        return
 
         cb = nx.cycle_basis(self.graph)
 
         incidence = np.abs(self.cell_faces.T)
 
-        n = np.concatenate(cb).size
+        n = np.concatenate(cb).size if len(cb) else 0
         rows_I = np.zeros(n, dtype=int)
         cols_J = np.zeros(n, dtype=int)
         data_IJ = np.zeros(n)
