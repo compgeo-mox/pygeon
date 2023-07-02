@@ -9,7 +9,7 @@ import scipy.sparse as sps
 class OctGridTest(unittest.TestCase):
     def test_single_octagon(self):
         nx = [1, 1]
-        sd = pg.OctGrid(nx)
+        sd = pg.OctagonGrid(nx)
         sd.compute_geometry()
 
         face_areas_known = np.full_like(sd.face_areas, np.sqrt(2) - 1)

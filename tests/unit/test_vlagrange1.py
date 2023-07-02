@@ -60,7 +60,7 @@ class VLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(G, G_known))
 
     def test_on_oct_grid(self):
-        sd = pg.OctGrid([1] * 2)
+        sd = pg.OctagonGrid([1] * 2)
         sd.compute_geometry()
 
         discr = pg.VLagrange1("flow")

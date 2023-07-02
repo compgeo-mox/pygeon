@@ -28,7 +28,7 @@ class SubVolumeTest(unittest.TestCase):
         self.assertTrue(np.allclose(sd.cell_volumes, np.sum(sub_volumes, 0)))
 
     def test_oct(self):
-        sd = pg.OctGrid([5, 5])
+        sd = pg.OctagonGrid([5, 5])
         sd.compute_geometry()
         sub_volumes = sd.compute_subvolumes()
 

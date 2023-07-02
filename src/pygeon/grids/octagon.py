@@ -4,7 +4,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class OctGrid(pg.Grid):
+class OctagonGrid(pg.Grid):
     """
     A structured grid with octagons and squares in the interior
     and triangles near the boundary.

@@ -11,7 +11,7 @@ import pygeon as pg
 class VBDM1Test(unittest.TestCase):
     def test_on_Octgrid(self, N=2):
         dim = 2
-        sd = pg.OctGrid([N] * dim, [1, 1])
+        sd = pg.OctagonGrid([N] * dim, [1, 1])
         pg.convert_from_pp(sd)
         sd.nodes /= 40
 
