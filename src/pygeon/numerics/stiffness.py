@@ -84,6 +84,8 @@ def stiff_matrix(mdg, n_minus_k, discr, **kwargs):
         sps.csc_matrix, num_dofs x num_dofs
     """
     diff = pg.numerics.differentials.exterior_derivative(mdg, n_minus_k)
-    mass_plus_1 = pg.numerics.innerproducts.mass_matrix(mdg, n_minus_k - 1, discr)
+    mass_plus_1 = pg.numerics.innerproducts.mass_matrix(
+        mdg, n_minus_k - 1, discr, **kwargs
+    )
 
     return diff.T * mass_plus_1 * diff

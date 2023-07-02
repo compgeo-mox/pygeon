@@ -1,10 +1,11 @@
 """ Module contains a dummy unit test that always passes.
 """
 import unittest
+
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -93,7 +94,6 @@ class BDM1Test(unittest.TestCase):
         self.linear_distribution_test(sd)
 
     def linear_distribution_test(self, sd):
-
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
@@ -144,5 +144,4 @@ class BDM1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

@@ -1,8 +1,10 @@
 """ Module contains a dummy unit test that always passes.
 """
 import unittest
+
 import numpy as np
 import porepy as pp
+
 import pygeon as pg
 
 
@@ -28,8 +30,8 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((0, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -77,8 +79,8 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -118,8 +120,8 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -137,8 +139,8 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_simplicial_grid()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -156,8 +158,8 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_cartesian_grid()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))

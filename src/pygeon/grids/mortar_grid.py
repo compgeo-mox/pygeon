@@ -52,7 +52,7 @@ class MortarGrid(pp.MortarGrid):
             R = pp.map_geometry.project_plane_matrix(sd_down.nodes)
             normal_to_sd_down = np.dot(R.T, [0, 0, 1])
 
-        for (face_up, cell_down) in zip(*sps.find(self.cell_faces)[:-1]):
+        for face_up, cell_down in zip(*sps.find(self.cell_faces)[:-1]):
             # Faces of cell in lower-dim grid
             cf_down = sd_down.cell_faces
             faces_down = cf_down.indices[
@@ -154,7 +154,8 @@ class MortarGrid(pp.MortarGrid):
         """
         sd_up = sd_pair[0]
         cells, faces, _ = sps.find(self.primary_to_mortar_int())
-        signs = [sd_up.cell_faces.tocsr()[face, :].data[0] for face in faces]
+        cf_csr = sd_up.cell_faces.tocsr()
+        signs = [cf_csr[face, :].data[0] for face in faces]
 
         self.signed_mortar_to_primary = sps.csc_matrix(
             (signs, (faces, cells)), (sd_up.num_faces, self.num_cells)

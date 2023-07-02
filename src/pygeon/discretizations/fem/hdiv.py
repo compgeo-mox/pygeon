@@ -50,7 +50,7 @@ class RT0(pg.Discretization, pp.RT0):
             data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
         except KeyError:
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data.update({pp.PARAMETERS: {self.keyword: {"second_order_tensor": perm}}})
+            data[pp.PARAMETERS].update({self.keyword: {"second_order_tensor": perm}})
 
         try:
             data[pp.DISCRETIZATION_MATRICES][self.keyword]
@@ -73,7 +73,9 @@ class RT0(pg.Discretization, pp.RT0):
 
         data = self.create_dummy_data(sd, data)
         pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
+        return data[pp.DISCRETIZATION_MATRICES][self.keyword][
+            self.mass_matrix_key
+        ].tocsc()
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
         """
@@ -87,18 +89,21 @@ class RT0(pg.Discretization, pp.RT0):
         Returns
             lumped_matrix: the lumped mass matrix.
         """
+        if data is None:
+            data = self.create_dummy_data(sd, data)
+
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
         # Retrieve the permeability
         k = parameter_dictionary["second_order_tensor"]
 
         h_perp = np.zeros(sd.num_faces)
-        for (face, cell) in zip(*sd.cell_faces.nonzero()):
+        for face, cell in zip(*sd.cell_faces.nonzero()):
             inv_k = np.linalg.inv(k.values[:, :, cell])
             dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
             h_perp[face] += dist.T @ inv_k @ dist / np.linalg.norm(dist)
 
-        return sps.diags(h_perp / sd.face_areas)
+        return sps.diags(h_perp / sd.face_areas).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
@@ -108,7 +113,7 @@ class RT0(pg.Discretization, pp.RT0):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
         return sd.cell_faces.T
 
@@ -164,6 +169,34 @@ class RT0(pg.Discretization, pp.RT0):
     def get_range_discr_class(self, dim: int):
         return pg.PwConstants
 
+    def error_l2(self, sd, num_sol, ana_sol, relative=True, etype="specific"):
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+
+        Args
+            sd: grid, or a subclass.
+            num_sol: np.array, vector of the numerical solution
+            ana_sol: callable, function that represent the analytical solution
+            relative=True: boolean, compute the relative error or not
+            etype="specific": string, type of error computed.
+
+        Returns
+            error: the error computed.
+
+        """
+        if etype == "standard":
+            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
+
+        proj = self.eval_at_cell_centers(sd)
+        int_sol = np.vstack([ana_sol(x).T for x in sd.cell_centers.T]).T
+        num_sol = (proj * num_sol).reshape((3, -1), order="F")
+
+        D = sps.diags(sd.cell_volumes)
+        norm = np.trace(int_sol @ D @ int_sol.T) if relative else 1
+
+        diff = num_sol - int_sol
+        return np.sqrt(np.trace(diff @ D @ diff.T) / norm)
+
 
 class BDM1(pg.Discretization):
     def ndof(self, sd: pp.Grid) -> int:
@@ -186,7 +219,6 @@ class BDM1(pg.Discretization):
             raise ValueError
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
-
         size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -215,13 +247,13 @@ class BDM1(pg.Discretization):
 
             # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
             Psi = np.empty((sd.dim * (sd.dim + 1), sd.dim + 1), np.ndarray)
-            for (face, nodes) in enumerate(indices.T):
+            for face, nodes in enumerate(indices.T):
                 tangents = (
                     sd.nodes[:, face_nodes_loc[:, face]]
                     - sd.nodes[:, opposite_node[:, face]]
                 )
                 normal = sd.face_normals[:, faces_loc[face]]
-                for (index, node) in enumerate(nodes):
+                for index, node in enumerate(nodes):
                     Psi[face + index * (sd.dim + 1), node] = tangents[
                         :, index
                     ] / np.dot(tangents[:, index], normal)
@@ -269,7 +301,7 @@ class BDM1(pg.Discretization):
             sd: grid, or a subclass.
 
         Returns
-            csr_matrix: the differential matrix.
+            csc_matrix: the differential matrix.
         """
         RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
@@ -277,7 +309,6 @@ class BDM1(pg.Discretization):
         return RT0_diff * proj_to_rt0
 
     def eval_at_cell_centers(self, sd):
-
         eval_rt0 = pg.RT0(self.keyword).eval_at_cell_centers(sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
 
@@ -320,7 +351,6 @@ class BDM1(pg.Discretization):
         return pg.PwConstants
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
-
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = sd.dim * sd.dim * (sd.dim + 1) * sd.num_cells
@@ -353,13 +383,13 @@ class BDM1(pg.Discretization):
             Bdm_indices = np.hstack([faces_loc] * sd.dim)
             Bdm_indices += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
 
-            for (face, nodes) in enumerate(indices.T):
+            for face, nodes in enumerate(indices.T):
                 tangents = (
                     sd.nodes[:, face_nodes_loc[:, face]]
                     - sd.nodes[:, opposite_node[:, face]]
                 )
                 normal = sd.face_normals[:, faces_loc[face]]
-                for (index, node) in enumerate(nodes):
+                for index, node in enumerate(nodes):
                     Bdm_basis[:, face + index * (sd.dim + 1)] = tangents[
                         :, index
                     ] / np.dot(tangents[:, index], normal)
@@ -367,7 +397,7 @@ class BDM1(pg.Discretization):
             for node in nodes_uniq:
                 bf_is_at_node = dof_loc.flatten() == node
                 basis = Bdm_basis[:, bf_is_at_node]
-                A = basis.T @ basis
+                A = basis.T @ basis  # PUT INV PERM HERE
                 A *= sd.cell_volumes[c] / (sd.dim + 1)
 
                 loc_ind = Bdm_indices[bf_is_at_node]

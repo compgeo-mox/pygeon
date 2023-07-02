@@ -1,9 +1,11 @@
 """ Module contains a dummy unit test that always passes.
 """
 import unittest
+
 import numpy as np
 import scipy.sparse as sps
 import porepy as pp
+
 import pygeon as pg
 
 
@@ -21,8 +23,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_simplicial_1_fracture()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
         self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
@@ -41,8 +43,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_cartesian_1_fracture()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -60,8 +62,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_simplicial_2_fractures()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
         self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
@@ -79,8 +81,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_cartesian_2_fractures()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
@@ -98,8 +100,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_3d_simplicial_1_fracture()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
         self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
@@ -117,8 +119,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_3d_cartesian_1_fracture()
 
-        self.assertTrue(np.sum(curl * grad) == 0)
-        self.assertTrue(np.sum(div * curl) == 0)
+        self.assertTrue(np.sum(curl @ grad) == 0)
+        self.assertTrue(np.sum(div @ curl) == 0)
 
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
