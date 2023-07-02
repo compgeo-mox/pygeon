@@ -69,8 +69,8 @@ class Lagrange1(pg.Discretization):
 
         Return
         ------
-        out: ndarray (num_faces_of_cell, num_faces_of_cell)
-            Local mass Hdiv matrix.
+        out: ndarray (num_nodes_of_cell, num_nodes_of_cell)
+            Local mass matrix.
         """
 
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
