@@ -67,7 +67,8 @@ class SpanningTree:
 
     def solve(self, f) -> np.ndarray:
         """
-        Perform a spanning tree solve to compute a conservative flux field for given mass source.
+        Perform a spanning tree solve to compute a conservative flux field
+        for given mass source.
 
         Parameters:
             f (np.ndarray): Mass source, integrated against PwConstants.
@@ -96,8 +97,8 @@ class SpanningTree:
         div = pg.div(mdg)
         tree, _, starting_cell = self.compute_tree(mdg, div, starting_face)
 
-        import networkx as nx
         import matplotlib.pyplot as plt
+        import networkx as nx
 
         graph = nx.from_scipy_sparse_array(tree)
         cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
