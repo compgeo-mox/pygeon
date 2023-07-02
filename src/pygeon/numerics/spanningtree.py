@@ -24,9 +24,13 @@ class SpanningTree:
     def __init__(self, mdg, starting_face=None) -> None:
         self.div = pg.div(mdg)
 
-        self.starting_face = self.find_starting_face(mdg, starting_face)
-        self.starting_cell = self.find_starting_cell(self.div)
-        self.tree = self.compute_tree(self.div, self.starting_face)
+        if starting_face is None:
+            self.starting_face = self.find_starting_face(mdg)
+        else:
+            self.starting_face = starting_face
+
+        self.starting_cell = self.find_starting_cell()
+        self.tree = self.compute_tree()
 
         flagged_faces = self.flag_tree_faces()
 
@@ -35,40 +39,37 @@ class SpanningTree:
         ).T.tocsc()
         self.system = pg.cell_mass(mdg) @ self.div @ self.expand
 
-    def find_starting_face(self, mdg, starting_face=None):
+    def find_starting_face(self, mdg):
         """
-        Find the starting face for the spanning tree.
+        Find the starting face for the spanning tree if None is provided
         By default, this is the first boundary face of the mesh.
         """
 
-        if starting_face is None:
-            if isinstance(mdg, pp.Grid):
-                sd = mdg
-            elif isinstance(mdg, pp.MixedDimensionalGrid):
-                # Extract the top-dimensional grid
-                sd = mdg.subdomains()[0]
-                assert sd.dim == mdg.dim_max()
-            else:
-                raise TypeError
-
-            return np.argmax(sd.tags["domain_boundary_faces"])
+        if isinstance(mdg, pp.Grid):
+            sd = mdg
+        elif isinstance(mdg, pp.MixedDimensionalGrid):
+            # Extract the top-dimensional grid
+            sd = mdg.subdomains()[0]
+            assert sd.dim == mdg.dim_max()
         else:
-            return starting_face
+            raise TypeError
 
-    def find_starting_cell(self, div):
+        return np.argmax(sd.tags["domain_boundary_faces"])
+
+    def find_starting_cell(self):
         """
         Find the starting cell for the spanning tree.
         """
 
-        return div.tocsc()[:, self.starting_face].indices[0]
+        return self.div.tocsc()[:, self.starting_face].indices[0]
 
-    def compute_tree(self, div, starting_cell):
+    def compute_tree(self):
         """
         Construct a spanning tree of the elements.
         """
 
         tree = sps.csgraph.breadth_first_tree(
-            div @ div.T, starting_cell, directed=False
+            self.div @ self.div.T, self.starting_cell, directed=False
         )
         return sps.csc_array(tree)
 
