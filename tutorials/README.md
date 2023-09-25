@@ -3,6 +3,7 @@
 This folder contains several examples to guide you to use PyGeoN.
 * [tutorial 1](./darcy.ipynb): solve the Darcy equation in mixed form on a single domain
 * [tutorial 2](./stokes.ipynb): solve the Stokes equation in mixed form on a single domain
+* [tutorial 2](./richards.ipynb): solve the Richards equation in mixed form on a single domain
 
 We suggest also to check the [tutorials](https://github.com/pmgbergen/porepy/tree/develop/tutorials) of PorePy, in particular the following
 * [tutorial 0](https://github.com/pmgbergen/porepy/blob/develop/tutorials/introduction.ipynb): introduction
