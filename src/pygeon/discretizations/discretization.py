@@ -83,7 +83,7 @@ class Discretization(pp.numerics.discretization.Discretization):
 
         pass
 
-    def assemble_stiff_matrix(self, sd: pg.Grid, data):
+    def assemble_stiff_matrix(self, sd: pg.Grid, data=None):
         """
         Assembles the stiffness matrix
 
