@@ -125,7 +125,7 @@ class SpanningTree:
             np.ndarray: the post-processed pressure field
         """
 
-        return sps.linalg.spsolve(self.system.T, self.expand.T @ rhs)
+        return sps.linalg.spsolve(self.system.T.tocsc(), self.expand.T.tocsc() @ rhs)
 
     def visualize_2d(self, mdg, fig_name=None):
         """
