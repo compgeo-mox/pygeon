@@ -14,6 +14,7 @@ def convert_from_pp(obj):
         [convert_from_pp(sd) for sd in obj.subdomains()]
         [convert_from_pp(intf) for intf in obj.interfaces()]
         obj.__class__ = pg.MixedDimensionalGrid
+        obj.initialize_data()
     else:
         raise TypeError
 

@@ -38,7 +38,7 @@ class Nedelec0(pg.Discretization):
 
         Returns
         ------
-        matrix: sparse csr (sd.num_ridges, sd.num_ridges)
+        matrix: sparse csc (sd.num_ridges, sd.num_ridges)
             Matrix obtained from the discretization.
 
         """
@@ -74,7 +74,7 @@ class Nedelec0(pg.Discretization):
 
             # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
             Psi = np.empty((6, 4), np.ndarray)
-            for (ridge, peaks) in enumerate(indices.T):
+            for ridge, peaks in enumerate(indices.T):
                 Psi[ridge, peaks[0]] = dphi[:, peaks[1]]
                 Psi[ridge, peaks[1]] = -dphi[:, peaks[0]]
             Psi = sps.bmat(Psi)
@@ -91,7 +91,7 @@ class Nedelec0(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_inner_product(self, dim):
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
@@ -108,7 +108,6 @@ class Nedelec0(pg.Discretization):
         return sd.face_ridges.T
 
     def eval_at_cell_centers(self, sd):
-
         # Allocation
         size = 6 * 3 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -137,7 +136,7 @@ class Nedelec0(pg.Discretization):
             dphi = pg.Lagrange1.local_grads(coords, sd.dim)
 
             Psi = np.zeros((3, 6))
-            for (ridge, peaks) in enumerate(indices.T):
+            for ridge, peaks in enumerate(indices.T):
                 Psi[:, ridge] = dphi[:, peaks[1]] - dphi[:, peaks[0]]
 
             # Put in the right spot
@@ -148,7 +147,7 @@ class Nedelec0(pg.Discretization):
             idx += Psi.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError
@@ -191,7 +190,6 @@ class Nedelec1(pg.Discretization):
         raise NotImplementedError
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
-
         # Allocation
         size = 9 * 4 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -240,7 +238,7 @@ class Nedelec1(pg.Discretization):
                 idx += cols.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def proj_to_Ne0(self, sd: pg.Grid):
         return sps.hstack([sps.eye(sd.num_ridges), -sps.eye(sd.num_ridges)]) / 2
@@ -250,10 +248,8 @@ class Nedelec1(pg.Discretization):
         proj_to_ne0 = self.proj_to_Ne0(sd)
 
         return Ne0_diff * proj_to_ne0
-        return sps.bmat([[pg.curl(sd), -pg.curl(sd)]]) / 2
 
     def interpolate(self, sd: pg.Grid, func):
-
         tangents = sd.nodes * sd.ridge_peaks
 
         vals = np.zeros(self.ndof(sd))
@@ -269,7 +265,6 @@ class Nedelec1(pg.Discretization):
         return vals
 
     def eval_at_cell_centers(self, sd):
-
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 12 * 3 * sd.num_cells
@@ -309,7 +304,7 @@ class Nedelec1(pg.Discretization):
             idx += Ne_basis.size
 
         # Construct the global matrices
-        return sps.csr_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         raise NotImplementedError
