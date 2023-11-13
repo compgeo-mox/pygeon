@@ -17,7 +17,7 @@ class BDM1Test(unittest.TestCase):
         sd.compute_geometry()
 
         discr_bdm1 = pg.BDM1("flow")
-        mass_bdm1 = discr_bdm1.assemble_matrix(sd, None)
+        mass_bdm1 = discr_bdm1.assemble_mass_matrix(sd, None)
 
         discr_rt0 = pp.RT0("flow")
         data = pp.initialize_default_data(sd, {}, "flow", {})
@@ -71,7 +71,7 @@ class BDM1Test(unittest.TestCase):
         sd.compute_geometry()
 
         discr_bdm1 = pg.BDM1("flow")
-        mass_bdm1 = discr_bdm1.assemble_matrix(sd, None)
+        mass_bdm1 = discr_bdm1.assemble_mass_matrix(sd, None)
 
         discr_rt0 = pp.RT0("flow")
         data = pp.initialize_default_data(sd, {}, "flow", {})
