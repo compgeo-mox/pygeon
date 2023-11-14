@@ -84,14 +84,17 @@ class SweeperUnitTest(unittest.TestCase):
         self.check_pressure(mdg)
 
     def test_2d_mdg(self):
+        mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
         grids = [
-            pp.md_grids_2d.single_horizontal,
-            pp.md_grids_2d.single_vertical,
-            pp.md_grids_2d.two_intersecting,
+            pp.mdg_library.square_with_orthogonal_fractures("simplex", mesh_args, [1]),
+            pp.mdg_library.square_with_orthogonal_fractures("simplex", mesh_args, [0]),
+            pp.mdg_library.square_with_orthogonal_fractures(
+                "simplex", mesh_args, [0, 1]
+            ),
         ]
 
         for g in grids:
-            mdg, _ = g()
+            mdg, _ = g
             pg.convert_from_pp(mdg)
             mdg.compute_geometry()
             self.check_flux(mdg)
@@ -99,7 +102,10 @@ class SweeperUnitTest(unittest.TestCase):
             self.check_vis(mdg)
 
     def test_3d_mdg(self):
-        mdg, _ = pp.md_grids_3d.single_horizontal()
+        mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
+        mdg, _ = pp.mdg_library.cube_with_orthogonal_fractures(
+            "simplex", mesh_args, [0, 1, 2]
+        )
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
         self.check_flux(mdg)
