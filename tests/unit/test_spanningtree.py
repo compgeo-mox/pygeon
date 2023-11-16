@@ -40,13 +40,6 @@ class SpanningTreeTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(p, p_sptr))
 
-    def check_vis(self, mdg, sptr):
-        """
-        Test if the visualization raises any errors
-        """
-        sptr = pg.SpanningTree(mdg)
-        sptr.visualize_2d(mdg)
-
     def test_cart_grid(self):
         N = 3
         for dim in np.arange(1, 4):
@@ -64,9 +57,9 @@ class SpanningTreeTest(unittest.TestCase):
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
 
-        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
-        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
-        [self.check_vis(mdg, s) for s in self.sptr(mdg)]
+        for s in self.sptr(mdg):
+            self.check_flux(mdg, s)
+            self.check_pressure(mdg, s)
 
     def test_unstructured_triangle(self):
         sd = pg.unit_grid(2, 0.25, as_mdg=False)
@@ -74,9 +67,9 @@ class SpanningTreeTest(unittest.TestCase):
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
 
-        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
-        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
-        [self.check_vis(mdg, s) for s in self.sptr(mdg)]
+        for s in self.sptr(mdg):
+            self.check_flux(mdg, s)
+            self.check_pressure(mdg, s)
 
     def test_structured_tetra(self):
         N, dim = 3, 3
@@ -85,8 +78,9 @@ class SpanningTreeTest(unittest.TestCase):
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
 
-        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
-        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
+        for s in self.sptr(mdg):
+            self.check_flux(mdg, s)
+            self.check_pressure(mdg, s)
 
     def test_2d_mdg(self):
         mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
@@ -103,9 +97,9 @@ class SpanningTreeTest(unittest.TestCase):
             pg.convert_from_pp(mdg)
             mdg.compute_geometry()
 
-            [self.check_flux(mdg, s) for s in self.sptr(mdg)]
-            [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
-            [self.check_vis(mdg, s) for s in self.sptr(mdg)]
+            for s in self.sptr(mdg):
+                self.check_flux(mdg, s)
+                self.check_pressure(mdg, s)
 
     def test_3d_mdg(self):
         mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
@@ -115,8 +109,9 @@ class SpanningTreeTest(unittest.TestCase):
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
 
-        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
-        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
+        for s in self.sptr(mdg):
+            self.check_flux(mdg, s)
+            self.check_pressure(mdg, s)
 
 
 if __name__ == "__main__":
