@@ -8,7 +8,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class SweeperUnitTest(unittest.TestCase):
+class SpanningTreeTest(unittest.TestCase):
     def sptr(self, mdg):
         return [pg.SpanningTree(mdg), pg.SpanningWeightedTrees(mdg, [0.25, 0.5, 0.25])]
 
