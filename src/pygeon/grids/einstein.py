@@ -1,9 +1,9 @@
-import numpy as np
-import scipy.sparse as sps
 import xml.etree.ElementTree as ET
 
-import pygeon as pg
+import numpy as np
 import porepy as pp
+import pygeon as pg
+import scipy.sparse as sps
 
 
 class EinSteinGrid(pg.Grid):
@@ -87,7 +87,8 @@ class EinSteinGrid(pg.Grid):
         return all_pts
 
     def poly_adder(self, input_str, transform):
-        """Recursive function to build all the polygons based on the transformation matrices."""
+        """Recursive function to build all the polygons based on the transformation
+        matrices."""
         if input_str in self.poly:
             # if the current tag is a polygon then build it and add it to the list
             self.poly_list.append(transform @ self.poly[input_str])
