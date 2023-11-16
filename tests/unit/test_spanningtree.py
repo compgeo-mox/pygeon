@@ -8,18 +8,20 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class SweeperUnitTest(unittest.TestCase):
-    def check_flux(self, mdg):
+class SpanningTreeTest(unittest.TestCase):
+    def sptr(self, mdg):
+        return [pg.SpanningTree(mdg), pg.SpanningWeightedTrees(mdg, [0.25, 0.5, 0.25])]
+
+    def check_flux(self, mdg, sptr):
         """
         Check whether the constructed flux balances the given mass-source
         """
-        sptr = pg.SpanningTree(mdg)
-        f = np.arange(sptr.expand.shape[1])
+        f = np.arange(mdg.num_subdomain_cells())
         q_f = sptr.solve(f)
 
         self.assertTrue(np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f))
 
-    def check_pressure(self, mdg):
+    def check_pressure(self, mdg, sptr):
         """
         Check whether the post-processing of the pressure is correct
         """
@@ -34,12 +36,11 @@ class SweeperUnitTest(unittest.TestCase):
         q = x[: div.shape[1]]
         p = x[div.shape[1] :]
 
-        sptr = pg.SpanningTree(mdg)
         p_sptr = sptr.solve_transpose(face_mass @ q)
 
         self.assertTrue(np.allclose(p, p_sptr))
 
-    def check_vis(self, mdg):
+    def check_vis(self, mdg, sptr):
         """
         Test if the visualization raises any errors
         """
@@ -53,7 +54,8 @@ class SweeperUnitTest(unittest.TestCase):
             mdg = pg.as_mdg(sd)
             pg.convert_from_pp(mdg)
             mdg.compute_geometry()
-            self.check_flux(mdg)
+
+            [self.check_flux(mdg, s) for s in self.sptr(mdg)]
 
     def test_structured_triangle(self):
         N, dim = 3, 2
@@ -61,18 +63,20 @@ class SweeperUnitTest(unittest.TestCase):
         mdg = pg.as_mdg(sd)
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
-        self.check_flux(mdg)
-        self.check_pressure(mdg)
-        self.check_vis(mdg)
+
+        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
+        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
+        [self.check_vis(mdg, s) for s in self.sptr(mdg)]
 
     def test_unstructured_triangle(self):
         sd = pg.unit_grid(2, 0.25, as_mdg=False)
         mdg = pg.as_mdg(sd)
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
-        self.check_flux(mdg)
-        self.check_pressure(mdg)
-        self.check_vis(mdg)
+
+        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
+        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
+        [self.check_vis(mdg, s) for s in self.sptr(mdg)]
 
     def test_structured_tetra(self):
         N, dim = 3, 3
@@ -80,8 +84,9 @@ class SweeperUnitTest(unittest.TestCase):
         mdg = pg.as_mdg(sd)
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
-        self.check_flux(mdg)
-        self.check_pressure(mdg)
+
+        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
+        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
 
     def test_2d_mdg(self):
         mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
@@ -97,9 +102,10 @@ class SweeperUnitTest(unittest.TestCase):
             mdg, _ = g
             pg.convert_from_pp(mdg)
             mdg.compute_geometry()
-            self.check_flux(mdg)
-            self.check_pressure(mdg)
-            self.check_vis(mdg)
+
+            [self.check_flux(mdg, s) for s in self.sptr(mdg)]
+            [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
+            [self.check_vis(mdg, s) for s in self.sptr(mdg)]
 
     def test_3d_mdg(self):
         mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
@@ -108,8 +114,9 @@ class SweeperUnitTest(unittest.TestCase):
         )
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
-        self.check_flux(mdg)
-        self.check_pressure(mdg)
+
+        [self.check_flux(mdg, s) for s in self.sptr(mdg)]
+        [self.check_pressure(mdg, s) for s in self.sptr(mdg)]
 
 
 if __name__ == "__main__":
