@@ -4,38 +4,16 @@ import pygeon as pg
 import porepy as pp
 
 
-def create_new_entity_map(cut_entities, offset=0):
-    # Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a new entity placed on i_old
-    n = np.sum(cut_entities)
-
-    I = np.arange(n) + offset
-    J = np.flatnonzero(cut_entities)
-    V = np.ones(n)
-
-    return sps.csc_matrix((V, (I, J)), shape=(n + offset, len(cut_entities)))
-
-
-def create_splitting_map(cut_entities, offset=0):
-    # Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a split of i_old
-    n = 2 * np.sum(cut_entities)
-
-    rows = np.arange(n) + offset
-    cols = np.repeat(np.flatnonzero(cut_entities), 2)
-    data = np.ones(n)
-
-    return sps.csc_matrix((data, (rows, cols)), shape=(n + offset, len(cut_entities)))
-
-
-def remesh(sd, levelset, name="LevelsetGrid"):
+def levelset_remesh(sd: pg.Grid, levelset: callable):
     cut_cells, cut_faces, new_nodes = mark_intersections(sd, levelset)
 
     nodes = np.hstack((sd.nodes, new_nodes))
 
     # Create a dictionary of entity maps according to the following conventions:
-    # (0,1) => node_on_face,
-    # (1,2) => face_on_cell,
-    # (2,2) => cell_on_cell,
-    # (1,1) => face_on_face.
+    # (0,1) => node on face,
+    # (1,2) => face on cell,
+    # (2,2) => cells on cell,
+    # (1,1) => faces on face.
     entity_maps = {}
     entity_maps[0, 1] = create_new_entity_map(cut_faces, sd.num_nodes)
     entity_maps[1, 2] = create_new_entity_map(cut_cells, sd.num_faces)
@@ -44,25 +22,13 @@ def remesh(sd, levelset, name="LevelsetGrid"):
 
     # Compute the new face-node connectivity
     new_face_nodes = create_new_face_nodes(sd, cut_cells, cut_faces, entity_maps)
-
-    fn_rows, fn_cols, fn_data = sps.find(sd.face_nodes)
-    old_face_nodes = sps.csc_matrix(
-        (fn_data, (fn_rows, fn_cols)),
-        shape=new_face_nodes.shape,
-    )
-    face_nodes = old_face_nodes + new_face_nodes
+    face_nodes = merge_connectivities(sd.face_nodes, new_face_nodes)
 
     # Compute new cell-face connectivity
     new_cell_faces = create_new_cell_faces(
         sd, cut_cells, cut_faces, entity_maps, face_nodes
     )
-
-    cf_rows, cf_cols, cf_data = sps.find(sd.cell_faces)
-    old_cell_faces = sps.csc_matrix(
-        (cf_data, (cf_rows, cf_cols)),
-        shape=new_cell_faces.shape,
-    )
-    cell_faces = old_cell_faces + new_cell_faces
+    cell_faces = merge_connectivities(sd.cell_faces, new_cell_faces)
 
     # Eliminate old mesh entities
     restrict = pg.numerics.linear_system.create_restriction
@@ -81,10 +47,47 @@ def remesh(sd, levelset, name="LevelsetGrid"):
     restrict_faces = restrict(keep_faces)
 
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T
-    face_nodes = face_nodes @ restrict_faces.T
-    face_nodes.sort_indices()
+    face_nodes = face_nodes[:, keep_faces]
 
-    return pg.Grid(2, nodes, face_nodes, cell_faces, name)
+    return pg.Grid(2, nodes, face_nodes, cell_faces, sd.name)
+
+
+def merge_connectivities(old_con, new_con):
+    data = np.hstack((old_con.data, new_con.data))
+    indices = np.hstack((old_con.indices, new_con.indices))
+
+    indptr = new_con.indptr + old_con.indptr[-1]
+    indptr[: old_con.indptr.size] = old_con.indptr
+
+    result = sps.csc_matrix(
+        (data, indices, indptr),
+        shape=new_con.shape,
+    )
+    return result
+
+
+def create_new_entity_map(cut_entities, offset=0):
+    """
+    Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a new entity placed on i_old
+    """
+    n = np.sum(cut_entities)
+
+    rows = np.arange(n) + offset
+    cols = np.flatnonzero(cut_entities)
+    data = np.ones(n)
+
+    return sps.csc_matrix((data, (rows, cols)), shape=(n + offset, len(cut_entities)))
+
+
+def create_splitting_map(cut_entities, offset=0):
+    # Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a split of i_old
+    n = 2 * np.sum(cut_entities)
+
+    rows = np.arange(n) + offset
+    cols = np.repeat(np.flatnonzero(cut_entities), 2)
+    data = np.ones(n)
+
+    return sps.csc_matrix((data, (rows, cols)), shape=(n + offset, len(cut_entities)))
 
 
 ## introducing new nodes and marking
@@ -106,12 +109,12 @@ def mark_intersections(sd: pg.Grid, levelset):
             cut_faces[face] = True
 
         elif np.prod(levelset_vals) == 0:
-            raise NotImplementedError("Level set passes exactly through a node")
+            raise NotImplementedError("Level set passes exactly through a node.")
 
-    cell_finder = np.abs(sd.cell_faces.T) @ cut_faces
+    cell_finder = cut_faces @ np.abs(sd.cell_faces)
 
     if np.any(cell_finder > 2):
-        raise NotImplementedError("A cell has more than two cut faces")
+        raise NotImplementedError("A cell has more than two cut faces.")
 
     cut_cells = cell_finder > 0
     new_nodes = np.vstack(new_nodes).T
@@ -154,6 +157,15 @@ def create_new_face_nodes(sd, cut_cells, cut_faces, entity_maps):
 
 ## Add new cells
 def create_new_cell_faces(sd, cut_cells, cut_faces, entity_maps, face_nodes):
+    # If face_ridges is missing, we generate one based on face_nodes.
+    if hasattr(sd, "face_ridges"):
+        face_ridges = sd.face_ridges
+    else:
+        face_ridges = sps.csc_matrix(sd.face_nodes, copy=True)
+        face_ridges.data = -np.power(-1, np.arange(face_ridges.nnz))
+
+    assert (face_ridges @ sd.cell_faces).nnz == 0, "Inconsistent connectivities."
+
     rows = []
     cols = []
     data = []
@@ -162,15 +174,15 @@ def create_new_cell_faces(sd, cut_cells, cut_faces, entity_maps, face_nodes):
         new_cells = entity_maps[2, 2][:, el].indices
         faces_el = sd.cell_faces[:, el].indices
 
-        face_nodes_el = sd.face_ridges[:, faces_el] * sps.diags(
-            sd.cell_faces[faces_el, el].data
+        face_nodes_el = face_ridges[:, faces_el] * sps.diags(
+            sd.cell_faces[faces_el, el].A.ravel()
         )  # Extract positively oriented face_node connectivity
 
         (I, J, V) = sps.find(face_nodes_el)
+        nodes_el = create_oriented_node_loop(I, J, V)
+
         loop_starts = I[np.logical_and(V == 1, cut_faces[faces_el[J]])]
         loop_ends = np.flip(I[np.logical_and(V == -1, cut_faces[faces_el[J]])])
-
-        nodes_el = positively_oriented_node_loop(I, J, V)
 
         for i in [0, 1]:
             # Faces that are uncut
@@ -180,9 +192,9 @@ def create_new_cell_faces(sd, cut_cells, cut_faces, entity_maps, face_nodes):
                 [faces_el[J[np.logical_and(V == -1, I == sn)]][0] for sn in sub_nodes]
             )
             rows.append(sub_faces)
-            data.append(sd.cell_faces[sub_faces, el].data)
+            data.append(sd.cell_faces[sub_faces, el].A.ravel())
 
-            # Face that is cut at the start of the loop
+            # Faces that are cut at the start/end of the loop
             start_face = faces_el[J[np.logical_and(I == loop_starts[i], V == 1)]][0]
             splits_at_start = entity_maps[1, 1][:, start_face].indices
             face_at_start = splits_at_start[
@@ -217,30 +229,12 @@ def create_new_cell_faces(sd, cut_cells, cut_faces, entity_maps, face_nodes):
     return sps.csc_matrix((data, (rows, cols)))
 
 
-def positively_oriented_node_loop(I, J, V):
+def create_oriented_node_loop(I, J, V):
     node_loop = np.zeros(len(I) // 2, dtype="int")
     node_loop[0] = I[0]
 
-    for i in np.arange(len(node_loop) - 1):
-        next_face = J[np.logical_and(I == node_loop[i], V == -1)]
-        node_loop[i + 1] = I[np.logical_and(J == next_face, V == 1)]
+    for i in np.arange(1, len(node_loop)):
+        next_face = J[np.logical_and(I == node_loop[i - 1], V == -1)]
+        node_loop[i] = I[np.logical_and(J == next_face, V == 1)]
 
     return node_loop
-
-
-if __name__ == "__main__":
-
-    def level_set(x):
-        # return x[1] - 0.75
-        return 0.4 - np.linalg.norm(x - np.array([0.5, 0.5, 0]))
-
-    sd = pg.unit_grid(2, 1 / 10, as_mdg=False)
-    sd.compute_geometry()
-
-    map = create_new_entity_map(sd.tags["domain_boundary_faces"])
-    map = create_splitting_map(sd.tags["domain_boundary_faces"])
-
-    sd_new = remesh(sd, level_set)
-    sd_new.compute_geometry()
-
-    pp.plot_grid(sd_new, alpha=0)
