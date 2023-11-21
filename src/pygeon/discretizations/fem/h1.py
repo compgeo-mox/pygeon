@@ -1,7 +1,7 @@
 import numpy as np
 import porepy as pp
-import scipy.sparse as sps
 import scipy.linalg as spl
+import scipy.sparse as sps
 
 import pygeon as pg
 
@@ -213,6 +213,9 @@ class Lagrange1(pg.Discretization):
         Assembles the 'natural' boundary condition
         (u, func)_Gamma with u a test function in Lagrange1
         """
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
         vals = np.zeros(self.ndof(sd))
 
         for face in b_faces:
@@ -237,6 +240,11 @@ class Lagrange1(pg.Discretization):
 
 
 class VecLagrange1(pg.Discretization):
+    """
+    Convention for the ordering is fist all the x, then all the y and
+    (if dim = 3) all the z.
+    """
+
     def __init__(self, keyword: str) -> None:
         super().__init__(keyword)
 
@@ -395,6 +403,8 @@ class VecLagrange1(pg.Discretization):
         idx = 0
 
         dim2 = np.square(sd.dim)
+        # construct the symmetrization matrix, which is different in
+        # 2d and in 3d
         sym = np.eye(dim2)
         if sd.dim == 2:
             sym[np.ix_([1, 2], [1, 2])] = 0.5
@@ -412,7 +422,7 @@ class VecLagrange1(pg.Discretization):
             nodes_loc = cell_nodes.indices[loc]
             coord_loc = node_coords[:, nodes_loc]
 
-            # Compute the div local matrix
+            # Compute the symgrad local matrix
             A = self.local_symgrad(sd.cell_volumes[c], coord_loc, sd.dim, sym)
 
             # Save values for the local matrix in the global structure
@@ -484,8 +494,10 @@ class VecLagrange1(pg.Discretization):
         Returns
             csc_matrix: the differential matrix.
         """
+        div = self.assemble_div_matrix(sd)
+        symgrad = self.assemble_symgrad_matrix(sd)
 
-        pass
+        return sps.bmat([[symgrad], [div]])
 
     def interpolate(self, sd: pg.Grid, func):
         """
@@ -516,19 +528,24 @@ class VecLagrange1(pg.Discretization):
         Returns
             matrix: the evaluation matrix.
         """
-        pass
+        proj = self.lagrange1.eval_at_cell_centers(sd)
+        return sps.block_diag([proj] * sd.dim, format="csc")
 
     def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
         """
         Assembles the natural boundary condition term
         (Tr q, p)_Gamma
         """
-
-        pass
+        bc_val = []
+        for d in np.arange(sd.dim):
+            f = lambda x: func(x)[d]
+            bc_val.append(self.lagrange1.assemble_nat_bc(sd, f, b_faces))
+        return np.hstack(bc_val)
 
     def get_range_discr_class(self, dim: int):
         """
         Returns the discretization class that contains the range of the differential
         """
-
-        pass
+        raise NotImplementedError(
+            "There's no range discr for the vector Lagrangian 1 in PyGeoN"
+        )
