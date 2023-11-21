@@ -247,7 +247,7 @@ class VecLagrange1(pg.Discretization):
 
     def __init__(self, keyword: str) -> None:
         super().__init__(keyword)
-
+        # a local Lagrange1 class for performing some of the computations
         self.lagrange1 = pg.Lagrange1(keyword)
 
     def ndof(self, sd: pg.Grid) -> int:
@@ -275,9 +275,8 @@ class VecLagrange1(pg.Discretization):
                 Mass matrix obtained from the discretization.
 
         """
-
         mass = self.lagrange1.assemble_mass_matrix(sd, data)
-        return sps.block_diag([mass] * sd.dim)
+        return sps.block_diag([mass] * sd.dim, format="csc")
 
     def assemble_div_matrix(self, sd: pg.Grid):
         """
@@ -288,8 +287,8 @@ class VecLagrange1(pg.Discretization):
             sd : grid.
 
         Returns
-            matrix: sparse (sd.num_nodes, sd.num_nodes)
-                Mass matrix obtained from the discretization.
+            matrix: sparse (sd.num_cells, sd.num_nodes * sd.dim)
+                Div matrix obtained from the discretization.
 
         """
         # If a 0-d grid is given then we return a zero matrix
@@ -309,6 +308,7 @@ class VecLagrange1(pg.Discretization):
         idx = 0
 
         cell_nodes = sd.cell_nodes()
+        # shift to comply with the ordering convention of (x, y, z) components
         shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
@@ -363,7 +363,7 @@ class VecLagrange1(pg.Discretization):
 
         Returns
             matrix: sparse (sd.num_nodes, sd.num_nodes)
-                Mass matrix obtained from the discretization.
+                Div-div matrix obtained from the discretization.
 
         """
 
@@ -414,6 +414,7 @@ class VecLagrange1(pg.Discretization):
             sym[np.ix_([5, 7], [5, 7])] = 0.5
 
         cell_nodes = sd.cell_nodes()
+        # shift to comply with the ordering convention of (x, y, z) components
         shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
@@ -478,11 +479,9 @@ class VecLagrange1(pg.Discretization):
         symgrad = self.assemble_symgrad_matrix(sd)
         # TODO add the Lame' parameter in the computation of the P0 mass
         mass = pg.PwConstants.assemble_mass_matrix(None, sd, data)
-        tensor_mass = sps.block_diag([mass] * np.square(sd.dim))
+        tensor_mass = sps.block_diag([mass] * np.square(sd.dim), format="csc")
 
         return symgrad.T @ tensor_mass @ symgrad
-
-    #    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict):
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
@@ -497,7 +496,7 @@ class VecLagrange1(pg.Discretization):
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
 
-        return sps.bmat([[symgrad], [div]])
+        return sps.bmat([[symgrad], [div]], format="csc")
 
     def interpolate(self, sd: pg.Grid, func):
         """

@@ -45,7 +45,7 @@ class ElasticityTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_ex))
 
-    def test_footstep(self):
+    def test_footstep_2d(self):
         sd, vec_p1, A = self.setup(2, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[1, :], 0)] * 2)
@@ -76,6 +76,36 @@ class ElasticityTest(unittest.TestCase):
 
         # save = pp.Exporter(sd, "sol")
         # save.write_vtu([("cell_u", cell_u)])
+
+    def test_footstep_3d(self):
+        sd, vec_p1, A = self.setup(3, 0.125)
+
+        bottom = np.hstack([np.isclose(sd.nodes[2, :], 0)] * 3)
+        top = np.isclose(sd.face_centers[2, :], 1)
+
+        fun = lambda _: np.array([0, 0, -1])  # [1, 0]
+        b = vec_p1.assemble_nat_bc(sd, fun, top)
+
+        ls = pg.LinearSystem(A, b)
+        ls.flag_ess_bc(bottom, np.zeros(vec_p1.ndof(sd)))
+        u = ls.solve()
+
+        # fmt: off
+        u_known = np.array(
+            [ 0.        ,  0.        ,  0.1776907 , -0.17951352,  0.        ,
+              0.16157526, -0.00424376, -0.167963  , -0.07453339,  0.04330445,
+             -0.03649198,  0.03261989,  0.        ,  0.        , -0.63391078,
+             -0.63835749,  0.        , -0.31189007, -0.61793605, -0.31482189,
+             -0.42682694, -0.36033026, -0.17899184, -0.1394673 ])
+        # fmt: on
+
+        # self.assertTrue(np.allclose(u, u_known))
+
+        proj = vec_p1.eval_at_cell_centers(sd)
+        cell_u = (proj @ u).reshape((3, -1))
+
+        save = pp.Exporter(sd, "sol")
+        save.write_vtu([("cell_u", cell_u)])
 
 
 if __name__ == "__main__":
