@@ -33,6 +33,14 @@ class LevelsetGridTest(unittest.TestCase):
         sd.compute_geometry()
         self.assertAlmostEqual(sd.cell_volumes.sum(), 1)
 
+        self.assertEqual(sd.num_cells, 17)
+
+        sd = pg.levelset_remesh(sd, self.circle_at_0505)
+        self.assertEqual(sd.num_cells, 29)
+
+        sd.compute_geometry()
+        self.assertAlmostEqual(sd.cell_volumes.sum(), 1)
+
     def test_cartgrid(self):
         sd = pp.CartGrid([2] * 2, [1] * 2)
 
