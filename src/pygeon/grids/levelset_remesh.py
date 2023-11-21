@@ -5,8 +5,18 @@ import porepy as pp
 
 
 def levelset_remesh(sd: pg.Grid, levelset: callable):
+    """
+    Remeshes a polygonal grid such that it conforms to a level-set function
+
+    Args:
+        sd: grid to remesh
+        levelset: function that returns the level-set value for each x
+    """
+
+    # Mark the cut faces and cells
     cut_cells, cut_faces, new_nodes = mark_intersections(sd, levelset)
 
+    # Include the new nodes in the node list
     nodes = np.hstack((sd.nodes, new_nodes))
 
     # Create a dictionary of entity maps according to the following conventions:
@@ -30,29 +40,33 @@ def levelset_remesh(sd: pg.Grid, levelset: callable):
     )
     cell_faces = merge_connectivities(sd.cell_faces, new_cell_faces)
 
-    # Eliminate old mesh entities
+    # Decide which entities to keep
+    new_cells = np.ones(2 * sum(cut_cells), dtype="bool")
+    new_faces = np.ones(2 * sum(cut_faces) + sum(cut_cells), dtype="bool")
+
+    keep_cells = np.hstack((np.logical_not(cut_cells), new_cells))
+    keep_faces = np.hstack((np.logical_not(cut_faces), new_faces))
+
+    # Restrict cell_faces using restriction operators
     restrict = pg.numerics.linear_system.create_restriction
-
-    keep_cells = np.hstack(
-        (np.logical_not(cut_cells), np.ones(2 * sum(cut_cells), dtype="bool"))
-    )
-    keep_faces = np.hstack(
-        (
-            np.logical_not(cut_faces),
-            np.ones(2 * sum(cut_faces) + sum(cut_cells), dtype="bool"),
-        )
-    )
-
     restrict_cells = restrict(keep_cells)
     restrict_faces = restrict(keep_faces)
 
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T
+
+    # We restrict face_nodes by slicing to keep the ordering of indices intact
     face_nodes = face_nodes[:, keep_faces]
 
-    return pg.Grid(2, nodes, face_nodes, cell_faces, sd.name)
+    return pg.Grid(sd.dim, nodes, face_nodes, cell_faces, sd.name)
 
 
 def merge_connectivities(old_con, new_con):
+    """
+    Concatenates two connectivity matrices without reordering their indices
+    Args:
+        old_con: the old connectivity matrix
+        new_con: the additional connectivities using new numbering
+    """
     data = np.hstack((old_con.data, new_con.data))
     indices = np.hstack((old_con.indices, new_con.indices))
 
@@ -63,6 +77,7 @@ def merge_connectivities(old_con, new_con):
         (data, indices, indptr),
         shape=new_con.shape,
     )
+
     return result
 
 
@@ -70,17 +85,21 @@ def create_new_entity_map(cut_entities, offset=0):
     """
     Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a new entity placed on i_old
     """
-    n = np.sum(cut_entities)
+    n_cuts = np.sum(cut_entities)
 
-    rows = np.arange(n) + offset
+    rows = np.arange(n_cuts) + offset
     cols = np.flatnonzero(cut_entities)
-    data = np.ones(n)
+    data = np.ones(n_cuts)
 
-    return sps.csc_matrix((data, (rows, cols)), shape=(n + offset, len(cut_entities)))
+    return sps.csc_matrix(
+        (data, (rows, cols)), shape=(n_cuts + offset, len(cut_entities))
+    )
 
 
 def create_splitting_map(cut_entities, offset=0):
-    # Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a split of i_old
+    """
+    Mapping of n_new x n_old in which (i_new, i_old) = 1 if i_new is a split of i_old
+    """
     n = 2 * np.sum(cut_entities)
 
     rows = np.arange(n) + offset
@@ -155,8 +174,11 @@ def create_new_face_nodes(sd, cut_cells, cut_faces, entity_maps):
     return sps.csc_matrix((data, (rows, cols)))
 
 
-## Add new cells
 def create_new_cell_faces(sd, cut_cells, cut_faces, entity_maps, face_nodes):
+    """
+    Add new cells
+    """
+
     # If face_ridges is missing, we generate one based on face_nodes.
     if hasattr(sd, "face_ridges"):
         face_ridges = sd.face_ridges
