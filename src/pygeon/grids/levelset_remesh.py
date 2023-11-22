@@ -12,6 +12,9 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     Args:
         sd: grid to remesh
         levelset: function that returns the level-set value for each x
+
+    Returns:
+        A new pg.Grid conforming to the level set.
     """
 
     # Mark the cut faces and cells
