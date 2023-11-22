@@ -1,8 +1,10 @@
+from typing import Any, Callable, Dict, Tuple
+
 import numpy as np
 import scipy.sparse as sps
-import pygeon as pg
-from typing import Any, Callable, Dict, Tuple
 from scipy.optimize import brentq
+
+import pygeon as pg
 
 
 def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
