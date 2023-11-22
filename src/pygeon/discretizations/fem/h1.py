@@ -526,11 +526,7 @@ class VecLagrange1(pg.Discretization):
 
         NOTE: We are assuming the sd grid in the (x,y) coordinates
         """
-        interp = []
-        for d in np.arange(sd.dim):
-            f = lambda x: func(x)[d]
-            interp.append(self.lagrange1.interpolate(sd, f))
-        return np.hstack(interp)
+        return self.lagrange1.interpolate(sd, func).ravel(order="F")
 
     def eval_at_cell_centers(self, sd: pg.Grid):
         """
@@ -568,14 +564,14 @@ class VecLagrange1(pg.Discretization):
         """
         Returns the discretization class that contains the range of the differential.
 
-        Parameters:
-        dim (int): The dimension of the range.
+        Args:
+            dim (int): The dimension of the range.
 
         Raises:
-        NotImplementedError: If there is no range discretization for the vector Lagrangian 1 in PyGeoN.
+            NotImplementedError: If there is no range discretization for the vector Lagrangian 1 in PyGeoN.
 
         Returns:
-        Discretization: The discretization class that contains the range of the differential.
+            Discretization: The discretization class that contains the range of the differential.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"

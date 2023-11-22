@@ -10,6 +10,15 @@ import pygeon as pg
 
 class VecLagrange1Test(unittest.TestCase):
     def test_div_2d(self):
+        """
+        Test the div operator in 2D using VecLagrange1.
+
+        This method tests the computation of the divergence matrix, interpolation of a function,
+        and the assembly of the divergence-divergence matrix using VecLagrange1.
+
+        Returns:
+            None
+        """
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
         sd.compute_geometry()
 
@@ -46,6 +55,15 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(A, A_known))
 
     def test_symgrad_2d(self):
+        """
+        Test the symgrad_2d method of VecLagrange1 class.
+
+        This method tests the computation of the symmetric gradient matrix,
+        interpolation, and assembly of the symmetric gradient-symmetric gradient matrix.
+
+        Returns:
+            None
+        """
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
         sd.compute_geometry()
 
@@ -92,6 +110,18 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(A, A_known))
 
     def test_div_3d(self):
+        """
+        Test the div operator in 3D using VecLagrange1.
+
+        This test verifies the correctness of the div operator by assembling the
+        divergence matrix and comparing it with the known indices, indptr, and data.
+        It also checks if the divergence of the interpolated functions is zero.
+        Finally, it verifies the symmetry and the property of the assembled
+        symgrad_symgrad matrix.
+
+        Returns:
+            None
+        """
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
         sd.compute_geometry()
 

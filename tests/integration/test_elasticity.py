@@ -5,7 +5,29 @@ import pygeon as pg
 
 
 class ElasticityTest(unittest.TestCase):
+    """
+    Test case class for elasticity module.
+
+    This class contains test methods for various scenarios in the elasticity module.
+    Each test method sets up the necessary parameters, assembles the linear system,
+    solves it, and compares the obtained solution with the expected solution.
+
+    """
+
     def setup(self, dim, h):
+        """
+        Set up the test case for elasticity.
+
+        Args:
+            dim (int): The dimension of the problem.
+            h (float): The grid spacing.
+
+        Returns:
+            Tuple: A tuple containing the following elements:
+                - sd (pg.Mesh): The structured mesh.
+                - vec_p1 (pg.VecLagrange1): The Lagrange finite element space.
+                - A (pg.Matrix): The assembled elasticity matrix.
+        """
         labda = 1
         mu = 1
         sd = pg.unit_grid(dim, h, as_mdg=False)
@@ -20,6 +42,16 @@ class ElasticityTest(unittest.TestCase):
         return sd, vec_p1, A
 
     def test_rigid_body_motion_2d(self):
+        """
+        Test case for 2D rigid body motion.
+
+        This test case verifies the correctness of the solution for 2D rigid body motion.
+        It sets up the problem, applies essential boundary conditions, solves the linear system,
+        and checks if the computed solution matches the expected solution.
+
+        Returns:
+            None
+        """
         sd, vec_p1, A = self.setup(2, 0.125)
 
         b_nodes = np.hstack([sd.tags["domain_boundary_nodes"]] * 2)
@@ -33,6 +65,15 @@ class ElasticityTest(unittest.TestCase):
         self.assertTrue(np.allclose(u, u_ex))
 
     def test_rigid_body_motion_3d(self):
+        """
+        Test case for simulating rigid body motion in 3D.
+
+        This test sets up a linear system and solves it to simulate rigid body motion in 3D.
+        It verifies that the computed solution matches the expected solution within a tolerance.
+
+        Returns:
+            None
+        """
         sd, vec_p1, A = self.setup(3, 0.125)
 
         b_nodes = np.hstack([sd.tags["domain_boundary_nodes"]] * 3)
@@ -46,6 +87,16 @@ class ElasticityTest(unittest.TestCase):
         self.assertTrue(np.allclose(u, u_ex))
 
     def test_footstep_2d(self):
+        """
+        Test case for simulating a 2D footstep using elasticity.
+
+        This method tests the 2D footstep scenario in the elasticity module.
+        It sets up the necessary parameters, assembles the linear system,
+        solves it, and compares the obtained solution with the expected solution.
+
+        Returns:
+            None
+        """
         sd, vec_p1, A = self.setup(2, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[1, :], 0)] * 2)
@@ -69,16 +120,17 @@ class ElasticityTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_known))
 
-        # proj = vec_p1.eval_at_cell_centers(sd)
-        # cell_u = proj @ u
-        # cell_u = np.hstack((cell_u, np.zeros(sd.num_cells)))
-        # cell_u = cell_u.reshape((3, -1))
-
-        # save = pp.Exporter(sd, "sol")
-        # save.write_vtu([("cell_u", cell_u)])
-
     def test_footstep_3d(self):
-        sd, vec_p1, A = self.setup(3, 0.125)
+        """
+        Test case for simulating a 3D footstep using elasticity.
+
+        This test sets up a 3D problem with a footstep and solves it using elasticity equations.
+        It verifies that the solution has a non-positive z component.
+
+        Returns:
+            None
+        """
+        sd, vec_p1, A = self.setup(3, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[2, :], 0)] * 3)
         top = np.isclose(sd.face_centers[2, :], 1)
@@ -90,22 +142,7 @@ class ElasticityTest(unittest.TestCase):
         ls.flag_ess_bc(bottom, np.zeros(vec_p1.ndof(sd)))
         u = ls.solve()
 
-        # fmt: off
-        u_known = np.array(
-            [ 0.        ,  0.        ,  0.1776907 , -0.17951352,  0.        ,
-              0.16157526, -0.00424376, -0.167963  , -0.07453339,  0.04330445,
-             -0.03649198,  0.03261989,  0.        ,  0.        , -0.63391078,
-             -0.63835749,  0.        , -0.31189007, -0.61793605, -0.31482189,
-             -0.42682694, -0.36033026, -0.17899184, -0.1394673 ])
-        # fmt: on
-
-        # self.assertTrue(np.allclose(u, u_known))
-
-        proj = vec_p1.eval_at_cell_centers(sd)
-        cell_u = (proj @ u).reshape((3, -1))
-
-        save = pp.Exporter(sd, "sol")
-        save.write_vtu([("cell_u", cell_u)])
+        self.assertTrue(np.all(u[-sd.num_nodes :] <= 0))
 
 
 if __name__ == "__main__":
