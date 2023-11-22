@@ -246,6 +246,15 @@ class VecLagrange1(pg.Discretization):
     """
 
     def __init__(self, keyword: str) -> None:
+        """
+        Initialize the H1 class.
+
+        Args:
+            keyword (str): The keyword for the H1 class.
+
+        Returns:
+            None
+        """
         super().__init__(keyword)
         # a local Lagrange1 class for performing some of the computations
         self.lagrange1 = pg.Lagrange1(keyword)
@@ -253,13 +262,13 @@ class VecLagrange1(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes.
+        In this case, it returns the product of the number of nodes and the dimension of the grid.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): The grid or a subclass.
 
-        Returns
-            ndof: the number of degrees of freedom.
+        Returns:
+            int: The number of degrees of freedom.
         """
         return sd.num_nodes * sd.dim
 
@@ -339,13 +348,14 @@ class VecLagrange1(pg.Discretization):
         """
         Compute the local div matrix for P1.
 
-        Args
-            c_volume : scalar
-                Cell volume.
+        Args:
+            c_volume (scalar): Cell volume.
+            coord (ndarray): Coordinates of the cell.
+            dim (int): Dimension of the cell.
 
-        Returns
-            out: ndarray (num_faces_of_cell, num_faces_of_cell)
-                Local mass Hdiv matrix.
+        Returns:
+            ndarray: Local mass Hdiv matrix.
+                Shape: (num_faces_of_cell, num_faces_of_cell)
         """
 
         dphi = self.lagrange1.local_grads(coord, dim)
@@ -357,16 +367,14 @@ class VecLagrange1(pg.Discretization):
         Returns the div-div matrix operator for the lowest order
         vector Lagrange element
 
-        Args
-            sd : grid.
-            data: the data.
+        Args:
+            sd (pg.Grid): The grid object.
+            data (dict, optional): Additional data. Defaults to None.
 
-        Returns
+        Returns:
             matrix: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
-
         """
-
         div = self.assemble_div_matrix(sd)
         # TODO add the Lame' parameter in the computation of the P0 mass
         mass = pg.PwConstants.assemble_mass_matrix(None, sd, data)
@@ -378,12 +386,22 @@ class VecLagrange1(pg.Discretization):
         Returns the symmetric gradient matrix operator for the
         lowest order vector Lagrange element
 
-        Args
-            sd : grid.
+        Args:
+            sd (pg.Grid): The grid object representing the domain.
 
-        Returns
-            matrix: sparse (sd.num_nodes, sd.num_nodes)
-                Mass matrix obtained from the discretization.
+        Returns:
+            sps.csc_matrix: The sparse symmetric gradient matrix operator.
+
+        Raises:
+            None
+
+        Notes:
+            - If a 0-dimensional grid is given, a zero matrix is returned.
+            - The method maps the domain to a reference geometry.
+            - The method allocates data to store matrix entries efficiently.
+            - The symmetrization matrix is constructed differently for 2D and 3D cases.
+            - The method computes the symgrad local matrix for each cell and saves the values in the global structure.
+            - Finally, the method constructs the global matrices using the saved values.
 
         """
         # If a 0-d grid is given then we return a zero matrix
@@ -446,19 +464,17 @@ class VecLagrange1(pg.Discretization):
         """
         Compute the local symmetric gradient matrix for P1.
 
-        Args
-            c_volume : scalar
-                Cell volume.
+        Args:
+            c_volume (scalar): Cell volume.
+            coord (ndarray): Coordinates of the cell.
+            dim (int): Dimension of the cell.
+            sym (ndarray): Symmetric matrix.
 
-        Returns
-            out: ndarray (num_faces_of_cell, num_faces_of_cell)
-                Local symmetric gradient matrix.
+        Returns:
+            ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell, num_faces_of_cell).
         """
-
         dphi = self.lagrange1.local_grads(coord, dim)
-
         grad = spl.block_diag(*([dphi] * dim))
-
         return c_volume * sym @ grad
 
     def assemble_symgrad_symgrad_matrix(self, sd: pg.Grid, data: dict = None):
@@ -466,14 +482,13 @@ class VecLagrange1(pg.Discretization):
         Returns the symgrad-symgrad matrix operator for the lowest order
         vector Lagrange element
 
-        Args
-            sd : grid.
-            data: the data.
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict, optional): Additional data. Defaults to None.
 
-        Returns
-            matrix: sparse (sd.num_nodes, sd.num_nodes)
-                Mass matrix obtained from the discretization.
-
+        Returns:
+            sps.csc_matrix: Sparse symgrad-symgrad matrix of shape (sd.num_nodes, sd.num_nodes).
+                The matrix obtained from the discretization.
         """
 
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -485,13 +500,13 @@ class VecLagrange1(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid):
         """
-        Assembles the matrix corresponding to the differential
+        Assembles the matrix corresponding to the differential operator.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
 
-        Returns
-            csc_matrix: the differential matrix.
+        Returns:
+            sps.csc_matrix: The differential matrix.
         """
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -502,11 +517,11 @@ class VecLagrange1(pg.Discretization):
         """
         Interpolates a function onto the finite element space
 
-        Args
-            sd: grid, or a subclass.
-            func: a function that returns the function values at coordinates
+        Args:
+            sd (pg.Grid): grid, or a subclass.
+            func (function): a function that returns the function values at coordinates
 
-        Returns
+        Returns:
             array: the values of the degrees of freedom
 
         NOTE: We are assuming the sd grid in the (x,y) coordinates
@@ -519,13 +534,13 @@ class VecLagrange1(pg.Discretization):
 
     def eval_at_cell_centers(self, sd: pg.Grid):
         """
-        Assembles the matrix
+        Assembles the matrix by evaluating the Lagrange basis functions at the cell centers of the given grid.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
 
-        Returns
-            matrix: the evaluation matrix.
+        Returns:
+            matrix (scipy.sparse.csc_matrix): The evaluation matrix.
         """
         proj = self.lagrange1.eval_at_cell_centers(sd)
         return sps.block_diag([proj] * sd.dim, format="csc")
@@ -534,6 +549,14 @@ class VecLagrange1(pg.Discretization):
         """
         Assembles the natural boundary condition term
         (Tr q, p)_Gamma
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            func (function): The function that defines the natural boundary condition.
+            b_faces (list): List of boundary faces where the natural boundary condition is applied.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
         """
         bc_val = []
         for d in np.arange(sd.dim):
@@ -543,7 +566,16 @@ class VecLagrange1(pg.Discretization):
 
     def get_range_discr_class(self, dim: int):
         """
-        Returns the discretization class that contains the range of the differential
+        Returns the discretization class that contains the range of the differential.
+
+        Parameters:
+        dim (int): The dimension of the range.
+
+        Raises:
+        NotImplementedError: If there is no range discretization for the vector Lagrangian 1 in PyGeoN.
+
+        Returns:
+        Discretization: The discretization class that contains the range of the differential.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
