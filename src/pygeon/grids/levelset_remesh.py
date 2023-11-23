@@ -50,8 +50,8 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     cell_faces = merge_connectivities(sd.cell_faces, new_cell_faces)
 
     # Mark which entities to keep in the new grid
-    new_cells = np.ones(2 * sum(cut_cells), dtype="bool")
-    new_faces = np.ones(2 * sum(cut_faces) + sum(cut_cells), dtype="bool")
+    new_cells = np.ones(2 * sum(cut_cells), dtype=bool)
+    new_faces = np.ones(2 * sum(cut_faces) + sum(cut_cells), dtype=bool)
 
     keep_cells = np.hstack((np.logical_not(cut_cells), new_cells))
     keep_faces = np.hstack((np.logical_not(cut_faces), new_faces))
@@ -263,7 +263,8 @@ def create_new_cell_faces(
                 [
                     faces_el[face[np.logical_and(orient == -1, node == sn)]][0]
                     for sn in sub_nodes
-                ]
+                ],
+                dtype=int,
             )
             rows.append(sub_faces)
             data.append(sd.cell_faces[sub_faces, el].A.ravel())
@@ -300,7 +301,7 @@ def create_new_cell_faces(
 
             cols.append(np.repeat(new_cells[i], 3 + len(sub_faces)))
 
-    rows = np.hstack(rows).astype(int)
+    rows = np.hstack(rows)
     cols = np.hstack(cols)
     data = np.hstack(data)
 
@@ -316,7 +317,7 @@ def create_oriented_node_loop(
     Creates a node loop for the cell according to a positive orientation.
     """
 
-    node_loop = np.zeros(len(nodes) // 2, dtype="int")
+    node_loop = np.zeros(len(nodes) // 2, dtype=int)
     node_loop[0] = nodes[0]
 
     for i in np.arange(1, len(node_loop)):
