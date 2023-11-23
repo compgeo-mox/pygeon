@@ -243,6 +243,32 @@ class VecLagrange1(pg.Discretization):
     """
     Convention for the ordering is fist all the x, then all the y and
     (if dim = 3) all the z.
+
+    We are considering the following structure of the stress tensor in 2d
+
+    sigma = [[sigma_xx, sigma_xy],
+             [sigma_yx, sigma_yy]]
+
+    which is represented in the code unrolled row-wise as a vector of length 4
+
+    sigma = [sigma_xx, sigma_xy,
+             sigma_yx, sigma_yy]
+
+    While in 3d the stress tensor can be written as
+
+    sigma = [[sigma_xx, sigma_xy, sigma_xz],
+             [sigma_yx, sigma_yy, sigma_yz],
+             [sigma_zx, sigma_zy, sigma_zz]]
+
+    where its vectorized structure of lenght 9 is given by
+
+    sigma = [sigma_xx, sigma_xy, sigma_xz,
+             sigma_yx, sigma_yy, sigma_yz,
+             sigma_zx, sigma_zy, sigma_zz]
+
+
+    The strain tensor follows the same approach.
+
     """
 
     def __init__(self, keyword: str) -> None:
@@ -576,3 +602,30 @@ class VecLagrange1(pg.Discretization):
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
         )
+
+    def compute_stress(self, sd: pg.Grid, u, labda, mu):
+        """
+        Compute the stress tensor for a given displacement field.
+
+        Args:
+            sd (pg.Grid): The spatial discretization object.
+            u (ndarray): The displacement field.
+            labda (float): The first Lamé parameter.
+            mu (float): The second Lamé parameter.
+
+        Returns:
+            ndarray: The stress tensor.
+        """
+        # construct the differentials
+        symgrad = self.assemble_symgrad_matrix(sd)
+        div = self.assemble_div_matrix(sd)
+
+        # compute the two terms and split on each component
+        sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
+        sigma[:: (sd.dim + 1)] += labda * div @ u
+
+        # create the indices to re-arrange the components for the second
+        # order tensor
+        idx = np.arange(np.square(sd.dim)).reshape((sd.dim, -1))
+
+        return sigma[idx].T

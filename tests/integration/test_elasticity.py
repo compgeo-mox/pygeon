@@ -29,7 +29,7 @@ class ElasticityTest(unittest.TestCase):
                 - A (pg.Matrix): The assembled elasticity matrix.
         """
         labda = 1
-        mu = 1
+        mu = 0.5
         sd = pg.unit_grid(dim, h, as_mdg=False)
         sd.compute_geometry()
 
@@ -38,8 +38,8 @@ class ElasticityTest(unittest.TestCase):
         sym_sym = vec_p1.assemble_symgrad_symgrad_matrix(sd)
         div_div = vec_p1.assemble_div_div_matrix(sd)
 
-        A = mu * sym_sym + labda * div_div
-        return sd, vec_p1, A
+        A = 2 * mu * sym_sym + labda * div_div
+        return sd, vec_p1, A, labda, mu
 
     def test_rigid_body_motion_2d(self):
         """
@@ -52,7 +52,7 @@ class ElasticityTest(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A = self.setup(2, 0.125)
+        sd, vec_p1, A, labda, mu = self.setup(2, 0.125)
 
         b_nodes = np.hstack([sd.tags["domain_boundary_nodes"]] * 2)
         bc_fun = lambda x: np.array([0.5 - x[1], 0.5 + x[0]])
@@ -64,6 +64,10 @@ class ElasticityTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_ex))
 
+        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+
+        self.assertTrue(np.allclose(sigma, 0))
+
     def test_rigid_body_motion_3d(self):
         """
         Test case for simulating rigid body motion in 3D.
@@ -74,7 +78,7 @@ class ElasticityTest(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A = self.setup(3, 0.125)
+        sd, vec_p1, A, labda, mu = self.setup(3, 0.125)
 
         b_nodes = np.hstack([sd.tags["domain_boundary_nodes"]] * 3)
         bc_fun = lambda x: np.array([0.5 - x[1], 0.5 + x[0] - x[2], 0.1 + x[1]])
@@ -85,6 +89,10 @@ class ElasticityTest(unittest.TestCase):
         u = ls.solve()
 
         self.assertTrue(np.allclose(u, u_ex))
+
+        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+
+        self.assertTrue(np.allclose(sigma, 0))
 
     def test_footstep_2d(self):
         """
@@ -97,7 +105,7 @@ class ElasticityTest(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A = self.setup(2, 0.5)
+        sd, vec_p1, A, _, _ = self.setup(2, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[1, :], 0)] * 2)
         top = np.isclose(sd.face_centers[1, :], 1)
@@ -130,7 +138,7 @@ class ElasticityTest(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A = self.setup(3, 0.5)
+        sd, vec_p1, A, _, _ = self.setup(3, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[2, :], 0)] * 3)
         top = np.isclose(sd.face_centers[2, :], 1)
