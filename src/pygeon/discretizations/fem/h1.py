@@ -1,4 +1,6 @@
 import numpy as np
+from typing import Optional, Callable, Union
+
 import porepy as pp
 import scipy.linalg as spl
 import scipy.sparse as sps
@@ -20,17 +22,18 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Returns the mass matrix for the lowest order Lagrange element
 
-        Args
-            sd : grid.
+        Args:
+            sd (pg.Grid): The grid.
+            data (Optional[dict]): Optional data for the assembly process.
 
-        Returns
-            matrix: sparse (sd.num_nodes, sd.num_nodes)
-                Mass matrix obtained from the discretization.
-
+        Returns:
+            sps.csc_matrix: The mass matrix obtained from the discretization.
         """
 
         # Data allocation
@@ -61,27 +64,31 @@ class Lagrange1(pg.Discretization):
         # Construct the global matrix
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_mass(self, c_volume, dim):
+    def local_mass(self, c_volume: np.ndarray, dim: int) -> np.ndarray:
         """Compute the local mass matrix.
 
-        Args
-        c_volume : scalar
-            Cell volume.
+        Args:
+            c_volume (np.ndarray): Cell volume.
+            dim (int): Dimension of the matrix.
 
-        Return
-        ------
-        out: ndarray (num_nodes_of_cell, num_nodes_of_cell)
-            Local mass matrix.
+        Returns:
+            np.ndarray: Local mass matrix of shape (num_nodes_of_cell, num_nodes_of_cell).
         """
 
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         return c_volume * M / ((dim + 1) * (dim + 2))
 
-    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict):
-        # If a 0-d grid is given then we return a zero matrix
-        if sd.dim == 0:
-            return sps.csc_matrix((1, 1))
+    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        """
+        Assembles the stiffness matrix for the finite element method.
 
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+            data (dict): A dictionary containing the necessary data for assembling the matrix.
+
+        Returns:
+            sps.csc_matrix: The assembled stiffness matrix.
+        """
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
         # Retrieve the permeability, boundary conditions
@@ -136,7 +143,16 @@ class Lagrange1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles the differential matrix based on the dimension of the grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_matrix: The differential matrix.
+        """
         if sd.dim == 3:
             return sd.ridge_peaks.T
         elif sd.dim == 2:
@@ -148,19 +164,20 @@ class Lagrange1(pg.Discretization):
         else:
             raise ValueError
 
-    def local_stiff(self, K, c_volume, coord, dim):
+    def local_stiff(
+        self, K: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
+    ) -> np.ndarray:
         """
         Compute the local stiffness matrix for P1.
 
-        Args
-            K : ndarray (dim, dim)
-                Permeability of the cell.
-            c_volume : scalar
-                Cell volume.
+        Args:
+            K (np.ndarray): permeability of the cell of (dim, dim) shape.
+            c_volume (np.ndarray): scalar cell volume.
+            coord (np.ndarray): coordinates of the cell vertices of (dim+1, dim) shape.
+            dim (int): dimension of the problem.
 
-        Returns
-            out: ndarray (num_faces_of_cell, num_faces_of_cell)
-                Local mass Hdiv matrix.
+        Returns:
+            np.ndarray: local stiffness matrix of (dim+1, dim+1) shape.
         """
 
         dphi = self.local_grads(coord, dim)
@@ -168,16 +185,47 @@ class Lagrange1(pg.Discretization):
         return c_volume * np.dot(dphi.T, np.dot(K, dphi))
 
     @staticmethod
-    def local_grads(coord, dim):
+    def local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
+        """
+        Calculate the local gradients of the finite element basis functions.
+
+        Args:
+            coord (np.ndarray): The coordinates of the nodes in the element.
+            dim (int): The dimension of the element.
+
+        Returns:
+            np.ndarray: The local gradients of the finite element basis functions.
+        """
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Assembles the lumped mass matrix for the finite element method.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_matrix: The assembled lumped mass matrix.
+        """
         volumes = sd.cell_nodes() * sd.cell_volumes / (sd.dim + 1)
         return sps.diags(volumes).tocsc()
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Construct the matrix for evaluating a Lagrangian function at the cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_matrix: The matrix representing the projection at the cell centers.
+        """
         if sd.dim == 0:
             return sd.cell_nodes().T.tocsc()
 
@@ -205,13 +253,35 @@ class Lagrange1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        """
+        Interpolates a given function over the nodes of a grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to interpolate the function.
+            func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
+
+        Returns:
+            np.ndarray: An array containing the interpolated values at each node of the grid.
+        """
         return np.array([func(x) for x in sd.nodes.T])
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
         (u, func)_Gamma with u a test function in Lagrange1
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain
+            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate the 'natural' boundary condition
+            b_faces (np.ndarray): The array of boundary faces
+
+        Returns:
+            np.ndarray: The assembled 'natural' boundary condition values
         """
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
@@ -228,7 +298,19 @@ class Lagrange1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim):
+    def get_range_discr_class(self, dim: int) -> object:
+        """
+        Returns the appropriate range discretization class based on the dimension.
+
+        Args:
+            dim (int): The dimension of the problem.
+
+        Returns:
+            object: The range discretization class.
+
+        Raises:
+            NotImplementedError: If there's no zero discretization in PyGeoN.
+        """
         if dim == 3:
             return pg.Nedelec0
         elif dim == 2:
@@ -298,33 +380,32 @@ class VecLagrange1(pg.Discretization):
         """
         return sd.num_nodes * sd.dim
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
-        Returns the mass matrix for the lowest order Lagrange element
+        Assembles and returns the mass matrix for the lowest order Lagrange element.
 
-        Args
-            sd : grid.
+        Args:
+            sd (pg.Grid): The grid.
+            data (Optional[dict]): Optional data for the assembly.
 
-        Returns
-            matrix: sparse (sd.num_nodes, sd.num_nodes)
-                Mass matrix obtained from the discretization.
-
+        Returns:
+            sps.csc_matrix: The mass matrix obtained from the discretization.
         """
         mass = self.lagrange1.assemble_mass_matrix(sd, data)
         return sps.block_diag([mass] * sd.dim, format="csc")
 
-    def assemble_div_matrix(self, sd: pg.Grid):
+    def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Returns the div matrix operator for the lowest order
         vector Lagrange element
 
-        Args
-            sd : grid.
+        Args:
+            sd (pg.Grid): The grid object.
 
-        Returns
-            matrix: sparse (sd.num_cells, sd.num_nodes * sd.dim)
-                Div matrix obtained from the discretization.
-
+        Returns:
+            sps.csc_matrix: The div matrix obtained from the discretization.
         """
         # If a 0-d grid is given then we return a zero matrix
         if sd.dim == 0:
@@ -370,12 +451,12 @@ class VecLagrange1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_div(self, c_volume, coord, dim):
+    def local_div(self, c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
         """
         Compute the local div matrix for P1.
 
         Args:
-            c_volume (scalar): Cell volume.
+            c_volume (float): Cell volume.
             coord (ndarray): Coordinates of the cell.
             dim (int): Dimension of the cell.
 
@@ -388,14 +469,16 @@ class VecLagrange1(pg.Discretization):
 
         return c_volume * dphi
 
-    def assemble_div_div_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_div_div_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Returns the div-div matrix operator for the lowest order
         vector Lagrange element
 
         Args:
             sd (pg.Grid): The grid object.
-            data (dict, optional): Additional data. Defaults to None.
+            data (Optional[dict]): Additional data. Defaults to None.
 
         Returns:
             matrix: sparse (sd.num_nodes, sd.num_nodes)
@@ -407,7 +490,7 @@ class VecLagrange1(pg.Discretization):
 
         return div.T @ mass @ div
 
-    def assemble_symgrad_matrix(self, sd: pg.Grid):
+    def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Returns the symmetric gradient matrix operator for the
         lowest order vector Lagrange element
@@ -486,31 +569,35 @@ class VecLagrange1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_symgrad(self, c_volume, coord, dim, sym):
+    def local_symgrad(
+        self, c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray
+    ) -> np.ndarray:
         """
         Compute the local symmetric gradient matrix for P1.
 
         Args:
-            c_volume (scalar): Cell volume.
-            coord (ndarray): Coordinates of the cell.
+            c_volume (float): Cell volume.
+            coord (np.ndarray): Coordinates of the cell.
             dim (int): Dimension of the cell.
-            sym (ndarray): Symmetric matrix.
+            sym (np.ndarray): Symmetric matrix.
 
         Returns:
-            ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell, num_faces_of_cell).
+            np.ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell, num_faces_of_cell).
         """
         dphi = self.lagrange1.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
         return c_volume * sym @ grad
 
-    def assemble_symgrad_symgrad_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_symgrad_symgrad_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
         vector Lagrange element
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict, optional): Additional data. Defaults to None.
+            data (Optional[dict]): Additional data. Defaults to None.
 
         Returns:
             sps.csc_matrix: Sparse symgrad-symgrad matrix of shape (sd.num_nodes, sd.num_nodes).
@@ -524,7 +611,7 @@ class VecLagrange1(pg.Discretization):
 
         return symgrad.T @ tensor_mass @ symgrad
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -539,43 +626,51 @@ class VecLagrange1(pg.Discretization):
 
         return sps.bmat([[symgrad], [div]], format="csc")
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
 
         Args:
             sd (pg.Grid): grid, or a subclass.
+                The grid onto which the function will be interpolated.
             func (function): a function that returns the function values at coordinates
+                The function to be interpolated.
 
         Returns:
             array: the values of the degrees of freedom
+                The interpolated values of the function on the finite element space.
 
         NOTE: We are assuming the sd grid in the (x,y) coordinates
         """
         return self.lagrange1.interpolate(sd, func).ravel(order="F")
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix by evaluating the Lagrange basis functions at the cell centers of the given grid.
+        Assembles the matrix by evaluating the Lagrange basis functions at the cell
+        centers of the given grid.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            matrix (scipy.sparse.csc_matrix): The evaluation matrix.
+            sps.csc_matrix: The evaluation matrix.
         """
         proj = self.lagrange1.eval_at_cell_centers(sd)
         return sps.block_diag([proj] * sd.dim, format="csc")
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
         (Tr q, p)_Gamma
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            func (function): The function that defines the natural boundary condition.
-            b_faces (list): List of boundary faces where the natural boundary condition is applied.
+            func (Callable[[np.ndarray], np.ndarray]): The function that defines the natural boundary condition.
+            b_faces (np.ndarray): List of boundary faces where the natural boundary condition is applied.
 
         Returns:
             np.ndarray: The assembled natural boundary condition term.
@@ -586,7 +681,7 @@ class VecLagrange1(pg.Discretization):
             bc_val.append(self.lagrange1.assemble_nat_bc(sd, f, b_faces))
         return np.hstack(bc_val)
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> object:
         """
         Returns the discretization class that contains the range of the differential.
 
@@ -603,15 +698,21 @@ class VecLagrange1(pg.Discretization):
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
         )
 
-    def compute_stress(self, sd: pg.Grid, u, labda, mu):
+    def compute_stress(
+        self,
+        sd: pg.Grid,
+        u: np.ndarray,
+        labda: Union[float, np.ndarray],
+        mu: Union[float, np.ndarray],
+    ) -> np.ndarray:
         """
         Compute the stress tensor for a given displacement field.
 
         Args:
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
-            labda (float): The first Lamé parameter.
-            mu (float): The second Lamé parameter.
+            labda (float or ndarray): The first Lamé parameter.
+            mu (float or ndarray): The second Lamé parameter.
 
         Returns:
             ndarray: The stress tensor.
@@ -619,13 +720,17 @@ class VecLagrange1(pg.Discretization):
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
+        proj = pg.PwConstants.eval_at_cell_centers(None, sd)
 
         # compute the two terms and split on each component
         sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
         sigma[:: (sd.dim + 1)] += labda * div @ u
 
+        # compute the actual dofs
+        sigma = sigma @ proj
+
         # create the indices to re-arrange the components for the second
         # order tensor
-        idx = np.arange(np.square(sd.dim)).reshape((sd.dim, -1))
+        idx = np.arange(np.square(sd.dim)).reshape((sd.dim, -1), order="F")
 
         return sigma[idx].T
