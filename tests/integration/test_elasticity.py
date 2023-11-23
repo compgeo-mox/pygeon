@@ -94,11 +94,11 @@ class ElasticityTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(sigma, 0))
 
-    def test_footstep_2d(self):
+    def test_footing_2d(self):
         """
-        Test case for simulating a 2D footstep using elasticity.
+        Test case for simulating a 2D footing using elasticity.
 
-        This method tests the 2D footstep scenario in the elasticity module.
+        This method tests the 2D footing scenario in the elasticity module.
         It sets up the necessary parameters, assembles the linear system,
         solves it, and compares the obtained solution with the expected solution.
 
@@ -132,11 +132,11 @@ class ElasticityTest(unittest.TestCase):
 
         self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
 
-    def test_footstep_3d(self):
+    def test_footing_3d(self):
         """
-        Test case for simulating a 3D footstep using elasticity.
+        Test case for simulating a 3D footing using elasticity.
 
-        This test sets up a 3D problem with a footstep and solves it using elasticity equations.
+        This test sets up a 3D problem with a footing and solves it using elasticity equations.
         It verifies that the solution has a non-positive z component.
 
         Returns:
