@@ -105,7 +105,7 @@ class ElasticityTest(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A, _, _ = self.setup(2, 0.5)
+        sd, vec_p1, A, labda, mu = self.setup(2, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[1, :], 0)] * 2)
         top = np.isclose(sd.face_centers[1, :], 1)
@@ -128,6 +128,10 @@ class ElasticityTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_known))
 
+        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+
+        self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
+
     def test_footstep_3d(self):
         """
         Test case for simulating a 3D footstep using elasticity.
@@ -138,7 +142,7 @@ class ElasticityTest(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A, _, _ = self.setup(3, 0.5)
+        sd, vec_p1, A, labda, mu = self.setup(3, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[2, :], 0)] * 3)
         top = np.isclose(sd.face_centers[2, :], 1)
@@ -151,6 +155,10 @@ class ElasticityTest(unittest.TestCase):
         u = ls.solve()
 
         self.assertTrue(np.all(u[-sd.num_nodes :] <= 0))
+
+        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+
+        self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
 
 
 if __name__ == "__main__":
