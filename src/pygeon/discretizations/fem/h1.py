@@ -1,6 +1,6 @@
-import numpy as np
-from typing import Optional, Callable, Union
+from typing import Callable, Optional, Union
 
+import numpy as np
 import porepy as pp
 import scipy.linalg as spl
 import scipy.sparse as sps
