@@ -218,7 +218,8 @@ class Lagrange1(pg.Discretization):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Construct the matrix for evaluating a Lagrangian function at the cell centers of the given grid.
+        Construct the matrix for evaluating a Lagrangian function at the
+        cell centers of the given grid.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -277,7 +278,8 @@ class Lagrange1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain
-            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate the 'natural' boundary condition
+            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
+                the 'natural' boundary condition
             b_faces (np.ndarray): The array of boundary faces
 
         Returns:
@@ -370,7 +372,8 @@ class VecLagrange1(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the product of the number of nodes and the dimension of the grid.
+        In this case, it returns the product of the number of nodes and
+        the dimension of the grid.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -509,7 +512,8 @@ class VecLagrange1(pg.Discretization):
             - The method maps the domain to a reference geometry.
             - The method allocates data to store matrix entries efficiently.
             - The symmetrization matrix is constructed differently for 2D and 3D cases.
-            - The method computes the symgrad local matrix for each cell and saves the values in the global structure.
+            - The method computes the symgrad local matrix for each cell and saves
+              the values in the global structure.
             - Finally, the method constructs the global matrices using the saved values.
 
         """
@@ -582,7 +586,8 @@ class VecLagrange1(pg.Discretization):
             sym (np.ndarray): Symmetric matrix.
 
         Returns:
-            np.ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell, num_faces_of_cell).
+            np.ndarray: Local symmetric gradient matrix of shape
+                (num_faces_of_cell, num_faces_of_cell).
         """
         dphi = self.lagrange1.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
@@ -600,7 +605,8 @@ class VecLagrange1(pg.Discretization):
             data (Optional[dict]): Additional data. Defaults to None.
 
         Returns:
-            sps.csc_matrix: Sparse symgrad-symgrad matrix of shape (sd.num_nodes, sd.num_nodes).
+            sps.csc_matrix: Sparse symgrad-symgrad matrix of shape
+                (sd.num_nodes, sd.num_nodes).
                 The matrix obtained from the discretization.
         """
 
@@ -669,8 +675,10 @@ class VecLagrange1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function that defines the natural boundary condition.
-            b_faces (np.ndarray): List of boundary faces where the natural boundary condition is applied.
+            func (Callable[[np.ndarray], np.ndarray]): The function that defines the
+                natural boundary condition.
+            b_faces (np.ndarray): List of boundary faces where the natural boundary
+                condition is applied.
 
         Returns:
             np.ndarray: The assembled natural boundary condition term.
@@ -689,10 +697,12 @@ class VecLagrange1(pg.Discretization):
             dim (int): The dimension of the range.
 
         Raises:
-            NotImplementedError: If there is no range discretization for the vector Lagrangian 1 in PyGeoN.
+            NotImplementedError: If there is no range discretization for the vector
+                Lagrangian 1 in PyGeoN.
 
         Returns:
-            Discretization: The discretization class that contains the range of the differential.
+            Discretization: The discretization class that contains the range of
+                the differential.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
