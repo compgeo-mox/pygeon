@@ -12,7 +12,7 @@ TUTORIAL_FILENAMES = glob.glob("tutorials/*.ipynb")
 @pytest.mark.parametrize("tutorial_path", TUTORIAL_FILENAMES)
 def test_run_tutorials(tutorial_path: str):
     """We run the tutorial and check that it didn't raise any error.
-    This assumes we run pytest from the porepy directory.
+    This assumes we run pytest from the pygeon directory.
 
     """
     new_file = tutorial_path.removesuffix(".ipynb") + ".py"
