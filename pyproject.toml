@@ -13,7 +13,7 @@ matplotlib = "^3.0.3"
 cython = "^3.0.5"
 future = "^0.18.3"
 six = "^1.12.0"
-shapely = {extras = ["vectorized"], version = "^1.7.0"}
+shapely = {extras = ["vectorized"], version = "^2.0.2"}
 numba = ">=0.53.0"
 scipy = "^1.4.1"
 numpy = "^1.18.5"
