@@ -13,7 +13,10 @@ class OctagonGrid(pg.Grid):
     """
 
     def __init__(
-        self, nx: np.array, physdims: Union[dict, np.ndarray], name="Octagon grid"
+        self,
+        nx: np.array,
+        physdims: Union[dict, np.ndarray] = {},
+        name="Octagon grid",
     ) -> None:
         """
         Constructor for the 2D octagonal grid.
