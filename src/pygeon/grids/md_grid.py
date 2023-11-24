@@ -3,7 +3,17 @@ import porepy as pp
 
 
 class MixedDimensionalGrid(pp.MixedDimensionalGrid):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize a MixedDimensionalGrid object.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            None
+        """
         super(MixedDimensionalGrid, self).__init__(*args, **kwargs)
         self.initialize_data()
 
@@ -114,7 +124,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         Returns:
             None
         """
-
         for sd in self.subdomains():
             # Tag the faces that correspond to a cell in a codim 1 domain
             sd.tags["leaf_faces"] = sd.tags["tip_faces"] + sd.tags["fracture_faces"]
