@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Tuple, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -145,7 +145,7 @@ def create_splitting_map(
 
 
 def intersect_faces(
-    sd: pg.Grid, levelset: Callable, root_finder=Optional[brentq]
+    sd: pg.Grid, levelset: Callable, root_finder=brentq
 ) -> Tuple[np.ndarray[Any, bool], np.ndarray]:
     """
     Marks the cells and faces cut by the level set and
@@ -154,7 +154,7 @@ def intersect_faces(
     Args:
         sd (pg.Grid): The grid object.
         levelset (Callable): The level set function.
-        root_finder (Optional[brentq]): The root finder function. Default is brentq.
+        root_finder (brentq): The root finder function. Default is brentq.
 
     Returns:
         Tuple[np.ndarray[Any, bool], np.ndarray]: A tuple containing the cut_faces array
