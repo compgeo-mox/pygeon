@@ -209,7 +209,7 @@ def create_new_face_nodes(
 
     rows = np.hstack(rows)
     cols = np.hstack(cols)
-    data = np.ones_like(rows)
+    data = np.ones_like(rows, dtype=bool)
 
     return sps.csc_matrix((data, (rows, cols)))
 
@@ -226,12 +226,14 @@ def create_new_cell_faces(
     and generates the corresponding cell-face connectivity matrix.
     """
 
+    # If face_ridges is missing, we generate one based on face_nodes.
     if hasattr(sd, "face_ridges"):
         face_ridges = sd.face_ridges
-    else:  # If face_ridges is missing, we generate one based on face_nodes.
+    else:
         face_ridges = sps.csc_matrix(sd.face_nodes, copy=True)
         face_ridges.data = -np.power(-1, np.arange(face_ridges.nnz))
 
+    # Check connectivity consistency
     assert (face_ridges @ sd.cell_faces).nnz == 0, "Inconsistent connectivities."
 
     rows = []
@@ -247,12 +249,12 @@ def create_new_cell_faces(
             sd.cell_faces[faces_el, el].A.ravel()
         )
 
-        (node, face, orient) = sps.find(face_nodes_el)
-        node_loop = create_oriented_node_loop(node, face, orient)
+        (I_node, J_face, V_orient) = sps.find(face_nodes_el)
+        node_loop = create_oriented_node_loop(I_node, J_face, V_orient)
 
-        loop_starts = node[np.logical_and(orient == 1, cut_faces[faces_el[face]])]
+        loop_starts = I_node[np.logical_and(V_orient == 1, cut_faces[faces_el[J_face]])]
         loop_ends = np.flip(
-            node[np.logical_and(orient == -1, cut_faces[faces_el[face]])]
+            I_node[np.logical_and(V_orient == -1, cut_faces[faces_el[J_face]])]
         )
 
         for i in [0, 1]:  # Loop over the two subcells
@@ -261,7 +263,7 @@ def create_new_cell_faces(
             sub_nodes = node_loop[: np.argmax(node_loop == loop_ends[i])]
             sub_faces = np.array(
                 [
-                    faces_el[face[np.logical_and(orient == -1, node == sn)]][0]
+                    faces_el[J_face[np.logical_and(V_orient == -1, I_node == sn)]][0]
                     for sn in sub_nodes
                 ],
                 dtype=int,
@@ -271,7 +273,7 @@ def create_new_cell_faces(
 
             # Faces that are cut at the start/end of the loop
             start_face = faces_el[
-                face[np.logical_and(node == loop_starts[i], orient == 1)][0]
+                J_face[np.logical_and(I_node == loop_starts[i], V_orient == 1)][0]
             ]
             splits_at_start = entity_maps["f_on_f"][:, start_face].indices
             face_at_start = splits_at_start[
@@ -279,7 +281,7 @@ def create_new_cell_faces(
             ]
 
             end_face = faces_el[
-                face[np.logical_and(node == loop_ends[i], orient == -1)][0]
+                J_face[np.logical_and(I_node == loop_ends[i], V_orient == -1)][0]
             ]
             splits_at_end = entity_maps["f_on_f"][:, end_face].indices
             face_at_end = splits_at_end[
@@ -309,19 +311,22 @@ def create_new_cell_faces(
 
 
 def create_oriented_node_loop(
-    nodes: np.ndarray[Any, int],
-    faces: np.ndarray[Any, int],
-    orients: np.ndarray[Any, int],
+    I_node: np.ndarray[Any, int],
+    J_face: np.ndarray[Any, int],
+    V_orient: np.ndarray[Any, float],
 ) -> np.ndarray[Any, int]:
     """
     Creates a node loop for the cell according to a positive orientation.
+    The input corresponds to (node, face, orient) triplets such that
+    orient = plus/minus 1 means that the node is at the end/start of the face
+    according to the ccw orientation of the cell.
     """
 
-    node_loop = np.zeros(len(nodes) // 2, dtype=int)
-    node_loop[0] = nodes[0]
+    node_loop = np.zeros(len(I_node) // 2, dtype=int)
+    node_loop[0] = I_node[0]
 
     for i in np.arange(1, len(node_loop)):
-        next_face = faces[np.logical_and(nodes == node_loop[i - 1], orients == -1)]
-        node_loop[i] = nodes[np.logical_and(faces == next_face, orients == 1)]
+        next_face = J_face[np.logical_and(I_node == node_loop[i - 1], V_orient == -1)]
+        node_loop[i] = I_node[np.logical_and(J_face == next_face, V_orient == 1)]
 
     return node_loop
