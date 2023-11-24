@@ -25,7 +25,7 @@ pytest-cov = "^4.1.0"
 pytest-runner = "^6.0"
 black = "23.3.0"
 mypy = "^1.4"
-flake8 = "^3.8.3"
+flake8 = "^5.0.4"
 typing_extensions = "^4.7"
 
 [build-system]
