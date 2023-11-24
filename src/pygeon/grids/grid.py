@@ -10,7 +10,17 @@ Acknowledgments:
 
 
 class Grid(pp.Grid):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize a Grid object.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            None
+        """
         super(Grid, self).__init__(*args, **kwargs)
 
     def compute_geometry(self) -> None:
@@ -32,7 +42,6 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-
         super(Grid, self).compute_geometry()
         self.compute_ridges()
 
@@ -46,6 +55,12 @@ class Grid(pp.Grid):
         - ridge_peaks: connectivity between each ridge and peak
         - tags['tip_ridges']: tags for entities at fracture tips
         - tags['tip_peaks']: tags for entities at fracture tips
+
+        Args:
+            None
+
+        Returns:
+            None
         """
         if self.dim == 3:
             self._compute_ridges_3d()
@@ -63,6 +78,12 @@ class Grid(pp.Grid):
 
         This method calculates the number of ridges and peaks in a grid of dimension 0 or 1.
         It also initializes the ridge_peaks and face_ridges matrices with the appropriate dimensions.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
         self.num_peaks = 0
         self.num_ridges = 0
@@ -77,6 +98,9 @@ class Grid(pp.Grid):
         This method computes the number of ridges, number of peaks, and connectivity matrices
         for a 2-dimensional grid. It also computes the face-ridge orientation based on the
         rotated normal and the difference vector between the ridges.
+
+        Args:
+            None
 
         Returns:
             None
@@ -112,10 +136,12 @@ class Grid(pp.Grid):
         determines the orientation of each ridge with respect to the face, and generates the ridge-peak
         and face-ridge connectivity matrices.
 
+        Args:
+            None
+
         Returns:
             None
         """
-
         self.num_peaks = self.num_nodes
 
         # Pre-allocation
@@ -167,6 +193,9 @@ class Grid(pp.Grid):
         For 2D grids, the "tip_ridges" tag is determined based on the "tip_faces" tag and the face ridges.
         For 3D grids, the "tip_ridges" tag is initialized as an array of zeros.
         The "domain_boundary_ridges" tag is also set based on the face ridges and the "domain_boundary_faces" tag.
+
+        Args:
+            None
 
         Returns:
             None
