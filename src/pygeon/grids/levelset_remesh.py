@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple, Optional
 
 import numpy as np
 import scipy.sparse as sps
@@ -12,11 +12,11 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     Remeshes a polygonal grid such that it conforms to a level-set function
 
     Args:
-        sd: grid to remesh
-        levelset: function that returns the level-set value for each x
+        sd (pg.Grid): The grid to remesh.
+        levelset (Callable): A function that returns the level-set value for each x.
 
     Returns:
-        A new pg.Grid conforming to the level set.
+        pg.Grid: A new grid conforming to the level set.
     """
 
     # Mark the cut faces and cells
@@ -73,9 +73,14 @@ def merge_connectivities(
 ) -> sps.csc_matrix:
     """
     Concatenates two connectivity matrices without reordering their indices
+
     Args:
-        old_con: the old connectivity matrix
-        new_con: the additional connectivities using global numbering
+        old_con (sps.csc_matrix): The old connectivity matrix.
+        new_con (sps.csc_matrix): The additional connectivities using global numbering.
+
+    Returns:
+        sps.csc_matrix: The merged connectivity matrix.
+
     """
     data = np.hstack((old_con.data, new_con.data))
     indices = np.hstack((old_con.indices, new_con.indices))
@@ -90,11 +95,18 @@ def merge_connectivities(
 
 
 def create_new_entity_map(
-    cut_entities: np.ndarray[Any, bool], offset: int = 0
+    cut_entities: np.ndarray[Any, bool], offset: Optional[int] = 0
 ) -> sps.csc_matrix:
     """
     Creates a mapping matrix of size n_new x n_old in which
     (i_new, i_old) = 1 if i_new is a new entity placed on i_old
+
+    Args:
+        cut_entities (np.ndarray[Any, bool]): Boolean array indicating which entities are cut
+        offset (int, optional): Offset value for the mapping matrix. Defaults to 0.
+
+    Returns:
+        sps.csc_matrix: Mapping matrix of size n_new x n_old
     """
     n_cuts = np.sum(cut_entities)
 
@@ -108,11 +120,18 @@ def create_new_entity_map(
 
 
 def create_splitting_map(
-    cut_entities: np.ndarray[Any, bool], offset: int = 0
+    cut_entities: np.ndarray[Any, bool], offset: Optional[int] = 0
 ) -> sps.csc_matrix:
     """
     Creates a mapping matrix of size n_new x n_old in which
     (i_new, i_old) = 1 if i_new is a new entity from a splitting of i_old
+
+    Args:
+        cut_entities (np.ndarray[Any, bool]): Boolean array indicating which entities are cut
+        offset (int, optional): Offset value for the rows of the mapping matrix. Defaults to 0.
+
+    Returns:
+        sps.csc_matrix: Mapping matrix of size n_new x n_old
     """
     n_cuts = 2 * np.sum(cut_entities)
 
@@ -126,11 +145,20 @@ def create_splitting_map(
 
 
 def intersect_faces(
-    sd: pg.Grid, levelset: Callable, root_finder=brentq
+    sd: pg.Grid, levelset: Callable, root_finder=Optional[brentq]
 ) -> Tuple[np.ndarray[Any, bool], np.ndarray]:
     """
     Marks the cells and faces cut by the level set and
     finds the new nodes at the intersection points.
+
+    Args:
+        sd (pg.Grid): The grid object.
+        levelset (Callable): The level set function.
+        root_finder (Optional[brentq]): The root finder function. Default is brentq.
+
+    Returns:
+        Tuple[np.ndarray[Any, bool], np.ndarray]: A tuple containing the cut_faces array
+        and the new_nodes array.
     """
     new_nodes = []
     cut_faces = np.zeros(sd.num_faces, dtype=bool)
@@ -164,6 +192,13 @@ def intersect_cells(
 ) -> np.ndarray[Any, bool]:
     """
     Marks the cells that are cut and checks if each cut cell is only cut once.
+
+    Args:
+        sd (pg.Grid): The grid object representing the spatial domain.
+        cut_faces (np.ndarray[Any, bool]): An array indicating which faces are cut.
+
+    Returns:
+        np.ndarray[Any, bool]: An array indicating which cells are cut.
     """
     cell_finder = cut_faces @ np.abs(sd.cell_faces)
 
@@ -182,6 +217,15 @@ def create_new_face_nodes(
     """
     Creates new faces through the cut cells and on top of cut faces
     and generates the corresponding face-node connectivity matrix.
+
+    Args:
+        sd (pg.Grid): The grid object.
+        cut_cells (np.ndarray[Any, bool]): Boolean array indicating the cut cells.
+        cut_faces (np.ndarray[Any, bool]): Boolean array indicating the cut faces.
+        entity_maps (Dict): Dictionary containing entity maps.
+
+    Returns:
+        sps.csc_matrix: The face-node connectivity matrix.
     """
     rows = []
     cols = []
@@ -224,6 +268,16 @@ def create_new_cell_faces(
     """
     Creates two new cells on top of each cut cell
     and generates the corresponding cell-face connectivity matrix.
+
+    Args:
+        sd (pg.Grid): The grid object.
+        cut_cells (np.ndarray[Any, bool]): Boolean array indicating which cells are cut.
+        cut_faces (np.ndarray[Any, bool]): Boolean array indicating which faces are cut.
+        entity_maps (sps.csc_matrix): Sparse matrix representing the entity maps.
+        face_nodes (sps.csc_matrix): Sparse matrix representing the face nodes.
+
+    Returns:
+        sps.csc_matrix: The cell-face connectivity matrix.
     """
 
     # If face_ridges is missing, we generate one based on face_nodes.
@@ -317,9 +371,19 @@ def create_oriented_node_loop(
 ) -> np.ndarray[Any, int]:
     """
     Creates a node loop for the cell according to a positive orientation.
-    The input corresponds to (node, face, orient) triplets such that
-    orient = plus/minus 1 means that the node is at the end/start of the face
-    according to the ccw orientation of the cell.
+
+    Args:
+        I_node (np.ndarray[Any, int]): Array of node indices.
+        J_face (np.ndarray[Any, int]): Array of face indices.
+        V_orient (np.ndarray[Any, float]): Array of orientation values.
+
+    Returns:
+        np.ndarray[Any, int]: Array of node indices representing the node loop.
+
+    Notes:
+        The input corresponds to (node, face, orient) triplets such that
+        orient = plus/minus 1 means that the node is at the end/start of the face
+        according to the ccw orientation of the cell.
     """
 
     node_loop = np.zeros(len(I_node) // 2, dtype=int)
