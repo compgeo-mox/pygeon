@@ -7,7 +7,7 @@ import unittest
 class VoronoiTest(unittest.TestCase):
     def test_simple_voronoi_grid(self):
         seed = 0
-        sd = pg.VoronoiGrid(3, 5, seed)
+        sd = pg.VoronoiGrid(3, 5, seed=seed)
 
         # fmt: off
         sd_nodes = np.array(
@@ -45,14 +45,14 @@ class VoronoiTest(unittest.TestCase):
         16, 15, 18, 15, 16, 17, 19, 18, 19, 10, 17, 13, 14,  3, 16, 15, 22,
         18, 21,  6, 19, 20, 21, 21, 22, 22, 23, 23, 24, 24, 25, 25, 26, 26,
         27, 27, 28, 28, 29, 29, 30, 30, 31, 20, 31])
-        
+
         sd_cell_faces_data = np.array(
         [ 1, -1,  1,  1, -1,  1,  1, -1,  1,  1, -1, -1,  1,  1, -1, -1,  1,
         -1, -1,  1,  1,  1, -1,  1, -1,  1,  1, -1,  1, -1, -1,  1,  1,  1,
          1,  1,  1, -1,  1,  1, -1,  1,  1, -1,  1, -1,  1, -1,  1,  1, -1,
         -1, -1, -1, -1,  1, -1, -1,  1,  1,  1,  1,  1,  1,  1, -1,  1,  1,
          1, -1,  1, -1, -1, -1, -1, -1, -1,  1, -1, -1,  1,  1, -1,  1])
-        
+
         sd_cell_faces_indptr = np.array(
         [ 0,  4,  8, 12, 16, 20, 24, 29, 35, 40, 45, 51, 57, 63, 67, 72, 79,
         84])
