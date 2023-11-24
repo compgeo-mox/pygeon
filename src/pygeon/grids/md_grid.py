@@ -45,7 +45,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         Initializes the data for the multi-dimensional grid.
 
-        This method initializes the data for each subdomain and interface in the multi-dimensional grid.
+        This method initializes the data for each subdomain and interface
+        in the multi-dimensional grid.
         It sets the parameters and discretization matrices for each subdomain and interface.
 
         Args:

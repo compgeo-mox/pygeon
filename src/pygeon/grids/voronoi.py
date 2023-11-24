@@ -1,4 +1,5 @@
 from typing import Union
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -109,8 +110,8 @@ class VoronoiGrid(pg.Grid):
             nodes (np.ndarray): The array of node coordinates.
 
         Returns:
-            Tuple[sps.csc_matrix, sps.csc_matrix]: A tuple containing the face-node connectivity matrix
-            and the cell-face connectivity matrix.
+            Tuple[sps.csc_matrix, sps.csc_matrix]: A tuple containing the face-node
+            connectivity matrix and the cell-face connectivity matrix.
         """
         # Derive face-node connectivity
         internal_faces = [f for f in vor.ridge_vertices]

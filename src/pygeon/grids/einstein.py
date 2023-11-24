@@ -1,5 +1,5 @@
-from typing import Union
 import xml.etree.ElementTree as ET
+from typing import Union
 
 import numpy as np
 import porepy as pp
@@ -45,8 +45,9 @@ class EinSteinGrid(pg.Grid):
         Function to add the hanging nodes for each polygons to fix
         T-junctions.
 
-        This function adds a hanging node to each polygon in the grid to fix T-junctions.
-        The hanging node is inserted at the midpoint of the third and fourth vertices of each polygon.
+        This function adds a hanging node to each polygon in the grid
+        to fix T-junctions. The hanging node is inserted at the midpoint
+        of the third and fourth vertices of each polygon.
 
         Args:
             None
@@ -65,10 +66,14 @@ class EinSteinGrid(pg.Grid):
             None
 
         Returns:
-            Tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]: A tuple containing the following:
-                - coords (np.ndarray): The rescaled points of the polygons in the unit square.
-                - cell_faces (sps.csc_matrix): The sparse matrix representing the cell-face relations.
-                - face_nodes (sps.csc_matrix): The sparse matrix representing the face-nodes relations.
+            Tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
+            A tuple containing the following:
+                - coords (np.ndarray):
+                    The rescaled points of the polygons in the unit square.
+                - cell_faces (sps.csc_matrix):
+                    The sparse matrix representing the cell-face relations.
+                - face_nodes (sps.csc_matrix):
+                    The sparse matrix representing the face-nodes relations.
         """
         # rescale the points of the polygons to be in the unit square
         all_pts = self.rescale()
@@ -153,8 +158,10 @@ class EinSteinGrid(pg.Grid):
         Returns:
             Union[dict, dict, tuple]: A tuple containing three elements:
                 - poly_dict: A dictionary mapping polygon IDs to their corresponding polygons.
-                - trans_dict: A dictionary mapping transformation IDs to a list of transformations.
-                - use_info: A tuple containing the ID and transformation matrix of the root use element.
+                - trans_dict: A dictionary mapping transformation IDs to a
+                    list of transformations.
+                - use_info: A tuple containing the ID and transformation matrix of
+                    the root use element.
         """
         root = ET.parse(file_name).getroot()[0]
         tag_str = r"{http://www.w3.org/1999/xlink}href"
