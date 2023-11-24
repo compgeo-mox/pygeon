@@ -1,3 +1,4 @@
+from typing import Union
 import numpy as np
 import scipy.sparse as sps
 
@@ -10,8 +11,11 @@ class OctagonGrid(pg.Grid):
     and triangles near the boundary.
     """
 
-    def __init__(self, nx: np.array, physdims={}, name="Octagon grid"):
-        """Constructor for the 2D octagonal grid.
+    def __init__(
+        self, nx: np.array, physdims=Union[dict, np.ndarray], name="Octagon grid"
+    ) -> None:
+        """
+        Constructor for the 2D octagonal grid.
 
         Args:
             nx (np.ndarray): number of cells in the x and y directions
@@ -19,7 +23,6 @@ class OctagonGrid(pg.Grid):
                 as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax"
             name (str): Name of grid.
         """
-
         # Define the nodes as a 3 x num_nodes array
         nodes = self.compute_nodes(nx, physdims)
 
@@ -31,7 +34,19 @@ class OctagonGrid(pg.Grid):
 
         super().__init__(2, nodes, face_nodes, cell_faces, name)
 
-    def compute_nodes(self, nx, physdims):
+    def compute_nodes(
+        self, nx: np.ndarray, physdims: Union[dict, np.ndarray]
+    ) -> np.ndarray:
+        """
+        Compute the nodes of an octagon grid.
+
+        Args:
+            nx (np.ndarray): Number of grid points in each dimension.
+            physdims (Union[dict, np.ndarray]): Physical dimensions of the grid.
+
+        Returns:
+            np.ndarray: Array of node coordinates.
+        """
         # Compute the off-set for the coordinates of an octagon inside a unit square
         offset = 1.0 / (2 + np.sqrt(2))
 
@@ -68,7 +83,20 @@ class OctagonGrid(pg.Grid):
 
         return nodes
 
-    def rescale_nodes(self, nodes, nx, physdims):
+    def rescale_nodes(
+        self, nodes: np.ndarray, nx: np.ndarray, physdims: Union[dict, np.ndarray]
+    ) -> np.ndarray:
+        """
+        Rescales the given nodes based on the physical dimensions and grid size.
+
+        Args:
+            nodes (np.ndarray): The array of nodes to be rescaled.
+            nx (np.ndarray): The grid size in each dimension.
+            physdims (Union[dict, np.ndarray]): The physical dimensions of the grid.
+
+        Returns:
+            np.ndarray: The rescaled nodes.
+        """
         xmin, ymin = 0.0, 0.0
 
         if isinstance(physdims, dict):
@@ -89,7 +117,17 @@ class OctagonGrid(pg.Grid):
 
         return nodes
 
-    def compute_face_nodes(self, nx):
+    def compute_face_nodes(self, nx: np.ndarray) -> sps.csc_matrix:
+        """
+        Compute the face-node connectivity matrix for an octagon grid.
+
+        Args:
+            nx (np.ndarray): Array containing the number of nodes in the x and y
+                directions.
+
+        Returns:
+            sps.csc_matrix: The face-node connectivity matrix.
+        """
         n_oct = nx[0] * nx[1]
         n_hf = n_oct + nx[0]
         n_vf = n_oct + nx[1]
@@ -197,7 +235,17 @@ class OctagonGrid(pg.Grid):
 
         return sps.csc_matrix((np.ones(fn_I.size), (fn_I, fn_J)))
 
-    def compute_cell_faces(self, nx):
+    def compute_cell_faces(self, nx: np.ndarray) -> sps.csc_matrix:
+        """
+        Compute the faces of each cell in the octagon grid.
+
+        Args:
+            nx (np.ndarray): Array containing the number of cells in the x
+            and y directions.
+
+        Returns:
+            sps.csc_matrix: Sparse matrix representing the cell faces.
+        """
         n_oct = nx[0] * nx[1]
         n_hf = n_oct + nx[0]
         n_vf = n_oct + nx[1]
