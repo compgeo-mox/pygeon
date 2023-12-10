@@ -205,7 +205,7 @@ def intersect_cells(
     if np.any(cell_finder > 2):
         print(cell_finder)
         print(cut_faces)
-        print(sd.cell_face_as_dense())
+        print(sd.cell_faces.A)
         raise NotImplementedError("A cell has more than two cut faces.")
 
     return cell_finder.astype(bool)
