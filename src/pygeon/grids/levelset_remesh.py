@@ -203,6 +203,7 @@ def intersect_cells(
     cell_finder = cut_faces @ np.abs(sd.cell_faces)
 
     if np.any(cell_finder > 2):
+        print(cell_finder)
         raise NotImplementedError("A cell has more than two cut faces.")
 
     return cell_finder.astype(bool)
