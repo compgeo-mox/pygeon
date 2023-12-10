@@ -63,8 +63,6 @@ class LevelsetGridTest(unittest.TestCase):
         sd = pg.levelset_remesh(sd, self.line_at_y80)
         self.assertEqual(sd.num_cells, 6)
 
-        print(sd)
-
         sd = pg.levelset_remesh(sd, self.line_at_x55)
         self.assertEqual(sd.num_cells, 9)
 
@@ -104,4 +102,4 @@ class LevelsetGridTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    LevelsetGridTest().test_cartgrid()
