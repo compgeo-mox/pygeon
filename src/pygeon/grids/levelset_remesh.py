@@ -305,6 +305,7 @@ def create_new_cell_faces(
 
         (I_node, J_face, V_orient) = sps.find(face_nodes_el)
         node_loop = create_oriented_node_loop(I_node, J_face, V_orient)
+        print(node_loop)
 
         loop_starts = I_node[np.logical_and(V_orient == 1, cut_faces[faces_el[J_face]])]
         loop_ends = np.flip(
@@ -358,11 +359,8 @@ def create_new_cell_faces(
             cols.append(np.repeat(new_cells[i], 3 + len(sub_faces)))
 
     rows = np.hstack(rows)
-    print(rows)
     cols = np.hstack(cols)
-    print(cols)
     data = np.hstack(data)
-    print(data)
 
     return sps.csc_matrix((data, (rows, cols)))
 
