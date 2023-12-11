@@ -297,6 +297,8 @@ def create_new_cell_faces(
     for el in np.flatnonzero(cut_cells):
         new_cells = entity_maps["c_on_c"][:, el].indices
         faces_el = sd.cell_faces[:, el].indices
+        print("faces_el")
+        print(faces_el)
 
         # Extract positively oriented face_node connectivity
         face_nodes_el = face_ridges[:, faces_el] * sps.diags(
