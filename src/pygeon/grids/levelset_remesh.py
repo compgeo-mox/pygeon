@@ -330,7 +330,6 @@ def create_new_cell_faces(
                 dtype=int,
             )
             rows.append(sub_faces)
-
             data.append(sd.cell_faces[sub_faces, el].A.ravel())
 
             # Faces that are cut at the start/end of the loop
