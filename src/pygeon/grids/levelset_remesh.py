@@ -48,11 +48,6 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
         sd, cut_cells, cut_faces, entity_maps, face_nodes
     )
     cell_faces = merge_connectivities(sd.cell_faces, new_cell_faces)
-    print("old-new")
-    print(sd.cell_faces.nnz)
-    print(new_cell_faces.nnz)
-    print("combined")
-    print(cell_faces.nnz)
 
     # Mark which entities to keep in the new grid
     new_cells = np.ones(2 * sum(cut_cells), dtype=bool)
@@ -267,7 +262,7 @@ def create_new_cell_faces(
     sd: pg.Grid,
     cut_cells: np.ndarray[Any, bool],
     cut_faces: np.ndarray[Any, bool],
-    entity_maps: sps.csc_matrix,
+    entity_maps: Dict,
     face_nodes: sps.csc_matrix,
 ) -> sps.csc_matrix:
     """
@@ -278,7 +273,7 @@ def create_new_cell_faces(
         sd (pg.Grid): The grid object.
         cut_cells (np.ndarray[Any, bool]): Boolean array indicating which cells are cut.
         cut_faces (np.ndarray[Any, bool]): Boolean array indicating which faces are cut.
-        entity_maps (sps.csc_matrix): Sparse matrix representing the entity maps.
+        entity_maps (Dict): Dictionary containing entity maps.
         face_nodes (sps.csc_matrix): Sparse matrix representing the face nodes.
 
     Returns:
@@ -363,8 +358,11 @@ def create_new_cell_faces(
             cols.append(np.repeat(new_cells[i], 3 + len(sub_faces)))
 
     rows = np.hstack(rows)
+    print(rows)
     cols = np.hstack(cols)
+    print(cols)
     data = np.hstack(data)
+    print(data)
 
     return sps.csc_matrix((data, (rows, cols)))
 
