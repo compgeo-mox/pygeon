@@ -48,6 +48,7 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
         sd, cut_cells, cut_faces, entity_maps, face_nodes
     )
     cell_faces = merge_connectivities(sd.cell_faces, new_cell_faces)
+    print(cell_faces.nnz)
 
     # Mark which entities to keep in the new grid
     new_cells = np.ones(2 * sum(cut_cells), dtype=bool)
@@ -60,6 +61,10 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     restrict = pg.numerics.linear_system.create_restriction
     restrict_cells = restrict(keep_cells)
     restrict_faces = restrict(keep_faces)
+    print("cells")
+    print(restrict_cells)
+    print("faces")
+    print(restrict_cells)
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T
 
     # Restrict face_nodes by slicing to keep the ordering of indices intact
@@ -203,9 +208,6 @@ def intersect_cells(
     cell_finder = cut_faces @ np.abs(sd.cell_faces)
 
     if np.any(cell_finder > 2):
-        print(cell_finder)
-        print(cut_faces)
-        print(sd.cell_faces.A)
         raise NotImplementedError("A cell has more than two cut faces.")
 
     return cell_finder.astype(bool)
