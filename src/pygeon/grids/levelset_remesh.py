@@ -48,6 +48,10 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
         sd, cut_cells, cut_faces, entity_maps, face_nodes
     )
     cell_faces = merge_connectivities(sd.cell_faces, new_cell_faces)
+    print("old-new")
+    print(sd.cell_faces.nnz)
+    print(new_cell_faces.nnz)
+    print("combined")
     print(cell_faces.nnz)
 
     # Mark which entities to keep in the new grid
@@ -61,10 +65,6 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     restrict = pg.numerics.linear_system.create_restriction
     restrict_cells = restrict(keep_cells)
     restrict_faces = restrict(keep_faces)
-    print("cells")
-    print(restrict_cells)
-    print("faces")
-    print(restrict_cells)
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T
 
     # Restrict face_nodes by slicing to keep the ordering of indices intact
