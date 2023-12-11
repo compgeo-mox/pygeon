@@ -305,7 +305,6 @@ def create_new_cell_faces(
 
         (I_node, J_face, V_orient) = sps.find(face_nodes_el)
         node_loop = create_oriented_node_loop(I_node, J_face, V_orient)
-        print(node_loop)
 
         loop_starts = I_node[np.logical_and(V_orient == 1, cut_faces[faces_el[J_face]])]
         loop_ends = np.flip(
@@ -324,6 +323,14 @@ def create_new_cell_faces(
                 dtype=int,
             )
             rows.append(sub_faces)
+
+            print("node_loop")
+            print(node_loop)
+            print("sub_nodes")
+            print(sub_nodes)
+            print("sub_faces")
+            print(sub_faces)
+
             data.append(sd.cell_faces[sub_faces, el].A.ravel())
 
             # Faces that are cut at the start/end of the loop
