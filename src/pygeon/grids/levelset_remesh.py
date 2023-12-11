@@ -310,6 +310,11 @@ def create_new_cell_faces(
         loop_ends = np.flip(
             I_node[np.logical_and(V_orient == -1, cut_faces[faces_el[J_face]])]
         )
+        print(np.vstack((I_node, J_face, V_orient)))
+        print("loop_starts")
+        print(loop_starts)
+        print("loop_ends")
+        print(loop_ends)
 
         for i in [0, 1]:  # Loop over the two subcells
             # Faces that are uncut
@@ -323,13 +328,6 @@ def create_new_cell_faces(
                 dtype=int,
             )
             rows.append(sub_faces)
-
-            print("node_loop")
-            print(node_loop)
-            print("sub_nodes")
-            print(sub_nodes)
-            print("sub_faces")
-            print(sub_faces)
 
             data.append(sd.cell_faces[sub_faces, el].A.ravel())
 
