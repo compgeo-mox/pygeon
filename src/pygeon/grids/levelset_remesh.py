@@ -262,7 +262,7 @@ def create_new_cell_faces(
     sd: pg.Grid,
     cut_cells: np.ndarray[Any, bool],
     cut_faces: np.ndarray[Any, bool],
-    entity_maps: sps.csc_matrix,
+    entity_maps: Dict,
     face_nodes: sps.csc_matrix,
 ) -> sps.csc_matrix:
     """
@@ -273,7 +273,7 @@ def create_new_cell_faces(
         sd (pg.Grid): The grid object.
         cut_cells (np.ndarray[Any, bool]): Boolean array indicating which cells are cut.
         cut_faces (np.ndarray[Any, bool]): Boolean array indicating which faces are cut.
-        entity_maps (sps.csc_matrix): Sparse matrix representing the entity maps.
+        entity_maps (Dict): Dictionary containing entity maps.
         face_nodes (sps.csc_matrix): Sparse matrix representing the face nodes.
 
     Returns:
@@ -306,9 +306,16 @@ def create_new_cell_faces(
         (I_node, J_face, V_orient) = sps.find(face_nodes_el)
         node_loop = create_oriented_node_loop(I_node, J_face, V_orient)
 
+        # A loop starts at the end of a cut face
         loop_starts = I_node[np.logical_and(V_orient == 1, cut_faces[faces_el[J_face]])]
-        loop_ends = np.flip(
-            I_node[np.logical_and(V_orient == -1, cut_faces[faces_el[J_face]])]
+
+        # A loop ends one node before the starting node of the other loop
+        loop_ends = np.array(
+            [
+                node_loop[np.argmax(node_loop == start) - 1]
+                for start in np.flip(loop_starts)
+            ],
+            dtype=int,
         )
 
         for i in [0, 1]:  # Loop over the two subcells

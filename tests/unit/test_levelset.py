@@ -62,6 +62,7 @@ class LevelsetGridTest(unittest.TestCase):
 
         sd = pg.levelset_remesh(sd, self.line_at_y80)
         self.assertEqual(sd.num_cells, 6)
+        self.assertEqual(sd.cell_faces.nnz, 24)
 
         sd = pg.levelset_remesh(sd, self.line_at_x55)
         self.assertEqual(sd.num_cells, 9)
