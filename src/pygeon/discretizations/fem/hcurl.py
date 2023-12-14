@@ -1,5 +1,6 @@
+from typing import Callable
+
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -11,36 +12,31 @@ class Nedelec0(pg.Discretization):
     Each degree of freedom is the integral over a mesh edge in 3D.
     """
 
-    def ndof(self, sd: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of ridges.
+        In this case, it returns the number of ridges in the given grid.
 
-        Parameter
-        ---------
-        sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): The grid for which the number of degrees of
+                freedom is calculated.
 
-        Return
-        ------
-        dof: the number of degrees of freedom.
+        Returns:
+            int: The number of degrees of freedom.
 
         """
         return sd.num_ridges
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
 
-        Parameters
-        ----------
-        sd: grid, or a subclass, with geometry fields computed.
-        data: dictionary to store the data. See self.matrix_rhs for required contents.
+        Args:
+            sd (pg.Grid): Grid, or a subclass, with geometry fields computed.
+            data (dict, optional): Dictionary to store the data. See self.matrix_rhs for required contents.
 
-        Returns
-        ------
-        matrix: sparse csc (sd.num_ridges, sd.num_ridges)
-            Matrix obtained from the discretization.
-
+        Returns:
+            sps.csc_matrix: Matrix obtained from the discretization.
         """
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
@@ -93,7 +89,16 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_inner_product(self, dim):
+    def local_inner_product(self, dim: int) -> sps.csc_matrix:
+        """
+        Compute the local inner product matrix for the given dimension.
+
+        Args:
+            dim (int): The dimension of the matrix.
+
+        Returns:
+            sps.csc_matrix: The local inner product matrix.
+        """
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)
 
@@ -104,10 +109,28 @@ class Nedelec0(pg.Discretization):
 
         return M.tocsc()
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles the differential matrix for the given grid.
+
+        Parameters:
+            sd (pg.Grid): The grid for which the differential matrix is assembled.
+
+        Returns:
+            sps.csc_matrix: The assembled differential matrix.
+        """
         return sd.face_ridges.T
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Evaluate the function at the cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+
+        Returns:
+            sps.csc_matrix: The evaluated function values at the cell centers.
+        """
         # Allocation
         size = 6 * 3 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -149,13 +172,45 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable, b_faces: np.ndarray
+    ) -> np.ndarray:
+        """
+        Assembles the natural boundary condition matrix for the given grid and function.
+
+        Args:
+            sd (pg.Grid): The grid on which to assemble the matrix.
+            func (Callable): The function defining the natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition matrix.
+        """
         raise NotImplementedError
 
-    def get_range_discr_class(self, sd: pg.Grid):
+    def get_range_discr_class(self, sd: pg.Grid) -> pg.Discretization:
+        """
+        Returns the range discretization class for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid for which the range discretization class is needed.
+
+        Returns:
+            pg.Discretization: The range discretization class for the given grid.
+        """
         return pg.RT0
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
+        """
+        Interpolates a given function onto the grid using the hcurl discretization.
+
+        Args:
+            sd (pg.Grid): The grid on which to interpolate the function.
+            func (Callable): The function to be interpolated.
+
+        Returns:
+            np.ndarray: The interpolated values on the grid.
+        """
         tangents = sd.nodes * sd.ridge_peaks
         midpoints = sd.nodes * np.abs(sd.ridge_peaks) / 2
         vals = [
@@ -170,26 +225,43 @@ class Nedelec1(pg.Discretization):
     Each degree of freedom is a first moment over a mesh edge in 3D.
     """
 
-    def ndof(self, sd: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
-        In this case number of ridges.
+        In this case, it returns twice the number of ridges in the given grid.
 
-        Parameter
-        ---------
-        sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): The grid or a subclass.
 
-        Return
-        ------
-        dof: the number of degrees of freedom.
-
+        Returns:
+            int: The number of degrees of freedom.
         """
         return 2 * sd.num_ridges
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+        """
+        Assembles the mass matrix for the given grid and data.
+
+        Parameters:
+            sd (pg.Grid): The grid for which the mass matrix is to be assembled.
+            data (dict, optional): Additional data required for the assembly process.
+
+        Returns:
+            sps.csc_matrix: The assembled mass matrix.
+        """
         raise NotImplementedError
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+        """
+        Assembles the lumped matrix for the given grid and data.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (dict, optional): Additional data. Defaults to None.
+
+        Returns:
+            sps.csc_matrix: The assembled lumped matrix.
+        """
         # Allocation
         size = 9 * 4 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -240,16 +312,45 @@ class Nedelec1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def proj_to_Ne0(self, sd: pg.Grid):
+    def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Project the solution to the Nedelec of the first kind.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+
+        Returns:
+            sps.csc_matrix: The projection matrix to the Nedelec of the first kind.
+        """
         return sps.hstack([sps.eye(sd.num_ridges), -sps.eye(sd.num_ridges)]) / 2
 
-    def assemble_diff_matrix(self, sd):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles the differential matrix for the H(curl) finite element space.
+
+        Args:
+            sd (pg.Grid): The grid on which the finite element space is defined.
+
+        Returns:
+            sps.csc_matrix: The assembled differential matrix.
+        """
         Ne0_diff = pg.Nedelec0.assemble_diff_matrix(self, sd)
         proj_to_ne0 = self.proj_to_Ne0(sd)
 
         return Ne0_diff * proj_to_ne0
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
+        """
+        Interpolates the given function `func` over the specified grid `sd`.
+
+        Args:
+            sd (pg.Grid): The grid over which to interpolate the function.
+            func (Callable): The function to be interpolated.
+
+        Returns:
+            np.ndarray: The interpolated values.
+
+        """
         tangents = sd.nodes * sd.ridge_peaks
 
         vals = np.zeros(self.ndof(sd))
@@ -264,7 +365,17 @@ class Nedelec1(pg.Discretization):
 
         return vals
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Evaluate the basis functions at the cell centers and construct the global matrices.
+
+        Args:
+            sd (pg.Grid): The grid object representing the mesh.
+
+        Returns:
+            sps.csc_matrix: The global matrices constructed from the basis functions
+                evaluated at the cell centers.
+        """
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = 12 * 3 * sd.num_cells
@@ -306,8 +417,30 @@ class Nedelec1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable, b_faces: np.ndarray
+    ) -> np.ndarray:
+        """
+        Assembles the natural boundary condition for the given grid, function, and boundary faces.
+
+        Args:
+            sd (pg.Grid): The grid on which to assemble the natural boundary condition.
+            func (Callable): The function defining the natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition.
+        """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
         return pg.RT0
