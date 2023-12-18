@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sps
 
 
-def replace_nones_with_zeros(mat: np.ndarray):
+def replace_nones_with_zeros(mat: np.ndarray) -> np.ndarray:
     """
     Replace each None in the block matrix by a zero sparse matrix of the right shape.
     This is done in-place.
@@ -27,7 +27,7 @@ def replace_nones_with_zeros(mat: np.ndarray):
             mat[i, j] = sps.coo_matrix((row_lengths[i], col_lengths[j]))
 
 
-def find_row_col_lengths(mat: np.ndarray):
+def find_row_col_lengths(mat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Find shapes of the blocks in mat.
 
@@ -49,7 +49,7 @@ def find_row_col_lengths(mat: np.ndarray):
     return rows, cols
 
 
-def transpose(mat: np.ndarray):
+def transpose(mat: np.ndarray) -> np.ndarray:
     """
     Compute the transpose of a block matrix.
 

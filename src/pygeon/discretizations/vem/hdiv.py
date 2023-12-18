@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -27,7 +29,9 @@ class MVEM(pg.Discretization, pp.MVEM):
 
         return sd.num_faces
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the mass matrix
 
@@ -43,7 +47,9 @@ class MVEM(pg.Discretization, pp.MVEM):
         pp.MVEM.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the lumped mass matrix L such that
         B^T L^{-1} B is a TPFA method.
@@ -58,7 +64,7 @@ class MVEM(pg.Discretization, pp.MVEM):
 
         return pg.RT0.assemble_lumped_matrix(self, sd, data)
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential
 
@@ -70,7 +76,9 @@ class MVEM(pg.Discretization, pp.MVEM):
         """
         return sd.cell_faces.T
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
 
@@ -87,7 +95,9 @@ class MVEM(pg.Discretization, pp.MVEM):
         ]
         return np.array(vals)
 
-    def eval_at_cell_centers(self, sd: pg.Grid, data=None):
+    def eval_at_cell_centers(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the matrix
 
@@ -102,7 +112,9 @@ class MVEM(pg.Discretization, pp.MVEM):
         pp.MVEM.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
@@ -114,7 +126,7 @@ class MVEM(pg.Discretization, pp.MVEM):
 
 
 class VBDM1(pg.Discretization):
-    def ndof(self, sd: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
         In this case the number of faces times the dimension.
@@ -133,7 +145,9 @@ class VBDM1(pg.Discretization):
         else:
             raise ValueError
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Computes the mass matrix
         """
@@ -190,14 +204,14 @@ class VBDM1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
-    def proj_to_VRT0(self, sd: pg.Grid):
+    def proj_to_VRT0(self, sd: pg.Grid) -> sps.csc_matrix:
         dof = self.get_dof_enumeration(sd).tocoo()
         return sps.csc_matrix((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
 
-    def proj_from_RT0(self, sd: pg.Grid):
+    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
         raise NotImplementedError
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential
 
@@ -212,13 +226,17 @@ class VBDM1(pg.Discretization):
 
         return VRT0_diff * proj_to_vrt0
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         raise NotImplementedError
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         raise NotImplementedError
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
@@ -240,13 +258,15 @@ class VBDM1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         return pg.PwConstants
 
-    def get_dof_enumeration(self, sd):
+    def get_dof_enumeration(self, sd: pg.Grid) -> np.ndarray:
         dof = sd.face_nodes.copy()
         dof.data = np.arange(sd.face_nodes.nnz)
         return dof
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         raise NotImplementedError

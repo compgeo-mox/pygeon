@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 import scipy.sparse as sps
@@ -15,8 +15,8 @@ class OctagonGrid(pg.Grid):
     def __init__(
         self,
         nx: np.array,
-        physdims: Union[dict, np.ndarray] = {},
-        name="Octagon grid",
+        physdims: Optional[Union[dict, np.ndarray]] = {},
+        name: Optional[str] = "Octagon grid",
     ) -> None:
         """
         Constructor for the 2D octagonal grid.

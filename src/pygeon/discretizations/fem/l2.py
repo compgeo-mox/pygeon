@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 import numpy as np
 import scipy.sparse as sps
 
@@ -24,7 +26,9 @@ class PwConstants(pg.Discretization):
         """
         return sd.num_cells
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Computes the mass matrix for piecewise constants
 
@@ -38,14 +42,16 @@ class PwConstants(pg.Discretization):
 
         return sps.diags(1 / sd.cell_volumes).tocsc()
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Computes the lumped mass matrix, which coincides with the mass matrix for P0.
         """
 
         return self.assemble_mass_matrix(sd, data)
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential
 
@@ -58,7 +64,9 @@ class PwConstants(pg.Discretization):
 
         return sps.csc_matrix((0, self.ndof(sd)))
 
-    def assemble_stiff_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Returns a zero matrix.
 
@@ -71,7 +79,9 @@ class PwConstants(pg.Discretization):
 
         return sps.csc_matrix((self.ndof(sd), self.ndof(sd)))
 
-    def interpolate(self, sd: pg.Grid, func: callable):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> sps.csc_matrix:
         """
         Interpolates a function onto the finite element space
 
@@ -87,7 +97,7 @@ class PwConstants(pg.Discretization):
             [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
         )
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix
 
@@ -100,21 +110,30 @@ class PwConstants(pg.Discretization):
 
         return sps.diags(1 / sd.cell_volumes).tocsc()
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Returns a zero vector
         """
 
         return np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
         Raises an error since the range of the differential is zero.
         """
 
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
-    def error_l2(self, sd: pg.Grid, num_sol, ana_sol, relative=True, etype="specific"):
+    def error_l2(
+        self,
+        sd: pg.Grid,
+        num_sol: np.ndarray,
+        ana_sol: Callable[[np.ndarray], np.ndarray],
+        relative: Optional[bool] = True,
+        etype: Optional[str] = "specific",
+    ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
 
@@ -139,7 +158,9 @@ class PwConstants(pg.Discretization):
         norm = self._cell_error(sd, np.zeros_like(num_sol), int_sol) if relative else 1
         return self._cell_error(sd, num_sol, int_sol) / norm
 
-    def _cell_error(self, sd, num_sol, int_sol):
+    def _cell_error(
+        self, sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray
+    ) -> float:
         cell_nodes = sd.cell_nodes()
         err = 0
         for c in np.arange(sd.num_cells):

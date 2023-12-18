@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, Tuple
+from typing import Callable, Optional
 
 import numpy as np
 import porepy as pp
@@ -66,7 +66,9 @@ class Discretization(pp.numerics.discretization.Discretization):
         )
 
     @abc.abstractmethod
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the mass matrix
 
@@ -80,7 +82,7 @@ class Discretization(pp.numerics.discretization.Discretization):
 
         pass
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: Optional[dict] = None):
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
@@ -107,7 +109,9 @@ class Discretization(pp.numerics.discretization.Discretization):
         """
         pass
 
-    def assemble_stiff_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the stiffness matrix.
 
@@ -133,7 +137,9 @@ class Discretization(pp.numerics.discretization.Discretization):
         return B.T * A * B
 
     @abc.abstractmethod
-    def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
 
@@ -159,7 +165,9 @@ class Discretization(pp.numerics.discretization.Discretization):
         """
         pass
 
-    def source_term(self, sd: pg.Grid, func: Callable) -> np.ndarray:
+    def source_term(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Assembles the source term by interpolating the given function
         and multiplying by the mass matrix
@@ -176,7 +184,7 @@ class Discretization(pp.numerics.discretization.Discretization):
 
     @abc.abstractmethod
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable, b_faces: np.ndarray
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
@@ -193,7 +201,7 @@ class Discretization(pp.numerics.discretization.Discretization):
         pass
 
     @abc.abstractmethod
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> object:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -206,8 +214,8 @@ class Discretization(pp.numerics.discretization.Discretization):
         pass
 
     def assemble_matrix_rhs(
-        self, sd: pg.Grid, data: dict = None
-    ) -> Tuple(sps.csc_matrix, np.ndarray):
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> tuple[sps.csc_matrix, np.ndarray]:
         """
         Assembles a mass matrix and returns it along with a zero rhs vector.
 
@@ -216,7 +224,7 @@ class Discretization(pp.numerics.discretization.Discretization):
             data (dict, optional): Additional data for the assembly process. Defaults to None.
 
         Returns:
-            Tuple(sps.csc_matrix, np.ndarray): The assembled mass matrix and zero rhs vector.
+            tuple[sps.csc_matrix, np.ndarray]: The assembled mass matrix and zero rhs vector.
         """
         return self.assemble_mass_matrix(sd, data), np.zeros(self.ndof(sd))
 
@@ -224,9 +232,9 @@ class Discretization(pp.numerics.discretization.Discretization):
         self,
         sd: pg.Grid,
         num_sol: np.ndarray,
-        ana_sol: Callable,
-        relative: bool = True,
-        etype: str = "standard",
+        ana_sol: Callable[[np.ndarray], np.ndarray],
+        relative: Optional[bool] = True,
+        etype: Optional[str] = "standard",
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.

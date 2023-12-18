@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-from typing import Union
 
 import numpy as np
 import porepy as pp
@@ -58,7 +57,7 @@ class EinSteinGrid(pg.Grid):
         for key, p in self.poly.items():
             self.poly[key] = np.insert(p, 3, 0.5 * (p[:, 2] + p[:, 3]), axis=1)
 
-    def build_connectivity(self) -> Union[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
+    def build_connectivity(self) -> tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
         """
         Build the connectivity of the grid.
 
@@ -148,7 +147,7 @@ class EinSteinGrid(pg.Grid):
             for sub in self.trans[input_str]:
                 self.poly_adder(sub[0], transform @ sub[1])
 
-    def from_file(self, file_name: str) -> Union[dict, dict, tuple]:
+    def from_file(self, file_name: str) -> tuple[dict, dict, tuple]:
         """
         Read an SVG file and create the first data structure.
 
@@ -156,7 +155,7 @@ class EinSteinGrid(pg.Grid):
             file_name (str): The path to the SVG file.
 
         Returns:
-            Union[dict, dict, tuple]: A tuple containing three elements:
+            tuple[dict, dict, tuple]: A tuple containing three elements:
                 - poly_dict: A dictionary mapping polygon IDs to their corresponding polygons.
                 - trans_dict: A dictionary mapping transformation IDs to a
                     list of transformations.

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -215,7 +217,9 @@ class Grid(pp.Grid):
         bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-    def compute_subvolumes(self, return_subsimplices=False) -> sps.csc_matrix:
+    def compute_subvolumes(
+        self, return_subsimplices: Optional[bool] = False
+    ) -> sps.csc_matrix:
         """
         Compute the subvolumes of the grid.
 

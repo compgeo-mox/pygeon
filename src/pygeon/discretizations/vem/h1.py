@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 import numpy as np
 import scipy.sparse as sps
 
@@ -18,7 +20,9 @@ class VLagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data=None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Returns the mass matrix
 
@@ -58,7 +62,9 @@ class VLagrange1(pg.Discretization):
 
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
-    def assemble_loc_mass_matrix(self, sd: pg.Grid, cell, diam, nodes):
+    def assemble_loc_mass_matrix(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
         """
         Computes the local VEM mass matrix on a given cell
         according to the Hitchhiker's (6.5)
@@ -72,7 +78,9 @@ class VLagrange1(pg.Discretization):
 
         return proj.T @ H @ proj + sd.cell_volumes[cell] * I_minus_Pi.T @ I_minus_Pi
 
-    def assemble_loc_proj_to_mon(self, sd: pg.Grid, cell, diam, nodes):
+    def assemble_loc_proj_to_mon(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
         """
         Computes the local projection onto the monomials
         Returns the coefficients {a_i} in a_0 + [a_1, a_2] \dot (x - c) / d
@@ -84,7 +92,9 @@ class VLagrange1(pg.Discretization):
 
         return np.linalg.solve(G, B)
 
-    def assemble_loc_L2proj_lhs(self, sd: pg.Grid, cell, diam, nodes):
+    def assemble_loc_L2proj_lhs(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
         """
         Returns the system G from the hitchhiker's (3.9)
         """
@@ -97,7 +107,9 @@ class VLagrange1(pg.Discretization):
 
         return G
 
-    def assemble_loc_L2proj_rhs(self, sd: pg.Grid, cell, diam, nodes):
+    def assemble_loc_L2proj_rhs(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
         """
         Returns the righthand side B from the hitchhiker's (3.14)
         """
@@ -112,7 +124,9 @@ class VLagrange1(pg.Discretization):
 
         return B
 
-    def assemble_loc_monomial_mass(self, sd: pg.Grid, cell, diam):
+    def assemble_loc_monomial_mass(
+        self, sd: pg.Grid, cell: int, diam: float
+    ) -> np.ndarray:
         """
         Computes the inner products of the monomials
         {1, (x - c)/d, (y - c)/d}
@@ -141,7 +155,9 @@ class VLagrange1(pg.Discretization):
 
         return H
 
-    def assemble_loc_dofs_of_monomials(self, sd: pg.Grid, cell, diam, nodes):
+    def assemble_loc_dofs_of_monomials(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
         """
         Returns the matrix D from the hitchhiker's (3.17)
         """
@@ -154,7 +170,7 @@ class VLagrange1(pg.Discretization):
 
         return D
 
-    def assemble_stiff_matrix(self, sd):
+    def assemble_stiff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Returns the stiffness matrix
 
@@ -194,7 +210,9 @@ class VLagrange1(pg.Discretization):
 
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
-    def assemble_loc_stiff_matrix(self, sd: pg.Grid, cell, diam, nodes):
+    def assemble_loc_stiff_matrix(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
         """
         Computes the local VEM stiffness matrix on a given cell
         according to the Hitchhiker's (3.25)
@@ -209,30 +227,34 @@ class VLagrange1(pg.Discretization):
 
         return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Returns the differential mapping in the discrete cochain complex.
         """
 
         pg.Lagrange1.assemble_diff_matrix(self, sd)
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         eval = sd.cell_nodes()
         num_nodes = sps.diags(1.0 / sd.num_cell_nodes())
 
         return (eval @ num_nodes).T.tocsc()
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         return np.array([func(x) for x in sd.nodes.T])
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
         (u, func)_Gamma with u a test function in Lagrange1
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         raise NotImplementedError
 
 
@@ -252,7 +274,9 @@ class VLagrange1_vec(VLagrange1):
         """
         return sd.dim * super().ndof(sd)
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data=None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Returns the mass matrix
 
@@ -268,7 +292,7 @@ class VLagrange1_vec(VLagrange1):
         M_VL1 = super().assemble_mass_matrix(sd, data)
         return sps.block_diag([M_VL1] * sd.dim, "csc")
 
-    def assemble_stiff_matrix(self, sd):
+    def assemble_stiff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Returns the stiffness matrix
 
@@ -284,7 +308,7 @@ class VLagrange1_vec(VLagrange1):
         A_VL1 = super().assemble_stiff_matrix(sd)
         return sps.block_diag([A_VL1] * sd.dim, "csc")
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Returns the differential mapping in the discrete cochain complex.
         """
@@ -292,19 +316,23 @@ class VLagrange1_vec(VLagrange1):
         diff = pg.Lagrange1.assemble_diff_matrix(self, sd)
         return sps.block_diag([diff] * sd.dim, "csc")
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         eval = super().eval_at_cell_centers(sd)
         return sps.block_diag([eval] * sd.dim, "csc")
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         return np.array([func(x) for x in sd.nodes.T])
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
         (u, func)_Gamma with u a test function in Lagrange1
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         raise NotImplementedError

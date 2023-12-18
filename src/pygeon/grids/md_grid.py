@@ -1,5 +1,8 @@
+from typing import Callable, Optional
+
 import numpy as np
 import porepy as pp
+import pygeon as pg
 
 
 class MixedDimensionalGrid(pp.MixedDimensionalGrid):
@@ -76,7 +79,9 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             )
             data[pp.DISCRETIZATION_MATRICES] = {}
 
-    def num_subdomain_faces(self, cond=None) -> int:
+    def num_subdomain_faces(
+        self, cond: Optional[Callable[[pg.Grid], np.ndarray]] = None
+    ) -> int:
         """
         Compute the total number of faces of the mixed-dimensional grid.
 
@@ -95,7 +100,9 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             [sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int
         )
 
-    def num_subdomain_ridges(self, cond=None) -> int:
+    def num_subdomain_ridges(
+        self, cond: Optional[Callable[[pg.Grid], np.ndarray]] = None
+    ) -> int:
         """
         Compute the total number of ridges in the mixed-dimensional grid.
 

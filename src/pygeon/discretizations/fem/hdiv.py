@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -28,7 +30,7 @@ class RT0(pg.Discretization, pp.RT0):
 
         return sd.num_faces
 
-    def create_dummy_data(self, sd: pg.Grid, data):
+    def create_dummy_data(self, sd: pg.Grid, data: dict) -> dict:
         """
         Updates data such that it has all the necessary components for pp.RT0
 
@@ -59,7 +61,9 @@ class RT0(pg.Discretization, pp.RT0):
 
         return data
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the mass matrix
 
@@ -77,7 +81,9 @@ class RT0(pg.Discretization, pp.RT0):
             self.mass_matrix_key
         ].tocsc()
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the lumped mass matrix L such that
         B^T L^{-1} B is a TPFA method.
@@ -107,7 +113,7 @@ class RT0(pg.Discretization, pp.RT0):
 
         return sps.diags(h_perp / sd.face_areas).tocsc()
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential
 
@@ -119,7 +125,9 @@ class RT0(pg.Discretization, pp.RT0):
         """
         return sd.cell_faces.T
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
 
@@ -136,7 +144,7 @@ class RT0(pg.Discretization, pp.RT0):
         ]
         return np.array(vals)
 
-    def eval_at_cell_centers(self, sd: pg.Grid):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix
 
@@ -151,7 +159,9 @@ class RT0(pg.Discretization, pp.RT0):
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
@@ -168,10 +178,17 @@ class RT0(pg.Discretization, pp.RT0):
 
         return vals
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         return pg.PwConstants
 
-    def error_l2(self, sd, num_sol, ana_sol, relative=True, etype="specific"):
+    def error_l2(
+        self,
+        sd: pg.Grid,
+        num_sol: np.ndarray,
+        ana_sol: Callable[[np.ndarray], np.ndarray],
+        relative: Optional[bool] = True,
+        etype: Optional[str] = "specific",
+    ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
 
@@ -220,7 +237,9 @@ class BDM1(pg.Discretization):
         else:
             raise ValueError
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -278,7 +297,7 @@ class BDM1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_inner_product(self, dim):
+    def local_inner_product(self, dim: int) -> sps.csc_matrix:
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)
 
@@ -289,13 +308,13 @@ class BDM1(pg.Discretization):
 
         return M.tocsc()
 
-    def proj_to_RT0(self, sd: pg.Grid):
+    def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
         return sps.hstack([sps.eye(sd.num_faces)] * sd.dim) / sd.dim
 
-    def proj_from_RT0(self, sd: pg.Grid):
+    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
         return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
 
-    def assemble_diff_matrix(self, sd: pg.Grid):
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential
 
@@ -310,13 +329,15 @@ class BDM1(pg.Discretization):
 
         return RT0_diff * proj_to_rt0
 
-    def eval_at_cell_centers(self, sd):
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         eval_rt0 = pg.RT0(self.keyword).eval_at_cell_centers(sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
 
         return eval_rt0 * proj_to_rt0
 
-    def interpolate(self, sd: pg.Grid, func):
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         vals = np.zeros(self.ndof(sd))
 
         for face in np.arange(sd.num_faces):
@@ -328,7 +349,9 @@ class BDM1(pg.Discretization):
 
         return vals
 
-    def assemble_nat_bc(self, sd: pg.Grid, func, b_faces):
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
@@ -349,10 +372,12 @@ class BDM1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         return pg.PwConstants
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = sd.dim * sd.dim * (sd.dim + 1) * sd.num_cells

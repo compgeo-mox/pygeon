@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import scipy.sparse as sps
@@ -27,7 +27,9 @@ class Nedelec0(pg.Discretization):
         """
         return sd.num_ridges
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
 
@@ -173,7 +175,7 @@ class Nedelec0(pg.Discretization):
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable, b_faces: np.ndarray
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition matrix for the given grid and function.
@@ -200,7 +202,9 @@ class Nedelec0(pg.Discretization):
         """
         return pg.RT0
 
-    def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates a given function onto the grid using the hcurl discretization.
 
@@ -238,7 +242,9 @@ class Nedelec1(pg.Discretization):
         """
         return 2 * sd.num_ridges
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the mass matrix for the given grid and data.
 
@@ -251,7 +257,9 @@ class Nedelec1(pg.Discretization):
         """
         raise NotImplementedError
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_matrix:
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the lumped matrix for the given grid and data.
 
@@ -339,7 +347,9 @@ class Nedelec1(pg.Discretization):
 
         return Ne0_diff * proj_to_ne0
 
-    def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates the given function `func` over the specified grid `sd`.
 
@@ -418,7 +428,7 @@ class Nedelec1(pg.Discretization):
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable, b_faces: np.ndarray
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition for the given grid, function, and boundary faces.
