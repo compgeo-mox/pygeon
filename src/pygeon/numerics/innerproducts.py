@@ -1,3 +1,5 @@
+from typing import Callable, Optional, Union
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -7,7 +9,9 @@ import pygeon as pg
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def cell_mass(mdg, discr=None, **kwargs):
+def cell_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the mass matrix for the piecewise constants on a (MD-)grid
 
@@ -22,7 +26,9 @@ def cell_mass(mdg, discr=None, **kwargs):
     return mass_matrix(mdg, 0, discr, **kwargs)
 
 
-def face_mass(mdg, discr=None, **kwargs):
+def face_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the mass matrix for discretization defined on the faces of a (MD-)grid
 
@@ -37,7 +43,9 @@ def face_mass(mdg, discr=None, **kwargs):
     return mass_matrix(mdg, 1, discr, **kwargs)
 
 
-def ridge_mass(mdg, discr=None, **kwargs):
+def ridge_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the mass matrix for discretization defined on the ridges of a (MD-)grid
 
@@ -52,7 +60,9 @@ def ridge_mass(mdg, discr=None, **kwargs):
     return mass_matrix(mdg, 2, discr, **kwargs)
 
 
-def peak_mass(mdg, discr=None, **kwargs):
+def peak_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the mass matrix for discretization defined on the peaks of a (MD-)grid
 
@@ -70,7 +80,7 @@ def peak_mass(mdg, discr=None, **kwargs):
 # ---------------------------------- General ---------------------------------- #
 
 
-def default_discr(sd, n_minus_k, **kwargs):
+def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
     """
     Construct the default discretization operator depending on n_minus_k.
     These correspond to the Whitney forms.
@@ -88,7 +98,13 @@ def default_discr(sd, n_minus_k, **kwargs):
         raise ValueError
 
 
-def _sd_mass_matrix(sd, n_minus_k, discr=None, data=None, **kwargs):
+def _sd_mass_matrix(
+    sd: pg.Grid,
+    n_minus_k: int,
+    discr: Optional[pg.Discretization] = None,
+    data: Optional[dict] = None,
+    **kwargs
+) -> sps.csc_matrix:
     """
     Compute the mass matrix on a single grid
 
@@ -111,14 +127,22 @@ def _sd_mass_matrix(sd, n_minus_k, discr=None, data=None, **kwargs):
     return discr.assemble_mass_matrix(sd, data)
 
 
-def local_matrix(sd, n_minus_k, discr, d_sd, **kwargs):
+def local_matrix(
+    sd: pg.Grid, n_minus_k: int, discr: pg.Discretization, d_sd: dict, **kwargs
+) -> sps.csc_matrix:
     if isinstance(sd, pg.Graph):
         return _sd_lumped_mass(sd, n_minus_k, discr, d_sd, **kwargs)
-    elif isinstance(sd, pp.Grid):
+    elif isinstance(sd, pg.Grid):
         return _sd_mass_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
 
 
-def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
+def mass_matrix(
+    mdg: pg.MixedDimensionalGrid,
+    n_minus_k: int,
+    discr: Optional[pg.Discretization] = None,
+    local_matrix: Optional[Callable] = local_matrix,
+    **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the mass matrix on a mixed-dimensional grid
 
@@ -184,7 +208,9 @@ def mass_matrix(mdg, n_minus_k, discr, local_matrix=local_matrix, **kwargs):
 # ---------------------------------- Lumped ---------------------------------- #
 
 
-def lumped_cell_mass(mdg, discr=None, **kwargs):
+def lumped_cell_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the lumped mass matrix for the piecewise constants on a (MD-)grid
 
@@ -195,11 +221,12 @@ def lumped_cell_mass(mdg, discr=None, **kwargs):
     Returns:
         sps.csc_matrix, num_cells x num_cells
     """
-
     return lumped_mass_matrix(mdg, 0, discr, **kwargs)
 
 
-def lumped_face_mass(mdg, discr=None, **kwargs):
+def lumped_face_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the lumped mass matrix for discretization defined on the faces of a (MD-)grid
 
@@ -210,11 +237,12 @@ def lumped_face_mass(mdg, discr=None, **kwargs):
     Returns:
         sps.csc_matrix, num_faces x num_faces
     """
-
     return lumped_mass_matrix(mdg, 1, discr, **kwargs)
 
 
-def lumped_ridge_mass(mdg, discr=None, **kwargs):
+def lumped_ridge_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the lumped mass matrix for discretization defined on the ridges of a (MD-)grid
 
@@ -225,11 +253,12 @@ def lumped_ridge_mass(mdg, discr=None, **kwargs):
     Returns:
         sps.csc_matrix, num_ridges x num_ridges
     """
-
     return lumped_mass_matrix(mdg, 2, discr, **kwargs)
 
 
-def lumped_peak_mass(mdg, discr=None, **kwargs):
+def lumped_peak_mass(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the lumped mass matrix for discretization defined on the peaks of a (MD-)grid
 
@@ -240,11 +269,15 @@ def lumped_peak_mass(mdg, discr=None, **kwargs):
     Returns:
         sps.csc_matrix, num_peaks x num_peaks
     """
-
     return lumped_mass_matrix(mdg, 3, discr, **kwargs)
 
 
-def lumped_mass_matrix(mdg, n_minus_k, discr=None, **kwargs):
+def lumped_mass_matrix(
+    mdg: pg.MixedDimensionalGrid,
+    n_minus_k: int,
+    discr: Optional[pg.Discretization] = None,
+    **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
     Compute the mass-lumped mass matrix on a mixed-dimensional grid
 
@@ -260,11 +293,16 @@ def lumped_mass_matrix(mdg, n_minus_k, discr=None, **kwargs):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
-
     return mass_matrix(mdg, n_minus_k, discr, _sd_lumped_mass, **kwargs)
 
 
-def _sd_lumped_mass(sd, n_minus_k, discr=None, data=None, **kwargs):
+def _sd_lumped_mass(
+    sd: pg.Grid,
+    n_minus_k: int,
+    discr: Optional[pg.Discretization] = None,
+    data: Optional[dict] = None,
+    **kwargs
+) -> sps.csc_matrix:
     """
     Compute the mass-lumped mass matrix on a single grid.
 

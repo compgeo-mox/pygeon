@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Optional, Union
 
 import numpy as np
 import scipy.sparse as sps
@@ -14,7 +14,7 @@ class OctagonGrid(pg.Grid):
 
     def __init__(
         self,
-        nx: np.array,
+        nx: np.ndarray,
         physdims: Optional[Union[dict, np.ndarray]] = {},
         name: Optional[str] = "Octagon grid",
     ) -> None:
@@ -225,14 +225,14 @@ class OctagonGrid(pg.Grid):
         fn_I.append(start_end)
 
         # Corners
-        fn_I.append([h_first[0], corners[0]])
-        fn_I.append([v_first[0], corners[0]])
-        fn_I.append([h_second[nx[0] - 1], corners[1]])
-        fn_I.append([v_first[nx[0]], corners[1]])
-        fn_I.append([h_first[-nx[0]], corners[2]])
-        fn_I.append([v_second[-nx[0] - 1], corners[2]])
-        fn_I.append([h_second[-1], corners[3]])
-        fn_I.append([v_second[-1], corners[3]])
+        fn_I.append(np.array([h_first[0], corners[0]]))
+        fn_I.append(np.array([v_first[0], corners[0]]))
+        fn_I.append(np.array([h_second[nx[0] - 1], corners[1]]))
+        fn_I.append(np.array([v_first[nx[0]], corners[1]]))
+        fn_I.append(np.array([h_first[-nx[0]], corners[2]]))
+        fn_I.append(np.array([v_second[-nx[0] - 1], corners[2]]))
+        fn_I.append(np.array([h_second[-1], corners[3]]))
+        fn_I.append(np.array([v_second[-1], corners[3]]))
 
         fn_I = np.concatenate(fn_I)
         fn_J = np.repeat(np.arange(fn_I.size / 2), 2).astype(int)
@@ -406,33 +406,33 @@ class OctagonGrid(pg.Grid):
 
         # South West
         diag = n_hf + n_vf
-        cf_I.append([idx, idx + 1, diag])
+        cf_I.append(np.array([idx, idx + 1, diag]))
         cf_J.append(np.tile(id_cell, 3))
-        cf_V.append([-1, 1, 1])
+        cf_V.append(np.array([-1, 1, 1]))
         idx += 2
         id_cell += 1
 
         # South East
         diag = n_hf + n_vf + n_oct + nx[0] - 1
-        cf_I.append([idx, idx + 1, diag])
+        cf_I.append(np.array([idx, idx + 1, diag]))
         cf_J.append(np.tile(id_cell, 3))
-        cf_V.append([1, -1, -1])
+        cf_V.append(np.array([1, -1, -1]))
         idx += 2
         id_cell += 1
 
         # North West
         diag = n_hf + n_vf + 3 * n_oct - nx[0]
-        cf_I.append([idx, idx + 1, diag])
+        cf_I.append(np.array([idx, idx + 1, diag]))
         cf_J.append(np.tile(id_cell, 3))
-        cf_V.append([1, -1, -1])
+        cf_V.append(np.array([1, -1, -1]))
         idx += 2
         id_cell += 1
 
         # North East
         diag = n_hf + n_vf + 4 * n_oct - 1
-        cf_I.append([idx, idx + 1, diag])
+        cf_I.append(np.array([idx, idx + 1, diag]))
         cf_J.append(np.tile(id_cell, 3))
-        cf_V.append([-1, 1, 1])
+        cf_V.append(np.array([-1, 1, 1]))
 
         # Assemble
         cf_I = np.concatenate(cf_I)

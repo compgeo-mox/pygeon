@@ -14,6 +14,15 @@ class RT0(pg.Discretization, pp.RT0):
     """
 
     def __init__(self, keyword: str) -> None:
+        """
+        Initialize the HDiv class.
+
+        Args:
+            keyword (str): The keyword for the discretization.
+
+        Returns:
+            None
+        """
         pg.Discretization.__init__(self, keyword)
         pp.RT0.__init__(self, keyword)
 
@@ -21,11 +30,11 @@ class RT0(pg.Discretization, pp.RT0):
         """
         Returns the number of faces.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): grid, or a subclass.
 
-        Returns
-            dof: the number of degrees of freedom.
+        Returns:
+            int: the number of degrees of freedom.
         """
 
         return sd.num_faces
@@ -34,12 +43,12 @@ class RT0(pg.Discretization, pp.RT0):
         """
         Updates data such that it has all the necessary components for pp.RT0
 
-        Args
-            sd: grid, or a subclass.
-            data: dict or None.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict): Dictionary object or None.
 
-        Returns
-            data: dictionary with required attributes
+        Returns:
+            dict: Dictionary with required attributes.
         """
 
         if data is None:
@@ -67,12 +76,12 @@ class RT0(pg.Discretization, pp.RT0):
         """
         Assembles the mass matrix
 
-        Args
-            sd: grid, or a subclass.
-            data: optional dictionary with physical parameters for scaling.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
 
-        Returns
-            mass_matrix: the mass matrix.
+        Returns:
+            sps.csc_matrix: The mass matrix.
         """
 
         data = self.create_dummy_data(sd, data)
@@ -88,12 +97,12 @@ class RT0(pg.Discretization, pp.RT0):
         Assembles the lumped mass matrix L such that
         B^T L^{-1} B is a TPFA method.
 
-        Args
-            sd: grid, or a subclass.
-            data: optional dictionary with physical parameters for scaling.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
 
-        Returns
-            lumped_matrix: the lumped mass matrix.
+        Returns:
+            sps.csc_matrix: The lumped mass matrix.
         """
         if data is None:
             data = self.create_dummy_data(sd, data)
@@ -115,13 +124,13 @@ class RT0(pg.Discretization, pp.RT0):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix corresponding to the differential
+        Assembles the matrix corresponding to the differential operator.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
 
-        Returns
-            csc_matrix: the differential matrix.
+        Returns:
+            sps.csc_matrix: The differential matrix.
         """
         return sd.cell_faces.T
 
@@ -131,12 +140,13 @@ class RT0(pg.Discretization, pp.RT0):
         """
         Interpolates a function onto the finite element space
 
-        Args
-            sd: grid, or a subclass.
-            func: a function that returns the function values at coordinates
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable[[np.ndarray], np.ndarray]): A function that returns the function
+                values at coordinates.
 
-        Returns
-            array: the values of the degrees of freedom
+        Returns:
+            np.ndarray: The values of the degrees of freedom.
         """
         vals = [
             np.inner(func(x).flatten(), normal)
@@ -146,15 +156,14 @@ class RT0(pg.Discretization, pp.RT0):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix
+        Assembles the matrix for evaluating the solution at the cell centers.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
 
-        Returns
-            matrix: the evaluation matrix.
+        Returns:
+            sps.csc_matrix: The evaluation matrix.
         """
-
         data = self.create_dummy_data(sd, None)
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
@@ -165,6 +174,15 @@ class RT0(pg.Discretization, pp.RT0):
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            func (Callable[[np.ndarray], np.ndarray]): The function that defines
+                the natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
         """
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
@@ -179,6 +197,15 @@ class RT0(pg.Discretization, pp.RT0):
         return vals
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
         return pg.PwConstants
 
     def error_l2(
@@ -192,16 +219,17 @@ class RT0(pg.Discretization, pp.RT0):
         """
         Returns the l2 error computed against an analytical solution given as a function.
 
-        Args
-            sd: grid, or a subclass.
-            num_sol: np.array, vector of the numerical solution
-            ana_sol: callable, function that represent the analytical solution
-            relative=True: boolean, compute the relative error or not
-            etype="specific": string, type of error computed.
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            num_sol (np.ndarray): Vector of the numerical solution.
+            ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
+                analytical solution.
+            relative (Optional[bool], optional): Compute the relative error or not.
+                Defaults to True.
+            etype (Optional[str], optional): Type of error computed. Defaults to "specific".
 
-        Returns
-            error: the error computed.
-
+        Returns:
+            float: The computed error.
         """
         if etype == "standard":
             return super().error_l2(sd, num_sol, ana_sol, relative, etype)
@@ -223,13 +251,14 @@ class BDM1(pg.Discretization):
         Return the number of degrees of freedom associated to the method.
         In this case the number of faces times the dimension.
 
-        Parameter
-        ---------
-        sd: grid, or a subclass.
+        Args:
+            sd (pp.Grid): Grid object or a subclass.
 
-        Return
-        ------
-        dof: the number of degrees of freedom.
+        Returns:
+            int: The number of degrees of freedom.
+
+        Raises:
+            ValueError: If the input grid is not an instance of pp.Grid.
 
         """
         if isinstance(sd, pg.Grid):
@@ -240,6 +269,16 @@ class BDM1(pg.Discretization):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
+        """
+        Assembles the mass matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid for which the mass matrix is assembled.
+            data (Optional[dict]): Additional data for the assembly process.
+
+        Returns:
+            sps.csc_matrix: The assembled mass matrix.
+        """
         size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -298,6 +337,15 @@ class BDM1(pg.Discretization):
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_inner_product(self, dim: int) -> sps.csc_matrix:
+        """
+        Compute the local inner product matrix for the given dimension.
+
+        Args:
+            dim (int): The dimension of the matrix.
+
+        Returns:
+            sps.csc_matrix: The computed local inner product matrix.
+        """
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)
 
@@ -309,20 +357,38 @@ class BDM1(pg.Discretization):
         return M.tocsc()
 
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Project the function space to the lowest order Raviart-Thomas (RT0) space.
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+
+        Returns:
+            sps.csc_matrix: The projection matrix to the RT0 space.
+        """
         return sps.hstack([sps.eye(sd.num_faces)] * sd.dim) / sd.dim
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Project the RT0 finite element space onto the faces of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which the projection is performed.
+
+        Returns:
+            sps.csc_matrix: The projection matrix.
+        """
         return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix corresponding to the differential
+        Assembles the matrix corresponding to the differential operator.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
 
-        Returns
-            csc_matrix: the differential matrix.
+        Returns:
+            sps.csc_matrix: The differential matrix.
         """
         RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
@@ -330,6 +396,15 @@ class BDM1(pg.Discretization):
         return RT0_diff * proj_to_rt0
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Evaluate the finite element solution at the cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to evaluate the solution.
+
+        Returns:
+            sps.csc_matrix: The finite element solution evaluated at the cell centers.
+        """
         eval_rt0 = pg.RT0(self.keyword).eval_at_cell_centers(sd)
         proj_to_rt0 = self.proj_to_RT0(sd)
 
@@ -338,6 +413,16 @@ class BDM1(pg.Discretization):
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
+        """
+        Interpolates a given function onto the grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to interpolate the function.
+            func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
+
+        Returns:
+            np.ndarray: The interpolated values on the grid.
+        """
         vals = np.zeros(self.ndof(sd))
 
         for face in np.arange(sd.num_faces):
@@ -355,6 +440,15 @@ class BDM1(pg.Discretization):
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            func (Callable[[np.ndarray], np.ndarray]): The function that defines
+                the natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
         """
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
@@ -373,11 +467,30 @@ class BDM1(pg.Discretization):
         return vals
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
         return pg.PwConstants
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
+        """
+        Assembles the lumped matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_matrix: The assembled lumped matrix.
+        """
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = sd.dim * sd.dim * (sd.dim + 1) * sd.num_cells

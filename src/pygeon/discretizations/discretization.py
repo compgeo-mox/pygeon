@@ -45,6 +45,20 @@ class Discretization(pp.numerics.discretization.Discretization):
         self.stiff_matrix_key = "stiff"
         self.lumped_matrix_key = "lumped"
 
+    @abc.abstractmethod
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+        In this case number of nodes.
+
+        Args
+            sd: grid, or a subclass.
+
+        Returns
+            ndof: the number of degrees of freedom.
+        """
+        pass
+
     def discretize(self, sd: pg.Grid, data: dict) -> None:
         """
         Discretizes the given grid using the specified data.
@@ -79,7 +93,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
-
         pass
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data: Optional[dict] = None):
@@ -117,9 +130,9 @@ class Discretization(pp.numerics.discretization.Discretization):
 
         This method takes a grid object `sd` and an optional data dictionary `data` as input.
         It first calls the `assemble_diff_matrix` method to obtain the differential matrix `B`.
-        Then, it creates an instance of the range discretization class using the `dim` attribute of `sd`.
-        Next, it calls the `assemble_mass_matrix` method of the range discretization class
-        to obtain the mass matrix `A`.
+        Then, it creates an instance of the range discretization class using the `dim`
+        attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
+        discretization class to obtain the mass matrix `A`.
         Finally, it returns the product of the transpose of `B`, `A`, and `B`.
 
         Args:
@@ -209,7 +222,8 @@ class Discretization(pp.numerics.discretization.Discretization):
             dim (int): The dimension of the range
 
         Returns:
-            pg.Discretization: The discretization class containing the range of the differential
+            pg.Discretization: The discretization class containing the range of the
+                differential
         """
         pass
 
@@ -244,7 +258,8 @@ class Discretization(pp.numerics.discretization.Discretization):
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable): Function that represents the analytical solution.
             relative (bool, optional): Compute the relative error or not. Defaults to True.
-            etype (str, optional): Type of error computed. For "standard", the current implementation. Defaults to "standard".
+            etype (str, optional): Type of error computed. For "standard", the current
+                implementation. Defaults to "standard".
 
         Returns:
             float: The computed error.

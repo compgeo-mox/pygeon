@@ -1,23 +1,27 @@
+from typing import Union
+
 import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
 
 
-def zero_tip_dofs(mdg, n_minus_k, **kwargs):
+def zero_tip_dofs(
+    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
+) -> Union[sps.spmatrix, sps.bmat]:
     """
     Compute the operator that maps the tip degrees of freedom to zero.
 
     Parameters:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default False.
 
     Returns:
-        sps.dia_matrix
+        sps.csc_matrix or sps.bmat: The operator that maps the tip degrees of freedom to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -43,23 +47,29 @@ def zero_tip_dofs(mdg, n_minus_k, **kwargs):
     return is_tip_dof if as_bmat else sps.bmat(is_tip_dof)
 
 
-def remove_tip_dofs(mdg, n_minus_k, **kwargs):
+def remove_tip_dofs(
+    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
+) -> sps.csr_matrix:
     """
     Compute the operator that removes the tip degrees of freedom.
 
+    This function computes the operator that removes the tip degrees of freedom from
+    a given mixed-dimensional grid. The operator is represented as a sparse matrix
+    in compressed sparse column (CSC) format.
+
     Parameters:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
-            differential form
+            differential form.
 
     Returns:
-        sps.csr_matrix
+        sps.csr_matrix: The operator that removes the tip degrees of freedom.
     """
     R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()
     return R[R.indices, :]
 
 
-def get_codim_str(n_minus_k):
+def get_codim_str(n_minus_k: int) -> str:
     """
     Helper function that returns the name of the mesh entity
 
@@ -67,6 +77,6 @@ def get_codim_str(n_minus_k):
         n_minus_k (int): The codimension of the mesh entity
 
     Returns:
-        str
+        str: The name of the mesh entity
     """
     return ["cells", "faces", "ridges", "peaks"][n_minus_k]

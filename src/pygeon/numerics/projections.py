@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -5,18 +7,29 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-def eval_at_cell_centers(mdg, discr=None, **kwargs):
+def eval_at_cell_centers(
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
-    Create an operator that evalates a solution in the cell centers.
+    Create an operator that evaluates a solution in the cell centers.
+
+    This function takes a mixed-dimensional grid `mdg` and a discretization `discr`
+    (optional) and returns an operator that can be used to evaluate a solution in
+    the cell centers of the grid.
 
     Parameters:
-        mdg (pp.MixedDimensionalGrid): The mixed dimensional grid.
-        discr: The discretization used for th evaluation, if not provided
-            a standard discretization is used. Default to
-            None.
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+        mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+        discr (pg.Discretization, optional): The discretization used for the evaluation.
+            If not provided, a standard discretization is used. Default is None.
+        kwargs (dict): Optional parameters.
+            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default is False.
+
+    Returns:
+        sps.spmatrix or sps.bmat: The operator that evaluates the solution in the cell centers.
+        If `as_bmat` is True, the operator is returned as sparse sub-blocks in `sps.spmatrix`
+        format. Otherwise, the operator is returned as a block matrix in `sps.bmat` format.
+
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -32,17 +45,24 @@ def eval_at_cell_centers(mdg, discr=None, **kwargs):
     return bmat_sd if as_bmat else sps.bmat(bmat_sd, format="csc")
 
 
-def proj_faces_to_cells(mdg, discr=None, **kwargs):
+def proj_faces_to_cells(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> Union[sps.csc_matrix, sps.bmat]:
     """
-    Create an operator that evalates a solution defined on the faces in the cell centers.
+    Create an operator that evaluates a solution defined on the faces in the cell centers.
 
     Parameters:
-        mdg (pp.MixedDimensionalGrid): The mixed dimensional grid.
-        discr: The discretization used for th evaluation, if not provided a standard
-            discretization is used. Default to None.
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+        mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
+        discr (pg.Discretization, optional): The discretization used for the evaluation.
+            If not provided, a standard discretization is used. Default is None.
+        kwargs (dict): Optional parameters.
+            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default is False.
+
+    Returns:
+        sps.spmatrix or sps.bmat: The operator matrix. If `as_bmat` is True, the matrix
+            is returned as sparse sub-blocks, otherwise it is returned as a block matrix
+            in CSC format.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -51,7 +71,7 @@ def proj_faces_to_cells(mdg, discr=None, **kwargs):
     )
 
     if discr is None:
-        discr = pp.RT0("flow")
+        discr = pg.RT0("flow")
 
     # Local mass matrices
     for nn_sd, (sd, d_sd) in enumerate(mdg.subdomains(return_data=True)):

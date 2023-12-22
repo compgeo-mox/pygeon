@@ -696,13 +696,13 @@ class VecLagrange1(pg.Discretization):
         Args:
             dim (int): The dimension of the range.
 
-        Raises:
-            NotImplementedError: If there is no range discretization for the vector
-                Lagrangian 1 in PyGeoN.
-
         Returns:
             Discretization: The discretization class that contains the range of
                 the differential.
+
+        Raises:
+            NotImplementedError: If there is no range discretization for the vector
+                Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"

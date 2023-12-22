@@ -35,7 +35,8 @@ class Nedelec0(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass, with geometry fields computed.
-            data (dict, optional): Dictionary to store the data. See self.matrix_rhs for required contents.
+            data (dict, optional): Dictionary to store the data. See self.matrix_rhs
+                for required contents.
 
         Returns:
             sps.csc_matrix: Matrix obtained from the discretization.
@@ -431,7 +432,8 @@ class Nedelec1(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
         """
-        Assembles the natural boundary condition for the given grid, function, and boundary faces.
+        Assembles the natural boundary condition for the given grid, function, and
+            boundary faces.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the natural boundary condition.

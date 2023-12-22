@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sps
 
 
-def replace_nones_with_zeros(mat: np.ndarray) -> np.ndarray:
+def replace_nones_with_zeros(mat: np.ndarray) -> None:
     """
     Replace each None in the block matrix by a zero sparse matrix of the right shape.
     This is done in-place.

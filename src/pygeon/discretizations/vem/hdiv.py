@@ -13,6 +13,15 @@ class MVEM(pg.Discretization, pp.MVEM):
     """
 
     def __init__(self, keyword: str) -> None:
+        """
+        Initialize the HDiv class.
+
+        Args:
+            keyword (str): The keyword for the discretization.
+
+        Returns:
+            None
+        """
         pg.Discretization.__init__(self, keyword)
         pp.MVEM.__init__(self, keyword)
 
@@ -20,13 +29,12 @@ class MVEM(pg.Discretization, pp.MVEM):
         """
         Returns the number of faces.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): grid, or a subclass.
 
-        Returns
-            dof: the number of degrees of freedom.
+        Returns:
+            int: the number of degrees of freedom.
         """
-
         return sd.num_faces
 
     def assemble_mass_matrix(
@@ -35,14 +43,13 @@ class MVEM(pg.Discretization, pp.MVEM):
         """
         Assembles the mass matrix
 
-        Args
+        Args:
             sd: grid, or a subclass.
             data: optional dictionary with physical parameters for scaling.
 
-        Returns
-            mass_matrix: the mass matrix.
+        Returns:
+            sps.csc_matrix: the mass matrix.
         """
-
         data = pg.RT0.create_dummy_data(self, sd, data)
         pp.MVEM.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
@@ -54,27 +61,26 @@ class MVEM(pg.Discretization, pp.MVEM):
         Assembles the lumped mass matrix L such that
         B^T L^{-1} B is a TPFA method.
 
-        Args
-            sd: grid, or a subclass.
-            data: optional dictionary with physical parameters for scaling.
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
 
-        Returns
-            lumped_matrix: the lumped mass matrix.
+        Returns:
+            sps.csc_matrix: The lumped mass matrix.
         """
-
         return pg.RT0.assemble_lumped_matrix(self, sd, data)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix corresponding to the differential
+        Assembles the matrix corresponding to the differential operator.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid object representing the discretized domain.
 
-        Returns
-            csr_matrix: the differential matrix.
+        Returns:
+            sps.csc_matrix: The differential matrix.
         """
-        return sd.cell_faces.T
+        return sd.cell_faces.T.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -82,12 +88,13 @@ class MVEM(pg.Discretization, pp.MVEM):
         """
         Interpolates a function onto the finite element space
 
-        Args
-            sd: grid, or a subclass.
-            func: a function that returns the function values at coordinates
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable[[np.ndarray], np.ndarray]): A function that returns the function
+                values at coordinates.
 
-        Returns
-            array: the values of the degrees of freedom
+        Returns:
+            np.ndarray: The values of the degrees of freedom.
         """
         vals = [
             np.inner(func(x).flatten(), normal)
@@ -99,15 +106,15 @@ class MVEM(pg.Discretization, pp.MVEM):
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
         """
-        Assembles the matrix
+        Assembles the matrix.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): Grid or a subclass.
+            data (Optional[dict]): Optional data dictionary.
 
-        Returns
-            matrix: the evaluation matrix.
+        Returns:
+            sps.csc_matrix: The evaluation matrix.
         """
-
         data = pg.RT0.create_dummy_data(self, sd, data)
         pp.MVEM.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
@@ -118,10 +125,28 @@ class MVEM(pg.Discretization, pp.MVEM):
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            func (Callable[[np.ndarray], np.ndarray]): The function to be
+                evaluated on the boundary.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
         """
         return pg.RT0.assemble_nat_bc(self, sd, func, b_faces)
 
-    def get_range_discr_class(self, dim: int):
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
         return pg.PwConstants
 
 
@@ -129,16 +154,17 @@ class VBDM1(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
-        In this case the number of faces times the dimension.
+        In this case, it returns the number of faces times the dimension.
 
-        Parameter
-        ---------
-        sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): The grid object for which to calculate the number
+                of degrees of freedom.
 
-        Return
-        ------
-        dof: the number of degrees of freedom.
+        Returns:
+            int: The number of degrees of freedom.
 
+        Raises:
+            ValueError: If the input `sd` is not an instance of `pg.Grid`.
         """
         if isinstance(sd, pg.Grid):
             return sd.face_nodes.nnz
@@ -149,9 +175,19 @@ class VBDM1(pg.Discretization):
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
         """
-        Computes the mass matrix
-        """
+        Computes the mass matrix for the Virtual Element Method (VEM).
 
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_matrix: The assembled mass matrix.
+
+        Notes:
+            The mass matrix is computed using the VEM approach.
+            The mass matrix is a sparse matrix in compressed sparse column (CSC) format.
+        """
         # Allocate the data to store matrix entries
         cell_nodes = sd.cell_nodes()
         size = int(np.sum(np.square(2 * np.sum(cell_nodes, 0))))
@@ -205,21 +241,43 @@ class VBDM1(pg.Discretization):
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
 
     def proj_to_VRT0(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Project the degrees of freedom to the space VRT0.
+
+        Args:
+            sd (pg.Grid): The grid on which to project the degrees of freedom.
+
+        Returns:
+            sps.csc_matrix: The projection matrix.
+        """
         dof = self.get_dof_enumeration(sd).tocoo()
         return sps.csc_matrix((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Project the RT0 finite element space onto the H(div) finite element space.
+
+        Args:
+            sd (pg.Grid): The grid on which the projection is performed.
+
+        Returns:
+            sps.csc_matrix: The projection matrix.
+
+        Raises:
+            NotImplementedError: This method is not implemented and should be
+                overridden in a subclass.
+        """
         raise NotImplementedError
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix corresponding to the differential
+        Assembles the matrix corresponding to the differential operator for the H(div) space.
 
-        Args
-            sd: grid, or a subclass.
+        Args:
+            sd (pg.Grid): The grid or a subclass.
 
-        Returns
-            csr_matrix: the differential matrix.
+        Returns:
+            sps.csc_matrix: The differential matrix.
         """
         VRT0_diff = pg.MVEM.assemble_diff_matrix(self, sd)
         proj_to_vrt0 = self.proj_to_VRT0(sd)
@@ -227,11 +285,38 @@ class VBDM1(pg.Discretization):
         return VRT0_diff * proj_to_vrt0
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Evaluate the function at the cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to evaluate the function.
+
+        Returns:
+            sps.csc_matrix: The evaluated function values at the cell centers.
+
+        Raises:
+            NotImplementedError: This method is not implemented and should be
+                overridden in a subclass.
+        """
         raise NotImplementedError
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
+        """
+        Interpolates a function onto the given grid.
+
+        Args:
+            sd (pg.Grid): The grid onto which the function will be interpolated.
+            func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
+
+        Returns:
+            np.ndarray: The interpolated values on the grid.
+
+        Raises:
+            NotImplementedError: This method is not implemented and should be
+                overridden in a subclass.
+        """
         raise NotImplementedError
 
     def assemble_nat_bc(
@@ -240,6 +325,15 @@ class VBDM1(pg.Discretization):
         """
         Assembles the natural boundary condition term
         (n dot q, func)_\Gamma
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
+                the values on the boundary.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
         """
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
@@ -259,9 +353,27 @@ class VBDM1(pg.Discretization):
         return vals
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the range discretization class based on the given dimension.
+
+        Args:
+            dim (int): The dimension of the range.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
         return pg.PwConstants
 
     def get_dof_enumeration(self, sd: pg.Grid) -> np.ndarray:
+        """
+        Get the degree of freedom enumeration for a given grid.
+
+        Args:
+            sd (pg.Grid): The grid for which to compute the degree of freedom enumeration.
+
+        Returns:
+            np.ndarray: The degree of freedom enumeration array.
+        """
         dof = sd.face_nodes.copy()
         dof.data = np.arange(sd.face_nodes.nnz)
         return dof
@@ -269,4 +381,18 @@ class VBDM1(pg.Discretization):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
+        """
+        Assembles the lumped matrix for the given grid and data.
+
+        Args:
+            sd (pg.Grid): The grid for which the lumped matrix is assembled.
+            data (Optional[dict]): Optional data required for the assembly.
+
+        Returns:
+            sps.csc_matrix: The assembled lumped matrix.
+
+        Raises:
+            NotImplementedError: This method is not implemented and should be
+                overridden in a subclass.
+        """
         raise NotImplementedError

@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -28,7 +30,7 @@ class EinSteinGrid(pg.Grid):
         self.add_hanging_node()
 
         # create the list of polygons
-        self.poly_list = []
+        self.poly_list: List[np.ndarray] = []
         self.poly_adder(*self.root)
 
         # build the connectivity of the grid
@@ -165,7 +167,8 @@ class EinSteinGrid(pg.Grid):
         root = ET.parse(file_name).getroot()[0]
         tag_str = r"{http://www.w3.org/1999/xlink}href"
 
-        poly_dict, trans_dict = {}, {}
+        poly_dict = {}
+        trans_dict: Dict[str, List] = {}
         for elem in root:
             id = elem.attrib["id"]
             if id[-1] == "f":
@@ -202,10 +205,10 @@ class EinSteinGrid(pg.Grid):
         Returns:
             np.ndarray: The 2d polygon in homogeneous coordinate
         """
-        pts = np.fromstring(pts.replace(",", " "), sep=" ")
-        pts = pts.reshape((2, -1), order="F")
+        coords = np.fromstring(pts.replace(",", " "), sep=" ")
+        coords = coords.reshape((2, -1), order="F")
         # add the homogeneous coordinate and return the pts
-        return np.vstack((pts, np.ones(pts.shape[1])))
+        return np.vstack((coords, np.ones(coords.shape[1])))
 
     def as_matrix(self, mat: str) -> np.ndarray:
         """
@@ -217,7 +220,7 @@ class EinSteinGrid(pg.Grid):
         Returns:
             np.ndarray: The 2d matrix in homogeneous coordinate
         """
-        mat = np.fromstring(mat[7:-1], sep=" ")
-        mat = mat.reshape((2, -1), order="F")
+        matrix = np.fromstring(mat[7:-1], sep=" ")
+        matrix = matrix.reshape((2, -1), order="F")
         # add the homogeneous coordinate and return the matrix
-        return np.vstack((mat, [0, 0, 1]))
+        return np.vstack((matrix, [0, 0, 1]))
