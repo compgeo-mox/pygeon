@@ -22,7 +22,6 @@ def cell_mass(
     Returns:
         sps.csc_matrix, num_cells x num_cells
     """
-
     return mass_matrix(mdg, 0, discr, **kwargs)
 
 
@@ -128,11 +127,28 @@ def _sd_mass_matrix(
 
 
 def local_matrix(
-    sd: pg.Grid, n_minus_k: int, discr: pg.Discretization, d_sd: dict, **kwargs
+    sd: Union[pp.Grid, pg.Grid, pg.Graph],
+    n_minus_k: int,
+    discr: pg.Discretization,
+    d_sd: dict,
+    **kwargs
 ) -> sps.csc_matrix:
+    """
+    Compute the local matrix for a given spatial domain.
+
+    Args:
+        sd (Union[pp.Grid, pg.Grid, pg.Graph]): The spatial domain.
+        n_minus_k (int): The number of basis functions minus the number of constraints.
+        discr (pg.Discretization): The discretization scheme.
+        d_sd (dict): Additional parameters for the spatial domain.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        sps.csc_matrix: The computed local matrix.
+    """
     if isinstance(sd, pg.Graph):
         return _sd_lumped_mass(sd, n_minus_k, discr, d_sd, **kwargs)
-    elif isinstance(sd, pg.Grid):
+    elif isinstance(sd, pg.Grid) or isinstance(sd, pp.Grid):
         return _sd_mass_matrix(sd, n_minus_k, discr, d_sd, **kwargs)
 
 

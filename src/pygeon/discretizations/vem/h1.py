@@ -292,7 +292,8 @@ class VLagrange1(pg.Discretization):
         Returns:
             sps.csc_matrix: The differential mapping matrix.
         """
-        pg.Lagrange1.assemble_diff_matrix(self, sd)
+        p1 = pg.Lagrange1(self.keyword)
+        p1.assemble_diff_matrix(sd)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -421,7 +422,9 @@ class VLagrange1_vec(VLagrange1):
         Returns:
             sps.csc_matrix: The differential mapping matrix in the discrete cochain complex.
         """
-        diff = pg.Lagrange1.assemble_diff_matrix(self, sd)
+        p1 = pg.Lagrange1(self.keyword)
+        diff = p1.assemble_diff_matrix(sd)
+
         return sps.block_diag([diff] * sd.dim, "csc")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:

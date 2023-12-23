@@ -191,12 +191,12 @@ class Nedelec0(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, sd: pg.Grid) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
-        Returns the range discretization class for the given grid.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            sd (pg.Grid): The grid for which the range discretization class is needed.
+            dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class for the given grid.
@@ -343,10 +343,11 @@ class Nedelec1(pg.Discretization):
         Returns:
             sps.csc_matrix: The assembled differential matrix.
         """
-        Ne0_diff = pg.Nedelec0.assemble_diff_matrix(self, sd)
-        proj_to_ne0 = self.proj_to_Ne0(sd)
+        n0 = pg.Nedelec0(self.keyword)
+        Ne0_diff = n0.assemble_diff_matrix(sd)
 
-        return Ne0_diff * proj_to_ne0
+        proj_to_ne0 = self.proj_to_Ne0(sd)
+        return Ne0_diff @ proj_to_ne0
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

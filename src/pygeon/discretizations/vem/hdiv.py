@@ -50,7 +50,9 @@ class MVEM(pg.Discretization, pp.MVEM):
         Returns:
             sps.csc_matrix: the mass matrix.
         """
-        data = pg.RT0.create_dummy_data(self, sd, data)
+        rt0 = pg.RT0(self.keyword)
+        data = rt0.create_dummy_data(sd, data)
+
         pp.MVEM.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
 
@@ -68,7 +70,8 @@ class MVEM(pg.Discretization, pp.MVEM):
         Returns:
             sps.csc_matrix: The lumped mass matrix.
         """
-        return pg.RT0.assemble_lumped_matrix(self, sd, data)
+        rt0 = pg.RT0(self.keyword)
+        return rt0.assemble_lumped_matrix(sd, data)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -115,7 +118,9 @@ class MVEM(pg.Discretization, pp.MVEM):
         Returns:
             sps.csc_matrix: The evaluation matrix.
         """
-        data = pg.RT0.create_dummy_data(self, sd, data)
+        rt0 = pg.RT0(self.keyword)
+        data = rt0.create_dummy_data(sd, data)
+
         pp.MVEM.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
@@ -135,7 +140,8 @@ class MVEM(pg.Discretization, pp.MVEM):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        return pg.RT0.assemble_nat_bc(self, sd, func, b_faces)
+        rt0 = pg.RT0(self.keyword)
+        return rt0.assemble_nat_bc(sd, func, b_faces)
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
@@ -279,10 +285,11 @@ class VBDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        VRT0_diff = pg.MVEM.assemble_diff_matrix(self, sd)
-        proj_to_vrt0 = self.proj_to_VRT0(sd)
+        mvem = pg.MVEM(self.keyword)
+        VRT0_diff = mvem.assemble_diff_matrix(sd)
 
-        return VRT0_diff * proj_to_vrt0
+        proj_to_vrt0 = self.proj_to_VRT0(sd)
+        return VRT0_diff @ proj_to_vrt0
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -338,10 +345,11 @@ class VBDM1(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        vals = np.zeros(self.ndof(sd))
-        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
-        dof = self.get_dof_enumeration(sd)
+        p1 = pg.Lagrange1(self.keyword)
+        local_mass = p1.local_mass(np.ones(1), sd.dim - 1)
 
+        dof = self.get_dof_enumeration(sd)
+        vals = np.zeros(self.ndof(sd))
         for face in b_faces:
             sign = np.sum(sd.cell_faces.tocsr()[face, :])
             nodes_loc = sd.face_nodes[:, face].indices

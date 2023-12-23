@@ -58,7 +58,6 @@ def grid_from_boundary_pts(
 
     # Create the domain
     domain = pp.Domain(polytope=lines)
-
     return grid_from_domain(domain, mesh_size, **kwargs)
 
 

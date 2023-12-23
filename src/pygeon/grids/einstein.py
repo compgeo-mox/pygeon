@@ -1,6 +1,5 @@
-from typing import List, Dict
-
 import xml.etree.ElementTree as ET
+from typing import Dict, List
 
 import numpy as np
 import porepy as pp

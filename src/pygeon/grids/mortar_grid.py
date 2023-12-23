@@ -1,7 +1,10 @@
+from typing import Tuple
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
 
+import pygeon as pg
 from pygeon.utils.set_membership import match_coordinates
 
 """
@@ -25,7 +28,7 @@ class MortarGrid(pp.MortarGrid):
         """
         super(MortarGrid, self).__init__(*args, **kwargs)
 
-    def compute_geometry(self, sd_pair) -> None:
+    def compute_geometry(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
         """
         Computes the geometry of the MortarGrid.
 
@@ -43,7 +46,7 @@ class MortarGrid(pp.MortarGrid):
         if self.dim >= 1:
             self.compute_ridges(sd_pair)
 
-    def compute_ridges(self, sd_pair) -> None:
+    def compute_ridges(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
         """
         Assign the face-ridge and ridge-peak connectivities to the mortar grid
 
@@ -162,7 +165,7 @@ class MortarGrid(pp.MortarGrid):
         self.face_ridges = face_ridges
         self.ridge_peaks = ridge_peaks
 
-    def assign_signed_mortar_to_primary(self, sd_pair) -> None:
+    def assign_signed_mortar_to_primary(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
         """
         Compute the mapping from mortar cells to the faces of the primary grid that
         respects orientation.

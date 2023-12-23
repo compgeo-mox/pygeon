@@ -39,7 +39,7 @@ class RT0(pg.Discretization, pp.RT0):
 
         return sd.num_faces
 
-    def create_dummy_data(self, sd: pg.Grid, data: dict) -> dict:
+    def create_dummy_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
         """
         Updates data such that it has all the necessary components for pp.RT0
 
@@ -390,10 +390,11 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        RT0_diff = pg.RT0.assemble_diff_matrix(self, sd)
-        proj_to_rt0 = self.proj_to_RT0(sd)
+        rt0 = pg.RT0(self.keyword)
+        RT0_diff = rt0.assemble_diff_matrix(sd)
 
-        return RT0_diff * proj_to_rt0
+        proj_to_rt0 = self.proj_to_RT0(sd)
+        return RT0_diff @ proj_to_rt0
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -405,10 +406,11 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The finite element solution evaluated at the cell centers.
         """
-        eval_rt0 = pg.RT0(self.keyword).eval_at_cell_centers(sd)
-        proj_to_rt0 = self.proj_to_RT0(sd)
+        rt0 = pg.RT0(self.keyword)
+        eval_rt0 = rt0.eval_at_cell_centers(sd)
 
-        return eval_rt0 * proj_to_rt0
+        proj_to_rt0 = self.proj_to_RT0(sd)
+        return eval_rt0 @ proj_to_rt0
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -453,9 +455,10 @@ class BDM1(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        vals = np.zeros(self.ndof(sd))
-        local_mass = pg.Lagrange1.local_mass(None, 1, sd.dim - 1)
+        p1 = pg.Lagrange1(self.keyword)
+        local_mass = p1.local_mass(np.ones(1), sd.dim - 1)
 
+        vals = np.zeros(self.ndof(sd))
         for face in b_faces:
             sign = np.sum(sd.cell_faces.tocsr()[face, :])
             loc_vals = np.array(

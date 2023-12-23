@@ -1,9 +1,13 @@
+from typing import Union
+
 import porepy as pp
 
 import pygeon as pg
 
 
-def convert_from_pp(obj):
+def convert_from_pp(
+    obj: Union[pg.Graph, pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid]
+) -> None:
     if isinstance(obj, pg.Graph):
         pass
     elif isinstance(obj, pp.Grid):
@@ -19,7 +23,7 @@ def convert_from_pp(obj):
         raise TypeError
 
 
-def as_mdg(sd):
+def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> None:
     if isinstance(sd, pp.MixedDimensionalGrid):
         return sd
     elif isinstance(sd, pp.Grid):

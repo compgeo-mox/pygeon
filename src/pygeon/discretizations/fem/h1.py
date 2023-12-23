@@ -489,7 +489,8 @@ class VecLagrange1(pg.Discretization):
         """
         div = self.assemble_div_matrix(sd)
         # TODO add the Lame' parameter in the computation of the P0 mass
-        mass = pg.PwConstants.assemble_mass_matrix(None, sd, data)
+        p0 = pg.PwConstants(self.keyword)
+        mass = p0.assemble_mass_matrix(sd, data)
 
         return div.T @ mass @ div
 
@@ -612,7 +613,8 @@ class VecLagrange1(pg.Discretization):
 
         symgrad = self.assemble_symgrad_matrix(sd)
         # TODO add the Lame' parameter in the computation of the P0 mass
-        mass = pg.PwConstants.assemble_mass_matrix(None, sd, data)
+        p0 = pg.PwConstants(self.keyword)
+        mass = p0.assemble_mass_matrix(sd, data)
         tensor_mass = sps.block_diag([mass] * np.square(sd.dim), format="csc")
 
         return symgrad.T @ tensor_mass @ symgrad
@@ -730,7 +732,9 @@ class VecLagrange1(pg.Discretization):
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
-        proj = pg.PwConstants.eval_at_cell_centers(None, sd)
+
+        p0 = pg.PwConstants(self.keyword)
+        proj = p0.eval_at_cell_centers(sd)
 
         # compute the two terms and split on each component
         sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))

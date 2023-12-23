@@ -149,7 +149,7 @@ class Grid(pp.Grid):
         self.num_peaks = self.num_nodes
 
         # Pre-allocation
-        ridges = np.ndarray((2, self.face_nodes.nnz), dtype=int)
+        ridges: np.ndarray = np.ndarray((2, self.face_nodes.nnz), dtype=int)
 
         fr_indptr = np.zeros(self.num_faces + 1, dtype=int)
         for face in np.arange(self.num_faces):

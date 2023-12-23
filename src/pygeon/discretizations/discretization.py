@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
 import porepy as pp
