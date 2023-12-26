@@ -2,6 +2,7 @@
 ![Mypy, black, isort, flake8](https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml/badge.svg)
 [![DOI](https://zenodo.org/badge/455087135.svg)](https://zenodo.org/badge/latestdoi/455087135)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![CodeQL](https://github.com/compgeo-mox/pygeon/workflows/CodeQL/badge.svg)
 
 # PyGeoN: a Python package for Geo-Numerics
 
