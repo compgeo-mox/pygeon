@@ -9,12 +9,42 @@ import pygeon as pg
 
 class MVEM(pg.Discretization, pp.MVEM):
     """
+    MVEM class for the mixed virtual element method (MVEM) discretization.
+
     Each degree of freedom is the integral over a mesh face.
+
+    Args:
+        keyword (str): The keyword for the discretization.
+
+    Attributes:
+        keyword (str): The keyword for the discretization.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of faces.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix.
+
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the lumped mass matrix.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space.
+
+        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the matrix.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray: Assembles the natural boundary condition term.
+        get_range_discr_class(dim: int) -> pg.Discretization: Returns the range discretization class for the given dimension.
     """
 
     def __init__(self, keyword: str) -> None:
         """
-        Initialize the HDiv class.
+        Initialize the MVEM class.
 
         Args:
             keyword (str): The keyword for the discretization.
@@ -41,7 +71,7 @@ class MVEM(pg.Discretization, pp.MVEM):
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
         """
-        Assembles the mass matrix
+        Assembles the mass matrix.
 
         Args:
             sd: grid, or a subclass.
@@ -89,7 +119,7 @@ class MVEM(pg.Discretization, pp.MVEM):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space
+        Interpolates a function onto the finite element space.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -129,7 +159,7 @@ class MVEM(pg.Discretization, pp.MVEM):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_\Gamma
+        (n dot q, func)_\Gamma.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -157,6 +187,44 @@ class MVEM(pg.Discretization, pp.MVEM):
 
 
 class VBDM1(pg.Discretization):
+    """
+    Virtual Element Method (VEM) based on the BDM1 (Brezzi-Douglas-Marini) discretization
+    for the H(div) space.
+
+    This class implements the VEM discretization for the H(div) space.
+    It provides methods for assembling the mass matrix, projecting to VRT0 space,
+    assembling the differential matrix, evaluating at cell centers, interpolating
+    a function, assembling the natural boundary condition term, and more.
+
+    Attributes:
+        keyword (str): The keyword associated with the discretization.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of faces time the dimension.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix.
+
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the lumped mass matrix.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space.
+
+        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the matrix.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition term.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
+    """
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.

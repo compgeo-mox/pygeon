@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -21,7 +23,16 @@ class SpanningTree:
         tree (sps.csc_array): The incidence matrix of the spanning tree.
     """
 
-    def __init__(self, mdg, starting_face=None) -> None:
+    def __init__(
+        self, mdg: pg.MixedDimensionalGrid, starting_face: Optional[int] = None
+    ) -> None:
+        """
+        Initializes a SpanningTree object.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+            starting_face (Optional[int], optional): The index of the starting face. Defaults to None.
+        """
         self.div = pg.div(mdg)
 
         if starting_face is None:
@@ -39,12 +50,21 @@ class SpanningTree:
         ).T.tocsc()
         self.system = pg.cell_mass(mdg) @ self.div @ self.expand
 
-    def find_starting_face(self, mdg):
+    def find_starting_face(self, mdg: pg.MixedDimensionalGrid) -> int:
         """
-        Find the starting face for the spanning tree if None is provided
-        By default, this is the first boundary face of the mesh.
-        """
+        Find the starting face for the spanning tree if None is provided.
 
+        By default, this method returns the index of the first boundary face of the mesh.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid object.
+
+        Returns:
+            int: The index of the starting face for the spanning tree.
+
+        Raises:
+            TypeError: If the input argument `mdg` is not of type `pp.Grid` or `pp.MixedDimensionalGrid`.
+        """
         if isinstance(mdg, pp.Grid):
             sd = mdg
         elif isinstance(mdg, pp.MixedDimensionalGrid):
@@ -56,28 +76,34 @@ class SpanningTree:
 
         return np.argmax(sd.tags["domain_boundary_faces"])
 
-    def find_starting_cell(self):
+    def find_starting_cell(self) -> int:
         """
         Find the starting cell for the spanning tree.
-        """
 
+        Returns:
+            int: The index of the starting cell.
+        """
         return self.div.tocsc()[:, self.starting_face].indices[0]
 
-    def compute_tree(self):
+    def compute_tree(self) -> sps.csc_array:
         """
         Construct a spanning tree of the elements.
-        """
 
+        Returns:
+            sps.csc_array: The computed spanning tree as a compressed sparse column matrix.
+        """
         tree = sps.csgraph.breadth_first_tree(
             self.div @ self.div.T, self.starting_cell, directed=False
         )
         return sps.csc_array(tree)
 
-    def flag_tree_faces(self):
+    def flag_tree_faces(self) -> np.ndarray:
         """
         Flag the faces in the mesh that correspond to edges of the tree.
-        """
 
+        Returns:
+            np.ndarray: A boolean array indicating the flagged faces in the mesh.
+        """
         # Extract start/end cells for each edge of the tree
         c_start, c_end, _ = sps.find(self.tree)
 
@@ -99,37 +125,41 @@ class SpanningTree:
 
         return flagged_faces
 
-    def solve(self, f) -> np.ndarray:
+    def solve(self, f: np.ndarray) -> np.ndarray:
         """
         Perform a spanning tree solve to compute a conservative flux field
         for given mass source.
 
-        Parameters:
+        Args:
             f (np.ndarray): Mass source, integrated against PwConstants.
 
         Returns:
             np.ndarray: the post-processed flux field
         """
-
         return self.expand @ sps.linalg.spsolve(self.system, f)
 
-    def solve_transpose(self, rhs) -> np.ndarray:
+    def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
         Post-process the pressure by performing a transposed solve.
 
-        Parameters:
+        Args:
             rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
                               minus boundary terms.
 
         Returns:
             np.ndarray: the post-processed pressure field
         """
-
         return sps.linalg.spsolve(self.system.T.tocsc(), self.expand.T.tocsc() @ rhs)
 
-    def visualize_2d(self, mdg, fig_name=None):
+    def visualize_2d(
+        self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
+    ):
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid) The object representing the grid.
+            fig_name (Optional[str], optional). The name of the figure file to save the visualization.
         """
         import matplotlib.pyplot as plt
         import networkx as nx
@@ -179,18 +209,30 @@ class SpanningWeightedTrees:
     It works very similarly to the previous one by considering multiple
     trees instead.
 
+    Attributes:
+        sptrs (list): List of SpanningTree objects.
+        avg (function): Function to compute the average of a given array.
+
+    Methods:
+        __init__: Constructor of the class.
+        solve: Perform a spanning weighted trees solve to compute a conservative flux field.
+        solve_transpose: Post-process the pressure by performing a transposed solve.
+        find_starting_faces: Find the starting faces for each spanning tree if None is provided.
     """
 
-    def __init__(self, mdg, weights, starting_faces=None) -> None:
+    def __init__(
+        self,
+        mdg: pg.MixedDimensionalGrid,
+        weights: np.ndarray,
+        starting_faces: Optional[np.ndarray] = None,
+    ) -> None:
         """Constructor of the class
 
-        Parameters:
-            mdg: the mixed dimensional grid
-            weights: the weights to impose for each spannin free, they need to sum to 1
-            starting_face (optional): the set of starting faces, if not
-                specifed equi-distributed boundary faces are selected.
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
+            weights (np.ndarray): The weights to impose for each spanning tree, they need to sum to 1.
+            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified equi-distributed boundary faces are selected.
         """
-
         if starting_faces is None:
             num = np.asarray(weights).size
             starting_faces = self.find_starting_faces(mdg, num)
@@ -198,46 +240,44 @@ class SpanningWeightedTrees:
         self.sptrs = [pg.SpanningTree(mdg, f) for f in starting_faces]
         self.avg = lambda v: np.average(v, axis=0, weights=weights)
 
-    def solve(self, f) -> np.ndarray:
+    def solve(self, f: np.ndarray) -> np.ndarray:
         """
         Perform a spanning weighted trees solve to compute a conservative flux field
         for given mass source.
 
-        Parameters:
+        Args:
             f (np.ndarray): Mass source, integrated against PwConstants.
 
         Returns:
-            np.ndarray: the post-processed flux field
+            np.ndarray: The post-processed flux field.
         """
-
         return self.avg([st.solve(f) for st in self.sptrs])
 
-    def solve_transpose(self, rhs) -> np.ndarray:
+    def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
         Post-process the pressure by performing a transposed solve.
 
-        Parameters:
+        Args:
             rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
                               minus boundary terms.
 
         Returns:
-            np.ndarray: the post-processed pressure field
+            np.ndarray: The post-processed pressure field.
         """
-
         return self.avg([st.solve_transpose(rhs) for st in self.sptrs])
 
-    def find_starting_faces(self, mdg, num):
+    def find_starting_faces(self, mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
         """
         Find the starting faces for each spanning tree if None is provided in the
         constructor.
-        By default, a equidistribution of boundary faces is constructed.
+        By default, an equidistribution of boundary faces is constructed.
 
-        Parameters:
-            mdg: the (mixed dimensional) grid
-            num: number of faces to be selected
+        Args:
+            mdg (pg.MixedDimensionalGrid): The (mixed dimensional) grid.
+            num (int): Number of faces to be selected.
 
         Returns:
-            faces: the selected faces at the boundary
+            np.ndarray: The selected faces at the boundary.
         """
         if isinstance(mdg, pp.Grid):
             sd = mdg

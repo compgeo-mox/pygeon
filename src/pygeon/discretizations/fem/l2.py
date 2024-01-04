@@ -10,6 +10,43 @@ class PwConstants(pg.Discretization):
     """
     Discretization class for the piecewise constants.
     NB! Each degree of freedom is the integral over the cell.
+
+    Attributes:
+        None
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Computes the mass matrix for piecewise constants.
+
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Computes the lumped mass matrix, which coincides with the mass matrix for P0.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the stiffness matrix for the given grid.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> sps.csc_matrix:
+            Interpolates a function onto the finite element space.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix that evaluates a function at the cell centers of a grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition vector, equal to zero.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the discretization class for the range of the differential.
+
+        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray], relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
+            Returns the l2 error computed against an analytical solution given as a function.
+
+        _cell_error(sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray) -> float:
+            Calculate the error for each cell in the finite element mesh.
     """
 
     def ndof(self, sd: pg.Grid) -> int:

@@ -19,6 +19,16 @@ class Discretization(pp.numerics.discretization.Discretization):
         eval_at_cell_centers
         assemble_nat_bc
         get_range_discr_class
+
+    Attributes:
+        mass_matrix_key (str): The keyword used to identify the mass matrix
+            term in the discretization matrix dictionary.
+        diff_matrix_key (str): The keyword used to identify the diffusion matrix
+            term in the discretization matrix dictionary.
+        stiff_matrix_key (str): The keyword used to identify the stiffness matrix
+            term in the discretization matrix dictionary.
+        lumped_matrix_key (str): The keyword used to identify the lumped matrix
+            term in the discretization matrix dictionary.
     """
 
     def __init__(self, keyword: str) -> None:

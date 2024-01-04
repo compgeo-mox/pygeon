@@ -11,6 +11,44 @@ class RT0(pg.Discretization, pp.RT0):
     """
     Discretization class for Raviart-Thomas of lowest order.
     Each degree of freedom is the integral over a mesh face.
+
+    Args:
+        keyword (str): The keyword for the discretization.
+
+    Attributes:
+        keyword (str): The keyword for the discretization.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of faces.
+
+        create_dummy_data(sd: pg.Grid, data: Optional[dict] = None) -> dict:
+            Updates data such that it has all the necessary components for pp.RT0
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix
+
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix for evaluating the solution at the cell centers.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition term (n dot q, func)_\Gamma
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
+
+        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray],
+            relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
+            Returns the l2 error computed against an analytical solution given as a function.
     """
 
     def __init__(self, keyword: str) -> None:
@@ -246,6 +284,40 @@ class RT0(pg.Discretization, pp.RT0):
 
 
 class BDM1(pg.Discretization):
+    """
+    BDM1 is a class that represents the BDM1 (Brezzi-Douglas-Marini) finite element method.
+    It provides methods for assembling matrices, projecting to and from the RT0 space,
+    evaluating the solution at cell centers, interpolating a given function onto the grid,
+    assembling the natural boundary condition term, and more.
+
+    Attributes:
+        keyword (str): The keyword associated with the BDM1 method.
+
+    Methods:
+        ndof(sd: pp.Grid) -> int:
+            Return the number of degrees of freedom associated to the method.
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix for the given grid.
+        local_inner_product(dim: int) -> sps.csc_matrix:
+            Compute the local inner product matrix for the given dimension.
+        proj_to_RT0(sd: pg.Grid) -> sps.csc_matrix:
+            Project the function space to the lowest order Raviart-Thomas (RT0) space.
+        proj_from_RT0(sd: pg.Grid) -> sps.csc_matrix:
+            Project the RT0 finite element space onto the faces of the given grid.
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluate the finite element solution at the cell centers of the given grid.
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a given function onto the grid.
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition term.
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the lumped matrix for the given grid.
+    """
+
     def ndof(self, sd: pp.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.

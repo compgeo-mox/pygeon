@@ -7,6 +7,56 @@ import pygeon as pg
 
 
 class VLagrange1(pg.Discretization):
+    """
+    Discretization class for the VLagrange1 method.
+
+    Attributes:
+        keyword (str): The keyword for the discretization method.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles and returns the mass matrix.
+
+        assemble_loc_mass_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+            Computes the local VEM mass matrix on a given cell.
+
+        assemble_loc_proj_to_mon(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+            Computes the local projection onto the monomials.
+
+        assemble_loc_L2proj_lhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+            Returns the system matrix G for the local L2 projection.
+
+        assemble_loc_L2proj_rhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+            Returns the righthand side B for the local L2 projection.
+
+        assemble_loc_monomial_mass(sd: pg.Grid, cell: int, diam: float) -> np.ndarray:
+            Computes the inner products of the monomials.
+
+        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+            Returns the matrix D for the local dofs of monomials.
+
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles and returns the stiffness matrix.
+
+        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+            Computes the local VEM stiffness matrix on a given cell.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Returns the differential mapping in the discrete cochain complex.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluate the function at the cell centers of the given grid.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function over the given grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the 'natural' boundary condition.
+    """
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -365,7 +415,42 @@ class VLagrange1(pg.Discretization):
 
 
 class VLagrange1_vec(VLagrange1):
-    """docstring for Vec_VLagrange1."""
+    """
+    Vectorized version of the VLagrange1 class.
+
+    This class represents a vectorized version of the VLagrange1 class,
+    which is a specific discretization method for solving partial differential
+    equations. It inherits from the VLagrange1 class and overrides some of its
+    methods to provide vectorized implementations.
+
+    Attributes:
+        Inherits all attributes from the VLagrange1 class.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles and returns the mass matrix.
+
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the stiffness matrix for the H1 discretization.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Returns the differential mapping in the discrete cochain complex.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluate the function at the cell centers of the given grid.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function over the given grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the 'natural' boundary condition.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
+    """
 
     def ndof(self, sd: pg.Grid) -> int:
         """
