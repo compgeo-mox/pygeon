@@ -2,12 +2,28 @@
 """
 import unittest
 import numpy as np
+import scipy.sparse as sps
 
 import porepy as pp
 import pygeon as pg
 
 
 class Lagrange1Test(unittest.TestCase):
+    def test_0d(self):
+        sd = pp.PointGrid([1] * 3)
+        sd.compute_geometry()
+        discr = pg.Lagrange1("flow")
+
+        D = discr.assemble_diff_matrix(sd).todense()
+        D_known = sps.csc_matrix((0, 1)).todense()
+
+        self.assertTrue(np.allclose(D, D_known))
+
+        P = discr.eval_at_cell_centers(sd).todense()
+        P_known = sps.csc_matrix((1, 0)).todense()
+
+        self.assertTrue(np.allclose(P, P_known))
+
     def test_1d(self):
         dim = 1
         sd = pp.CartGrid(3, dim)
@@ -423,4 +439,5 @@ class Lagrange1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    Lagrange1Test().test_0d()
+    # unittest.main()
