@@ -151,7 +151,7 @@ class Nedelec0(pg.Discretization):
         Returns:
             sps.csc_matrix: The assembled differential matrix.
         """
-        return sd.face_ridges.T
+        return sd.face_ridges.T.tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """

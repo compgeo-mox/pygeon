@@ -24,6 +24,10 @@ class Lagrange1Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(P, P_known))
 
+        sd.dim = -1
+        self.assertRaises(ValueError, discr.assemble_diff_matrix, sd)
+        self.assertRaises(NotImplementedError, discr.get_range_discr_class, sd.dim)
+
     def test_1d(self):
         dim = 1
         sd = pp.CartGrid(3, dim)

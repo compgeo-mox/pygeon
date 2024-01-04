@@ -216,7 +216,7 @@ class PwConstants(pg.Discretization):
 
         int_sol = np.array([ana_sol(x) for x in sd.nodes.T])
         proj = self.eval_at_cell_centers(sd)
-        num_sol = proj * num_sol
+        num_sol = proj @ num_sol
 
         norm = self._cell_error(sd, np.zeros_like(num_sol), int_sol) if relative else 1
         return self._cell_error(sd, num_sol, int_sol) / norm

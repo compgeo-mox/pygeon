@@ -1,4 +1,4 @@
-""" 
+"""
 Module contains a unit test for the standard grid computation.
 """
 import unittest
@@ -39,6 +39,18 @@ class StandardGridTest(unittest.TestCase):
 
         self.assertTrue(np.all(face_on_boundary))
         self.assertTrue(np.all(node_on_boundary))
+
+    def test_unit_square_mdg(self):
+        mesh_size = 0.5
+        mdg = pg.unit_grid(2, mesh_size)
+        sd = mdg.subdomains(dim=2)[0]
+
+        side_1 = np.array([[0, 1], [0, 0]])
+        side_2 = np.array([[1, 1], [0, 1]])
+        side_3 = np.array([[1, 0], [1, 1]])
+        side_4 = np.array([[0, 0], [1, 0]])
+        boundary = [side_1, side_2, side_3, side_4]
+        self.check_grid(sd, 2, boundary)
 
     def test_unit_square(self):
         mesh_size = 0.5
