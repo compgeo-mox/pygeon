@@ -201,11 +201,11 @@ class Lagrange1(pg.Discretization):
             sps.csc_matrix: The differential matrix.
         """
         if sd.dim == 3:
-            return sd.ridge_peaks.T
+            return sd.ridge_peaks.T.tocsc()
         elif sd.dim == 2:
-            return sd.face_ridges.T
+            return sd.face_ridges.T.tocsc()
         elif sd.dim == 1:
-            return sd.cell_faces.T
+            return sd.cell_faces.T.tocsc()
         elif sd.dim == 0:
             return sps.csc_matrix((0, 1))
         else:
