@@ -161,12 +161,15 @@ class Grid(pp.Grid):
         # The face-ridge orientation is determined by whether the rotated normal
         # coincides with the difference vector between the ridges.
         face_ridges = self.face_nodes.copy().astype(int)
-        print(face_ridges.todense())
-        print(self.nodes)
         face_ridges.data[::2] *= -1
         face_tangents = self.nodes @ face_ridges
 
         orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
+
+        print(face_ridges.todense())
+        print(face_tangents)
+        print(orients)
+        print(face_ridges * sps.diags(orients))
 
         self.face_ridges = face_ridges * sps.diags(orients)
 
