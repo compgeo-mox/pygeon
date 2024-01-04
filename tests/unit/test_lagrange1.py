@@ -170,6 +170,10 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
+        print(D.data)
+        print(D.indptr)
+        print(D.indices)
+
         self.assertTrue(np.allclose(D.data, D_known_data))
         self.assertTrue(np.allclose(D.indptr, D_known_indptr))
         self.assertTrue(np.allclose(D.indices, D_known_indices))
@@ -439,5 +443,4 @@ class Lagrange1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    Lagrange1Test().test_0d()
-    # unittest.main()
+    unittest.main()
