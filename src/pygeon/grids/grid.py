@@ -166,11 +166,6 @@ class Grid(pp.Grid):
 
         orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-        print(face_ridges.todense())
-        print(face_tangents)
-        print(orients)
-        print(face_ridges * sps.diags(orients))
-
         self.face_ridges = face_ridges * sps.diags(orients)
 
     def _compute_ridges_3d(self) -> None:

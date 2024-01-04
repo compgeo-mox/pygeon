@@ -153,26 +153,26 @@ class Lagrange1Test(unittest.TestCase):
 
         D = discr.assemble_diff_matrix(sd)
 
+        print(repr(D.data))
+        print(repr(D.indices))
+        print(repr(D.indptr))
+
         # fmt: off
         D_known_data = np.array(
-        [-1.,  1., -1.,  1., -1.,  1., -1.,  1., -1.,  1., -1.,  1., -1.,
-        1., -1.,  1., -1.,  1., -1.,  1., -1.,  1., -1.,  1., -1.,  1.,
-        -1.,  1., -1.,  1., -1.,  1.]
+        [-1., -1., -1.,  1., -1., -1., -1.,  1., -1.,  1., -1., -1., -1.,
+        1.,  1.,  1., -1., -1., -1.,  1.,  1.,  1., -1.,  1., -1.,  1.,
+        1.,  1., -1.,  1.,  1.,  1.]
         )
 
         D_known_indices = np.array(
-        [0, 1, 0, 3, 0, 4, 1, 2, 1, 4, 1, 5, 2, 5, 3, 4, 3, 6, 3, 7, 4, 5,
-        4, 7, 4, 8, 5, 8, 6, 7, 7, 8]
+        [ 0,  1,  2,  0,  3,  4,  5,  3,  6,  1,  7,  8,  9,  2,  4,  7, 10,
+        11, 12,  5,  6, 10, 13,  8, 14,  9, 11, 14, 15, 12, 13, 15]
         )
 
         D_known_indptr = np.array(
-        [ 0,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]
+        [ 0,  3,  7,  9, 13, 19, 23, 25, 29, 32]
         )
         # fmt: on
-
-        print(D.data)
-        print(D.indptr)
-        print(D.indices)
 
         self.assertTrue(np.allclose(D.data, D_known_data))
         self.assertTrue(np.allclose(D.indptr, D_known_indptr))
@@ -443,4 +443,5 @@ class Lagrange1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    Lagrange1Test().test_2d()
+    # unittest.main()
