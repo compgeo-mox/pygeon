@@ -31,7 +31,8 @@ class Lagrange1(pg.Discretization):
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
             Assembles the differential matrix based on the dimension of the grid.
 
-        local_stiff(K: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int) -> np.ndarray:
+        local_stiff(K: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int)
+            -> np.ndarray:
             Computes the local stiffness matrix for P1.
 
         local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
@@ -41,12 +42,14 @@ class Lagrange1(pg.Discretization):
             Assembles the lumped mass matrix for the finite element method.
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
-            Constructs the matrix for evaluating a Lagrangian function at the cell centers of the given grid.
+            Constructs the matrix for evaluating a Lagrangian function at the cell centers of
+            the given grid.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a given function over the nodes of a grid.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the 'natural' boundary condition.
 
         get_range_discr_class(dim: int) -> object:
@@ -411,7 +414,8 @@ class VecLagrange1(pg.Discretization):
         keyword (str): The keyword for the H1 class.
 
     Attributes:
-        lagrange1 (pg.Lagrange1): A local Lagrange1 class for performing some of the computations.
+        lagrange1 (pg.Lagrange1): A local Lagrange1 class for performing some of the
+            computations.
 
     Methods:
         ndof(sd: pg.Grid) -> int:
@@ -421,7 +425,8 @@ class VecLagrange1(pg.Discretization):
             Assembles and returns the mass matrix for the lowest order Lagrange element.
 
         assemble_div_matrix(sd: pg.Grid) -> sps.csc_matrix:
-            Returns the divergence matrix operator for the lowest order vector Lagrange element.
+            Returns the divergence matrix operator for the lowest order vector Lagrange
+            element.
 
         local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
             Computes the local divergence matrix for P1.
@@ -430,13 +435,17 @@ class VecLagrange1(pg.Discretization):
             Returns the div-div matrix operator for the lowest order vector Lagrange element.
 
         assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_matrix:
-            Returns the symmetric gradient matrix operator for the lowest order vector Lagrange element.
+            Returns the symmetric gradient matrix operator for the lowest order vector Lagrange
+            element.
 
-        local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray) -> np.ndarray:
+        local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray)
+            -> np.ndarray:
             Computes the local symmetric gradient matrix for P1.
 
-        assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
-            Returns the symgrad-symgrad matrix operator for the lowest order vector Lagrange element.
+        assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_matrix:
+            Returns the symgrad-symgrad matrix operator for the lowest order vector Lagrange
+            element.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
             Assembles the matrix corresponding to the differential operator.

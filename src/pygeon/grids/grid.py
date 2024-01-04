@@ -13,8 +13,8 @@ Acknowledgments:
 
 class Grid(pp.Grid):
     """
-    Grid class represents a geometric grid object, in addition to the pp.Grid class it implements
-    the following attributes and methods.
+    Grid class represents a geometric grid object, in addition to the pp.Grid class it
+    implements the following attributes and methods.
 
     Attributes:
         num_peaks (int): Number of peaks in the grid.
@@ -31,13 +31,16 @@ class Grid(pp.Grid):
             Computes the ridges of the grid.
 
         _compute_ridges_01d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 0 or 1.
+            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
+            of dimension 0 or 1.
 
         _compute_ridges_2d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 2.
+            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
+            of dimension 2.
 
         _compute_ridges_3d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid of dimension 3.
+            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
+            of dimension 3.
 
         tag_ridges():
             Tags the peaks and ridges of the grid located on fracture tips.

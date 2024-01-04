@@ -5,6 +5,7 @@ import scipy.sparse as sps
 
 import pygeon as pg
 
+
 class Nedelec0(pg.Discretization):
     """
     Discretization class for the Nedelec of the first kind of lowest order.
@@ -29,7 +30,8 @@ class Nedelec0(pg.Discretization):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
             Evaluate the function at the cell centers of the given grid.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the natural boundary condition matrix for the given grid and function.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
@@ -281,8 +283,10 @@ class Nedelec1(pg.Discretization):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
             Evaluate the basis functions at the cell centers and construct the global matrices.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition for the given grid, function, and boundary faces.
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition for the given grid, function, and boundary
+            faces.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.

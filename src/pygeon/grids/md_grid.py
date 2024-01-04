@@ -11,7 +11,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     Represents a mixed-dimensional grid.
 
     This class extends the functionality of the `pp.MixedDimensionalGrid` class.
-    It provides methods for initializing the grid, computing geometry, and tagging mesh entities.
+    It provides methods for initializing the grid, computing geometry, and tagging mesh
+    entities.
 
     Attributes:
         None
@@ -30,7 +31,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             Compute the total number of ridges in the mixed-dimensional grid.
 
         tag_leafs():
-            Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid in a grid bucket.
+            Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid
+            in a grid bucket.
     """
 
     def __init__(self, *args, **kwargs) -> None:

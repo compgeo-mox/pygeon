@@ -40,10 +40,12 @@ class MortarGrid(pp.MortarGrid):
             Assign the face-ridge and ridge-peak connectivities to the mortar grid.
 
         assign_signed_mortar_to_primary(sd_pair):
-            Compute the mapping from mortar cells to the faces of the primary grid that respects orientation.
+            Compute the mapping from mortar cells to the faces of the primary grid that
+            respects orientation.
 
         assign_cell_faces():
-            Assign the connectivity between cells of the secondary grid and faces of the primary grid.
+            Assign the connectivity between cells of the secondary grid and faces of the
+            primary grid.
     """
 
     def __init__(self, *args, **kwargs) -> None:

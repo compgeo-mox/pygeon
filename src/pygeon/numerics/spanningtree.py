@@ -31,7 +31,8 @@ class SpanningTree:
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
-            starting_face (Optional[int], optional): The index of the starting face. Defaults to None.
+            starting_face (Optional[int], optional): The index of the starting face. Defaults
+                to None.
         """
         self.div = pg.div(mdg)
 
@@ -63,7 +64,8 @@ class SpanningTree:
             int: The index of the starting face for the spanning tree.
 
         Raises:
-            TypeError: If the input argument `mdg` is not of type `pp.Grid` or `pp.MixedDimensionalGrid`.
+            TypeError: If the input argument `mdg` is not of type `pp.Grid` or
+            `pp.MixedDimensionalGrid`.
         """
         if isinstance(mdg, pp.Grid):
             sd = mdg
@@ -159,7 +161,8 @@ class SpanningTree:
 
         Args:
             mdg (pg.MixedDimensionalGrid) The object representing the grid.
-            fig_name (Optional[str], optional). The name of the figure file to save the visualization.
+            fig_name (Optional[str], optional). The name of the figure file to save the
+                visualization.
         """
         import matplotlib.pyplot as plt
         import networkx as nx
@@ -217,7 +220,8 @@ class SpanningWeightedTrees:
         __init__: Constructor of the class.
         solve: Perform a spanning weighted trees solve to compute a conservative flux field.
         solve_transpose: Post-process the pressure by performing a transposed solve.
-        find_starting_faces: Find the starting faces for each spanning tree if None is provided.
+        find_starting_faces: Find the starting faces for each spanning tree if None is
+            provided.
     """
 
     def __init__(
@@ -230,8 +234,10 @@ class SpanningWeightedTrees:
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
-            weights (np.ndarray): The weights to impose for each spanning tree, they need to sum to 1.
-            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified equi-distributed boundary faces are selected.
+            weights (np.ndarray): The weights to impose for each spanning tree, they need to
+                sum to 1.
+            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified
+                equi-distributed boundary faces are selected.
         """
         if starting_faces is None:
             num = np.asarray(weights).size

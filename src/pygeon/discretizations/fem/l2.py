@@ -36,13 +36,15 @@ class PwConstants(pg.Discretization):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
             Assembles the matrix that evaluates a function at the cell centers of a grid.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the natural boundary condition vector, equal to zero.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the discretization class for the range of the differential.
 
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray], relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
+        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray],
+            relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
             Returns the l2 error computed against an analytical solution given as a function.
 
         _cell_error(sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray) -> float:

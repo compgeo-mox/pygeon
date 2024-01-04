@@ -40,7 +40,8 @@ class RT0(pg.Discretization, pp.RT0):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
             Assembles the matrix for evaluating the solution at the cell centers.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the natural boundary condition term (n dot q, func)_\Gamma
 
         get_range_discr_class(dim: int) -> pg.Discretization:
@@ -296,24 +297,35 @@ class BDM1(pg.Discretization):
     Methods:
         ndof(sd: pp.Grid) -> int:
             Return the number of degrees of freedom associated to the method.
+
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
             Assembles the mass matrix for the given grid.
+
         local_inner_product(dim: int) -> sps.csc_matrix:
             Compute the local inner product matrix for the given dimension.
+
         proj_to_RT0(sd: pg.Grid) -> sps.csc_matrix:
             Project the function space to the lowest order Raviart-Thomas (RT0) space.
+
         proj_from_RT0(sd: pg.Grid) -> sps.csc_matrix:
             Project the RT0 finite element space onto the faces of the given grid.
+
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
             Assembles the matrix corresponding to the differential operator.
+
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
             Evaluate the finite element solution at the cell centers of the given grid.
+
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a given function onto the grid.
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the natural boundary condition term.
+
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.
+
         assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
             Assembles the lumped matrix for the given grid.
     """

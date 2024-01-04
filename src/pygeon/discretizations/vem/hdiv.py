@@ -38,8 +38,12 @@ class MVEM(pg.Discretization, pp.MVEM):
         eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
             Assembles the matrix.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray: Assembles the natural boundary condition term.
-        get_range_discr_class(dim: int) -> pg.Discretization: Returns the range discretization class for the given dimension.
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
+        Assembles the natural boundary condition term.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
     """
 
     def __init__(self, keyword: str) -> None:
@@ -218,7 +222,8 @@ class VBDM1(pg.Discretization):
         eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
             Assembles the matrix.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the natural boundary condition term.
 
         get_range_discr_class(dim: int) -> pg.Discretization:

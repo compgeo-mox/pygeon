@@ -20,28 +20,34 @@ class VLagrange1(pg.Discretization):
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
             Assembles and returns the mass matrix.
 
-        assemble_loc_mass_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+        assemble_loc_mass_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
+            -> np.ndarray:
             Computes the local VEM mass matrix on a given cell.
 
-        assemble_loc_proj_to_mon(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+        assemble_loc_proj_to_mon(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
+            -> np.ndarray:
             Computes the local projection onto the monomials.
 
-        assemble_loc_L2proj_lhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+        assemble_loc_L2proj_lhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
+            -> np.ndarray:
             Returns the system matrix G for the local L2 projection.
 
-        assemble_loc_L2proj_rhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+        assemble_loc_L2proj_rhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
+            -> np.ndarray:
             Returns the righthand side B for the local L2 projection.
 
         assemble_loc_monomial_mass(sd: pg.Grid, cell: int, diam: float) -> np.ndarray:
             Computes the inner products of the monomials.
 
-        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
+            -> np.ndarray:
             Returns the matrix D for the local dofs of monomials.
 
         assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
             Assembles and returns the stiffness matrix.
 
-        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray) -> np.ndarray:
+        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
+            -> np.ndarray:
             Computes the local VEM stiffness matrix on a given cell.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
@@ -53,7 +59,8 @@ class VLagrange1(pg.Discretization):
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a function over the given grid.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the 'natural' boundary condition.
     """
 
@@ -445,7 +452,8 @@ class VLagrange1_vec(VLagrange1):
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a function over the given grid.
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the 'natural' boundary condition.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
