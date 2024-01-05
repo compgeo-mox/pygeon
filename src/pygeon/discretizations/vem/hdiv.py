@@ -88,7 +88,8 @@ class MVEM(pg.Discretization, pp.MVEM):
         data = rt0.create_dummy_data(sd, data)
 
         pp.MVEM.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
+        M = data[pp.DISCRETIZATION_MATRICES][self.keyword][self.mass_matrix_key]
+        return M.tocsc()
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -156,7 +157,8 @@ class MVEM(pg.Discretization, pp.MVEM):
         data = rt0.create_dummy_data(sd, data)
 
         pp.MVEM.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
+        P = data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
+        return P.tocsc()
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray

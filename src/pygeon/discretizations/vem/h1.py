@@ -350,7 +350,7 @@ class VLagrange1(pg.Discretization):
             sps.csc_matrix: The differential mapping matrix.
         """
         p1 = pg.Lagrange1(self.keyword)
-        p1.assemble_diff_matrix(sd)
+        return p1.assemble_diff_matrix(sd)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
