@@ -41,6 +41,8 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
         self.assertTrue(np.allclose(M.indices, M_known_indices))
 
+        self.assertEqual(vec_p1.ndof(sd), sd.dim * sd.num_nodes)
+
     def test_mass_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
         sd.compute_geometry()
@@ -223,6 +225,8 @@ class VecLagrange1Test(unittest.TestCase):
         )
         self.assertTrue(np.allclose(A, A_known))
 
+        self.assertEqual(vec_p1.ndof(sd), sd.dim * sd.num_nodes)
+
     def test_div_3d(self):
         """
         Test the div operator in 3D using VecLagrange1.
@@ -272,6 +276,8 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(A.T, A))
         self.assertTrue(np.allclose(A @ np.ones(24), 0))
 
+        self.assertEqual(vec_p1.ndof(sd), sd.dim * sd.num_nodes)
+
     def test_diff_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
         sd.compute_geometry()
@@ -301,6 +307,8 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(B.data, B_known_data))
         self.assertTrue(np.allclose(B.indptr, B_known_indptr))
         self.assertTrue(np.allclose(B.indices, B_known_indices))
+
+        self.assertEqual(vec_p1.ndof(sd), sd.dim * sd.num_nodes)
 
     def test_diff_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
@@ -390,6 +398,8 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(B.indptr, B_known_indptr))
         self.assertTrue(np.allclose(B.indices, B_known_indices))
 
+        self.assertEqual(vec_p1.ndof(sd), sd.dim * sd.num_nodes)
+
     def test_eval_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
         sd.compute_geometry()
@@ -418,6 +428,7 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(P.indices, P_known_indices))
 
         self.assertRaises(NotImplementedError, vec_p1.get_range_discr_class, 2)
+        self.assertEqual(vec_p1.ndof(sd), sd.dim * sd.num_nodes)
 
     def test_eval_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
