@@ -155,7 +155,7 @@ class SpanningTree:
 
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
-    ):
+    ):  # pragma: no cover
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
 
