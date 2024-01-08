@@ -19,8 +19,7 @@ def eval_at_cell_centers(
 
     Parameters:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
-        discr (pg.Discretization, optional): The discretization used for the evaluation.
-            If not provided, a standard discretization is used. Default is None.
+        discr (pg.Discretization): The discretization used for the evaluation.
         kwargs (dict): Optional parameters.
             as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
                 sub-blocks. Default is False.
