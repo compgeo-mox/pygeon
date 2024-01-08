@@ -80,6 +80,8 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             None
         """
+        if self.keyword not in data[pp.DISCRETIZATION_MATRICES]:
+            data[pp.DISCRETIZATION_MATRICES][self.keyword] = {}
         matrix_dictionary = data[pp.DISCRETIZATION_MATRICES][self.keyword]
 
         matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(sd, data)
