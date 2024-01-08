@@ -6,7 +6,7 @@ import porepy as pp
 import pygeon as pg
 
 
-class InnerproductssUnitTest(unittest.TestCase):
+class InnerproductsUnitTest(unittest.TestCase):
     def test_2d_simplicial(self):
         N, dim = 2, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
