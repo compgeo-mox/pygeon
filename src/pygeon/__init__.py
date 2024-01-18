@@ -14,11 +14,12 @@ from pygeon.grids.einstein import EinSteinGrid
 from pygeon.grids.create_grid import grid_from_domain, grid_from_boundary_pts, unit_grid
 
 from pygeon.discretizations.discretization import Discretization
+from pygeon.discretizations.vec_discretization import VecDiscretization
 
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
-from pygeon.discretizations.fem.hdiv import RT0, BDM1
+from pygeon.discretizations.fem.hdiv import RT0, BDM1, VecBDM1
 from pygeon.discretizations.fem.h1 import Lagrange1, VecLagrange1
-from pygeon.discretizations.fem.l2 import PwConstants
+from pygeon.discretizations.fem.l2 import PwConstants, PwLinears, VecPwConstants
 
 from pygeon.discretizations.vem.hdiv import MVEM, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1, VLagrange1_vec

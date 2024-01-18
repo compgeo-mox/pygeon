@@ -370,7 +370,7 @@ class Lagrange1(pg.Discretization):
             raise NotImplementedError("There's no zero discretization in PyGeoN")
 
 
-class VecLagrange1(pg.Discretization):
+class VecLagrange1(pg.VecDiscretization):
     """
     Vector Lagrange finite element discretization for H1 space.
 
@@ -456,47 +456,15 @@ class VecLagrange1(pg.Discretization):
 
     def __init__(self, keyword: str) -> None:
         """
-        Initialize the H1 class.
+        Initialize the vector discretization class.
 
         Args:
-            keyword (str): The keyword for the H1 class.
+            keyword (str): The keyword for the vector discretization class.
 
         Returns:
             None
         """
-        super().__init__(keyword)
-        # a local Lagrange1 class for performing some of the computations
-        self.lagrange1 = pg.Lagrange1(keyword)
-
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the product of the number of nodes and
-        the dimension of the grid.
-
-        Args:
-            sd (pg.Grid): The grid or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.num_nodes * sd.dim
-
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
-        """
-        Assembles and returns the mass matrix for the lowest order Lagrange element.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly.
-
-        Returns:
-            sps.csc_matrix: The mass matrix obtained from the discretization.
-        """
-        mass = self.lagrange1.assemble_mass_matrix(sd, data)
-        return sps.block_diag([mass] * sd.dim, format="csc")
+        super().__init__(keyword, pg.Lagrange1)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -567,7 +535,7 @@ class VecLagrange1(pg.Discretization):
                 Shape: (num_faces_of_cell, num_faces_of_cell)
         """
 
-        dphi = self.lagrange1.local_grads(coord, dim)
+        dphi = self.scalar_discr.local_grads(coord, dim)
 
         return c_volume * dphi
 
@@ -689,7 +657,7 @@ class VecLagrange1(pg.Discretization):
             np.ndarray: Local symmetric gradient matrix of shape
                 (num_faces_of_cell, num_faces_of_cell).
         """
-        dphi = self.lagrange1.local_grads(coord, dim)
+        dphi = self.scalar_discr.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
         return c_volume * sym @ grad
 
@@ -751,7 +719,7 @@ class VecLagrange1(pg.Discretization):
 
         NOTE: We are assuming the sd grid in the (x,y) coordinates
         """
-        return self.lagrange1.interpolate(sd, func).ravel(order="F")
+        return self.scalar_discr.interpolate(sd, func).ravel(order="F")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -764,7 +732,7 @@ class VecLagrange1(pg.Discretization):
         Returns:
             sps.csc_matrix: The evaluation matrix.
         """
-        proj = self.lagrange1.eval_at_cell_centers(sd)
+        proj = self.scalar_discr.eval_at_cell_centers(sd)
         return sps.block_diag([proj] * sd.dim, format="csc")
 
     def assemble_nat_bc(
@@ -787,7 +755,7 @@ class VecLagrange1(pg.Discretization):
         bc_val = []
         for d in np.arange(sd.dim):
             f = lambda x: func(x)[d]
-            bc_val.append(self.lagrange1.assemble_nat_bc(sd, f, b_faces))
+            bc_val.append(self.scalar_discr.assemble_nat_bc(sd, f, b_faces))
         return np.hstack(bc_val)
 
     def get_range_discr_class(self, dim: int) -> object:
