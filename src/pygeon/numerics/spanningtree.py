@@ -319,7 +319,6 @@ class SpanningTreeElasticity(SpanningTree):
 
         # this operator fix one dof per face of the bdm space to capture displacement
         P_div = bdm1.proj_from_RT0(sd)
-        P_div = sps.block_diag([P_div] * sd.dim)
 
         # this operator maps to div-free bdm to capture rotation
         P_rot = P_div.copy()
@@ -333,6 +332,7 @@ class SpanningTreeElasticity(SpanningTree):
         P_asym = sps.vstack((P_rot @ sps.diags(fn_x), P_rot @ sps.diags(fn_y)))
 
         # combine all the P
+        P_div = sps.block_diag([P_div] * sd.dim)
         P = sps.hstack((P_div, P_asym), format="csc")
 
         # restriction to the flagged faces and restrict P to them

@@ -142,5 +142,4 @@ class SpanningTreeTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # unittest.main()
-    SpanningTreeTest().test_elasticity_tria_grid()
+    unittest.main()
