@@ -39,6 +39,10 @@ from pygeon.numerics.stiffness import cell_stiff, face_stiff, ridge_stiff, peak_
 from pygeon.numerics.restrictions import remove_tip_dofs
 from pygeon.numerics.linear_system import LinearSystem
 from pygeon.numerics.projections import eval_at_cell_centers, proj_faces_to_cells
-from pygeon.numerics.spanningtree import SpanningTree, SpanningWeightedTrees
+from pygeon.numerics.spanningtree import (
+    SpanningTree,
+    SpanningWeightedTrees,
+    SpanningTreeElasticity,
+)
 
 import pygeon.utils.bmat as bmat
