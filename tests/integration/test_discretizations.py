@@ -49,7 +49,7 @@ class PwConstantsTest(unittest.TestCase):
             assert discr.assemble_diff_matrix(sd).nnz == 0
 
     def test_pwconstants_assemble_stiff_matrix(self):
-        """ 
+        """
         Test the assembly of the stiffness matrix for the piecewise constants.
         """
         for dim in np.arange(1, 4):
@@ -59,9 +59,10 @@ class PwConstantsTest(unittest.TestCase):
             assert discr.assemble_stiff_matrix(sd).nnz == 0
 
     def test_pwconstants_interpolate(self):
-        """ 
+        """
         Test the interpolation of a function to the piecewise constants.
         """
+
         def func(x):
             return x[0] + x[1]
 
@@ -76,14 +77,16 @@ class PwConstantsTest(unittest.TestCase):
             assert np.allclose(num_sol, ana_sol)
 
     def test_pwconstants_assemble_nat_bc(self):
-        """ 
+        """
         Test the assembly of the natural boundary conditions for the piecewise constants.
         """
         for dim in np.arange(1, 4):
             sd = self.create_cart_grid(dim, 2)
 
             discr = pg.PwConstants("test")
-            assert np.allclose(discr.assemble_nat_bc(sd, None, None), np.zeros(sd.num_cells))
+            assert np.allclose(
+                discr.assemble_nat_bc(sd, None, None), np.zeros(sd.num_cells)
+            )
 
 
 if __name__ == "__main__":
