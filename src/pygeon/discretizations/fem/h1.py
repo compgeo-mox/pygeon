@@ -457,6 +457,7 @@ class VecLagrange1(pg.VecDiscretization):
     def __init__(self, keyword: str) -> None:
         """
         Initialize the vector discretization class.
+        The scalar discretization class is pg.Lagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -523,7 +524,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     def local_div(self, c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
         """
-        Compute the local div matrix for P1.
+        Compute the local div matrix for vector P1.
 
         Args:
             c_volume (float): Cell volume.

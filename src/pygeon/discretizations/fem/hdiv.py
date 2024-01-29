@@ -698,7 +698,30 @@ class BDM1(pg.Discretization):
 class VecBDM1(pg.VecDiscretization):
     def __init__(self, keyword: str) -> None:
         """
-        Initialize the vector discretization class.
+        Initialize the vector BDM1 discretization class.
+        The scalar discretization class is pg.BDM1.
+
+        We are considering the following structure of the stress tensor in 2d
+
+        sigma = [[sigma_xx, sigma_xy],
+                 [sigma_yx, sigma_yy]]
+
+        which is represented in the code unrolled row-wise as a vector of length 4
+
+        sigma = [sigma_xx, sigma_xy,
+                 sigma_yx, sigma_yy]
+
+        While in 3d the stress tensor can be written as
+
+        sigma = [[sigma_xx, sigma_xy, sigma_xz],
+                 [sigma_yx, sigma_yy, sigma_yz],
+                 [sigma_zx, sigma_zy, sigma_zz]]
+
+        where its vectorized structure of lenght 9 is given by
+
+        sigma = [sigma_xx, sigma_xy, sigma_xz,
+                 sigma_yx, sigma_yy, sigma_yz,
+                 sigma_zx, sigma_zy, sigma_zz]
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -710,7 +733,9 @@ class VecBDM1(pg.VecDiscretization):
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
         """
-        Assembles and returns the mass matrix for the lowest order Lagrange element.
+        Assembles and returns the mass matrix for vector BDM1, which is given by
+        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
+        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
 
         Args:
             sd (pg.Grid): The grid.
@@ -719,18 +744,22 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_matrix: The mass matrix obtained from the discretization.
         """
-
+        # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_mass_matrix(sd, data)
+        # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
+        # Assemble the piecewise linear mass mastrix, to assemble the term
+        # (Trace(sigma), Trace(tau))
         discr = pg.PwLinears(self.keyword)
         M = discr.assemble_mass_matrix(sd)
 
+        # Extract the data and compute the coefficient for the trace part
         mu = data[pp.PARAMETERS][self.keyword]["mu"]
         lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-
         coeff = lambda_ / (2 * mu + sd.dim * lambda_)
 
+        # Compose all the parts and return them
         return (D - coeff * B.T @ M @ B) / (2 * mu)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
@@ -764,7 +793,7 @@ class VecBDM1(pg.VecDiscretization):
             Psi = self.scalar_discr.eval_basis_at_node(
                 sd, dof_loc, cell_nodes_loc, faces_loc
             )
-
+            # Get all the components of the basis at node
             Psi_i, Psi_j, Psi_v = sps.find(Psi)
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
@@ -793,42 +822,63 @@ class VecBDM1(pg.VecDiscretization):
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
+        The asymmetric operator `as' for a tensor is a scalar and it is defined in 2d as
+        as(tau) = tau_xy - tau_yx
+        while for a tensor in 3d it is a vector and given by
+        as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
+
+        Note: We assume that the as(tau) is a cell variable.
+
         Args:
             sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_matrix: The asymmetric matrix obtained from the discretization.
         """
+        # We need to map the BDM1 to the cell center, thus we construct the proper operator
         P = self.eval_at_cell_centers(sd)
-        nc = sd.num_cells
-        cv = sd.cell_volumes
+        nc, cv = sd.num_cells, sd.cell_volumes
+        # We consider a different approach if sd is 2d or 3d
         if sd.dim == 2:
+            # Every cell has two entries, one for the t_xy and one for the t_yx
             rows_I = np.tile(np.arange(nc), 2)
+            # Given a 2d tensor, represented as a vector, the t_xy component is the second
+            # and the t_yx is the third
             cols_J = np.hstack(
                 (
                     np.arange(nc, 2 * nc),
                     np.arange(3 * nc, 4 * nc),
                 )
             )
-
+            # t_xy gets a +1 and t_yx a -1, represented as p0 dofs so with the cell volume
             data_IJ = np.hstack((cv, -cv))
+            # Assemble the matrix with a given shape, t_xx and t_yy are not considered
             T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(nc, P.shape[0]))
-
             return T @ P
         elif sd.dim == 3:
+            # Define an help function
             enum = lambda i: np.arange(i * nc, (i + 1) * nc)
+            # Since as(tau) is a piecewise vector we need to arrange the entries accordingly
+            # to the second component of the tensor
+            # as(tau)_x = tau_zy - tau_yz -> z and y with -1 and +1
+            # as(tau)_y = tau_xz - tau_zx -> z and x with +1 and -1
+            # as(tau)_z = tau_yx - tau_xy -> x and y with -1 and +1
             rows_I = np.hstack((enum(2), enum(1), enum(2), enum(0), enum(1), enum(0)))
+            # Given a 3d tensor, represented as a vector, the involved components are
+            # (t_xy, t_xz, t_yx, t_yz, t_zx, t_zy) which are in positions (1, 2, 3) and
+            # (5, 6, 7)
             cols_J = np.hstack(
                 (
                     np.arange(nc, 4 * nc),
                     np.arange(5 * nc, 8 * nc),
                 )
             )
+            # Assording to the ordering of rows and cols given abose we have the following
+            # signs (-1, +1, +1, -1, -1, +1), weighted by the cell volumes since it is
+            # represented as a p0 vector element
             data_IJ = np.hstack((-cv, cv, cv, -cv, -cv, cv))
             T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(3 * nc, P.shape[0]))
-
             return T @ P
-
         else:
             raise ValueError("The grid should be either bi or three-dimensional")
 

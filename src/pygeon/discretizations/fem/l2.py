@@ -375,6 +375,7 @@ class VecPwConstants(pg.VecDiscretization):
     def __init__(self, keyword: str) -> None:
         """
         Initialize the vector discretization class.
+        The scalar discretization class is pg.PwConstants.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
