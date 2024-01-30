@@ -415,7 +415,8 @@ class VecPwConstants(pg.VecDiscretization):
         get_range_discr_class(self, dim: int) -> pg.Discretization:
             Returns the discretization class for the range of the differential.
 
-        assemble_nat_bc(self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+        assemble_nat_bc(self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
             Assembles the natural boundary condition vector, equal to zero.
     """
 

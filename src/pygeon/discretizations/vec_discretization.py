@@ -1,9 +1,10 @@
 """ Module for the vector discretization class. """
 
-from typing import Optional, Callable
+from typing import Callable, Optional
 
-import scipy.sparse as sps
 import numpy as np
+import scipy.sparse as sps
+
 import pygeon as pg
 
 
