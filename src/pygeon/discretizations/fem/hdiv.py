@@ -1,3 +1,5 @@
+""" Module for the discretizations of the H(div) space. """
+
 from typing import Callable, Optional
 
 import numpy as np
@@ -11,9 +13,6 @@ class RT0(pg.Discretization, pp.RT0):
     """
     Discretization class for Raviart-Thomas of lowest order.
     Each degree of freedom is the integral over a mesh face.
-
-    Args:
-        keyword (str): The keyword for the discretization.
 
     Attributes:
         keyword (str): The keyword for the discretization.
@@ -696,6 +695,46 @@ class BDM1(pg.Discretization):
 
 
 class VecBDM1(pg.VecDiscretization):
+    """
+    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite element
+    method. It provides methods for assembling matrices like the mass matrix, the trace matrix,
+    the asymmetric matrix and the differential matrix. It also provides methods for
+    evaluating the solution at cell centers, interpolating a given function onto the grid,
+    assembling the natural boundary condition term, and more.
+
+    Attributes:
+        keyword (str): The keyword associated with the vector BDM1 method.
+
+    Methods:
+        ndof(sd: pp.Grid) -> int:
+            Return the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix for the given grid.
+
+        assemble_trace_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the trace matrix for the vector BDM1.
+
+        assemble_asym_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the asymmetric matrix for the vector BDM1.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluate the finite element solution at the cell centers of the given grid.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a given function onto the grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition term.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
+    """
+
     def __init__(self, keyword: str) -> None:
         """
         Initialize the vector BDM1 discretization class.

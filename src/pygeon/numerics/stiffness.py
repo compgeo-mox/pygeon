@@ -1,3 +1,5 @@
+""" This module contains functions for computing the stiffness operators. """
+
 import scipy.sparse as sps
 
 import pygeon as pg

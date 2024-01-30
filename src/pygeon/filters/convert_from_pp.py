@@ -1,3 +1,5 @@
+""" Conversion from porepy to pygeon. """
+
 from typing import Union
 
 import porepy as pp

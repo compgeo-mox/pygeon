@@ -1,3 +1,5 @@
+""" Module for spanning tree computation. """
+
 from typing import Optional
 
 import numpy as np
@@ -21,6 +23,32 @@ class SpanningTree:
         starting_cell (int): the first cell of the spanning tree.
         starting_face (int): the first face of the spanning tree.
         tree (sps.csc_array): The incidence matrix of the spanning tree.
+
+    Methods:
+        setup_system(mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+            Sets up the linear system for solving the spanning tree problem.
+
+        find_starting_face(mdg: pg.MixedDimensionalGrid) -> int:
+            Find the starting face for the spanning tree if None is provided.
+
+        find_starting_cell() -> int:
+            Find the starting cell for the spanning tree.
+
+        compute_tree() -> sps.csc_array:
+            Construct a spanning tree of the elements.
+
+        flag_tree_faces() -> np.ndarray:
+            Flag the faces in the mesh that correspond to edges of the tree.
+
+        solve(f: np.ndarray) -> np.ndarray:
+            Perform a spanning tree solve to compute a conservative flux field
+            for given mass source.
+
+        solve_transpose(rhs: np.ndarray) -> np.ndarray:
+            Post-process the pressure by performing a transposed solve.
+
+        visualize_2d(mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None) -> None:
+            Create a graphical illustration of the spanning tree superimposed on the grid.
     """
 
     def __init__(
@@ -51,6 +79,16 @@ class SpanningTree:
     def setup_system(
         self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
     ) -> None:
+        """
+        Sets up the linear system for solving the spanning tree problem.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            None
+        """
         self.expand = pg.numerics.linear_system.create_restriction(
             flagged_faces
         ).T.tocsc()
@@ -222,11 +260,18 @@ class SpanningWeightedTrees:
         avg (function): Function to compute the average of a given array.
 
     Methods:
-        __init__: Constructor of the class.
-        solve: Perform a spanning weighted trees solve to compute a conservative flux field.
-        solve_transpose: Post-process the pressure by performing a transposed solve.
-        find_starting_faces: Find the starting faces for each spanning tree if None is
-            provided.
+        solve(f: np.ndarray) -> np.ndarray:
+            Perform a spanning weighted trees solve to compute a conservative flux field
+            for given mass source.
+
+        solve_transpose(rhs: np.ndarray) -> np.ndarray:
+            Post-process the pressure by performing a transposed solve.
+
+        find_starting_faces(mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
+            Find the starting faces for each spanning tree if None is provided in the
+            constructor.
+            By default, an equidistribution of boundary faces is constructed.
+
     """
 
     def __init__(
@@ -304,9 +349,37 @@ class SpanningWeightedTrees:
 
 
 class SpanningTreeElasticity(SpanningTree):
+    """
+    Represents a class for computing the spanning tree for the elastic problem.
+
+    Attributes:
+        expand (sps.csc_matrix): The expanded matrix for spanning tree computation.
+        system (sps.csc_matrix): The computed system matrix.
+
+    Methods:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+            Set up the system for the spanning tree algorithm.
+
+        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+            Compute the expanded matrix for spanning tree computation.
+
+        compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+            Computes the system matrix for the given grid.
+    """
+
     def setup_system(
         self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
     ) -> None:
+        """
+        Set up the system for the spanning tree algorithm.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            None
+        """
         # NOTE: we are assuming only one higher dimensional 2d grid
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
 
@@ -314,6 +387,16 @@ class SpanningTreeElasticity(SpanningTree):
         self.system = self.compute_system(sd)
 
     def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+        """
+        Compute the expanded matrix for spanning tree computation.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            sps.csc_matrix: The expanded matrix for spanning tree computation.
+        """
         key = "tree"
         bdm1 = pg.BDM1(key)
 
@@ -341,6 +424,15 @@ class SpanningTreeElasticity(SpanningTree):
         return P @ sps.block_diag([expand] * 3, format="csc")
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Computes the system matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the domain.
+
+        Returns:
+            sps.csc_matrix: The computed system matrix.
+        """
         # first we assemble the B matrix
         key = "tree"
         vec_bdm1 = pg.VecBDM1(key)

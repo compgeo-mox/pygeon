@@ -1,3 +1,5 @@
+""" Module for the Voronoi grid generation. """
+
 from typing import Union
 
 import numpy as np

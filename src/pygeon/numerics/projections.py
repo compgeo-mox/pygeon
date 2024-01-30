@@ -1,3 +1,5 @@
+""" This module contains functions for creating projection operators. """
+
 from typing import Optional, Union
 
 import numpy as np

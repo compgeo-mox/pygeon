@@ -1,3 +1,5 @@
+""" This module contains the Graph class. """
+
 from itertools import combinations
 
 import networkx as nx

@@ -1,3 +1,5 @@
+""" Create grids from various sources. """
+
 from typing import Union
 
 import numpy as np

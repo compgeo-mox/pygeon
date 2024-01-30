@@ -1,3 +1,5 @@
+""" This module contains functions that compute restriction operators. """
+
 from typing import Union
 
 import numpy as np

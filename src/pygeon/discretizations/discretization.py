@@ -1,3 +1,5 @@
+""" Module for the discretization class. """
+
 import abc
 from typing import Callable, Optional
 

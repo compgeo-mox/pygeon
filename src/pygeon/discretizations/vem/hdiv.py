@@ -1,3 +1,5 @@
+""" Module for the discretizations of the H(div) space. """
+
 from typing import Callable, Optional
 
 import numpy as np

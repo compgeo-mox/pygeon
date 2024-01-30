@@ -1,3 +1,5 @@
+""" Module for the vector discretization class. """
+
 from typing import Optional, Callable
 
 import scipy.sparse as sps
@@ -6,12 +8,45 @@ import pygeon as pg
 
 
 class VecDiscretization(pg.Discretization):
+    """
+    A class representing a vector discretization.
+
+    Attributes:
+        keyword (str): The keyword for the vector discretization class.
+        scalar_discr (pg.Discretization): The scalar discretization object.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles and returns the mass matrix for the lowest order Lagrange element.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the lumped mass matrix given by the row sums on the diagonal.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluate the finite element solution at the cell centers of the given grid.
+
+        assemble_nat_bc(
+            sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        ) -> np.ndarray:
+            Assembles the natural boundary condition vector.
+    """
+
     def __init__(self, keyword: str, scalar_discr: pg.Discretization) -> None:
         """
         Initialize the vector discretization class.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+            scalar_discr (pg.Discretization): The scalar discretization object.
 
         Returns:
             None

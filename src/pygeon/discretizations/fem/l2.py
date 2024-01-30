@@ -1,3 +1,5 @@
+""" Module for the discretizations of the L2 space. """
+
 from typing import Callable, Optional
 
 import numpy as np
@@ -12,7 +14,7 @@ class PwConstants(pg.Discretization):
     NB! Each degree of freedom is the integral over the cell.
 
     Attributes:
-        None
+        keyword (str): The keyword for the discretization.
 
     Methods:
         ndof(sd: pg.Grid) -> int:
@@ -247,6 +249,38 @@ class PwConstants(pg.Discretization):
 
 
 class PwLinears(pg.Discretization):
+    """
+    Discretization class for piecewise linear finite element method.
+
+    Attributes:
+        keyword (str): The keyword for the discretization.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Computes the mass matrix for piecewise linears.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition vector. Not implemented.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the discretization class for the range of the differential.
+            Not implemented.
+
+        eval_at_cell_centers(sd: pg.Grid) -> np.ndarray:
+            Assembles the matrix for evaluating the discretization at the cell centers.
+            Not implemented.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space. Not implemented.
+    """
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -274,7 +308,6 @@ class PwLinears(pg.Discretization):
         Returns:
             sps.csc_matrix: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
-
         # Data allocation
         size = np.square(sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -372,6 +405,20 @@ class PwLinears(pg.Discretization):
 
 
 class VecPwConstants(pg.VecDiscretization):
+    """
+    A class representing the discretization using vector piecewise constant functions.
+
+    Attributes:
+        keyword (str): The keyword for the vector discretization class.
+
+    Methods:
+        get_range_discr_class(self, dim: int) -> pg.Discretization:
+            Returns the discretization class for the range of the differential.
+
+        assemble_nat_bc(self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition vector, equal to zero.
+    """
+
     def __init__(self, keyword: str) -> None:
         """
         Initialize the vector discretization class.
