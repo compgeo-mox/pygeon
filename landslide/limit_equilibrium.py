@@ -3,8 +3,10 @@ import numpy as np
 import scipy.optimize as optimize
 import matplotlib.pyplot as plt
 
+import porepy as pp
+
 from topograhy_file import topography_func, topography_func
-from input_file import gamma, cohesion, phi, Ns, domain_extent_left, domain_extent_right, xx_plot
+from input_file import gamma, cohesion, phi, Ns, domain_extent_left, domain_extent_right, xx_plot, SlopeHeight, SlopeAngle
 
 # Implementation of Bishop method for the standard slope problem with the Simplex optimization algorithm 
 # to find the failure surface that minimizes the Factor of Safety (FOS)
@@ -19,7 +21,7 @@ from input_file import gamma, cohesion, phi, Ns, domain_extent_left, domain_exte
 #sys.exit()
 
 
-def Bishop(xa, ya, Ra, sds_in, sds_out, eta):
+def Bishop(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
     """
     xa , ya , Ra = centro e raggio sds
     sds_in , sds_out, eta = ingresso e uscita sds (solo ascissa), eta: angolo 
@@ -63,13 +65,21 @@ def Bishop(xa, ya, Ra, sds_in, sds_out, eta):
     delta_y       = delta_y      [index_c:]
     delta_z       = delta_z      [index_c:]
     theta_center  = theta_center [index_c:]
-    
+    x_vect_center = x_vect_center[index_c:]
+
+    pore_press_slice = theta_center*0
+
+    for i in np.arange(np.size(theta_center)):
+        n_nodes = tree.search(pp.adtree.ADTNode(99, [x_vect_center[0][i], x_vect_center[1][i]] * 2))
+        pore_press_slice[i] = np.mean(psi[n_nodes])
+
+    print(pore_press_slice)
     
     weight_force = gamma * delta_z*delta_x
     driving_moment = weight_force*np.sin(theta_center)
  
-
-    cohesion_tot = cohesion*np.sqrt(delta_x*delta_x + delta_y*delta_y)
+    beta_coeff = np.sqrt(delta_x*delta_x + delta_y*delta_y)
+    cohesion_tot = cohesion*beta_coeff
     resisting_moment = cohesion_tot + weight_force*np.cos(theta_center)*np.tan(phi)
 
     FoS = np.sum(resisting_moment)/np.sum(driving_moment)
@@ -86,17 +96,17 @@ def Bishop(xa, ya, Ra, sds_in, sds_out, eta):
       return  fx
   
     f_x = fx(x_vect_center[0][index_c:]) #1.
-    
-    def normal_force(x):
+
+    def normal_force(x): # this is the total force at the slip surface
         m_alpha = np.cos(theta_center) + np.tan(phi)*np.sin(theta_center)/x[0]
-        return((weight_force - cohesion_tot*np.sin(theta_center)/x[0] - cohesion_tot*np.cos(theta_center)/x[0]*x[1]*f_x)/(m_alpha + x[1]*f_x*np.cos(theta_center)*(np.tan(theta_center) - np.tan(phi)/x[0]) ))
+        return((weight_force - cohesion_tot/x[0]*(np.sin(theta_center) - np.cos(theta_center)*x[1]*f_x) + pore_press_slice*beta_coeff*np.tan(phi)/x[0]*(np.sin(theta_center)-x[1]*f_x*np.cos(theta_center)) )/(m_alpha + x[1]*f_x*np.cos(theta_center)*(np.tan(theta_center) - np.tan(phi)/x[0]) ))
     
     def FoS_func_momentum(x):
-        resisting_moment = cohesion_tot + normal_force(x)*np.tan(phi)
+        resisting_moment = cohesion_tot + (normal_force(x)-pore_press_slice*beta_coeff)*np.tan(phi)
         return (np.sum(resisting_moment)/np.sum(driving_moment) - x[0])
     
     def FoS_func_force(x):
-        resisting_moment = (cohesion_tot + normal_force(x)*np.tan(phi))*np.cos(theta_center)
+        resisting_moment = (cohesion_tot + (normal_force(x)-pore_press_slice*beta_coeff)*np.tan(phi))*np.cos(theta_center)
         return (np.sum(resisting_moment)/np.sum(normal_force(x)*np.sin(theta_center)) - x[0]) 
     
     def FoS_func(x):
@@ -180,8 +190,8 @@ def circ_2pts_tan(sds_in , sds_out , eta):
     
 
 
-def func(v):
-    x_in, x_out, eta = v[0], v[1], v[2]
+def func(trial, psi_sol, tree):
+    x_in, x_out, eta = trial[0], trial[1], trial[2]
 
     sds_in  = [x_in,  topography_func(x_in )]
     sds_out = [x_out, topography_func(x_out)]
@@ -190,14 +200,20 @@ def func(v):
     
     xa, ya, Ra, delta = circ_2pts_tan(sds_in, sds_out, eta)
     if ya>sds_in[1] and ya>sds_out[1]:# and delta>delta_min:
-        ff = Bishop(xa, ya, Ra, sds_in, sds_out, eta)
+        ff = Bishop(xa, ya, Ra, sds_in, sds_out, eta, psi_sol, tree)
     else:
         ff = 30.
     print(ff, x_in, x_out, eta)
     return ff
 
 
-
+def call_optimizer(trial, psi_sol, tree):
+    zero = optimize.minimize(func, x0=trial, args=(psi_sol, tree), method='Nelder-Mead', 
+                             bounds = ((domain_extent_left, SlopeHeight/np.tan(SlopeAngle)),
+                                       (0, domain_extent_right), 
+                                       (np.radians(5), .5*np.pi)), 
+                             options = {'disp':True, 'fatol':0.001, 'maxiter':800, 'return_all':True})
+    return zero
 
 
 

@@ -5,7 +5,7 @@ import numpy as np
 K = 100
 
 # L-scheme parameter
-L = 0.025
+L = 2.5e-2
 
 # Set the number of steps (excluding the initial condition)
 num_steps = 10
