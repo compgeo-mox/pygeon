@@ -12,4 +12,4 @@ six
 sympy
 typing_extensions
 #porepy @ git+https://github.com/pmgbergen/porepy.git@develop
--e git+https://github.com/pmgbergen/porepy.git@develop#egg=develop
+-e git+https://github.com/pmgbergen/porepy.git@develop#egg=porepy
