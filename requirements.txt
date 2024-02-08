@@ -11,4 +11,4 @@ shapely
 six
 sympy
 typing_extensions
-porepy @ git+https://github.com/pmgbergen/porepy.git@develop --install-option="--no-cache-dir"
+porepy @ git+https://github.com/pmgbergen/porepy.git@develop --no-cache-dir
