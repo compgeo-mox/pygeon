@@ -11,5 +11,4 @@ shapely
 six
 sympy
 typing_extensions
-#porepy @ git+https://github.com/pmgbergen/porepy.git@develop
-git+https://github.com/pmgbergen/porepy.git@develop#egg=porepy --install-option="--upgrade --no-cache-dir"
+porepy @ git+https://github.com/pmgbergen/porepy.git@develop
