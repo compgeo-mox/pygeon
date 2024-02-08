@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -10,10 +12,58 @@ Acknowledgments:
 
 
 class Grid(pp.Grid):
-    def __init__(self, *args, **kwargs):
+    """
+    Grid class represents a geometric grid object, in addition to the pp.Grid class it
+    implements the following attributes and methods.
+
+    Attributes:
+        num_peaks (int): Number of peaks in the grid.
+        num_ridges (int): Number of ridges in the grid.
+        face_ridges (scipy.sparse.csc_matrix): Connectivity between each face and ridge.
+        ridge_peaks (scipy.sparse.csc_matrix): Connectivity between each ridge and peak.
+        tags (dict): Tags for entities in the grid.
+
+    Methods:
+        compute_geometry():
+            Defines grid entities of codim 2 and 3.
+
+        compute_ridges():
+            Computes the ridges of the grid.
+
+        _compute_ridges_01d():
+            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
+            of dimension 0 or 1.
+
+        _compute_ridges_2d():
+            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
+            of dimension 2.
+
+        _compute_ridges_3d():
+            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
+            of dimension 3.
+
+        tag_ridges():
+            Tags the peaks and ridges of the grid located on fracture tips.
+
+        compute_subvolumes(return_subsimplices=False):
+            Computes the subvolumes of the grid.
+
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        """
+        Initialize a Grid object.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            None
+        """
         super(Grid, self).__init__(*args, **kwargs)
 
-    def compute_geometry(self):
+    def compute_geometry(self) -> None:
         """
         Defines grid entities of codim 2 and 3.
 
@@ -22,22 +72,36 @@ class Grid(pp.Grid):
         1: "faces"
         2: "ridges"
         3: "peaks"
-        """
 
+        This method computes the geometry of the grid by calling the
+        superclass's compute_geometry method and then computing the ridges.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         super(Grid, self).compute_geometry()
         self.compute_ridges()
 
-    def compute_ridges(self):
+    def compute_ridges(self) -> None:
         """
-        Assigns the following attributes to the grid
+        Computes the ridges of the grid and assigns the following attributes:
 
-        num_ridges: number of ridges
-        num_peaks: number of peaks
-        face_ridges: connectivity between each face and ridge
-        ridge_peaks: connectivity between each ridge and peak
-        tags['tip_ridges'], tags['tip_peaks']: tags for entities at fracture tips
+        - num_ridges: number of ridges
+        - num_peaks: number of peaks
+        - face_ridges: connectivity between each face and ridge
+        - ridge_peaks: connectivity between each ridge and peak
+        - tags['tip_ridges']: tags for entities at fracture tips
+        - tags['tip_peaks']: tags for entities at fracture tips
+
+        Args:
+            None
+
+        Returns:
+            None
         """
-
         if self.dim == 3:
             self._compute_ridges_3d()
         elif self.dim == 2:
@@ -47,23 +111,42 @@ class Grid(pp.Grid):
 
         self.tag_ridges()
 
-    def _compute_ridges_01d(self):
+    def _compute_ridges_01d(self) -> None:
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 0 or 1.
-        """
 
+        This method calculates the number of ridges and peaks in a grid of dimension
+        0 or 1.
+        It also initializes the ridge_peaks and face_ridges matrices with the appropriate
+        dimensions.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.num_peaks = 0
         self.num_ridges = 0
         self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
         self.face_ridges = sps.csc_matrix((self.num_ridges, self.num_faces), dtype=int)
 
-    def _compute_ridges_2d(self):
+    def _compute_ridges_2d(self) -> None:
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 2.
-        """
 
+        This method computes the number of ridges, number of peaks, and connectivity matrices
+        for a 2-dimensional grid. It also computes the face-ridge orientation based on the
+        rotated normal and the difference vector between the ridges.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.num_peaks = 0
         self.num_ridges = self.num_nodes
         self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
@@ -85,16 +168,26 @@ class Grid(pp.Grid):
 
         self.face_ridges = face_ridges * sps.diags(orients)
 
-    def _compute_ridges_3d(self):
+    def _compute_ridges_3d(self) -> None:
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 3.
-        """
 
+        This method computes the number of ridges, number of peaks, and connectivity matrices
+        for a 3-dimensional grid. It calculates the ridges between each pair of nodes in
+        each face, determines the orientation of each ridge with respect to the face, and
+        generates the ridge-peak and face-ridge connectivity matrices.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.num_peaks = self.num_nodes
 
         # Pre-allocation
-        ridges = np.ndarray((2, self.face_nodes.nnz), dtype=int)
+        ridges: np.ndarray = np.ndarray((2, self.face_nodes.nnz), dtype=int)
 
         fr_indptr = np.zeros(self.num_faces + 1, dtype=int)
         for face in np.arange(self.num_faces):
@@ -133,11 +226,24 @@ class Grid(pp.Grid):
         # with the orientation defined according to the right-hand rule
         self.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr))
 
-    def tag_ridges(self):
+    def tag_ridges(self) -> None:
         """
         Tag the peaks and ridges of the grid located on fracture tips.
-        """
 
+        This method tags the peaks and ridges of the grid that are located on fracture tips.
+        It sets the "tip_peaks" and "tip_ridges" tags in the grid object.
+        For 2D grids, the "tip_ridges" tag is determined based on the "tip_faces" tag and
+        the face ridges.
+        For 3D grids, the "tip_ridges" tag is initialized as an array of zeros.
+        The "domain_boundary_ridges" tag is also set based on the face ridges and the
+        "domain_boundary_faces" tag.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
         fr_bool = self.face_ridges.astype("bool")
 
@@ -149,12 +255,19 @@ class Grid(pp.Grid):
         bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
-    def compute_subvolumes(self, return_subsimplices=False):
+    def compute_subvolumes(
+        self, return_subsimplices: Optional[bool] = False
+    ) -> sps.csc_matrix:
         """
-        Return the following attributes of the grid
+        Compute the subvolumes of the grid.
 
-        subvolumes: a csc_matrix with each entry [node, cell] describing
-                      the signed measure of the associated sub-volume
+        Args:
+            return_subsimplices (bool, optional): Whether to return the sub-simplices.
+                                                    Defaults to False.
+
+        Returns:
+            sps.csc_matrix: The computed subvolumes with each entry [node, cell] describing
+                    the signed measure of the associated sub-volume
         """
         sub_simplices = self.cell_faces.copy().astype(float)
 

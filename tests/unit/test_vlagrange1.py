@@ -58,6 +58,72 @@ class VLagrange1Test(unittest.TestCase):
             / 1050
         )
         self.assertTrue(np.allclose(G, G_known))
+        self.assertEqual(discr.ndof(sd), sd.num_nodes)
+
+        D = discr.assemble_diff_matrix(sd)
+
+        # fmt: off
+        D_known_data = np.array(
+        [-1.,  1.,  1., -1.,  1., -1.,  1., -1.,  1., -1.]
+        )
+
+        D_known_indices = np.array(
+        [0, 4, 0, 1, 1, 2, 2, 3, 3, 4]
+        )
+
+        D_known_indptr = np.array(
+        [ 0,  2,  4,  6,  8, 10]
+        )
+        # fmt: on
+
+        self.assertTrue(np.allclose(D.data, D_known_data))
+        self.assertTrue(np.allclose(D.indptr, D_known_indptr))
+        self.assertTrue(np.allclose(D.indices, D_known_indices))
+
+        P = discr.eval_at_cell_centers(sd)
+
+        # fmt: off
+        P_known_data = np.array(
+        [0.2, 0.2, 0.2, 0.2, 0.2]
+        )
+
+        P_known_indices = np.array(
+        [0, 0, 0, 0, 0]
+        )
+
+        P_known_indptr = np.array(
+        [0, 1, 2, 3, 4, 5]
+        )
+        # fmt: on
+
+        self.assertTrue(np.allclose(P.data, P_known_data))
+        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
+        self.assertTrue(np.allclose(P.indices, P_known_indices))
+
+        fun = lambda x: x[0] + x[1]
+        vals = discr.interpolate(sd, fun)
+
+        # fmt: off
+        vals_known = np.array(
+        [0. , 3. , 5. , 5.5, 4. ]
+        )
+        # fmt: on
+
+        self.assertTrue(np.allclose(vals, vals_known))
+
+        self.assertRaises(
+            NotImplementedError,
+            discr.assemble_nat_bc,
+            sd,
+            lambda _: np.zeros(1),
+            np.zeros(1),
+        )
+
+        self.assertRaises(
+            NotImplementedError,
+            discr.get_range_discr_class,
+            sd.dim,
+        )
 
     def test_on_oct_grid(self):
         sd = pg.OctagonGrid([1] * 2)
@@ -138,6 +204,81 @@ class VLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(A.data, A_known_data))
         self.assertTrue(np.allclose(A.indptr, A_known_indptr))
         self.assertTrue(np.allclose(A.indices, A_known_indices))
+
+        self.assertEqual(discr.ndof(sd), sd.num_nodes)
+
+        D = discr.assemble_diff_matrix(sd)
+
+        # fmt: off
+        D_known_data = np.array(
+        [-1., -1., -1.,  1., -1., -1., -1., -1., -1.,  1., -1., -1., -1.,
+        1., -1., -1.,  1., -1.,  1.,  1., -1.,  1.,  1., -1.,  1.,  1.,
+        1.,  1.,  1.,  1.,  1.,  1.]
+        )
+
+        D_known_indices = np.array(
+        [ 0,  4,  8,  0,  5, 10,  1,  6, 12,  1,  7, 14,  2,  4,  9,  3,  5,
+        11,  2,  6, 13,  3,  7, 15,  8,  9, 10, 11, 12, 13, 14, 15]
+        )
+
+        D_known_indptr = np.array(
+        [ 0,  3,  6,  9, 12, 15, 18, 21, 24, 26, 28, 30, 32]
+        )
+        # fmt: on
+
+        self.assertTrue(np.allclose(D.data, D_known_data))
+        self.assertTrue(np.allclose(D.indptr, D_known_indptr))
+        self.assertTrue(np.allclose(D.indices, D_known_indices))
+
+        P = discr.eval_at_cell_centers(sd)
+
+        # fmt: off
+        P_known_data = np.array(
+        [0.125     , 0.33333333, 0.125     , 0.33333333, 0.125     ,
+        0.33333333, 0.125     , 0.33333333, 0.125     , 0.33333333,
+        0.125     , 0.33333333, 0.125     , 0.33333333, 0.125     ,
+        0.33333333, 0.33333333, 0.33333333, 0.33333333, 0.33333333]
+        )
+
+        P_known_indices = np.array(
+        [0, 1, 0, 2, 0, 3, 0, 4, 0, 1, 0, 2, 0, 3, 0, 4, 1, 2, 3, 4]
+        )
+
+        P_known_indptr = np.array(
+        [ 0,  2,  4,  6,  8, 10, 12, 14, 16, 17, 18, 19, 20]
+        )
+        # fmt: on
+
+        self.assertTrue(np.allclose(P.data, P_known_data))
+        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
+        self.assertTrue(np.allclose(P.indices, P_known_indices))
+
+        fun = lambda x: x[0] + x[1]
+        vals = discr.interpolate(sd, fun)
+
+        # fmt: off
+        vals_known = np.array(
+        [0.29289322, 0.70710678, 1.29289322, 1.70710678, 0.29289322,
+        1.29289322, 0.70710678, 1.70710678, 0.        , 1.        ,
+        1.        , 2.        ]
+        )
+        # fmt: on
+
+        self.assertTrue(np.allclose(vals, vals_known))
+
+        self.assertRaises(
+            NotImplementedError,
+            discr.assemble_nat_bc,
+            sd,
+            lambda _: np.zeros(1),
+            np.zeros(1),
+        )
+
+        self.assertRaises(
+            NotImplementedError,
+            discr.get_range_discr_class,
+            sd.dim,
+        )
 
 
 if __name__ == "__main__":

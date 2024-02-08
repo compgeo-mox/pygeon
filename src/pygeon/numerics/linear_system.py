@@ -1,3 +1,5 @@
+from typing import Callable, Optional, Union
+
 import numpy as np
 import scipy.sparse as sps
 
@@ -16,7 +18,18 @@ class LinearSystem:
         ess_vals (np.array, (n, )): The values of the essential bcs.
     """
 
-    def __init__(self, A, b=None) -> None:
+    def __init__(self, A: sps.spmatrix, b: Optional[np.ndarray] = None) -> None:
+        """
+        Initialize a LinearSystem object.
+
+        Args:
+            A (sps.spmatrix): The coefficient matrix of the linear system.
+            b (np.ndarray, optional): The right-hand side vector of the linear system.
+                Defaults to None.
+
+        Returns:
+            None
+        """
         self.A = A
 
         if b is None:
@@ -25,29 +38,76 @@ class LinearSystem:
 
         self.reset_bc()
 
-    def reset_bc(self):
+    def reset_bc(self) -> None:
+        """
+        Reset the boundary conditions.
+
+        This method sets the degrees of freedom (is_dof) to True for all elements
+        in the b vector, and sets the essential values (ess_vals) to zero for all
+        elements in the b vector.
+        """
         self.is_dof = np.ones(self.b.shape[0], dtype=bool)
         self.ess_vals = np.zeros(self.b.shape[0])
 
-    def flag_ess_bc(self, is_ess_dof, ess_vals):
+    def flag_ess_bc(self, is_ess_dof: np.ndarray, ess_vals: np.ndarray) -> None:
+        """
+        Flags the essential boundary conditions for the degrees of freedom specified
+        by `is_ess_dof`.
+
+        Args:
+            is_ess_dof (np.ndarray): Boolean array indicating the degrees of freedom
+                to flag as essential.
+            ess_vals (np.ndarray): Array of essential values corresponding to the
+                flagged degrees of freedom.
+
+        Returns:
+            None
+        """
         self.is_dof[is_ess_dof] = False
         self.ess_vals[is_ess_dof] += ess_vals[is_ess_dof]
 
-    def reduce_system(self):
+    def reduce_system(self) -> Union[sps.spmatrix, np.ndarray, sps.csc_matrix]:
+        """
+        Reduces the linear system by applying a restriction operator and returning
+        the reduced system.
+
+        Returns:
+            A tuple containing the reduced matrix A, the reduced vector b, and the
+                restriction operator R.
+        """
         R_0 = create_restriction(self.is_dof)
         A_0 = R_0 @ self.A @ R_0.T
         b_0 = R_0 @ (self.b - self.A @ self.repeat_ess_vals())
 
         return A_0, b_0, R_0
 
-    def solve(self, solver=sps.linalg.spsolve):
+    def solve(self, solver: Optional[Callable] = sps.linalg.spsolve) -> np.ndarray:
+        """
+        Solve the linear system of equations.
+
+        Args:
+            solver (Optional[Callable]): The solver function to use. Defaults to
+                sps.linalg.spsolve.
+
+        Returns:
+            np.ndarray: The solution to the linear system of equations.
+        """
         A_0, b_0, R_0 = self.reduce_system()
         sol_0 = solver(A_0.tocsc(), b_0)
         sol = self.repeat_ess_vals() + R_0.T @ sol_0
 
         return sol
 
-    def repeat_ess_vals(self):
+    def repeat_ess_vals(self) -> Union[np.ndarray, sps.csr_matrix]:
+        """
+        Repeat the essential values of the linear system.
+
+        If the input vector `b` has dimension 1, the method returns the essential values as is.
+        Otherwise, it calculates the sum of the essential values for each column of `b`.
+
+        Returns:
+            numpy.ndarray or scipy.sparse.csr_matrix: The repeated essential values.
+        """
         if self.b.ndim == 1:
             return self.ess_vals
         else:
@@ -56,16 +116,16 @@ class LinearSystem:
             )
 
 
-def create_restriction(keep_dof):
+def create_restriction(keep_dof: np.ndarray) -> sps.csc_matrix:
     """
     Helper function to create the restriction mapping
 
-    Parameters:
-        keep_dof (np.array, bool): True for the dofs of the system,
-            False for the overwritten values
+    Args:
+        keep_dof (np.ndarray): Boolean array indicating which degrees of freedom (dofs)
+            to keep. True for the dofs of the system, False for the overwritten values.
 
     Returns:
-        sps.csr_matrix: the restriction mapping.
+        sps.csc_matrix: The restriction mapping matrix.
     """
     R = sps.diags(keep_dof, dtype=int).tocsr()
     return R[R.indices, :].tocsc()

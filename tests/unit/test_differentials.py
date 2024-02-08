@@ -9,6 +9,28 @@ import pygeon as pg
 
 
 class DifferentialsUnitTest(unittest.TestCase):
+    def test_0d(self):
+        sd = pp.PointGrid([0, 0, 0])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        div = pg.div(sd)
+        curl = pg.curl(sd)
+        grad = pg.grad(sd)
+
+        self.assertTrue(np.allclose(div.shape, (1, 0)))
+        self.assertTrue(np.allclose(curl.shape, (0, 0)))
+        self.assertTrue(np.allclose(grad.shape, (0, 0)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
+        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
+        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 5)
+        self.assertTrue(np.allclose(ext_der.shape, (0, 0)))
+
     def test_1d(self):
         N, dim = 3, 1
         sd = pp.CartGrid([N] * dim, [1] * dim)
@@ -36,6 +58,21 @@ class DifferentialsUnitTest(unittest.TestCase):
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
+
+        class Dummy:
+            pass
+
+        self.assertRaises(
+            TypeError,
+            pg.div,
+            Dummy(),
+        )
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
+        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
+        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
 
     def test_2d_simplicial(self):
         N, dim = 2, 2
@@ -86,6 +123,12 @@ class DifferentialsUnitTest(unittest.TestCase):
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
+        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
+        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+
     def test_2d_cartesian(self):
         N, dim = 2, 2
         sd = pp.CartGrid([N] * dim, [1] * dim)
@@ -127,6 +170,12 @@ class DifferentialsUnitTest(unittest.TestCase):
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
+        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
+        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+
     def test_3d_simplicial(self):
         N, dim = 2, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
@@ -146,6 +195,12 @@ class DifferentialsUnitTest(unittest.TestCase):
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
 
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
+        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
+        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+
     def test_3d_cartesian(self):
         N, dim = 2, 3
         sd = pp.CartGrid([N] * dim, [1] * dim)
@@ -164,6 +219,12 @@ class DifferentialsUnitTest(unittest.TestCase):
         self.assertTrue(np.allclose(div.todense(), known_div))
         self.assertTrue(np.allclose(curl.todense(), known_curl))
         self.assertTrue(np.allclose(grad.todense(), known_grad))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
+        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+
+        ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
+        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
 
     def _3d_single_simplicial_grid(self):
         # fmt: off
