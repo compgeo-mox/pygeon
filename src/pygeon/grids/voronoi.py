@@ -5,6 +5,9 @@ import porepy as pp
 import scipy.sparse as sps
 import scipy.spatial
 
+from shapely.geometry import MultiPoint
+from shapely.ops import voronoi_diagram
+
 import pygeon as pg
 
 
@@ -32,9 +35,28 @@ class VoronoiGrid(pg.Grid):
             pts = self.generate_internal_pts(num_pts, mesh_size, **kwargs)
 
         # Generate the boundary points for the Voronoi grid
-        bd_pts = self.generate_boundary_pts(mesh_size, num_bdry_els)
+        # bd_pts = self.generate_boundary_pts(mesh_size, num_bdry_els)
 
-        pts = np.hstack((bd_pts, pts))
+        # pts = np.hstack((bd_pts, pts))
+
+        vor = voronoi_diagram(MultiPoint(pts.T))
+
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+
+        fig, ax = plt.subplots(1, 1)
+
+        # the resulting Voronoi diagram is not always bigger than the unit square
+        # it has the envolepe option that it is not clear what it does
+        for poly in vor.geoms:
+            x, y = poly.exterior.coords.xy
+            print(x.tolist(), y.tolist())
+            polygon1 = Polygon(np.vstack((x, y)).T, color=np.random.rand(1, 3))
+            ax.add_patch(polygon1)
+
+            plt.plot(x, y, "*")
+
+        plt.show()
 
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(pts[:2, :].T)
