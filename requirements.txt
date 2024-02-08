@@ -11,4 +11,5 @@ shapely
 six
 sympy
 typing_extensions
-porepy -e git+git@github.com/pmgbergen/porepy.git@develop
+#porepy @ git+https://github.com/pmgbergen/porepy.git@develop
+-e git+https://github.com/pmgbergen/porepy.git@develop#egg=porepy
