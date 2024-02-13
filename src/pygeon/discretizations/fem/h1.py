@@ -9,6 +9,53 @@ import pygeon as pg
 
 
 class Lagrange1(pg.Discretization):
+    """
+    Class representing the Lagrange1 finite element discretization.
+
+    Attributes:
+        None
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix for the lowest order Lagrange element.
+
+        local_mass(c_volume: np.ndarray, dim: int) -> np.ndarray:
+            Computes the local mass matrix.
+
+        assemble_stiffness_matrix(sd: pg.Grid, data: dict) -> sps.csc_matrix:
+            Assembles the stiffness matrix for the finite element method.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the differential matrix based on the dimension of the grid.
+
+        local_stiff(K: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int)
+            -> np.ndarray:
+            Computes the local stiffness matrix for P1.
+
+        local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
+            Calculates the local gradients of the finite element basis functions.
+
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the lumped mass matrix for the finite element method.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Constructs the matrix for evaluating a Lagrangian function at the cell centers of
+            the given grid.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a given function over the nodes of a grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
+            Assembles the 'natural' boundary condition.
+
+        get_range_discr_class(dim: int) -> object:
+            Returns the appropriate range discretization class based on the dimension.
+    """
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -154,11 +201,11 @@ class Lagrange1(pg.Discretization):
             sps.csc_matrix: The differential matrix.
         """
         if sd.dim == 3:
-            return sd.ridge_peaks.T
+            return sd.ridge_peaks.T.tocsc()
         elif sd.dim == 2:
-            return sd.face_ridges.T
+            return sd.face_ridges.T.tocsc()
         elif sd.dim == 1:
-            return sd.cell_faces.T
+            return sd.cell_faces.T.tocsc()
         elif sd.dim == 0:
             return sps.csc_matrix((0, 1))
         else:
@@ -325,8 +372,18 @@ class Lagrange1(pg.Discretization):
 
 class VecLagrange1(pg.Discretization):
     """
-    Convention for the ordering is fist all the x, then all the y and
-    (if dim = 3) all the z.
+    Vector Lagrange finite element discretization for H1 space.
+
+    This class represents a finite element discretization for the H1 space using
+    vector Lagrange elements. It provides methods for assembling various matrices
+    and operators, such as the mass matrix, divergence matrix, symmetric gradient
+    matrix, and more.
+
+    Convention for the ordering is first all the x, then all the y, and (if dim = 3)
+    all the z.
+
+    The stress tensor and strain tensor are represented as vectors unrolled row-wise.
+    In 2D, the stress tensor has a length of 4, and in 3D, it has a length of 9.
 
     We are considering the following structure of the stress tensor in 2d
 
@@ -353,6 +410,48 @@ class VecLagrange1(pg.Discretization):
 
     The strain tensor follows the same approach.
 
+    Args:
+        keyword (str): The keyword for the H1 class.
+
+    Attributes:
+        lagrange1 (pg.Lagrange1): A local Lagrange1 class for performing some of the
+            computations.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated with the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles and returns the mass matrix for the lowest order Lagrange element.
+
+        assemble_div_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Returns the divergence matrix operator for the lowest order vector Lagrange
+            element.
+
+        local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
+            Computes the local divergence matrix for P1.
+
+        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Returns the div-div matrix operator for the lowest order vector Lagrange element.
+
+        assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Returns the symmetric gradient matrix operator for the lowest order vector Lagrange
+            element.
+
+        local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray)
+            -> np.ndarray:
+            Computes the local symmetric gradient matrix for P1.
+
+        assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_matrix:
+            Returns the symgrad-symgrad matrix operator for the lowest order vector Lagrange
+            element.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space.
     """
 
     def __init__(self, keyword: str) -> None:
@@ -489,7 +588,8 @@ class VecLagrange1(pg.Discretization):
         """
         div = self.assemble_div_matrix(sd)
         # TODO add the Lame' parameter in the computation of the P0 mass
-        mass = pg.PwConstants.assemble_mass_matrix(None, sd, data)
+        p0 = pg.PwConstants(self.keyword)
+        mass = p0.assemble_mass_matrix(sd, data)
 
         return div.T @ mass @ div
 
@@ -612,7 +712,8 @@ class VecLagrange1(pg.Discretization):
 
         symgrad = self.assemble_symgrad_matrix(sd)
         # TODO add the Lame' parameter in the computation of the P0 mass
-        mass = pg.PwConstants.assemble_mass_matrix(None, sd, data)
+        p0 = pg.PwConstants(self.keyword)
+        mass = p0.assemble_mass_matrix(sd, data)
         tensor_mass = sps.block_diag([mass] * np.square(sd.dim), format="csc")
 
         return symgrad.T @ tensor_mass @ symgrad
@@ -696,13 +797,13 @@ class VecLagrange1(pg.Discretization):
         Args:
             dim (int): The dimension of the range.
 
-        Raises:
-            NotImplementedError: If there is no range discretization for the vector
-                Lagrangian 1 in PyGeoN.
-
         Returns:
             Discretization: The discretization class that contains the range of
                 the differential.
+
+        Raises:
+            NotImplementedError: If there is no range discretization for the vector
+                Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
@@ -730,7 +831,9 @@ class VecLagrange1(pg.Discretization):
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
-        proj = pg.PwConstants.eval_at_cell_centers(None, sd)
+
+        p0 = pg.PwConstants(self.keyword)
+        proj = p0.eval_at_cell_centers(sd)
 
         # compute the two terms and split on each component
         sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))

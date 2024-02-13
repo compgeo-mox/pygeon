@@ -1,9 +1,26 @@
+from typing import Union
+
 import porepy as pp
 
 import pygeon as pg
 
 
-def convert_from_pp(obj):
+def convert_from_pp(
+    obj: Union[pg.Graph, pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid]
+) -> None:
+    """
+    Convert an object from the porepy library to the pygeon library.
+
+    Args:
+        obj: The object to be converted. It can be one of the following types:
+            - pg.Graph: No conversion is needed.
+            - pp.Grid: Convert to pg.Grid.
+            - pp.MortarGrid: Convert to pg.MortarGrid.
+            - pp.MixedDimensionalGrid: Convert to pg.MixedDimensionalGrid.
+
+    Raises:
+        TypeError: If the input object is not one of the supported types.
+    """
     if isinstance(obj, pg.Graph):
         pass
     elif isinstance(obj, pp.Grid):
@@ -19,7 +36,20 @@ def convert_from_pp(obj):
         raise TypeError
 
 
-def as_mdg(sd):
+def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> None:
+    """
+    Convert a grid object to a mixed-dimensional grid (MDG) object.
+
+    Args:
+        sd (Union[pp.MixedDimensionalGrid, pp.Grid]): The input grid object to be converted.
+
+    Returns:
+        pp.MixedDimensionalGrid: The converted mixed-dimensional grid object.
+
+    Raises:
+        ValueError: If the input grid object is neither a pp.MixedDimensionalGrid nor a
+            pp.Grid.
+    """
     if isinstance(sd, pp.MixedDimensionalGrid):
         return sd
     elif isinstance(sd, pp.Grid):

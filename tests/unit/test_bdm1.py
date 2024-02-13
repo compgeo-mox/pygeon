@@ -30,6 +30,17 @@ class BDM1Test(unittest.TestCase):
 
         self.assertEqual(check.nnz, 0)
 
+        self.assertEqual(discr_bdm1.ndof(sd), dim * sd.num_faces)
+
+        class Dummy:
+            pass
+
+        self.assertRaises(
+            ValueError,
+            discr_bdm1.ndof,
+            Dummy(),
+        )
+
     def test_interpolation_2D(self):
         N, dim = 2, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
@@ -112,12 +123,15 @@ class BDM1Test(unittest.TestCase):
             # assemble the saddle point problem
             spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
 
-            b_faces = sd.tags["domain_boundary_faces"].nonzero()[0]
+            b_faces = sd.tags["domain_boundary_faces"]
 
             def p_0(x):
                 return x[0]
 
-            bc_val = -discr_bdm1.assemble_nat_bc(sd, p_0, b_faces)
+            bc_val_from_bool = -discr_bdm1.assemble_nat_bc(sd, p_0, b_faces)
+            bc_val = -discr_bdm1.assemble_nat_bc(sd, p_0, b_faces.nonzero()[0])
+
+            self.assertTrue(np.allclose(bc_val, bc_val_from_bool))
 
             rhs = np.zeros(spp.shape[0])
             rhs[: bc_val.size] += bc_val
@@ -141,6 +155,8 @@ class BDM1Test(unittest.TestCase):
 
             self.assertAlmostEqual(np.linalg.norm(cell_q - known_q), 0)
             self.assertAlmostEqual(np.linalg.norm(cell_p - known_p), 0)
+
+            self.assertTrue(discr_bdm1.get_range_discr_class(sd.dim) is pg.PwConstants)
 
 
 if __name__ == "__main__":
