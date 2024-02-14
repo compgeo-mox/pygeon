@@ -61,6 +61,28 @@ class VoronoiGrid(pg.Grid):
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(pts[:2, :].T)
 
+        center = vor.points.mean(axis=0)
+        ptp_bound = np.ptp(vor.points, axis=0)
+        for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
+            simplex = np.asarray(simplex)
+            print("simplex", simplex)
+            if np.all(simplex >= 0):
+                print("ok", vor.vertices[simplex])
+            else:
+                i = simplex[simplex >= 0][0]  # finite end Voronoi vertex
+
+                t = vor.points[pointidx[1]] - vor.points[pointidx[0]]  # tangent
+                t /= np.linalg.norm(t)
+                n = np.array([-t[1], t[0]])  # normal
+
+                midpoint = vor.points[pointidx].mean(axis=0)
+                direction = np.sign(np.dot(midpoint - center, n)) * n
+                if vor.furthest_site:
+                    direction = -direction
+                far_point = vor.vertices[i] + direction * ptp_bound.max()
+                print("far_point", far_point)
+                # infinite_segments.append([vor.vertices[i], far_point])
+
         from scipy.spatial import Voronoi, voronoi_plot_2d
         import matplotlib.pyplot as plt
 
