@@ -39,27 +39,33 @@ class VoronoiGrid(pg.Grid):
 
         # pts = np.hstack((bd_pts, pts))
 
-        vor = voronoi_diagram(MultiPoint(pts.T))
+        # vor = voronoi_diagram(MultiPoint(pts.T))
 
-        import matplotlib.pyplot as plt
-        from matplotlib.patches import Polygon
+        # import matplotlib.pyplot as plt
+        # from matplotlib.patches import Polygon
 
-        fig, ax = plt.subplots(1, 1)
+        # fig, ax = plt.subplots(1, 1)
 
-        # the resulting Voronoi diagram is not always bigger than the unit square
-        # it has the envolepe option that it is not clear what it does
-        for poly in vor.geoms:
-            x, y = poly.exterior.coords.xy
-            print(x.tolist(), y.tolist())
-            polygon1 = Polygon(np.vstack((x, y)).T, color=np.random.rand(1, 3))
-            ax.add_patch(polygon1)
+        # # the resulting Voronoi diagram is not always bigger than the unit square
+        # # it has the envolepe option that it is not clear what it does
+        # for poly in vor.geoms:
+        #     x, y = poly.exterior.coords.xy
+        #     print(x.tolist(), y.tolist())
+        #     polygon1 = Polygon(np.vstack((x, y)).T, color=np.random.rand(1, 3))
+        #     ax.add_patch(polygon1)
 
-            plt.plot(x, y, "*")
+        #     plt.plot(x, y, "*")
 
-        plt.show()
+        # plt.show()
 
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(pts[:2, :].T)
+
+        from scipy.spatial import Voronoi, voronoi_plot_2d
+        import matplotlib.pyplot as plt
+
+        fig = voronoi_plot_2d(vor)
+        plt.show()
 
         # fix the boundary elements
         self.update_boundary_elements(vor, pts, num_bdry_els)
