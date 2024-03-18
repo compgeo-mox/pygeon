@@ -5,16 +5,15 @@ import porepy as pp
 import scipy.sparse as sps
 import scipy.spatial
 
-from shapely.geometry import MultiPoint
-from shapely.ops import voronoi_diagram
-
 import pygeon as pg
+
+import matplotlib.pyplot as plt
 
 
 class VoronoiGrid(pg.Grid):
     """docstring for VoronoiGrid."""
 
-    def __init__(self, num_bdry_els: int, num_pts=None, pts=None, **kwargs) -> None:
+    def __init__(self, num_bdry_els: int, num_pts=None, vrt=None, **kwargs) -> None:
         """
         Initialize a VoronoiGrid object.
 
@@ -31,66 +30,65 @@ class VoronoiGrid(pg.Grid):
         mesh_size = 1.0 / num_bdry_els
 
         # Generate the internal seed points for the Voronoi grid
-        if pts is None:
-            pts = self.generate_internal_pts(num_pts, mesh_size, **kwargs)
-
-        # Generate the boundary points for the Voronoi grid
-        # bd_pts = self.generate_boundary_pts(mesh_size, num_bdry_els)
-
-        # pts = np.hstack((bd_pts, pts))
-
-        # vor = voronoi_diagram(MultiPoint(pts.T))
-
-        # import matplotlib.pyplot as plt
-        # from matplotlib.patches import Polygon
-
-        # fig, ax = plt.subplots(1, 1)
-
-        # # the resulting Voronoi diagram is not always bigger than the unit square
-        # # it has the envolepe option that it is not clear what it does
-        # for poly in vor.geoms:
-        #     x, y = poly.exterior.coords.xy
-        #     print(x.tolist(), y.tolist())
-        #     polygon1 = Polygon(np.vstack((x, y)).T, color=np.random.rand(1, 3))
-        #     ax.add_patch(polygon1)
-
-        #     plt.plot(x, y, "*")
-
-        # plt.show()
+        if vrt is None:
+            vrt = self.generate_internal_pts(num_pts, mesh_size, **kwargs)
 
         # Use Scipy to generate the Voronoi grid
-        vor = scipy.spatial.Voronoi(pts[:2, :].T)
+        vor = scipy.spatial.Voronoi(vrt[:2, :].T)
 
+        # extend the edges that are at infinity, strategy taken from the plot of scipy
+        vrt = []
         center = vor.points.mean(axis=0)
-        ptp_bound = np.ptp(vor.points, axis=0)
+        # MAGARI QUANDO VISITO POSSO CREARE GIA LE MAPPE?
         for pointidx, simplex in zip(vor.ridge_points, vor.ridge_vertices):
             simplex = np.asarray(simplex)
-            print("simplex", simplex)
             if np.all(simplex >= 0):
-                print("ok", vor.vertices[simplex])
+                vrt_loc = vor.vertices[simplex]
             else:
-                i = simplex[simplex >= 0][0]  # finite end Voronoi vertex
+                # finite end Voronoi vertex
+                i = simplex[simplex >= 0][0]
 
-                t = vor.points[pointidx[1]] - vor.points[pointidx[0]]  # tangent
+                t = vor.points[pointidx[1]] - vor.points[pointidx[0]]
                 t /= np.linalg.norm(t)
-                n = np.array([-t[1], t[0]])  # normal
+                n = np.array([-t[1], t[0]])
 
                 midpoint = vor.points[pointidx].mean(axis=0)
                 direction = np.sign(np.dot(midpoint - center, n)) * n
                 if vor.furthest_site:
-                    direction = -direction
-                far_point = vor.vertices[i] + direction * ptp_bound.max()
-                print("far_point", far_point)
-                # infinite_segments.append([vor.vertices[i], far_point])
+                    direction *= -1
+                far_pt = vor.vertices[i] + direction
+                vrt_loc = np.array([vor.vertices[i], far_pt])
 
-        from scipy.spatial import Voronoi, voronoi_plot_2d
-        import matplotlib.pyplot as plt
+            vrt.append(vrt_loc.T)
 
-        fig = voronoi_plot_2d(vor)
-        plt.show()
+        # add the points of the bounding box and create the edges
+        vrt.append([[0, 1, 1, 1, 1, 0, 0, 0], [0, 0, 1, 0, 1, 1, 1, 0]])
+        vrt = np.hstack(vrt)
+        edg = np.arange(vrt.shape[1]).reshape((2, -1), order="F")
+
+        # mi faccio restituire le mappe inverse e poi uso la classe vor per ricostruire effettivamente le celle. magari
+        # uso lo split solo sui lati di bordo (ovvero quelli che hanno un vertice che cade fuori dal b-box)
+
+        # select only the edges that intersect the bounding box
+        is_bd = np.zeros(edg.shape[1], dtype=bool)
+        for pos, e in enumerate(edg.T):
+            is_bd[pos] = self.is_outside(vrt[0, e], vrt[1, e])
+
+        # split the edges that intersect the bounding box
+        bd_vrt, bd_edg, _, arg_sort = pp.intersections.split_intersecting_segments_2d(
+            vrt, edg[:, is_bd], return_argsort=True
+        )
+
+        # remove the edges that are out from the bounding box
+        is_in = np.zeros(bd_edg.shape[1], dtype=bool)
+        for pos, e in enumerate(bd_edg.T):
+            is_in[pos] = not self.is_outside(bd_vrt[0, e], bd_vrt[1, e], 0)
+
+        bd_edg = bd_edg[:, is_in]
+        arg_sort = arg_sort[is_in]
 
         # fix the boundary elements
-        self.update_boundary_elements(vor, pts, num_bdry_els)
+        self.update_boundary_elements(vor, vrt, num_bdry_els)
 
         # Get the node coordinates
         nodes = vor.vertices.T
@@ -102,6 +100,14 @@ class VoronoiGrid(pg.Grid):
         # Generate a PyGeoN grid
         name = kwargs.get("name", "VoronoiGrid")
         super().__init__(2, nodes, face_nodes, cell_faces, name)
+
+    def is_outside(self, x, y, tol=1e-10):
+        return (
+            np.any(x < tol)
+            or np.any(x > 1 - tol)
+            or np.any(y < tol)
+            or np.any(y > 1 - tol)
+        )
 
     def generate_internal_pts(
         self, num_pts: int, mesh_size: float, **kwargs
@@ -120,34 +126,14 @@ class VoronoiGrid(pg.Grid):
             np.ndarray: An array of generated internal points.
         """
         seed = kwargs.get("seed", None)
-        margin = kwargs.get("margin_coeff", 0.5) * mesh_size
+        margin = 0
+        # margin = kwargs.get("margin_coeff", 0.5) * mesh_size
 
         if seed is not None:
             np.random.seed(seed)
 
         pts = np.random.rand(2, num_pts)
         return margin + pts * (1 - 2 * margin)
-
-    def generate_boundary_pts(self, mesh_size: float, num_elem: int) -> np.ndarray:
-        """
-        Generate boundary points for the Voronoi grid.
-
-        Args:
-            mesh_size (float): The size of each mesh element.
-            num_elem (int): The number of elements on each boundary.
-
-        Returns:
-            np.ndarray: An array of boundary points.
-        """
-        # Append the boundary seeds
-        bdry_pts = np.linspace(mesh_size / 2, 1 - mesh_size / 2, num_elem)
-
-        east = np.vstack((np.ones_like(bdry_pts), bdry_pts))
-        north = np.vstack((bdry_pts[::-1], np.ones_like(bdry_pts)))
-        west = np.vstack((np.zeros_like(bdry_pts), bdry_pts[::-1]))
-        south = np.vstack((bdry_pts, np.zeros_like(bdry_pts)))
-
-        return np.hstack((east, north, west, south))
 
     def grid_topology(
         self, vor: scipy.spatial.Voronoi, nodes: np.ndarray
@@ -278,6 +264,6 @@ class VoronoiGrid(pg.Grid):
 
             pts = self.cell_centers[:2, np.logical_not(bd_cells)]
 
-            self.__init__(self.num_bdry_els, pts=pts)
+            self.__init__(self.num_bdry_els, vrt=pts)
 
             pp.plot_grid(self, alpha=0, plot_2d=True)

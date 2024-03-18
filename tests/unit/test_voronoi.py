@@ -7,7 +7,7 @@ import unittest
 class VoronoiTest(unittest.TestCase):
     def test_simple_voronoi_grid(self):
         seed = 0
-        sd = pg.VoronoiGrid(3, 5, seed=seed)
+        sd = pg.VoronoiGrid(3, 15, seed=seed)
 
         # fmt: off
         sd_nodes = np.array(
