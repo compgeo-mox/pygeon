@@ -1,6 +1,6 @@
 """ Module for spanning tree computation. """
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import porepy as pp
@@ -368,7 +368,7 @@ class SpanningTreeElasticity(SpanningTree):
     """
 
     def setup_system(
-        self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
+        self, mdg: Union[pg.MixedDimensionalGrid, pg.Grid], flagged_faces: np.ndarray
     ) -> None:
         """
         Set up the system for the spanning tree algorithm.
@@ -381,7 +381,10 @@ class SpanningTreeElasticity(SpanningTree):
             None
         """
         # NOTE: we are assuming only one higher dimensional 2d grid
-        sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        if isinstance(mdg, pg.MixedDimensionalGrid):
+            sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        else:
+            sd = mdg
 
         self.expand = self.compute_expand(sd, flagged_faces)
         self.system = self.compute_system(sd)
