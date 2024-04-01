@@ -101,4 +101,4 @@ jobs:
       with:
         slug: compgeo-mox/pygeon
       env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
