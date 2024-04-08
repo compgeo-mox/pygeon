@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def argsort_ccw(pts: np.ndarray) -> np.ndarray:
+def argsort_ccw_convex(pts: np.ndarray) -> np.ndarray:
     """
     Sorts the given points in counterclockwise order based on their angles with respect to the
     centroid.

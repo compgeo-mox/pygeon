@@ -84,7 +84,7 @@ class VoronoiGrid(pg.Grid):
 
                 # add the new ridges, sorted counter-clockwise to the current region
                 pts = np.append(reg, ridge)
-                mask = pg.sort_points.argsort_ccw(vor.vertices[pts])
+                mask = pg.sort_points.argsort_ccw_convex(vor.vertices[pts])
                 vor.regions[idx] = pts[mask].tolist()
 
         # Get the node coordinates
