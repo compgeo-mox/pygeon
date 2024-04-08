@@ -384,7 +384,7 @@ class BDM1(pg.Discretization):
             # Find the nodes of the cell and their coordinates
             indices = np.unique(dof_loc, return_inverse=True)[1].reshape((sd.dim, -1))
 
-            face_nodes_loc = sd.face_nodes[:, faces_loc].toarray()
+            face_nodes_loc = sd.face_nodes[:, faces_loc].astype(bool).toarray()
             cell_nodes_loc = cell_nodes[:, c].toarray()
             # get the opposite node id for each face
             opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
@@ -398,9 +398,12 @@ class BDM1(pg.Discretization):
                 )
                 normal = sd.face_normals[:, faces_loc[face]]
                 for index, node in enumerate(nodes):
-                    Psi[face + index * (sd.dim + 1), node] = tangents[
-                        :, index
-                    ] / np.dot(tangents[:, index], normal)
+                    val_at_node = tangents[:, index] / np.dot(
+                        tangents[:, index], normal
+                    )
+                    Psi[face + index * (sd.dim + 1), node] = val_at_node.reshape(
+                        (1, -1)
+                    )
             Psi = sps.bmat(Psi)
 
             # Compute the inner products
@@ -600,7 +603,7 @@ class BDM1(pg.Discretization):
             nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
             indices = indices.reshape((sd.dim, -1))
 
-            face_nodes_loc = sd.face_nodes[:, faces_loc].toarray()
+            face_nodes_loc = sd.face_nodes[:, faces_loc].astype(bool).toarray()
             cell_nodes_loc = cell_nodes[:, c].toarray()
             # get the opposite node id for each face
             opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)

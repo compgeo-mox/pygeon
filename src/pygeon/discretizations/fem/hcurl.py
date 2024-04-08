@@ -103,8 +103,8 @@ class Nedelec0(pg.Discretization):
             # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
             Psi = np.empty((6, 4), np.ndarray)
             for ridge, peaks in enumerate(indices.T):
-                Psi[ridge, peaks[0]] = dphi[:, peaks[1]]
-                Psi[ridge, peaks[1]] = -dphi[:, peaks[0]]
+                Psi[ridge, peaks[0]] = dphi[:, peaks[1]].reshape((1, -1))
+                Psi[ridge, peaks[1]] = -dphi[:, peaks[0]].reshape((1, -1))
             Psi = sps.bmat(Psi)
 
             # Compute the inner products

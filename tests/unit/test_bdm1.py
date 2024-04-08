@@ -1,5 +1,6 @@
 """ Module contains a dummy unit test that always passes.
 """
+
 import unittest
 
 import numpy as np
@@ -28,7 +29,7 @@ class BDM1Test(unittest.TestCase):
 
         check = E.T * mass_bdm1 * E - mass_rt0
 
-        self.assertEqual(check.nnz, 0)
+        self.assertAlmostEqual(np.linalg.norm(check.data), 0)
 
         self.assertEqual(discr_bdm1.ndof(sd), dim * sd.num_faces)
 
