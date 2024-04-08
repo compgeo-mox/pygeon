@@ -60,6 +60,7 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     restrict_cells = restrict(keep_cells)
     restrict_faces = restrict(keep_faces)
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T
+    cell_faces.sum_duplicates()
 
     # Restrict face_nodes by slicing to keep the ordering of indices intact
     face_nodes = face_nodes[:, keep_faces]

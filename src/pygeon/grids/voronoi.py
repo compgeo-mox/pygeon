@@ -156,7 +156,7 @@ class VoronoiGrid(pg.Grid):
         indices = np.hstack(internal_faces)
         indptr = 2 * np.arange(len(internal_faces) + 1)
         data = np.ones(2 * len(internal_faces), dtype=int)
-        face_nodes = sps.csc_matrix((data, indices, indptr))
+        face_nodes = sps.csc_matrix((data, indices, indptr), dtype=int)
 
         # Compute cell-face connectivity
 
@@ -189,6 +189,6 @@ class VoronoiGrid(pg.Grid):
             cf_data.size == cf_indices.size
         ), "Try increasing the number of interior points"
 
-        cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
+        cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr), dtype=int)
 
         return face_nodes, cell_faces
