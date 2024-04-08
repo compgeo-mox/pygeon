@@ -17,8 +17,12 @@ class VoronoiGrid(pg.Grid):
 
         Args:
             num_pts (int, optional): The number of internal seed points. Defaults to None.
-            pts (ndarray, optional): The internal seed points. Defaults to None.
-            **kwargs: Additional keyword arguments.
+            pts (ndarray, optional): The internal seed points, to be in the unit square.
+                Defaults to None.
+            **kwargs: Additional keyword arguments, like the seed for the random number and
+                a parameter to fit the grid to a bounding box in case the standard value does
+                not work as expected. The former with key "seed" and the latter with key
+                "factor".
 
         Returns:
             None
@@ -26,6 +30,10 @@ class VoronoiGrid(pg.Grid):
         # Generate the internal seed points for the Voronoi grid
         if vrt is None:
             vrt = self.generate_internal_pts(num_pts, **kwargs)
+        else:
+            assert (
+                np.amin(vrt) >= 0 and np.amax(vrt) <= 1
+            ), "Points must be in the unit square"
 
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(vrt[:2, :].T)
@@ -51,7 +59,7 @@ class VoronoiGrid(pg.Grid):
                 direction = np.sign(np.dot(midpoint - center, n)) * n
                 if vor.furthest_site:
                     direction *= -1
-                far_pt = vor.vertices[i] + direction
+                far_pt = vor.vertices[i] + direction * kwargs.get("factor", 1)
 
                 # add the far point to the list of vertices
                 vor.vertices = np.vstack((vor.vertices, far_pt))
@@ -179,7 +187,7 @@ class VoronoiGrid(pg.Grid):
 
         assert (
             cf_data.size == cf_indices.size
-        ), "Try coarsening the boundaries or increasing the number of interior points"
+        ), "Try increasing the number of interior points"
 
         cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
 

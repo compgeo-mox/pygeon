@@ -18,7 +18,6 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     Returns:
         pg.Grid: A new grid conforming to the level set.
     """
-
     # Mark the cut faces and cells
     cut_faces, new_nodes = intersect_faces(sd, levelset)
     cut_cells = intersect_cells(sd, cut_faces)
