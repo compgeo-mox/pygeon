@@ -97,6 +97,7 @@ class SubVolumeTest(unittest.TestCase):
         )
         # fmt: on
 
+        sub_simplices.sum_duplicates()
         self.assertTrue(np.allclose(sub_simplices.data, sub_simplices_known_data))
         self.assertTrue(np.allclose(sub_simplices.indices, sub_simplices_known_indices))
         self.assertTrue(np.allclose(sub_simplices.indptr, sub_simplices_known_indptr))
@@ -216,6 +217,7 @@ class SubVolumeTest(unittest.TestCase):
         )
         # fmt: on
 
+        sub_simplices.sum_duplicates()
         self.assertTrue(np.allclose(sub_simplices.data, sub_simplices_known_data))
         self.assertTrue(np.allclose(sub_simplices.indices, sub_simplices_known_indices))
         self.assertTrue(np.allclose(sub_simplices.indptr, sub_simplices_known_indptr))
