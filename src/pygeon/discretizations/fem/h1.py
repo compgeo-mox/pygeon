@@ -547,22 +547,24 @@ class VecLagrange1(pg.VecDiscretization):
     ) -> sps.csc_matrix:
         """
         Returns the div-div matrix operator for the lowest order
-        vector Lagrange element
+        vector Lagrange element. The matrix is multiplied by the Lame' parameter lambda.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Additional data. Defaults to None.
+            data (Optional[dict]): Additional data, the Lame' parameter lambda.
+                Defaults to None.
 
         Returns:
             matrix: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
-        div = self.assemble_div_matrix(sd)
-        # TODO add the Lame' parameter in the computation of the P0 mass
+        coeff = data.get("lambda", 1)
         p0 = pg.PwConstants(self.keyword)
-        mass = p0.assemble_mass_matrix(sd, data)
 
-        return div.T @ mass @ div
+        div = self.assemble_div_matrix(sd)
+        mass = p0.assemble_mass_matrix(sd)
+
+        return div.T @ (coeff * mass) @ div
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -669,11 +671,11 @@ class VecLagrange1(pg.VecDiscretization):
     ) -> sps.csc_matrix:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
-        vector Lagrange element
+        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter mu.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data. Defaults to None.
+            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to None.
 
         Returns:
             sps.csc_matrix: Sparse symgrad-symgrad matrix of shape
@@ -681,11 +683,12 @@ class VecLagrange1(pg.VecDiscretization):
                 The matrix obtained from the discretization.
         """
 
-        symgrad = self.assemble_symgrad_matrix(sd)
-        # TODO add the Lame' parameter in the computation of the P0 mass
+        coeff = 2 * data.get("mu", 1)
         p0 = pg.PwConstants(self.keyword)
-        mass = p0.assemble_mass_matrix(sd, data)
-        tensor_mass = sps.block_diag([mass] * np.square(sd.dim), format="csc")
+
+        symgrad = self.assemble_symgrad_matrix(sd)
+        mass = p0.assemble_mass_matrix(sd)
+        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim), format="csc")
 
         return symgrad.T @ tensor_mass @ symgrad
 
@@ -703,6 +706,26 @@ class VecLagrange1(pg.VecDiscretization):
         symgrad = self.assemble_symgrad_matrix(sd)
 
         return sps.bmat([[symgrad], [div]], format="csc")
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Assembles the global stiffness matrix for the finite element method.
+
+        Args:
+            sd (pg.Grid): The grid on which the finite element method is defined.
+            data (Optional[dict]): Additional data required for the assembly process.
+
+        Returns:
+            sps.csc_matrix: The assembled global stiffness matrix.
+        """
+        # compute the two parts of the global stiffness matrix
+        sym_sym = self.assemble_symgrad_symgrad_matrix(sd, data)
+        div_div = self.assemble_div_div_matrix(sd, data)
+
+        # return the global stiffness matrix
+        return sym_sym + div_div
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
