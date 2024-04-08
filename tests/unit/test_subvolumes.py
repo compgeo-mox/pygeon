@@ -1,5 +1,6 @@
 """ Module contains a dummy unit test that always passes.
 """
+
 import unittest
 import numpy as np
 
@@ -82,12 +83,12 @@ class SubVolumeTest(unittest.TestCase):
         )
 
         sub_simplices_known_indices = np.array(
-        [ 0,  4,  2,  2, 13,  1,  3,  7,  5,  5, 16,  4,  6, 10,  8,  8, 19,
-         7,  9, 12, 11, 11, 22, 10, 13, 17, 15, 15, 26, 14, 16, 20, 18, 18,
-        29, 17, 19, 23, 21, 21, 32, 20, 22, 25, 24, 24, 35, 23, 26, 30, 28,
-        28, 39, 27, 29, 33, 31, 31, 42, 30, 32, 36, 34, 34, 45, 33, 35, 38,
-        37, 37, 48, 36, 39, 43, 41, 41, 52, 40, 42, 46, 44, 44, 53, 43, 45,
-        49, 47, 47, 54, 46, 48, 51, 50, 50, 55, 49]
+        [ 0,  2,  4,  1,  2, 13,  3,  5,  7,  4,  5, 16,  6,  8, 10,  7,  8,
+         19,  9, 11, 12, 10, 11, 22, 13, 15, 17, 14, 15, 26, 16, 18, 20, 17,
+         18, 29, 19, 21, 23, 20, 21, 32, 22, 24, 25, 23, 24, 35, 26, 28, 30,
+         27, 28, 39, 29, 31, 33, 30, 31, 42, 32, 34, 36, 33, 34, 45, 35, 37,
+         38, 36, 37, 48, 39, 41, 43, 40, 41, 52, 42, 44, 46, 43, 44, 53, 45,
+         47, 49, 46, 47, 54, 48, 50, 51, 49, 50, 55]
         )
 
         sub_simplices_known_indptr = np.array(
@@ -96,6 +97,7 @@ class SubVolumeTest(unittest.TestCase):
         )
         # fmt: on
 
+        sub_simplices.sum_duplicates()
         self.assertTrue(np.allclose(sub_simplices.data, sub_simplices_known_data))
         self.assertTrue(np.allclose(sub_simplices.indices, sub_simplices_known_indices))
         self.assertTrue(np.allclose(sub_simplices.indptr, sub_simplices_known_indptr))
@@ -215,6 +217,7 @@ class SubVolumeTest(unittest.TestCase):
         )
         # fmt: on
 
+        sub_simplices.sum_duplicates()
         self.assertTrue(np.allclose(sub_simplices.data, sub_simplices_known_data))
         self.assertTrue(np.allclose(sub_simplices.indices, sub_simplices_known_indices))
         self.assertTrue(np.allclose(sub_simplices.indptr, sub_simplices_known_indptr))
@@ -295,5 +298,4 @@ class SubVolumeTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    SubVolumeTest().test_hexes()
     unittest.main()
