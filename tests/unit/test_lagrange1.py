@@ -1,5 +1,6 @@
 """ Module contains a unit test for the Lagrangean P1 discretization.
 """
+
 import unittest
 import numpy as np
 import scipy.sparse as sps
@@ -52,6 +53,7 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
         self.assertTrue(np.allclose(M.indices, M_known_indices))
@@ -151,6 +153,7 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
         self.assertTrue(np.allclose(M.indices, M_known_indices))
@@ -309,6 +312,7 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
         self.assertTrue(np.allclose(M.indices, M_known_indices))

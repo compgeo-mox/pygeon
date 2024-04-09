@@ -1,3 +1,6 @@
+""" Module contains a dummy unit test that always passes.
+"""
+
 import unittest
 import numpy as np
 import scipy.sparse as sps
@@ -302,6 +305,7 @@ class VecLagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
+        B.sum_duplicates()
         self.assertTrue(np.allclose(B.data, B_known_data))
         self.assertTrue(np.allclose(B.indptr, B_known_indptr))
         self.assertTrue(np.allclose(B.indices, B_known_indices))
@@ -392,6 +396,7 @@ class VecLagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
+        B.sum_duplicates()
         self.assertTrue(np.allclose(B.data, B_known_data))
         self.assertTrue(np.allclose(B.indptr, B_known_indptr))
         self.assertTrue(np.allclose(B.indices, B_known_indices))

@@ -653,7 +653,7 @@ class BDM1(pg.Discretization):
             nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
             indices = indices.reshape((sd.dim, -1))
 
-            face_nodes_loc = sd.face_nodes[:, faces_loc].toarray()
+            face_nodes_loc = sd.face_nodes[:, faces_loc].astype(bool).toarray()
             cell_nodes_loc = cell_nodes[:, c].toarray()
             # get the opposite node id for each face
             opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
