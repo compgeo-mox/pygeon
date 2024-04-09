@@ -416,7 +416,7 @@ class VecLagrange1(pg.VecDiscretization):
         keyword (str): The keyword for the H1 class.
 
     Attributes:
-        lagrange1 (pg.Lagrange1): A local Lagrange1 class for performing some of the
+        scalar_discr (pg.Lagrange1): A local Lagrange1 class for performing some of the
             computations.
 
     Methods:
@@ -558,7 +558,7 @@ class VecLagrange1(pg.VecDiscretization):
             matrix: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
-        coeff = data.get("lambda", 1)
+        coeff = data.get("lambda", 1) if data is not None else 1
         p0 = pg.PwConstants(self.keyword)
 
         div = self.assemble_div_matrix(sd)
@@ -683,7 +683,7 @@ class VecLagrange1(pg.VecDiscretization):
                 The matrix obtained from the discretization.
         """
 
-        coeff = 2 * data.get("mu", 1)
+        coeff = 2 * data.get("mu", 1) if data is not None else 1
         p0 = pg.PwConstants(self.keyword)
 
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -822,6 +822,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             ndarray: The stress tensor.
         """
+        print("DA SISTEMARE IL FATTO CHE LAMBDA E MU DEVONO ESSERE MESSI IN UN DATA")
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
