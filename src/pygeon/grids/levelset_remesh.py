@@ -18,7 +18,6 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     Returns:
         pg.Grid: A new grid conforming to the level set.
     """
-
     # Mark the cut faces and cells
     cut_faces, new_nodes = intersect_faces(sd, levelset)
     cut_cells = intersect_cells(sd, cut_faces)
@@ -61,6 +60,7 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     restrict_cells = restrict(keep_cells)
     restrict_faces = restrict(keep_faces)
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T
+    cell_faces.sum_duplicates()
 
     # Restrict face_nodes by slicing to keep the ordering of indices intact
     face_nodes = face_nodes[:, keep_faces]

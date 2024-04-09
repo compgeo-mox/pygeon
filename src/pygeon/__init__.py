@@ -42,3 +42,4 @@ from pygeon.numerics.projections import eval_at_cell_centers, proj_faces_to_cell
 from pygeon.numerics.spanningtree import SpanningTree, SpanningWeightedTrees
 
 import pygeon.utils.bmat as bmat
+import pygeon.utils.sort_points as sort_points
