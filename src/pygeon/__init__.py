@@ -11,6 +11,7 @@ from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.octagon import OctagonGrid
 from pygeon.grids.voronoi import VoronoiGrid
 from pygeon.grids.einstein import EinSteinGrid
+from pygeon.grids.levelset_remesh import levelset_remesh
 from pygeon.grids.create_grid import grid_from_domain, grid_from_boundary_pts, unit_grid
 
 from pygeon.discretizations.discretization import Discretization

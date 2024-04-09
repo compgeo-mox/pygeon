@@ -1,5 +1,6 @@
 """ Module contains a dummy unit test that always passes.
 """
+
 import unittest
 import numpy as np
 
@@ -90,6 +91,7 @@ class VBDM1Test(unittest.TestCase):
         22, 23])
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
         self.assertTrue(np.allclose(M.indices, M_known_indices))

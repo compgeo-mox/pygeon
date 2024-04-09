@@ -87,6 +87,7 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indices, M_known_indices))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
@@ -670,6 +671,7 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indices, M_known_indices))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))
@@ -749,6 +751,7 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
+        M.sum_duplicates()
         self.assertTrue(np.allclose(M.data, M_known_data))
         self.assertTrue(np.allclose(M.indices, M_known_indices))
         self.assertTrue(np.allclose(M.indptr, M_known_indptr))

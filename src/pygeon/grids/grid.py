@@ -220,13 +220,13 @@ class Grid(pp.Grid):
         indptr = np.arange(0, ridges.size + 1, 2)
         ind = np.ravel(ridges, order="F")
         data = -((-1) ** np.arange(ridges.size))
-        self.ridge_peaks = sps.csc_matrix((data, ind, indptr))
+        self.ridge_peaks = sps.csc_matrix((data, ind, indptr), dtype=int)
 
         # Generate face_ridges such that
         # face_ridges(i, j) = +/- 1:
         # face j has ridge i with same/opposite orientation
         # with the orientation defined according to the right-hand rule
-        self.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr))
+        self.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr), dtype=int)
 
     def tag_ridges(self) -> None:
         """
