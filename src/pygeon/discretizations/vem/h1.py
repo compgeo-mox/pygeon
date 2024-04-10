@@ -400,12 +400,21 @@ class VLagrange1(pg.Discretization):
 
         Returns:
             np.ndarray: The assembled 'natural' boundary condition.
-
-        Raises:
-            NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
         """
-        raise NotImplementedError
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
+        vals = np.zeros(self.ndof(sd))
+
+        for face in b_faces:
+            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
+            loc_n = sd.face_nodes.indices[loc]
+
+            vals[loc_n] += (
+                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
+            )
+
+        return vals
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
@@ -592,18 +601,17 @@ class VLagrange1_vec(VLagrange1):
 
 class VecVLagrange1(pg.VecDiscretization):
     """
-    Vector Lagrange virtual element discretization for H1 space.
+    Vector Lagrange virtual element discretization for H1 space in 2d.
 
     This class represents a virtual element discretization for the H1 space using
     vector virtual Lagrange elements. It provides methods for assembling various matrices
     and operators, such as the mass matrix, divergence matrix, symmetric gradient
     matrix, and more.
 
-    Convention for the ordering is first all the x, then all the y, and (if dim = 3)
-    all the z.
+    Convention for the ordering is first all the x then all the y.
 
     The stress tensor and strain tensor are represented as vectors unrolled row-wise.
-    In 2D, the stress tensor has a length of 4, and in 3D, it has a length of 9.
+    In 2D, the stress tensor has a length of 4.
 
     We are considering the following structure of the stress tensor in 2d
 
@@ -614,19 +622,6 @@ class VecVLagrange1(pg.VecDiscretization):
 
     sigma = [sigma_xx, sigma_xy,
              sigma_yx, sigma_yy]
-
-    While in 3d the stress tensor can be written as
-
-    sigma = [[sigma_xx, sigma_xy, sigma_xz],
-             [sigma_yx, sigma_yy, sigma_yz],
-             [sigma_zx, sigma_zy, sigma_zz]]
-
-    where its vectorized structure of lenght 9 is given by
-
-    sigma = [sigma_xx, sigma_xy, sigma_xz,
-             sigma_yx, sigma_yy, sigma_yz,
-             sigma_zx, sigma_zy, sigma_zz]
-
 
     The strain tensor follows the same approach.
 
@@ -807,7 +802,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = np.power(sd.dim, 3) * (sd.dim + 1) * sd.num_cells  # TOFIX
+        size = cell_nodes.sum() * np.power(sd.dim, 3)
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -836,7 +831,7 @@ class VecVLagrange1(pg.VecDiscretization):
             cols = cols * np.ones((dim2, 1), dtype=int)
 
             rows = cell + np.arange(dim2) * sd.num_cells
-            rows = np.ones(dim2 + sd.dim, dtype=int) * rows.reshape((-1, 1))
+            rows = np.ones(nodes_loc.size * sd.dim, dtype=int) * rows.reshape((-1, 1))
 
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = rows.ravel()
@@ -893,6 +888,70 @@ class VecVLagrange1(pg.VecDiscretization):
         tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim), format="csc")
 
         return symgrad.T @ tensor_mass @ symgrad
+
+    def assemble_penalisation_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Assembles and returns the penalisation matrix.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (Optional[dict]): Optional data for the assembly process.
+
+        Returns:
+            sps.csc_matrix: The penalisation matrix obtained from the discretization.
+        """
+        # Precomputations
+        cell_nodes = sd.cell_nodes()
+        cell_diams = sd.cell_diameters(cell_nodes)
+
+        # Data allocation
+        size = np.sum(np.square(cell_nodes.sum(0)))
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_V = np.empty(size)
+        idx = 0
+
+        for cell, diam in enumerate(cell_diams):
+            loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
+            nodes_loc = cell_nodes.indices[loc]
+
+            A = self.assemble_loc_penalisation_matrix(sd, cell, diam, nodes_loc)
+
+            # Save values for local mass matrix in the global structure
+            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_V[loc_idx] = A.ravel()
+            idx += cols.size
+
+        scalar_pen = sps.csc_matrix((data_V, (rows_I, cols_J)))
+        return sps.block_diag([scalar_pen] * sd.dim, format="csc")
+
+    def assemble_loc_penalisation_matrix(
+        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
+    ) -> np.ndarray:
+        """
+        Computes the local penalisation VEM matrix on a given cell
+        according to the Hitchhiker's (6.5)
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain.
+            cell (int): The index of the cell on which to compute the mass matrix.
+            diam (float): The diameter of the cell.
+            nodes (np.ndarray): The array of nodes associated with the cell.
+
+        Returns:
+            np.ndarray: The computed local VEM mass matrix.
+        """
+        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+
+        D = self.scalar_discr.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
+        I_minus_Pi = np.eye(nodes.size) - D @ proj
+
+        return I_minus_Pi.T @ I_minus_Pi
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
