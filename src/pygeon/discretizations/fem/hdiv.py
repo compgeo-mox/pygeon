@@ -1,3 +1,5 @@
+""" Module for the discretizations of the H(div) space. """
+
 from typing import Callable, Optional
 
 import numpy as np
@@ -11,9 +13,6 @@ class RT0(pg.Discretization, pp.RT0):
     """
     Discretization class for Raviart-Thomas of lowest order.
     Each degree of freedom is the integral over a mesh face.
-
-    Args:
-        keyword (str): The keyword for the discretization.
 
     Attributes:
         keyword (str): The keyword for the discretization.
@@ -381,33 +380,11 @@ class BDM1(pg.Discretization):
                 sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
             )
 
-            # Find the nodes of the cell and their coordinates
-            indices = np.unique(dof_loc, return_inverse=True)[1].reshape((sd.dim, -1))
-
-            face_nodes_loc = sd.face_nodes[:, faces_loc].astype(bool).toarray()
             cell_nodes_loc = cell_nodes[:, c].toarray()
-            # get the opposite node id for each face
-            opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
-
-            # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
-            Psi = np.empty((sd.dim * (sd.dim + 1), sd.dim + 1), np.ndarray)
-            for face, nodes in enumerate(indices.T):
-                tangents = (
-                    sd.nodes[:, face_nodes_loc[:, face]]
-                    - sd.nodes[:, opposite_node[:, face]]
-                )
-                normal = sd.face_normals[:, faces_loc[face]]
-                for index, node in enumerate(nodes):
-                    val_at_node = tangents[:, index] / np.dot(
-                        tangents[:, index], normal
-                    )
-                    Psi[face + index * (sd.dim + 1), node] = val_at_node.reshape(
-                        (1, -1)
-                    )
-            Psi = sps.bmat(Psi)
+            Psi = self.eval_basis_at_node(sd, dof_loc, cell_nodes_loc, faces_loc)
 
             # Compute the inner products
-            A = Psi * M * Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -422,6 +399,46 @@ class BDM1(pg.Discretization):
 
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+
+    def eval_basis_at_node(
+        self,
+        sd: pg.Grid,
+        dof_loc: np.ndarray,
+        cell_nodes_loc: np.ndarray,
+        faces_loc: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Compute the local basis function for the BDM1 finite element space.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            dof_loc (np.ndarray): The local degrees of freedom.
+            cell_nodes_loc (np.ndarray): The local nodes of the cell.
+            faces_loc (np.ndarray): The local faces.
+
+        Returns:
+            np.ndarray: The local mass matrix.
+        """
+        face_nodes_loc = sd.face_nodes[:, faces_loc].astype(bool).toarray()
+
+        # get the opposite node id for each face
+        opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
+
+        # Find the nodes of the cell and their coordinates
+        indices = np.unique(dof_loc, return_inverse=True)[1].reshape((sd.dim, -1))
+
+        # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
+        Psi = np.empty((sd.dim * (sd.dim + 1), sd.dim + 1), np.ndarray)
+        for face, nodes in enumerate(indices.T):
+            tangents = (
+                sd.nodes[:, face_nodes_loc[:, face]]
+                - sd.nodes[:, opposite_node[:, face]]
+            )
+            normal = sd.face_normals[:, faces_loc[face]]
+            for index, node in enumerate(nodes):
+                val_at_node = tangents[:, index] / np.dot(tangents[:, index], normal)
+                Psi[face + index * (sd.dim + 1), node] = val_at_node.reshape((1, -1))
+        return sps.bmat(Psi)
 
     def local_inner_product(self, dim: int) -> sps.csc_matrix:
         """
@@ -453,7 +470,7 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The projection matrix to the RT0 space.
         """
-        return sps.hstack([sps.eye(sd.num_faces)] * sd.dim) / sd.dim
+        return sps.hstack([sps.eye(sd.num_faces)] * sd.dim, format="csc") / sd.dim
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -465,7 +482,7 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The projection matrix.
         """
-        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim)
+        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim, format="csc")
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -493,11 +510,43 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The finite element solution evaluated at the cell centers.
         """
-        rt0 = pg.RT0(self.keyword)
-        eval_rt0 = rt0.eval_at_cell_centers(sd)
+        size = 3 * sd.dim * (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
 
-        proj_to_rt0 = self.proj_to_RT0(sd)
-        return eval_rt0 @ proj_to_rt0
+        cell_nodes = sd.cell_nodes()
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces and
+            # determine the location of the dof
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            dof_loc = np.reshape(
+                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
+            )
+
+            cell_nodes_loc = cell_nodes[:, c].toarray()
+            Psi = self.eval_basis_at_node(
+                sd, dof_loc, cell_nodes_loc, faces_loc
+            ).todense()
+            basis_at_center = np.sum(np.split(Psi, sd.dim + 1, axis=1), axis=0) / (
+                sd.dim + 1
+            )
+
+            loc_ind = np.hstack([faces_loc] * sd.dim)
+            loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+
+            # Save values of the local matrix in the global structure
+            row = np.repeat(c + np.arange(3) * sd.num_cells, basis_at_center.shape[0])
+            loc_idx = slice(idx, idx + row.size)
+            rows_I[loc_idx] = row
+            cols_J[loc_idx] = np.tile(loc_ind, 3)
+            data_IJ[loc_idx] = basis_at_center.ravel(order="F")
+            idx += row.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -642,3 +691,244 @@ class BDM1(pg.Discretization):
 
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+
+
+class VecBDM1(pg.VecDiscretization):
+    """
+    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite element
+    method. It provides methods for assembling matrices like the mass matrix, the trace matrix,
+    the asymmetric matrix and the differential matrix. It also provides methods for
+    evaluating the solution at cell centers, interpolating a given function onto the grid,
+    assembling the natural boundary condition term, and more.
+
+    Attributes:
+        keyword (str): The keyword associated with the vector BDM1 method.
+
+    Methods:
+        ndof(sd: pp.Grid) -> int:
+            Return the number of degrees of freedom associated to the method.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix for the given grid.
+
+        assemble_trace_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the trace matrix for the vector BDM1.
+
+        assemble_asym_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the asymmetric matrix for the vector BDM1.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluate the finite element solution at the cell centers of the given grid.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a given function onto the grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
+            b_faces: np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition term.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+            Returns the range discretization class for the given dimension.
+    """
+
+    def __init__(self, keyword: str) -> None:
+        """
+        Initialize the vector BDM1 discretization class.
+        The scalar discretization class is pg.BDM1.
+
+        We are considering the following structure of the stress tensor in 2d
+
+        sigma = [[sigma_xx, sigma_xy],
+                 [sigma_yx, sigma_yy]]
+
+        which is represented in the code unrolled row-wise as a vector of length 4
+
+        sigma = [sigma_xx, sigma_xy,
+                 sigma_yx, sigma_yy]
+
+        While in 3d the stress tensor can be written as
+
+        sigma = [[sigma_xx, sigma_xy, sigma_xz],
+                 [sigma_yx, sigma_yy, sigma_yz],
+                 [sigma_zx, sigma_zy, sigma_zz]]
+
+        where its vectorized structure of lenght 9 is given by
+
+        sigma = [sigma_xx, sigma_xy, sigma_xz,
+                 sigma_yx, sigma_yy, sigma_yz,
+                 sigma_zx, sigma_zy, sigma_zz]
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+
+        Returns:
+            None
+        """
+        super().__init__(keyword, pg.BDM1)
+
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        """
+        Assembles and returns the mass matrix for vector BDM1, which is given by
+        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
+        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_matrix: The mass matrix obtained from the discretization.
+        """
+        # Assemble the block diagonal mass matrix for the base discretization class
+        D = super().assemble_mass_matrix(sd, data)
+        # Assemble the trace part
+        B = self.assemble_trace_matrix(sd)
+
+        # Assemble the piecewise linear mass mastrix, to assemble the term
+        # (Trace(sigma), Trace(tau))
+        discr = pg.PwLinears(self.keyword)
+        M = discr.assemble_mass_matrix(sd)
+
+        # Extract the data and compute the coefficient for the trace part
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+
+        # Compose all the parts and return them
+        return (D - coeff * B.T @ M @ B) / (2 * mu)
+
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles and returns the trace matrix for the vector BDM1.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_matrix: The trace matrix obtained from the discretization.
+        """
+        # overestimate the size
+        size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        cell_nodes = sd.cell_nodes()
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces and
+            # determine the location of the dof
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            dof_loc = np.reshape(
+                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
+            )
+
+            cell_nodes_loc = cell_nodes[:, c].toarray()
+            Psi = self.scalar_discr.eval_basis_at_node(
+                sd, dof_loc, cell_nodes_loc, faces_loc
+            )
+            # Get all the components of the basis at node
+            Psi_i, Psi_j, Psi_v = sps.find(Psi)
+
+            loc_ind = np.hstack([faces_loc] * sd.dim)
+            loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+
+            cols = np.tile(loc_ind, (3, 1))
+            cols[1, :] += self.scalar_discr.ndof(sd)
+            cols[2, :] += 2 * self.scalar_discr.ndof(sd)
+            cols = np.tile(cols, (sd.dim + 1, 1)).T
+            cols = cols[Psi_i, Psi_j]
+
+            nodes_loc = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
+            rows = np.repeat(nodes_loc, 3)[Psi_j]
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = rows
+            cols_J[loc_idx] = cols
+            data_IJ[loc_idx] = Psi_v
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles and returns the asymmetric matrix for the vector BDM1.
+
+        The asymmetric operator `as' for a tensor is a scalar and it is defined in 2d as
+        as(tau) = tau_xy - tau_yx
+        while for a tensor in 3d it is a vector and given by
+        as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
+
+        Note: We assume that the as(tau) is a cell variable.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_matrix: The asymmetric matrix obtained from the discretization.
+        """
+        # We need to map the BDM1 to the cell center, thus we construct the proper operator
+        P = self.eval_at_cell_centers(sd)
+        nc, cv = sd.num_cells, sd.cell_volumes
+        # We consider a different approach if sd is 2d or 3d
+        if sd.dim == 2:
+            # Every cell has two entries, one for the t_xy and one for the t_yx
+            rows_I = np.tile(np.arange(nc), 2)
+            # Given a 2d tensor, represented as a vector, the t_xy component is the second
+            # and the t_yx is the third
+            cols_J = np.hstack(
+                (
+                    np.arange(nc, 2 * nc),
+                    np.arange(3 * nc, 4 * nc),
+                )
+            )
+            # t_xy gets a +1 and t_yx a -1, represented as p0 dofs so with the cell volume
+            data_IJ = np.hstack((cv, -cv))
+            # Assemble the matrix with a given shape, t_xx and t_yy are not considered
+            T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(nc, P.shape[0]))
+            return T @ P
+        elif sd.dim == 3:
+            # Define an help function
+            enum = lambda i: np.arange(i * nc, (i + 1) * nc)
+            # Since as(tau) is a piecewise vector we need to arrange the entries accordingly
+            # to the second component of the tensor
+            # as(tau)_x = tau_zy - tau_yz -> z and y with -1 and +1
+            # as(tau)_y = tau_xz - tau_zx -> z and x with +1 and -1
+            # as(tau)_z = tau_yx - tau_xy -> x and y with -1 and +1
+            rows_I = np.hstack((enum(2), enum(1), enum(2), enum(0), enum(1), enum(0)))
+            # Given a 3d tensor, represented as a vector, the involved components are
+            # (t_xy, t_xz, t_yx, t_yz, t_zx, t_zy) which are in positions (1, 2, 3) and
+            # (5, 6, 7)
+            cols_J = np.hstack(
+                (
+                    np.arange(nc, 4 * nc),
+                    np.arange(5 * nc, 8 * nc),
+                )
+            )
+            # Assording to the ordering of rows and cols given abose we have the following
+            # signs (-1, +1, +1, -1, -1, +1), weighted by the cell volumes since it is
+            # represented as a p0 vector element
+            data_IJ = np.hstack((-cv, cv, cv, -cv, -cv, cv))
+            T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(3 * nc, P.shape[0]))
+            return T @ P
+        else:
+            raise ValueError("The grid should be either bi or three-dimensional")
+
+    def get_range_discr_class(self, dim: int) -> object:
+        """
+        Returns the discretization class that contains the range of the differential
+
+        Args:
+            dim (int): The dimension of the range
+
+        Returns:
+            pg.Discretization: The discretization class containing the range of the
+                differential
+        """
+        return pg.VecPwConstants

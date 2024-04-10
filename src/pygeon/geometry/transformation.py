@@ -1,8 +1,18 @@
+""" This module contains functions for computing transformation matrices. """
+
 import numpy as np
 
 
-def rotation(vect):
-    # Rotation matrix for a vector
+def rotation(vect: np.ndarray) -> np.ndarray:
+    """
+    Compute the rotation matrix for a vector.
+
+    Args:
+        vect (np.ndarray): The input vector.
+
+    Returns:
+        np.ndarray: The rotation matrix.
+    """
     d = np.linalg.norm(vect)
     dx, dy, dz = vect
 
@@ -14,6 +24,14 @@ def rotation(vect):
     return np.array([[r0, r1, -dx / d], [r1, r2, -dy / d], [dx / d, dy / d, dz / d]])
 
 
-def scaling(vect):
-    # Scaling matrix
+def scaling(vect: np.ndarray) -> np.ndarray:
+    """
+    Returns a scaling matrix based on the given vector.
+
+    Args:
+        vect (np.ndarray): The vector containing scaling factors for each dimension.
+
+    Returns:
+        np.ndarray: The scaling matrix.
+    """
     return np.diag(vect)

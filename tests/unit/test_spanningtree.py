@@ -113,6 +113,33 @@ class SpanningTreeTest(unittest.TestCase):
             self.check_flux(mdg, s)
             self.check_pressure(mdg, s)
 
+    def test_elasticity_tria_grid(self):
+        sd = pg.unit_grid(2, 0.125)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        sptr = pg.SpanningTreeElasticity(mdg)
+        sd = mdg.subdomains(dim=mdg.dim_max())[0]
+
+        key = "tree"
+        vec_bdm1 = pg.VecBDM1(key)
+        vec_p0 = pg.VecPwConstants(key)
+        p0 = pg.PwConstants(key)
+
+        M_div = vec_p0.assemble_mass_matrix(sd)
+        M_asym = p0.assemble_mass_matrix(sd)
+
+        div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
+        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd)
+
+        B = sps.vstack((-div, -asym))
+
+        f = np.random.rand(B.shape[0])
+        s_f = sptr.solve(f)
+
+        self.assertTrue(np.allclose(B @ s_f, f))
+
 
 if __name__ == "__main__":
     unittest.main()

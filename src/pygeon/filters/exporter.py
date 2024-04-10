@@ -9,7 +9,7 @@ class Exporter:
     def __init__(self, obj, file_name, **kwargs):
         self.obj = obj
         self.file_name = file_name
-        self.folder_name = "./"  # folder_name
+        self.folder_name = kwargs.get("folder_name", "./")
 
     def write_vtu(self, data=[], **kwargs):
         if isinstance(self.obj, pg.Graph):

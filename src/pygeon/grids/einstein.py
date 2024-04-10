@@ -1,3 +1,5 @@
+""" Grid build from the a-periodic monotile cell."""
+
 import xml.etree.ElementTree as ET
 from typing import Dict, List
 

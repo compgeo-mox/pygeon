@@ -1,3 +1,5 @@
+""" Set membership utilities. """
+
 import numpy as np
 
 

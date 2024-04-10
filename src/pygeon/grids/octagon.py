@@ -1,3 +1,5 @@
+""" Module for the octagon grid. """
+
 from typing import Optional, Union
 
 import numpy as np

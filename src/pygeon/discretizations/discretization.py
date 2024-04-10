@@ -1,3 +1,5 @@
+""" Module for the discretization class. """
+
 import abc
 from typing import Callable, Optional
 
@@ -107,7 +109,9 @@ class Discretization(pp.numerics.discretization.Discretization):
         """
         pass
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: Optional[dict] = None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 

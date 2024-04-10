@@ -42,6 +42,17 @@ class BDM1Test(unittest.TestCase):
             Dummy(),
         )
 
+        self.assertEqual(discr_bdm1.ndof(sd), dim * sd.num_faces)
+
+        class Dummy:
+            pass
+
+        self.assertRaises(
+            ValueError,
+            discr_bdm1.ndof,
+            Dummy(),
+        )
+
     def test_interpolation_2D(self):
         N, dim = 2, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
@@ -53,8 +64,8 @@ class BDM1Test(unittest.TestCase):
             return x
 
         interp_q = discr_bdm1.interpolate(sd, q_linear)
-        eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
-        eval_q = np.reshape(eval_q, (3, -1), order="F")
+        eval_q = discr_bdm1.eval_at_cell_centers(sd) @ interp_q
+        eval_q = np.reshape(eval_q, (3, -1))
 
         known_q = np.array([q_linear(x) for x in sd.cell_centers.T]).T
         self.assertAlmostEqual(np.linalg.norm(eval_q - known_q), 0)
@@ -71,7 +82,7 @@ class BDM1Test(unittest.TestCase):
 
         interp_q = discr_bdm1.interpolate(sd, q_linear)
         eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
-        eval_q = np.reshape(eval_q, (3, -1), order="F")
+        eval_q = np.reshape(eval_q, (3, -1))
 
         known_q = np.array([q_linear(x) for x in sd.cell_centers.T]).T
         self.assertAlmostEqual(np.linalg.norm(eval_q - known_q), 0)
@@ -147,7 +158,7 @@ class BDM1Test(unittest.TestCase):
             face_proj = discr_bdm1.eval_at_cell_centers(sd)
             cell_proj = discr_p0.eval_at_cell_centers(sd)
 
-            cell_q = (face_proj * q).reshape((3, -1), order="F")
+            cell_q = (face_proj * q).reshape((3, -1))
             cell_p = cell_proj * p
 
             known_q = np.zeros(cell_q.shape)

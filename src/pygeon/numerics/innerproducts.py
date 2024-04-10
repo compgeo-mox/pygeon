@@ -1,3 +1,5 @@
+""" This module contains functions for computing the inner-products operators. """
+
 from typing import Callable, Optional, Union
 
 import numpy as np

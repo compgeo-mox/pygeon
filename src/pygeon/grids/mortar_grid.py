@@ -1,3 +1,5 @@
+""" This module contains the MortarGrid class. """
+
 from typing import Tuple
 
 import numpy as np

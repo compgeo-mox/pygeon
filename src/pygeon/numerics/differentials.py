@@ -1,3 +1,5 @@
+""" This module contains functions for computing the differential operators. """
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
