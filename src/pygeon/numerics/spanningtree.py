@@ -248,106 +248,6 @@ class SpanningTree:
         plt.close()
 
 
-class SpanningWeightedTrees:
-    """
-    Class that can perform a spanning weighted trees solve, based on
-    the previously introduced class SpanningTree.
-    It works very similarly to the previous one by considering multiple
-    trees instead.
-
-    Attributes:
-        sptrs (list): List of SpanningTree objects.
-        avg (function): Function to compute the average of a given array.
-
-    Methods:
-        solve(f: np.ndarray) -> np.ndarray:
-            Perform a spanning weighted trees solve to compute a conservative flux field
-            for given mass source.
-
-        solve_transpose(rhs: np.ndarray) -> np.ndarray:
-            Post-process the pressure by performing a transposed solve.
-
-        find_starting_faces(mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
-            Find the starting faces for each spanning tree if None is provided in the
-            constructor.
-            By default, an equidistribution of boundary faces is constructed.
-
-    """
-
-    def __init__(
-        self,
-        mdg: pg.MixedDimensionalGrid,
-        weights: np.ndarray,
-        starting_faces: Optional[np.ndarray] = None,
-    ) -> None:
-        """Constructor of the class
-
-        Args:
-            mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
-            weights (np.ndarray): The weights to impose for each spanning tree, they need to
-                sum to 1.
-            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified
-                equi-distributed boundary faces are selected.
-        """
-        if starting_faces is None:
-            num = np.asarray(weights).size
-            starting_faces = self.find_starting_faces(mdg, num)
-
-        self.sptrs = [pg.SpanningTree(mdg, f) for f in starting_faces]
-        self.avg = lambda v: np.average(v, axis=0, weights=weights)
-
-    def solve(self, f: np.ndarray) -> np.ndarray:
-        """
-        Perform a spanning weighted trees solve to compute a conservative flux field
-        for given mass source.
-
-        Args:
-            f (np.ndarray): Mass source, integrated against PwConstants.
-
-        Returns:
-            np.ndarray: The post-processed flux field.
-        """
-        return self.avg([st.solve(f) for st in self.sptrs])
-
-    def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
-        """
-        Post-process the pressure by performing a transposed solve.
-
-        Args:
-            rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
-                              minus boundary terms.
-
-        Returns:
-            np.ndarray: The post-processed pressure field.
-        """
-        return self.avg([st.solve_transpose(rhs) for st in self.sptrs])
-
-    def find_starting_faces(self, mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
-        """
-        Find the starting faces for each spanning tree if None is provided in the
-        constructor.
-        By default, an equidistribution of boundary faces is constructed.
-
-        Args:
-            mdg (pg.MixedDimensionalGrid): The (mixed dimensional) grid.
-            num (int): Number of faces to be selected.
-
-        Returns:
-            np.ndarray: The selected faces at the boundary.
-        """
-        if isinstance(mdg, pp.Grid):
-            sd = mdg
-        elif isinstance(mdg, pp.MixedDimensionalGrid):
-            # Extract the top-dimensional grid
-            sd = mdg.subdomains()[0]
-            assert sd.dim == mdg.dim_max()
-        else:
-            raise TypeError
-
-        faces = np.where(sd.tags["domain_boundary_faces"])[0]
-        return faces[np.linspace(0, faces.size, num, endpoint=False, dtype=int)]
-
-
 class SpanningTreeElasticity(SpanningTree):
     """
     Represents a class for computing the spanning tree for the elastic problem.
@@ -450,3 +350,105 @@ class SpanningTreeElasticity(SpanningTree):
 
         # create the solution operator
         return sps.vstack((-div, -asym)) @ self.expand
+
+
+class SpanningWeightedTrees:
+    """
+    Class that can perform a spanning weighted trees solve, based on one of
+    the previously introduced classes SpanningTree and SpanningTreeElasticity.
+    It works very similarly to the previous one by considering multiple
+    trees instead.
+
+    Attributes:
+        sptrs (list): List of SpanningTree objects.
+        avg (function): Function to compute the average of a given array.
+
+    Methods:
+        solve(f: np.ndarray) -> np.ndarray:
+            Perform a spanning weighted trees solve to compute a conservative flux field
+            for given mass source.
+
+        solve_transpose(rhs: np.ndarray) -> np.ndarray:
+            Post-process the pressure by performing a transposed solve.
+
+        find_starting_faces(mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
+            Find the starting faces for each spanning tree if None is provided in the
+            constructor.
+            By default, an equidistribution of boundary faces is constructed.
+
+    """
+
+    def __init__(
+        self,
+        mdg: pg.MixedDimensionalGrid,
+        spt: object,
+        weights: np.ndarray,
+        starting_faces: Optional[np.ndarray] = None,
+    ) -> None:
+        """Constructor of the class
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
+            spt (object): The spanning tree object to use.
+            weights (np.ndarray): The weights to impose for each spanning tree, they need to
+                sum to 1.
+            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified
+                equi-distributed boundary faces are selected.
+        """
+        if starting_faces is None:
+            num = np.asarray(weights).size
+            starting_faces = self.find_starting_faces(mdg, num)
+
+        self.sptrs = [spt(mdg, f) for f in starting_faces]
+        self.avg = lambda v: np.average(v, axis=0, weights=weights)
+
+    def solve(self, f: np.ndarray) -> np.ndarray:
+        """
+        Perform a spanning weighted trees solve to compute a conservative flux field
+        for given mass source.
+
+        Args:
+            f (np.ndarray): Mass source, integrated against PwConstants.
+
+        Returns:
+            np.ndarray: The post-processed flux field.
+        """
+        return self.avg([st.solve(f) for st in self.sptrs])
+
+    def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
+        """
+        Post-process the pressure by performing a transposed solve.
+
+        Args:
+            rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
+                              minus boundary terms.
+
+        Returns:
+            np.ndarray: The post-processed pressure field.
+        """
+        return self.avg([st.solve_transpose(rhs) for st in self.sptrs])
+
+    def find_starting_faces(self, mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
+        """
+        Find the starting faces for each spanning tree if None is provided in the
+        constructor.
+        By default, an equidistribution of boundary faces is constructed.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The (mixed dimensional) grid.
+            num (int): Number of faces to be selected.
+
+        Returns:
+            np.ndarray: The selected faces at the boundary.
+        """
+        if isinstance(mdg, pp.Grid):
+            sd = mdg
+        elif isinstance(mdg, pp.MixedDimensionalGrid):
+            # Extract the top-dimensional grid
+            sd = mdg.subdomains()[0]
+            assert sd.dim == mdg.dim_max()
+        else:
+            raise TypeError
+
+        faces = np.where(sd.tags["domain_boundary_faces"])[0]
+        return faces[np.linspace(0, faces.size, num, endpoint=False, dtype=int)]
