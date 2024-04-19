@@ -20,18 +20,18 @@ class SpanningTree:
         expand (sps.csc_matrix): Expansion matrix from tree to global ordering.
 
         div (sps.csc_matrix): the divergence operator on the associated mdg.
-        starting_cell (int): the first cell of the spanning tree.
-        starting_face (int): the first face of the spanning tree.
+        starting_cells (np.ndarray): the first cells of the spanning tree.
+        starting_faces (np.ndarray): the first faces of the spanning tree.
         tree (sps.csc_array): The incidence matrix of the spanning tree.
 
     Methods:
         setup_system(mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
             Sets up the linear system for solving the spanning tree problem.
 
-        find_starting_face(mdg: pg.MixedDimensionalGrid) -> int:
+        find_starting_faces(mdg: pg.MixedDimensionalGrid) -> int:
             Find the starting face for the spanning tree if None is provided.
 
-        find_starting_cell() -> int:
+        find_starting_cells() -> int:
             Find the starting cell for the spanning tree.
 
         compute_tree() -> sps.csc_array:
@@ -52,24 +52,22 @@ class SpanningTree:
     """
 
     def __init__(
-        self, mdg: pg.MixedDimensionalGrid, starting_face: Optional[int] = None
+        self,
+        mdg: pg.MixedDimensionalGrid,
+        starting_faces: Optional[Union[np.ndarray, int]] = None,
     ) -> None:
         """
         Initializes a SpanningTree object.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
-            starting_face (Optional[int], optional): The index of the starting face. Defaults
+            starting_faces (Union[np.ndarray, int], optional): Indices of the starting faces. Defaults
                 to None.
         """
         self.div = pg.div(mdg)
 
-        if starting_face is None:
-            self.starting_face = self.find_starting_face(mdg)
-        else:
-            self.starting_face = starting_face
-
-        self.starting_cell = self.find_starting_cell()
+        self.starting_faces = self.find_starting_faces(mdg, starting_faces)
+        self.starting_cells = self.find_starting_cells()
         self.tree = self.compute_tree()
 
         flagged_faces = self.flag_tree_faces()
@@ -94,41 +92,60 @@ class SpanningTree:
         ).T.tocsc()
         self.system = pg.cell_mass(mdg) @ self.div @ self.expand
 
-    def find_starting_face(self, mdg: pg.MixedDimensionalGrid) -> int:
+    def find_starting_faces(
+        self,
+        mdg: pg.MixedDimensionalGrid,
+        starting_faces: Union[np.ndarray, int],
+    ) -> np.ndarray:
         """
-        Find the starting face for the spanning tree if None is provided.
-
-        By default, this method returns the index of the first boundary face of the mesh.
+        Find the starting face for the spanning tree.
+        By default, this method returns the indices of the boundary faces of the mesh.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid object.
 
         Returns:
-            int: The index of the starting face for the spanning tree.
+            np.ndarray or int: The indices of the starting faces for the spanning tree.
 
         Raises:
             TypeError: If the input argument `mdg` is not of type `pp.Grid` or
             `pp.MixedDimensionalGrid`.
         """
-        if isinstance(mdg, pp.Grid):
-            sd = mdg
-        elif isinstance(mdg, pp.MixedDimensionalGrid):
+
+        # The default case
+        if starting_faces is None:
+
             # Extract the top-dimensional grid
-            sd = mdg.subdomains()[0]
-            assert sd.dim == mdg.dim_max()
+            if isinstance(mdg, pp.Grid):
+                sd = mdg
+            elif isinstance(mdg, pp.MixedDimensionalGrid):
+                sd = mdg.subdomains()[0]
+                assert sd.dim == mdg.dim_max()
+            else:
+                raise TypeError
+
+            # Find the boundary faces and remove duplicate connections to boundary cells
+            bdry_faces = np.where(sd.tags["domain_boundary_faces"])[0]
+            I_cells, J_faces, _ = sps.find(self.div.tocsc()[:, bdry_faces])
+            _, uniq_ind = np.unique(I_cells, return_index=True)
+
+            return bdry_faces[J_faces[uniq_ind]]
+
+        # If the starting_face is an integer, recast it as an array
+        elif not isinstance(starting_faces, np.ndarray):
+            return np.array([starting_faces])
+
         else:
-            raise TypeError
+            return starting_faces
 
-        return np.argmax(sd.tags["domain_boundary_faces"])
-
-    def find_starting_cell(self) -> int:
+    def find_starting_cells(self) -> np.ndarray:
         """
         Find the starting cell for the spanning tree.
 
         Returns:
-            int: The index of the starting cell.
+            np.ndarray: The indices of the starting cells.
         """
-        return self.div.tocsc()[:, self.starting_face].indices[0]
+        return self.div.tocsc()[:, self.starting_faces].indices
 
     def compute_tree(self) -> sps.csc_array:
         """
@@ -137,9 +154,42 @@ class SpanningTree:
         Returns:
             sps.csc_array: The computed spanning tree as a compressed sparse column matrix.
         """
-        tree = sps.csgraph.breadth_first_tree(
-            self.div @ self.div.T, self.starting_cell, directed=False
-        )
+        incidence = self.div @ self.div.T
+
+        # If a single root is given, we default to the breadth-first tree generator from scipy
+        if len(self.starting_cells) == 1:
+            tree = sps.csgraph.breadth_first_tree(
+                incidence, self.starting_cells[0], directed=False
+            )
+
+        # For multiple roots, we use our own generator
+        else:
+            # Initialize the tree
+            tree = sps.lil_array(incidence.shape, dtype=int)
+
+            # Keep track of the cells that have been visited by the tree
+            visited_cells = np.zeros(np.size(incidence, 0), dtype=bool)
+            visited_cells[self.starting_cells] = True
+
+            while np.any(~visited_cells):
+                # Extract global indices of the (un)visited cells
+                vis_glob = np.where(visited_cells)[0]
+                unv_glob = np.where(~visited_cells)[0]
+
+                # Find connectivity between visited and unvisited cells
+                local_graph = incidence[np.ix_(vis_glob, unv_glob)]
+                vis_cell, unv_cell, _ = sps.find(local_graph)
+
+                assert len(unv_cell) > 0, "No new neighbors found."
+
+                # Each unvisited cell is linked to exactly one visited cell
+                unv_cell, nc_ind = np.unique(unv_cell, return_index=True)
+                vis_cell = vis_cell[nc_ind]
+
+                # Save the connectivity in the tree and mark the new cells as visited
+                tree[vis_glob[vis_cell], unv_glob[unv_cell]] = 1
+                visited_cells[unv_glob[unv_cell]] = True
+
         return sps.csc_array(tree)
 
     def flag_tree_faces(self) -> np.ndarray:
@@ -157,7 +207,9 @@ class SpanningTree:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        face_finder = sps.csc_array((vals, (rows, cols)))
+        face_finder = sps.csc_array(
+            (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
+        )
         face_finder = np.abs(self.div.T) @ face_finder
         I, _, V = sps.find(face_finder)
 
@@ -165,7 +217,7 @@ class SpanningTree:
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
-        flagged_faces[self.starting_face] = True
+        flagged_faces[self.starting_faces] = True
         flagged_faces[tree_faces] = True
 
         return flagged_faces
@@ -229,7 +281,8 @@ class SpanningTree:
         ax = fig.add_subplot(111)
 
         node_color = ["blue"] * cell_centers.shape[1]
-        node_color[self.starting_cell] = "green"
+        for sc in self.starting_cells:
+            node_color[sc] = "green"
 
         ax.autoscale(False)
         nx.draw(

@@ -1,5 +1,6 @@
 """ Module contains a dummy unit test that always passes.
 """
+
 import unittest
 import numpy as np
 import porepy as pp
@@ -10,7 +11,14 @@ import pygeon as pg
 
 class SpanningTreeTest(unittest.TestCase):
     def sptr(self, mdg):
-        return [pg.SpanningTree(mdg), pg.SpanningWeightedTrees(mdg, [0.25, 0.5, 0.25])]
+        sd = mdg.subdomains()[0]
+        starting_face = np.argmax(sd.tags["domain_boundary_faces"])
+
+        return [
+            pg.SpanningTree(mdg),
+            pg.SpanningTree(mdg, starting_face),
+            pg.SpanningWeightedTrees(mdg, [0.25, 0.5, 0.25]),
+        ]
 
     def check_flux(self, mdg, sptr):
         """
