@@ -693,10 +693,6 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_matrix: The div matrix obtained from the discretization.
         """
-        # If a 0-d grid is given then we return a zero matrix
-        if sd.dim == 0:
-            return sps.csc_matrix((1, 1))
-
         cell_nodes = sd.cell_nodes()
         cell_diams = sd.cell_diameters(cell_nodes)
 
@@ -1071,8 +1067,7 @@ class VecVLagrange1(pg.VecDiscretization):
         self,
         sd: pg.Grid,
         u: np.ndarray,
-        labda: Union[float, np.ndarray],
-        mu: Union[float, np.ndarray],
+        data: dict,
     ) -> np.ndarray:
         """
         Compute the stress tensor for a given displacement field.
@@ -1080,13 +1075,12 @@ class VecVLagrange1(pg.VecDiscretization):
         Args:
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
-            labda (float or ndarray): The first Lamé parameter.
-            mu (float or ndarray): The second Lamé parameter.
+            data (dict): Data for the computation including the Lame parameters accessed with
+                the keys "labda" and "mu". Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.
         """
-        print("DA METTERE I DATI IN UN DATA; IDEM PER IL CASO FEM")
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
@@ -1095,8 +1089,8 @@ class VecVLagrange1(pg.VecDiscretization):
         proj = p0.eval_at_cell_centers(sd)
 
         # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += labda * div @ u
+        sigma = np.array(np.split(2 * data["mu"] * symgrad @ u, np.square(sd.dim)))
+        sigma[:: (sd.dim + 1)] += data["lambda"] * div @ u
 
         # compute the actual dofs
         sigma = sigma @ proj
