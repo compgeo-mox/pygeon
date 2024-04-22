@@ -452,3 +452,107 @@ class SpanningWeightedTrees:
 
         faces = np.where(sd.tags["domain_boundary_faces"])[0]
         return faces[np.linspace(0, faces.size, num, endpoint=False, dtype=int)]
+
+
+class SpanningTreeElasticity(SpanningTree):
+    """
+    Represents a class for computing the spanning tree for the elastic problem.
+
+    Attributes:
+        expand (sps.csc_matrix): The expanded matrix for spanning tree computation.
+        system (sps.csc_matrix): The computed system matrix.
+
+    Methods:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+            Set up the system for the spanning tree algorithm.
+
+        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+            Compute the expanded matrix for spanning tree computation.
+
+        compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+            Computes the system matrix for the given grid.
+    """
+
+    def setup_system(
+        self, mdg: Union[pg.MixedDimensionalGrid, pg.Grid], flagged_faces: np.ndarray
+    ) -> None:
+        """
+        Set up the system for the spanning tree algorithm.
+
+        Args:
+            mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            None
+        """
+        # NOTE: we are assuming only one higher dimensional 2d grid
+        if isinstance(mdg, pg.MixedDimensionalGrid):
+            sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        else:
+            sd = mdg
+
+        self.expand = self.compute_expand(sd, flagged_faces)
+        self.system = self.compute_system(sd)
+
+    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+        """
+        Compute the expanded matrix for spanning tree computation.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            sps.csc_matrix: The expanded matrix for spanning tree computation.
+        """
+        key = "tree"
+        bdm1 = pg.BDM1(key)
+
+        # this operator fix one dof per face of the bdm space to capture displacement
+        P_div = bdm1.proj_from_RT0(sd)
+
+        # this operator maps to div-free bdm to capture rotation
+        P_rot = P_div.copy()
+        P_rot.data[::2] *= -1
+
+        fn = sd.face_normals.copy()
+        fn = fn / np.linalg.norm(fn, axis=0)
+        fn_x, fn_y, _ = np.split(fn.ravel(), 3)
+
+        # scaled P_rot with the face normals to be consistent with the div operator
+        P_asym = sps.vstack((P_rot @ sps.diags(fn_x), P_rot @ sps.diags(fn_y)))
+
+        # combine all the P
+        P_div = sps.block_diag([P_div] * sd.dim)
+        P = sps.hstack((P_div, P_asym), format="csc")
+
+        # restriction to the flagged faces and restrict P to them
+        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+
+        return P @ sps.block_diag([expand] * 3, format="csc")
+
+    def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Computes the system matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the domain.
+
+        Returns:
+            sps.csc_matrix: The computed system matrix.
+        """
+        # first we assemble the B matrix
+        key = "tree"
+        vec_bdm1 = pg.VecBDM1(key)
+        vec_p0 = pg.VecPwConstants(key)
+        p0 = pg.PwConstants(key)
+
+        M_div = vec_p0.assemble_mass_matrix(sd)
+        M_asym = p0.assemble_mass_matrix(sd)
+
+        div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
+        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd)
+
+        # create the solution operator
+        return sps.vstack((-div, -asym)) @ self.expand
