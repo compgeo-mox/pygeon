@@ -178,7 +178,7 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: off
 
-        symgrad_symgrad_known_data = np.array(
+        symgrad_symgrad_known_data = 2 * np.array(
         [-0.5 , -0.25,  0.25, -0.25,  0.75,  0.25, -0.5 , -0.5 , -0.25,
          0.25, -0.25, -0.5 ,  1.5 , -0.25,  0.25, -0.25,  0.75, -0.5 ,
         -0.25,  0.25, -1.  , -0.25,  0.25, -0.25, -0.25,  1.5 , -0.25,
@@ -431,7 +431,7 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: off
 
-        symgrad_symgrad_known_data = np.array(
+        symgrad_symgrad_known_data = 2 * np.array(
         [-0.125,  0.125, -0.125,  0.125, -0.375,  0.125, -0.125,  0.375,
          0.125,  0.125, -0.375, -0.125, -0.125, -0.125, -0.375,  0.25 ,
         -0.125,  0.75 , -0.125,  0.125, -0.125,  0.125,  0.125, -0.375,
@@ -779,7 +779,7 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: off
 
-        symgrad_symgrad_known_data = np.array(
+        symgrad_symgrad_known_data = 2 * np.array(
         [-0.07544417,  0.07544417, -0.07544417, -0.03125   ,  0.03125   ,
         -0.03125   , -0.09375   ,  0.03125   , -0.03125   , -0.10133252,
         -0.04955583,  0.04955583,  0.07544417,  0.03125   , -0.5       ,

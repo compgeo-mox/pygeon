@@ -737,63 +737,6 @@ class VecLagrange1(pg.VecDiscretization):
         # return the global stiffness matrix
         return sym_sym + div_div
 
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a function onto the finite element space
-
-        Args:
-            sd (pg.Grid): grid, or a subclass.
-                The grid onto which the function will be interpolated.
-            func (function): a function that returns the function values at coordinates
-                The function to be interpolated.
-
-        Returns:
-            array: the values of the degrees of freedom
-                The interpolated values of the function on the finite element space.
-
-        NOTE: We are assuming the sd grid in the (x,y) coordinates
-        """
-        return self.scalar_discr.interpolate(sd, func).ravel(order="F")
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Assembles the matrix by evaluating the Lagrange basis functions at the cell
-        centers of the given grid.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_matrix: The evaluation matrix.
-        """
-        proj = self.scalar_discr.eval_at_cell_centers(sd)
-        return sps.block_diag([proj] * sd.dim, format="csc")
-
-    def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
-    ) -> np.ndarray:
-        """
-        Assembles the natural boundary condition term
-        (Tr q, p)_Gamma
-
-        Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function that defines the
-                natural boundary condition.
-            b_faces (np.ndarray): List of boundary faces where the natural boundary
-                condition is applied.
-
-        Returns:
-            np.ndarray: The assembled natural boundary condition term.
-        """
-        bc_val = []
-        for d in np.arange(sd.dim):
-            f = lambda x: func(x)[d]
-            bc_val.append(self.scalar_discr.assemble_nat_bc(sd, f, b_faces))
-        return np.hstack(bc_val)
-
     def get_range_discr_class(self, dim: int) -> object:
         """
         Returns the discretization class that contains the range of the differential.

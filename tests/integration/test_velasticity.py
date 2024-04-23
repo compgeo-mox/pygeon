@@ -29,7 +29,7 @@ class VElasticityTestPrimal(unittest.TestCase):
                 - vec_p1 (pg.VecLagrange1): The Lagrange finite element space.
                 - A (pg.Matrix): The assembled elasticity matrix.
         """
-        data = {"lambda": 1, "mu": 0.5}
+        data = {pp.PARAMETERS: {"elasticity": {"lambda": 1, "mu": 0.5}}}
         sd = pp.CartGrid([2] * dim, [1] * dim)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
