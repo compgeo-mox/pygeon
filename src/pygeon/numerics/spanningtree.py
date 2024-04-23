@@ -159,9 +159,10 @@ class SpanningTree:
 
         face_finder = sps.csc_array((vals, (rows, cols)))
         face_finder = np.abs(self.div.T) @ face_finder
-        I, _, V = sps.find(face_finder)
+        I, J, V = sps.find(face_finder)
 
-        tree_faces = I[V == 2]
+        _, index = np.unique(J[V == 2], return_index=True)
+        tree_faces = I[V == 2][index]
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
