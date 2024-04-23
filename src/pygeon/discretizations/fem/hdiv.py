@@ -94,7 +94,7 @@ class RT0(pg.Discretization, pp.RT0):
             data = {
                 pp.PARAMETERS: {self.keyword: {}},
                 pp.DISCRETIZATION_MATRICES: {self.keyword: {}},
-            }
+            } 
 
         try:
             data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
@@ -123,7 +123,8 @@ class RT0(pg.Discretization, pp.RT0):
             sps.csc_matrix: The mass matrix.
         """
 
-        data = self.create_dummy_data(sd, data)
+        if data is None:
+            data = self.create_dummy_data(sd, data)
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][
             self.mass_matrix_key
