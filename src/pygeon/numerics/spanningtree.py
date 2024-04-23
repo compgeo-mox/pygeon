@@ -90,7 +90,21 @@ class SpanningTree:
         self.expand = pg.numerics.linear_system.create_restriction(
             flagged_faces
         ).T.tocsc()
-        self.system = pg.cell_mass(mdg) @ self.div @ self.expand
+
+        # Save the sparse LU decomposition of the system
+        system = pg.cell_mass(mdg) @ self.div @ self.expand
+        self.system = sps.linalg.splu(system)
+
+    @staticmethod
+    def extract_top_dim_sd(mdg) -> pg.Grid:
+        # Extract the top-dimensional grid
+        if isinstance(mdg, pp.Grid):
+            sd = mdg
+        elif isinstance(mdg, pp.MixedDimensionalGrid):
+            sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        else:
+            raise TypeError
+        return sd
 
     def find_starting_faces(
         self,
@@ -114,15 +128,7 @@ class SpanningTree:
 
         # The default case
         if starting_faces is None:
-
-            # Extract the top-dimensional grid
-            if isinstance(mdg, pp.Grid):
-                sd = mdg
-            elif isinstance(mdg, pp.MixedDimensionalGrid):
-                sd = mdg.subdomains()[0]
-                assert sd.dim == mdg.dim_max()
-            else:
-                raise TypeError
+            sd = self.extract_top_dim_sd(mdg)
 
             # Find the boundary faces and remove duplicate connections to boundary cells
             bdry_faces = np.where(sd.tags["domain_boundary_faces"])[0]
@@ -234,7 +240,7 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed flux field
         """
-        return self.expand @ sps.linalg.spsolve(self.system, f)
+        return self.expand @ self.system.solve(f)
 
     def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
@@ -247,7 +253,7 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed pressure field
         """
-        return sps.linalg.spsolve(self.system.T.tocsc(), self.expand.T.tocsc() @ rhs)
+        return self.system.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
@@ -389,15 +395,8 @@ class SpanningWeightedTrees:
         Returns:
             np.ndarray: The selected faces at the boundary.
         """
-        if isinstance(mdg, pp.Grid):
-            sd = mdg
-        elif isinstance(mdg, pp.MixedDimensionalGrid):
-            # Extract the top-dimensional grid
-            sd = mdg.subdomains()[0]
-            assert sd.dim == mdg.dim_max()
-        else:
-            raise TypeError
 
+        sd = SpanningTree.extract_top_dim_sd(mdg)
         faces = np.where(sd.tags["domain_boundary_faces"])[0]
         return faces[np.linspace(0, faces.size, num, endpoint=False, dtype=int)]
 
@@ -434,14 +433,12 @@ class SpanningTreeElasticity(SpanningTree):
         Returns:
             None
         """
-        # NOTE: we are assuming only one higher dimensional 2d grid
-        if isinstance(mdg, pg.MixedDimensionalGrid):
-            sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        else:
-            sd = mdg
-
+        sd = self.extract_top_dim_sd(mdg)
         self.expand = self.compute_expand(sd, flagged_faces)
-        self.system = self.compute_system(sd)
+
+        # Save the sparse LU decomposition of the system
+        system = self.compute_system(sd)
+        self.system = sps.linalg.splu(system)
 
     def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
         """
