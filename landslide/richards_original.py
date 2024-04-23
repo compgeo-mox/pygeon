@@ -18,7 +18,7 @@ K = 50
 L = 3.501e-2
 
 # Set the mesh refinment
-N = 4
+N = 10
 
 # Set the number of steps (excluding the initial condition)
 num_steps = 9
