@@ -96,14 +96,26 @@ class SpanningTree:
         self.system = sps.linalg.splu(system)
 
     @staticmethod
-    def extract_top_dim_sd(mdg) -> pg.Grid:
-        # Extract the top-dimensional grid
+    def extract_top_dim_sd(mdg: Union[pg.MixedDimensionalGrid, pg.Grid]) -> pg.Grid:
+        """
+        Extracts the top-dimensional grid of a mixed-dimensional grid.
+        Returns the grid if mdg is a pp.Grid.
+
+        The method is static so that it can be reused by SpanningWeightedTrees.
+
+        Args:
+            mdg: The (mixed-dimensional) grid.
+
+        Returns:
+            sd: The top-dimensional grid
+        """
         if isinstance(mdg, pp.Grid):
             sd = mdg
         elif isinstance(mdg, pp.MixedDimensionalGrid):
             sd = mdg.subdomains(dim=mdg.dim_max())[0]
         else:
             raise TypeError
+
         return sd
 
     def find_starting_faces(
