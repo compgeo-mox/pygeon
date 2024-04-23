@@ -9,79 +9,10 @@ import matplotlib.pyplot as plt
 import porepy as pp
 import pygeon as pg
 
-from topograhy_file import theta_Chouly, penalty_factor, initial_pressure_func, generate_mesh, mark_boundary_faces, SlopeAngle, precipitation_func, there_is_gravity, theta, conductivity, DpsiDtheta, time_step, output_directory, num_steps, number_nonlin_it, L_scheme_coeff, abs_tol, rel_tol, DinvConductivityDpsi
+from topograhy_file import theta_Chouly, penalty_factor_hyb, initial_pressure_func, generate_mesh, mark_boundary_faces, SlopeAngle, precipitation_func, there_is_gravity, theta, conductivity, DpsiDtheta, time_step, output_directory, num_steps, number_nonlin_it, L_scheme_coeff, abs_tol, rel_tol, DinvConductivityDpsi
 from limit_equilibrium import *
 
-
-class Matrix_Computer:
-    """
-    A simple class used to generate the various matrices required to perform the FEM method.
-    """
-    def __init__(self, RT0):
-        self.RT0 = RT0
-
-    # Assemble the matrix C for the Newton method with RT0 elements
-    def dual_C(self, sd, q, cond_inv_coeff, data):
-        """
-        Assemble the C matrix (same as mass matrix of RT0, with the derivative of the inverse hydraulic conductivity).
-        It will firstly call the setup function, if it was not called before.
-        """
-        dim = sd.dim
-
-        size_HB = dim * (dim + 1)
-        HB = np.zeros((size_HB, size_HB))
-        for it in np.arange(0, size_HB, dim):
-            HB += np.diagflat(np.ones(size_HB - it), it)
-        HB += HB[-1].T
-        HB /= dim * dim * (dim + 1) * (dim + 2)
-        
-        deviation_from_plane_tol = data.get("deviation_from_plane_tol", 1e-5)
-        _, _, _, _, _, node_coords = pp.map_geometry.map_grid(sd, deviation_from_plane_tol)
-
-        faces, cells, sign = sps.find(sd.cell_faces)
-        index = np.argsort(cells)
-
-        faces = faces[index]
-        sign  = sign[index]
-
-        RT0._compute_cell_face_to_opposite_node(sd, data)
-        cell_face_to_opposite_node = data["rt0_class_cell_face_to_opposite_node"]
-
-        size_A = np.power(sd.dim + 1, 1) * sd.num_cells
-
-        rows_A = np.empty(size_A, dtype=int)
-        cols_A = np.empty(size_A, dtype=int)
-        data_A = np.empty(size_A)
-        idx_A = 0
-
-
-        for c in np.arange(sd.num_cells):
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = faces[loc]
-                
-            node = cell_face_to_opposite_node[c, :]
-            coord_loc = node_coords[:, node]
-
-            A = pp.RT0.massHdiv(
-                np.eye(sd.dim),
-                sd.cell_volumes[c],
-                coord_loc,
-                sign[loc],
-                sd.dim,
-                HB,
-            )
-
-            # Save values for Hdiv-mass local matrix in the global structure
-            loc_idx = range(idx_A, idx_A + sd.dim + 1)
-            rows_A[loc_idx] = faces_loc
-            cols_A[loc_idx] = c
-            data_A[loc_idx] = (A @ q[faces_loc]).ravel() * cond_inv_coeff[c] / sd.cell_volumes[c]
-                
-            idx_A += (sd.dim + 1)
-
-        return sps.coo_matrix((data_A, (rows_A, cols_A))).tocsc()
-
-
+from utils import *
 
 # prima gmsh poi match_2d per interpolare sulla nuova 
 # src/porepy/grids/match_grids.py
@@ -224,24 +155,28 @@ tree.from_grid(subdomain)
 #n_nodes = tree.search(n)
 
 flux_lat_bc = np.zeros(dof_q)
-normal_vector_lat  = -subdomain.face_normals[1,:][gamma_laterals]/subdomain.face_areas[gamma_laterals]
-normal_vector_top  =  normal_vectors_sign[gamma_topography]
+normal_vector_lat = -subdomain.face_normals[1,:][gamma_laterals]/subdomain.face_areas[gamma_laterals]
+normal_vector_top =  normal_vectors_sign[gamma_topography]
 
-gamma_Nitsche = penalty_factor/subdomain.face_areas[gamma_topography]
+gamma_Nitsche = penalty_factor_hyb/subdomain.face_areas[gamma_topography]
 
 #prec_term_Nitsche = precipitation_func(subdomain.face_centers[0][gamma_topography])*subdomain.face_normals[1,:][gamma_topography]/subdomain.face_areas[gamma_topography]
 
 #normal_vector_top*1./gamma_Nitsche*np.maximum((prec_proj[gamma_topography] - prev[:dof_q][gamma_topography])/subdomain.face_areas[gamma_topography]*0 - gamma_Nitsche*prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]], 0)
 
 
-cp = Matrix_Computer(RT0)
-
 
 L_mat = np.zeros((dof_q, dof_q))  
-L_mat[gamma_topography,gamma_topography] = normal_vector_top/subdomain.face_areas[gamma_topography]
+L_mat[gamma_topography, gamma_topography] = normal_vector_top/subdomain.face_areas[gamma_topography]
 L_mat = sps.csc_matrix(L_mat[gamma_topography])
 
-C_mat = np.zeros((dof_q,dof_psi))
+cp = Matrix_Computer(subdomain, dof_q, dof_psi)
+C_mat = sps.dok_matrix((dof_q, dof_psi))
+
+zeros_mat_psi_l = sps.dok_matrix((dof_psi, dof_l))
+zeros_mat_l_l   = sps.dok_matrix((dof_l,   dof_l))
+
+Nitsche_contribution_hybrid = Nitsche_term_hybrid(subdomain, dof_q, dof_l, gamma_Nitsche)
 
 # Time loop
 for n in np.arange(num_steps):
@@ -276,8 +211,9 @@ for n in np.arange(num_steps):
         # Actual rhs
         rhs = time_rhs.copy()
 
-        flux_top_bc = prec_proj[gamma_topography]*normal_vector_top/subdomain.face_areas[gamma_topography] + 1./gamma_Nitsche*np.maximum(0, prev[-dof_l:]/subdomain.face_areas[gamma_topography] - gamma_Nitsche*(prec_proj[gamma_topography] - prev[:dof_q][gamma_topography])*normal_vector_top/subdomain.face_areas[gamma_topography] ) 
-        rhs[-dof_l:] += flux_top_bc   
+        # Assemble Nitsche contributions
+        Nitsche_contribution_hybrid.compute_Nitsche_contributions(gamma_topography, prec_proj, prev, normal_vector_top)
+        rhs[-dof_l:] += prec_proj[gamma_topography]*normal_vector_top/subdomain.face_areas[gamma_topography] + Nitsche_contribution_hybrid.flux_top_bc + (Nitsche_contribution_hybrid.matrix_Nitsche_ll @ prev[-dof_l:]) + (Nitsche_contribution_hybrid.matrix_Nitsche_lq @ prev[:dof_q])
 
         # \Theta^{n+1}_k, same steps as \Theta^n
         rhs[dof_q:-dof_l] -= M_psi @ project_psi_to_fe( theta( proj_psi @ prev[dof_q:-dof_l] ) ) /time_step
@@ -290,19 +226,18 @@ for n in np.arange(num_steps):
         rhs[dof_q:-dof_l] += pic_term/time_step @ prev[dof_q:-dof_l]
         
         # questa varia con le iterazioni
-        #mdg = pp.meshing.subdomains_to_mdg([subdomain])
-        Mass_u = RT0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(conductivity(proj_psi @ prev[dof_q:-dof_l]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
-        # P0.assemble_mass_matrix(subdomain)
+        Mass_u = cp.compute_RT0_mass_matrix(conductivity(proj_psi @ prev[dof_q:-dof_l]))
+        #Mass_u = RT0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(conductivity(proj_psi @ prev[dof_q:-dof_l]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
 
-        #C_mat = cp.dual_C(subdomain, prev[:dof_q], DinvConductivityDpsi(proj_psi @ prev[dof_q:-dof_l]), {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(np.ones(subdomain.num_cells))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
-
+        # add the Newton contribution 
+        #C_mat = cp.compute_dual_C(subdomain, prev[:dof_q], DinvConductivityDpsi(proj_psi @ prev[-dof_psi:]))
         rhs[:dof_q] += C_mat @ prev[dof_q:-dof_l]  
 
         # Assemble the system to be solved at time n and interation k, for the L-scheme
         spp = sps.bmat(
-            [[Mass_u, B.T+C_mat, L_mat.T],
-            [-B, pic_term/time_step, np.zeros((dof_psi, dof_l))],
-            [L_mat, np.zeros((dof_l, dof_psi)), np.zeros((dof_l, dof_l))]], format="csc"
+            [[Mass_u,                                               B.T + C_mat,        L_mat.T                                        ],
+            [-B,                                                    pic_term/time_step, zeros_mat_psi_l                                ],
+            [L_mat + Nitsche_contribution_hybrid.matrix_Nitsche_lq, zeros_mat_psi_l.T,  Nitsche_contribution_hybrid.matrix_Nitsche_ll  ]], format="csc"
         )
 
         # Prepare the linear solver

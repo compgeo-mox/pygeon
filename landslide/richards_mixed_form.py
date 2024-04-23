@@ -3,6 +3,7 @@ import os
 import sys
 
 import scipy.sparse as sps
+from scipy.integrate import dblquad
 import sympy as sp
 import matplotlib.pyplot as plt
 
@@ -12,77 +13,7 @@ import pygeon as pg
 from topograhy_file import theta_Chouly, penalty_factor, initial_pressure_func, generate_mesh, mark_boundary_faces, SlopeAngle, precipitation_func, there_is_gravity, theta, conductivity, DpsiDtheta, time_step, output_directory, num_steps, number_nonlin_it, L_scheme_coeff, abs_tol, rel_tol, DinvConductivityDpsi
 from limit_equilibrium import *
 
-
-class Matrix_Computer:
-    """
-    A simple class used to generate the various matrices required to perform the FEM method.
-    """
-    def __init__(self, RT0):
-        self.RT0 = RT0
-
-
-    # Assemble the matrix C for the Newton method with RT0 elements
-    def dual_C(self, sd, q, cond_inv_coeff, data):
-        """
-        Assemble the C matrix (same as mass matrix of RT0, with the derivative of the inverse hydraulic conductivity).
-        It will firstly call the setup function, if it was not called before.
-        """
-        dim = sd.dim
-
-        size_HB = dim * (dim + 1)
-        HB = np.zeros((size_HB, size_HB))
-        for it in np.arange(0, size_HB, dim):
-            HB += np.diagflat(np.ones(size_HB - it), it)
-        HB += HB[-1].T
-        HB /= dim * dim * (dim + 1) * (dim + 2)
-        
-        deviation_from_plane_tol = data.get("deviation_from_plane_tol", 1e-5)
-        _, _, _, _, _, node_coords = pp.map_geometry.map_grid(sd, deviation_from_plane_tol)
-
-        faces, cells, sign = sps.find(sd.cell_faces)
-        index = np.argsort(cells)
-
-        faces = faces[index]
-        sign  = sign[index]
-
-        RT0._compute_cell_face_to_opposite_node(sd, data)
-        cell_face_to_opposite_node = data["rt0_class_cell_face_to_opposite_node"]
-
-        size_A = np.power(sd.dim + 1, 1) * sd.num_cells
-
-        rows_A = np.empty(size_A, dtype=int)
-        cols_A = np.empty(size_A, dtype=int)
-        data_A = np.empty(size_A)
-        idx_A = 0
-
-
-        for c in np.arange(sd.num_cells):
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = faces[loc]
-                
-            node = cell_face_to_opposite_node[c, :]
-            coord_loc = node_coords[:, node]
-
-            A = pp.RT0.massHdiv(
-                np.eye(sd.dim),
-                sd.cell_volumes[c],
-                coord_loc,
-                sign[loc],
-                sd.dim,
-                HB,
-            )
-
-            # Save values for Hdiv-mass local matrix in the global structure
-            loc_idx = range(idx_A, idx_A + sd.dim + 1)
-            rows_A[loc_idx] = faces_loc
-            cols_A[loc_idx] = c
-            data_A[loc_idx] = (A @ q[faces_loc]).ravel() * cond_inv_coeff[c] / sd.cell_volumes[c]
-                
-            idx_A += (sd.dim + 1)
-
-        return sps.coo_matrix((data_A, (rows_A, cols_A))).tocsc()
-
-
+from utils import *
 
 # prima gmsh poi match_2d per interpolare sulla nuova 
 # src/porepy/grids/match_grids.py
@@ -157,8 +88,6 @@ M_psi = P0.assemble_mass_matrix(subdomain)
 # B
 B = - P0.assemble_mass_matrix(subdomain) @ pg.div(subdomain)
 
-#subdomain.cell_faces
-
 # Psi projection
 proj_psi = P0.eval_at_cell_centers(subdomain)
 
@@ -222,19 +151,21 @@ tree.from_grid(subdomain)
 #n_nodes = tree.search(n)
 
 flux_lat_bc = np.zeros(dof_q)
-flux_top_bc = np.zeros(dof_q)
 normal_vector_lat  = -subdomain.face_normals[1,:][gamma_laterals]/subdomain.face_areas[gamma_laterals]
 normal_vector_top  =  normal_vectors_sign[gamma_topography]
 
-gamma_Nitsche = penalty_factor/subdomain.face_areas[gamma_topography]
+gamma_Nitsche = penalty_factor*subdomain.face_areas[gamma_topography]
 
 #prec_term_Nitsche = precipitation_func(subdomain.face_centers[0][gamma_topography])*subdomain.face_normals[1,:][gamma_topography]/subdomain.face_areas[gamma_topography]
 
 #normal_vector_top*1./gamma_Nitsche*np.maximum((prec_proj[gamma_topography] - prev[:dof_q][gamma_topography])/subdomain.face_areas[gamma_topography]*0 - gamma_Nitsche*prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]], 0)
 
 
-cp = Matrix_Computer(RT0)
+cp = Matrix_Computer(subdomain, dof_q, dof_psi)
+C_mat = sps.dok_matrix((dof_q, dof_psi))
 
+
+Nitsche_contribution = Nitsche_term(subdomain, dof_q, dof_psi, gamma_Nitsche)
 
 # Time loop
 for n in np.arange(num_steps):
@@ -258,64 +189,80 @@ for n in np.arange(num_steps):
     # 4. Multiply by psi-mass
     time_rhs[-dof_psi:] += M_psi @ project_psi_to_fe( theta( proj_psi @ prev[-dof_psi:] ) ) /time_step
 
-    # Solution at the previous iteration (k=0 corresponds to the solution at the previous time step)
-    #prev = sol[-1]
-    #current = None
-    #L_scheme_coeff = np.max(np.abs(DpsiDtheta(prev[-dof_psi:])))
 
+    #L_scheme_coeff = np.max(np.abs(1./DpsiDtheta(prev[-dof_psi:])))*.5
+    #print('L scheme coefficient ' + str(L_scheme_coeff))
     # Non-linear solver
     for k in np.arange(number_nonlin_it):
-        
+        #tic()
         # Actual rhs
         rhs = time_rhs.copy()
 
-        #flux_top_bc[gamma_topography] = normal_vector_top*1./(gamma_Nitsche*1e-6)*np.maximum(0, (prec_proj[gamma_topography] - prev[:dof_q][gamma_topography])*normal_vector_top/subdomain.face_areas[gamma_topography] - gamma_Nitsche*prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]]/subdomain.cell_volumes[subdomain.cell_faces[gamma_topography].nonzero()[1]]*1e-6 )
-        flux_top_bc[gamma_topography] = normal_vector_top*1./(gamma_Nitsche*conductivity(prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]]/subdomain.cell_volumes[subdomain.cell_faces[gamma_topography].nonzero()[1]]))*np.maximum(0, (prec_proj[gamma_topography] - prev[:dof_q][gamma_topography])*normal_vector_top/subdomain.face_areas[gamma_topography] - gamma_Nitsche*prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]]/subdomain.cell_volumes[subdomain.cell_faces[gamma_topography].nonzero()[1]]*conductivity(prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]]/subdomain.cell_volumes[subdomain.cell_faces[gamma_topography].nonzero()[1]]) )
-        #rhs[:dof_q] += flux_top_bc   
+        # Assemble Nitsche contributions
+        Nitsche_contribution.compute_Nitsche_contributions(gamma_topography, prec_proj, prev, normal_vector_top)
+        rhs[:dof_q] += Nitsche_contribution.flux_top_bc + (Nitsche_contribution.matrix_Nitsche_qq @ prev[:dof_q]) + (Nitsche_contribution.matrix_Nitsche_qpsi @ prev[-dof_psi:])
+
 
         # \Theta^{n+1}_k, same steps as \Theta^n
         rhs[-dof_psi:] -= M_psi @ project_psi_to_fe( theta( proj_psi @ prev[-dof_psi:] ) ) /time_step
         
         N_mat = P0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(DpsiDtheta(proj_psi @ prev[-dof_psi:]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
-
-        pic_term = N_mat # L_scheme_coeff*M_psi #N_mat
+        
+        pic_term = N_mat #L_scheme_coeff*M_psi #N_mat
 
         # L-term
         rhs[-dof_psi:] += pic_term/time_step @ prev[-dof_psi:]
-        
-        # questa varia con le iterazioni
-        #mdg = pp.meshing.subdomains_to_mdg([subdomain])
-        Mass_u = RT0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(conductivity(proj_psi @ prev[-dof_psi:]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
-        # P0.assemble_mass_matrix(subdomain)
+        #toc()
 
-        C_mat = 0*cp.dual_C(subdomain, prev[:dof_q], DinvConductivityDpsi(proj_psi @ prev[-dof_psi:]), {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(np.ones(subdomain.num_cells))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
 
+        #tic()
+        Mass_u = cp.compute_RT0_mass_matrix(conductivity(proj_psi @ prev[-dof_psi:]))
+        #toc()
+        #tic()
+        #Mass_u = RT0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(conductivity(proj_psi @ prev[-dof_psi:]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
+        #toc()
+
+        preconditioner_inv = assembe_inv_preconditioner(subdomain, RT0, pic_term, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(conductivity(proj_psi @ prev[-dof_psi:]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
+
+        # add the Newton contribution 
+        #C_mat = cp.compute_dual_C(subdomain, prev[:dof_q], DinvConductivityDpsi(proj_psi @ prev[-dof_psi:]))
         rhs[:dof_q] += C_mat @ prev[-dof_psi:]  
 
+        #tic()
         # Assemble the system to be solved at time n and interation k, for the L-scheme
         spp = sps.bmat(
-            [[Mass_u, B.T+C_mat],
-            [-B, pic_term/time_step]], format="csc"
+            [[Mass_u + Nitsche_contribution.matrix_Nitsche_qq, B.T + C_mat + Nitsche_contribution.matrix_Nitsche_qpsi ],
+             [-B,                                              pic_term/time_step                                     ]], format="csc"
         )
-
+        #spp = preconditioner_inv*spp
+        #rhs = preconditioner_inv*rhs
+        #print(np.linalg.cond(spp.A))
         # Prepare the linear solver
         ls = pg.LinearSystem(spp, rhs)
         
         # Fix the essential boundary conditions
         flux_lat_bc[gamma_laterals] = normal_vector_lat*conductivity(prev[-dof_psi:][subdomain.cell_faces[gamma_laterals].nonzero()[1]]/subdomain.cell_volumes[subdomain.cell_faces[gamma_laterals].nonzero()[1]]) 
         ls.flag_ess_bc(np.hstack(bc_essential_laterals  ), np.hstack((flux_lat_bc, np.zeros(dof_psi))))
-        ls.flag_ess_bc(np.hstack(bc_essential_topography), np.hstack((prec_proj,   np.zeros(dof_psi))))
-        
+        #ls.flag_ess_bc(np.hstack(bc_essential_topography), np.hstack((prec_proj,   np.zeros(dof_psi))))
 
+        #ilu = sps.linalg.spilu(spp)
+        #M = sps.linalg.LinearOperator(spp.shape, ilu.solve)
+        
         # Solve the system
         current = ls.solve()
+        #current = ls.solve_iterative(preconditioner_inv)
+
+        #print(np.linalg.norm(rhs-spp.A*current)/np.linalg.norm(rhs))
+
+        
         
         # Check if we have reached convergence
-        rel_err_psi  = np.sqrt(np.sum(np.power(current[-dof_psi:] - prev[-dof_psi:], 2)))
-        abs_err_prev = np.sqrt(np.sum(np.power(prev   [-dof_psi:]                  , 2)))
+        rel_err_psi  = np.sqrt(np.sum((current[-dof_psi:] - prev[-dof_psi:])*(current[-dof_psi:] - prev[-dof_psi:])))
+        abs_err_prev = np.sqrt(np.sum(prev[-dof_psi:]*prev[-dof_psi:]))
+        #toc()
 
         # Log message with error and current iteration
-        print('Iteration #' + str(k+1) + ', error L2 relative psi: ' + str(rel_err_psi))
+        print('Iteration #' + str(k+1) + ', error L2 relative psi: ' + str(rel_err_psi) + ' ' + str(abs_tol + rel_tol * abs_err_prev))
         
         if rel_err_psi > abs_tol + rel_tol * abs_err_prev:
             prev = current.copy()

@@ -97,6 +97,25 @@ class LinearSystem:
         sol = self.repeat_ess_vals() + R_0.T @ sol_0
 
         return sol
+    
+    def solve_iterative(self, Pinv) -> np.ndarray:
+        """
+        Solve the linear system of equations.
+
+        Args:
+            solver (Optional[Callable]): The solver function to use. Defaults to
+                sps.linalg.spsolve.
+
+        Returns:
+            np.ndarray: The solution to the linear system of equations.
+        """
+        A_0, b_0, R_0 = self.reduce_system()
+        #M_x = lambda x: sps.linalg.spsolve(P, x)
+        #M = sps.linalg.LinearOperator((np.size(b_0), np.size(b_0)), M_x)
+        sol_0 = sps.linalg.spsolve.gmres(A_0.tocsc(), b_0, M=Pinv)
+        sol = self.repeat_ess_vals() + R_0.T @ sol_0
+
+        return sol
 
     def repeat_ess_vals(self) -> Union[np.ndarray, sps.csr_matrix]:
         """

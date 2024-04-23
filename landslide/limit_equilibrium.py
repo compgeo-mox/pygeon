@@ -5,10 +5,9 @@ import matplotlib.pyplot as plt
 
 import porepy as pp
 
-from topograhy_file import topography_func, topography_func
-from input_file import gamma, cohesion, phi, Ns, domain_extent_left, domain_extent_right, xx_plot, SlopeHeight, SlopeAngle
+from topograhy_file import gamma, cohesion, phi, Ns, gamma_water, gravity_field, topography_func, bedrock_func, SlopeHeight, SlopeAngle, domain_extent_left, domain_extent_right, xx_plot
 
-# Implementation of Bishop method for the standard slope problem with the Simplex optimization algorithm 
+# Implementation of Morgenstern-Price method for the standard slope problem with the Simplex optimization algorithm 
 # to find the failure surface that minimizes the Factor of Safety (FOS)
 
 # plot topography
@@ -21,7 +20,7 @@ from input_file import gamma, cohesion, phi, Ns, domain_extent_left, domain_exte
 #sys.exit()
 
 
-def Bishop(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
+def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
     """
     xa , ya , Ra = centro e raggio sds
     sds_in , sds_out, eta = ingresso e uscita sds (solo ascissa), eta: angolo 
@@ -71,7 +70,10 @@ def Bishop(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
 
     for i in np.arange(np.size(theta_center)):
         n_nodes = tree.search(pp.adtree.ADTNode(99, [x_vect_center[0][i], x_vect_center[1][i]] * 2))
-        pore_press_slice[i] = np.mean(psi[n_nodes])
+        pore_press_slice[i] = np.mean(psi[n_nodes]) # qui forse mettere una media pesata
+
+    # scale by density and gravity to get the dimension of pressure from \psi, the density in ton/m^3 is such that we obtain kN/m^2
+    pore_press_slice = pore_press_slice*gamma_water #density_water*gravity_field
 
     print(pore_press_slice)
     
@@ -82,7 +84,7 @@ def Bishop(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
     cohesion_tot = cohesion*beta_coeff
     resisting_moment = cohesion_tot + weight_force*np.cos(theta_center)*np.tan(phi)
 
-    FoS = np.sum(resisting_moment)/np.sum(driving_moment)
+    FoS = np.sum(resisting_moment)/np.sum(driving_moment) # \dfrac{KN \cdot m^{-1}}{kN \cdot m^{-1}}
 
      
     # def FoS_func_momentum_Bishp(x):
@@ -158,15 +160,17 @@ def circ_2pts_tan(sds_in , sds_out , eta):
     
     delta = alfa_angle+eta
     
-    
+    plt.close()
+
     ax = plt.gca()
     ax.plot(xx_plot, topography_func(xx_plot), '--')
     circle=plt.Circle((xc,yc),R, fill=False)
     ax.add_patch(circle)
     ax.plot((xc), (yc), 'o', color='black')
     plt.axis('equal')
+    #plt.xlim([sds_out[0],sds_in[0]])
     plt.xlim([domain_extent_left,domain_extent_right])
-    plt.ylim([0,10])
+    plt.ylim([np.min(bedrock_func(xx_plot)),np.max(topography_func(xx_plot))])
     #plt.xlabel('longitude')
     #plt.ylabel('latitude')
     plt.show()
@@ -200,7 +204,7 @@ def func(trial, psi_sol, tree):
     
     xa, ya, Ra, delta = circ_2pts_tan(sds_in, sds_out, eta)
     if ya>sds_in[1] and ya>sds_out[1]:# and delta>delta_min:
-        ff = Bishop(xa, ya, Ra, sds_in, sds_out, eta, psi_sol, tree)
+        ff = MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi_sol, tree)
     else:
         ff = 30.
     print(ff, x_in, x_out, eta)

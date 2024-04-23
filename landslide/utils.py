@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import scipy.sparse as sps
+import porepy as pp 
 
 def TicTocGenerator():
     # Generator that returns time differences
@@ -23,6 +24,82 @@ def toc(tempBool=True):
 def tic():
     # Records a time in TicToc, marks the beginning of a time interval
     toc(False)
+
+
+def assembe_inv_preconditioner(subdomain, RT0, p0p0_mass, data) -> sps.csc_matrix:
+        """
+        Assembles the lumped mass matrix L such that
+        B^T L^{-1} B is a TPFA method.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_matrix: The lumped mass matrix.
+        """
+        lumped_mass_u = RT0.assemble_lumped_matrix(subdomain, data)
+
+        return sps.diags(np.concatenate([1./lumped_mass_u.data, 1./p0p0_mass.data])).tocsc()
+
+
+
+
+class Nitsche_term:
+
+    def __init__(self, subdomain, dof_q, dof_psi, gamma_Nitsche):
+        self.dof_q = dof_q
+        self.dof_psi = dof_psi
+        self.matrix_Nitsche_qq   = sps.dok_matrix((dof_q, dof_q  ))
+        self.matrix_Nitsche_qpsi = sps.dok_matrix((dof_q, dof_psi))
+
+        self.flux_top_bc = np.zeros(dof_q)
+
+        self.gamma_Nitsche = gamma_Nitsche
+
+        self.subdomain = subdomain
+
+        self.pressure_head_thr = 0
+
+    def compute_Nitsche_contributions(self, gamma_topography, prec_proj, prev, normal_vector_top):
+
+        Nitsche_argument = (prec_proj[gamma_topography] - prev[:self.dof_q][gamma_topography])*normal_vector_top/self.subdomain.face_areas[gamma_topography] - self.gamma_Nitsche*(prev[-self.dof_psi:][self.subdomain.cell_faces[gamma_topography].nonzero()[1]]/self.subdomain.cell_volumes[self.subdomain.cell_faces[gamma_topography].nonzero()[1]]-self.pressure_head_thr)
+        
+        self.matrix_Nitsche_qq  [gamma_topography, gamma_topography                                        ] = (Nitsche_argument>0)*1./self.gamma_Nitsche*normal_vector_top*normal_vector_top/self.subdomain.face_areas[gamma_topography]
+        self.matrix_Nitsche_qpsi[gamma_topography, self.subdomain.cell_faces[gamma_topography].nonzero()[1]] = (Nitsche_argument>0)*normal_vector_top*1./self.subdomain.cell_volumes[self.subdomain.cell_faces[gamma_topography].nonzero()[1]]
+        
+        self.flux_top_bc[gamma_topography] = normal_vector_top*1./(self.gamma_Nitsche)*np.maximum(0, Nitsche_argument)
+
+class Nitsche_term_hybrid:
+
+    def __init__(self, subdomain, dof_q, dof_l, gamma_Nitsche):
+        self.dof_q = dof_q
+        self.dof_l = dof_l
+        self.matrix_Nitsche_ll = sps.dok_matrix((dof_l, dof_l))
+        self.matrix_Nitsche_lq = sps.dok_matrix((dof_l, dof_q))
+
+        self.flux_top_bc = np.zeros(dof_l)
+
+        self.gamma_Nitsche = gamma_Nitsche
+
+        self.subdomain = subdomain
+
+        self.pressure_head_thr = 0
+
+    def compute_Nitsche_contributions(self, gamma_topography, prec_proj, prev, normal_vector_top):
+
+        Nitsche_argument = (prev[-self.dof_l:]/self.subdomain.face_areas[gamma_topography]-self.pressure_head_thr) - self.gamma_Nitsche*(prec_proj[gamma_topography] - prev[:self.dof_q][gamma_topography])*normal_vector_top/self.subdomain.face_areas[gamma_topography]
+        # 1./(gamma_Nitsche*1e7)*np.maximum(0,  ) 
+        
+        #self.matrix_Nitsche_ll[np.arange(self.dof_l), np.arange(self.dof_l)] = (Nitsche_argument>0)*(-1./self.subdomain.face_areas[gamma_topography])
+        #self.matrix_Nitsche_lq[np.arange(self.dof_l), gamma_topography     ] = (Nitsche_argument>0)*(-normal_vector_top/self.subdomain.face_areas[gamma_topography])
+        
+        self.matrix_Nitsche_ll[np.arange(self.dof_l), np.arange(self.dof_l)] = (Nitsche_argument>0)*(-1./self.gamma_Nitsche/self.subdomain.face_areas[gamma_topography])
+        self.matrix_Nitsche_lq[np.arange(self.dof_l), gamma_topography     ] = (Nitsche_argument>0)*(-normal_vector_top/self.subdomain.face_areas[gamma_topography])
+        
+        self.flux_top_bc = 1./(self.gamma_Nitsche)*np.maximum(0, Nitsche_argument)
+    
+
 
 class Matrix_Computer:
     """

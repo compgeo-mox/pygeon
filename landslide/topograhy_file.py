@@ -18,16 +18,16 @@ import sympy as sp
 
 
 # Set the maximum number of iterations of the non-linear solver, if one it corresponds to the semi-implicit method
-number_nonlin_it = 50
+number_nonlin_it = 2000
 
 # L-scheme parameter
 L_scheme_coeff = 4.e-3
 
 # Set the number of steps (excluding the initial condition)
-num_steps = 30
+num_steps = 10
 
 # Simulation time length in hours
-final_time = 1*3600*120
+final_time = 1*3600*10
 
 # Time step
 time_step = final_time/num_steps
@@ -35,15 +35,12 @@ time_step = final_time/num_steps
 # Initial pressure function
 initial_pressure_func = lambda x: -x[1]#(x[0]*.5 + x[1]*np.sqrt(3)*.5)
 
-# Fluid density ton/m^3
-density_water = 1
-
 # m/s^2
 gravity_field = 9.81
 
 # Relative and absolute tolerances for the non-linear solver
-abs_tol = 1e-6
-rel_tol = 1e-6
+abs_tol = 1e-14
+rel_tol = 1e-14
 
 # Output directory
 output_directory = 'landslide/output_evolutionary'
@@ -60,22 +57,23 @@ Ns = 50
 theta_s = 0.4
 theta_r = 0.04
 
-alpha = 0.098067
+gamma_water = 10 #9819e-3 # kN/m^3
+alpha = 1./50*gamma_water #0.098067
 
-n_coeff = 1.2 #2.06
+n_coeff = 1.5 #2.06
 K_s = 1e-6 #*(3.6e3)
 
 m_coeff = 1 - 1/n_coeff
 
-penalty_factor = 1e0
+penalty_factor = 1e-10
+penalty_factor_hyb = 1e10 #1./penalty_factor
 
 # space discretization parameters
-char_length = .025 #0.025 # meters
+char_length = .005 #0.025 # meters
 
 # Domain tolerance
 domain_tolerance = char_length/10 # meters
 
-gamma_water = 981 # N/m^3
 
 # Van Genuchten model
 psi_var = sp.Symbol('psi', negative=True)
@@ -150,7 +148,7 @@ SlopeAngle = np.radians(0.)
 
 beta_angle = SlopeAngle
 
-L_domain = 5
+L_domain = 5 # 5, 1
 width_domain = .3
 domain_extent_left = 0  # meters
 domain_extent_right = L_domain*np.sin(beta_angle) + width_domain*np.cos(beta_angle) # meters
@@ -186,14 +184,14 @@ def bedrock_func(x):
 def precipitation_func(x):
     # the rain intensity usually is ecpressed in mm/h
     # defines the precipitation rate, we assume it is directed always in the vertical direction
-    rain_int = 1.e-6/np.cos(beta_angle) # m/h
+    rain_int = 1.e-7/np.cos(beta_angle) # m/h
     #p = -np.ones(np.size(x))*rain_int 
     return np.array([0, -rain_int, 0])
 
 
 def mark_boundary_faces(subdomain, P0, RT0):
     bc_value_bedrock = []
-    bc_essential_topography = []
+    #bc_essential_topography = []
 
     # Get the boundary faces ids
     boundary_faces_indexes = subdomain.get_boundary_faces()
@@ -215,9 +213,6 @@ def mark_boundary_faces(subdomain, P0, RT0):
     plt.plot(subdomain.face_centers[0, :][gamma_laterals],   subdomain.face_centers[1, :][gamma_laterals],   'oy')
     plt.show()
 
-    #area = np.sqrt(subdomain.face_normals[1,:]**2+subdomain.face_normals[0,:]**2)
-    #l=subdomain.face_normals[0,:]/area
-    #l[gamma_laterals]
 
 
     # Prepare the \hat{\psi} function
@@ -225,15 +220,14 @@ def mark_boundary_faces(subdomain, P0, RT0):
     #    return 0
     
     # Prepare the \hat{\psi} function
-    #def bc_gamma_topo(x, hT, q, psi, normals):
-    #    gamma = penalty_factor*hT
-    #    func_int = (precipitation_func(x)-q)*normals - gamma*psi
-    #    return 1./gamma*.5*(func_int + np.abs(func_int))
+    #def bc_gamma_topo(x, t):
+    #    return precipitation_func(x)
 
     # Add a lambda function that generates for each time instant the (discretized) natural boundary 
     # conditions for the problem
     #bc_value_bedrock = lambda t:                   - RT0.assemble_nat_bc(subdomain, lambda x: bc_gamma_d   (x, t),                   gamma_bedrock   )
-    #bc_essential_topography = lambda hT, q, psi, normals: - RT0.assemble_nat_bc(subdomain, lambda x: bc_gamma_topo(x, hT, q, psi, normals), gamma_topography)
+    #bc_essential_topography = lambda t: - RT0.assemble_nat_bc(subdomain, lambda x: bc_gamma_topo(x), gamma_topography)
+    #bc_essential_topography = np.hstack((gamma_topography, np.zeros(P0.ndof(subdomain), dtype=bool)))
     #bc_value_bedrock = np.hstack((gamma_bedrock,   np.zeros(P0.ndof(subdomain), dtype=bool)))
 
     return bc_value_bedrock, gamma_laterals, gamma_topography, gamma_bedrock
