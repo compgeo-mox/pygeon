@@ -266,13 +266,14 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(stiff.indices, stiff_known.indices))
         self.assertTrue(np.allclose(stiff.indptr, stiff_known.indptr))
 
-        fun = lambda x: x[0] + x[1]
+        fun = lambda x: np.array([x[0] + x[1], x[0] * x[1]])
         vals = discr.interpolate(sd, fun)
 
         # fmt: off
 
         vals_known = np.array(
-        [0. , 0.5, 1. , 0.5, 1. , 1.5, 1. , 1.5, 2. ])
+            [0.  , 0.5 , 1.  , 0.5 , 1.  , 1.5 , 1.  , 1.5 , 2.  , 0.  , 0.  ,
+             0.  , 0.  , 0.25, 0.5 , 0.  , 0.5 , 1.  ])
 
         # fmt: on
 
@@ -534,13 +535,14 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(stiff.indices, stiff_known.indices))
         self.assertTrue(np.allclose(stiff.indptr, stiff_known.indptr))
 
-        fun = lambda x: x[0] + x[1]
+        fun = lambda x: np.array([x[0] + x[1], x[0] * x[1]])
         vals = discr.interpolate(sd, fun)
 
         # fmt: off
 
         vals_known = np.array(
-        [0. , 0.5, 1. , 0.5, 1. , 1.5, 1. , 1.5, 2. ])
+            [0.  , 0.5 , 1.  , 0.5 , 1.  , 1.5 , 1.  , 1.5 , 2.  , 0.  , 0.  ,
+             0.  , 0.  , 0.25, 0.5 , 0.  , 0.5 , 1.  ])
 
         # fmt: on
 
@@ -963,15 +965,17 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(stiff.indices, stiff_known.indices))
         self.assertTrue(np.allclose(stiff.indptr, stiff_known.indptr))
 
-        fun = lambda x: x[0] + x[1]
+        fun = lambda x: np.array([x[0] + x[1], x[0] * x[1]])
         vals = discr.interpolate(sd, fun)
 
         # fmt: off
 
         vals_known = np.array(
-        [0.29289322, 0.70710678, 1.29289322, 1.70710678, 0.29289322,
-        1.29289322, 0.70710678, 1.70710678, 0.        , 1.        ,
-        1.        , 2.        ])
+            [0.29289322, 0.70710678, 1.29289322, 1.70710678, 0.29289322,
+             1.29289322, 0.70710678, 1.70710678, 0.        , 1.        ,
+             1.        , 2.        , 0.        , 0.        , 0.29289322,
+             0.70710678, 0.        , 0.29289322, 0.        , 0.70710678,
+             0.        , 0.        , 0.        , 1.        ])
 
         # fmt: on
 
