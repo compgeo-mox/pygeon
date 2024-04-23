@@ -558,13 +558,18 @@ class VecLagrange1(pg.VecDiscretization):
             matrix: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
-        coeff = data.get("lambda", 1) if data is not None else 1
+        if data is None:
+            labda = 1
+        else:
+            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+            labda = parameter_dictionary.get("lambda", 1)
+
         p0 = pg.PwConstants(self.keyword)
 
         div = self.assemble_div_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
 
-        return div.T @ (coeff * mass) @ div
+        return div.T @ (labda * mass) @ div
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -682,8 +687,13 @@ class VecLagrange1(pg.VecDiscretization):
                 (sd.num_nodes, sd.num_nodes).
                 The matrix obtained from the discretization.
         """
+        if data is None:
+            mu = 1
+        else:
+            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+            mu = parameter_dictionary.get("mu", 1)
 
-        coeff = 2 * data.get("mu", 1) if data is not None else 1
+        coeff = 2 * mu
         p0 = pg.PwConstants(self.keyword)
 
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -816,7 +826,7 @@ class VecLagrange1(pg.VecDiscretization):
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
             data (dict): Data for the computation including the Lame parameters accessed with
-                the keys "labda" and "mu". Both float and np.ndarray are accepted.
+                the keys "lambda" and "mu". Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.
@@ -828,9 +838,14 @@ class VecLagrange1(pg.VecDiscretization):
         p0 = pg.PwConstants(self.keyword)
         proj = p0.eval_at_cell_centers(sd)
 
+        # retrieve Lamé parameters
+        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        mu = parameter_dictionary["mu"]
+        labda = parameter_dictionary["lambda"]
+
         # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * data["mu"] * symgrad @ u, np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += data["lambda"] * div @ u
+        sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
+        sigma[:: (sd.dim + 1)] += labda * div @ u
 
         # compute the actual dofs
         sigma = sigma @ proj
