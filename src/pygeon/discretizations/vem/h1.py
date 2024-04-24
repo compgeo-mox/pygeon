@@ -715,6 +715,8 @@ class VecVLagrange1(pg.VecDiscretization):
             sps.csc_matrix: Sparse symgrad-symgrad matrix of shape
                 (sd.num_nodes, sd.num_nodes).
                 The matrix obtained from the discretization.
+
+        NOTE: Duplicate of pg.VecLagrange1.assemble_symgrad_symgrad_matrix
         """
         if data is None:
             mu = 1
@@ -804,6 +806,8 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Returns:
             sps.csc_matrix: The differential matrix.
+
+        NOTE: Duplicate of pg.VecLagrange1.assemble_diff_matrix
         """
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -849,7 +853,7 @@ class VecVLagrange1(pg.VecDiscretization):
                 Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
-            "There's no range discr for the vector Lagrangian 1 in PyGeoN"
+            "There's no range discr for the vector VLagrangian 1 in PyGeoN"
         )
 
     def compute_stress(
@@ -869,6 +873,8 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Returns:
             ndarray: The stress tensor.
+
+        NOTE: Duplicate of pg.VecLagrange1.compute_stress
         """
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
