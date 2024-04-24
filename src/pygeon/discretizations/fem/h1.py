@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H1 space. """
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import numpy as np
 import porepy as pp
@@ -416,7 +416,7 @@ class VecLagrange1(pg.VecDiscretization):
         keyword (str): The keyword for the H1 class.
 
     Attributes:
-        lagrange1 (pg.Lagrange1): A local Lagrange1 class for performing some of the
+        scalar_discr (pg.Lagrange1): A local Lagrange1 class for performing some of the
             computations.
 
     Methods:
@@ -547,22 +547,29 @@ class VecLagrange1(pg.VecDiscretization):
     ) -> sps.csc_matrix:
         """
         Returns the div-div matrix operator for the lowest order
-        vector Lagrange element
+        vector Lagrange element. The matrix is multiplied by the Lame' parameter lambda.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Additional data. Defaults to None.
+            data (Optional[dict]): Additional data, the Lame' parameter lambda.
+                Defaults to None.
 
         Returns:
             matrix: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
-        div = self.assemble_div_matrix(sd)
-        # TODO add the Lame' parameter in the computation of the P0 mass
-        p0 = pg.PwConstants(self.keyword)
-        mass = p0.assemble_mass_matrix(sd, data)
+        if data is None:
+            labda = 1
+        else:
+            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+            labda = parameter_dictionary.get("lambda", 1)
 
-        return div.T @ mass @ div
+        p0 = pg.PwConstants(self.keyword)
+
+        div = self.assemble_div_matrix(sd)
+        mass = p0.assemble_mass_matrix(sd)
+
+        return div.T @ (labda * mass) @ div
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -669,23 +676,29 @@ class VecLagrange1(pg.VecDiscretization):
     ) -> sps.csc_matrix:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
-        vector Lagrange element
+        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter mu.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data. Defaults to None.
+            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to None.
 
         Returns:
             sps.csc_matrix: Sparse symgrad-symgrad matrix of shape
                 (sd.num_nodes, sd.num_nodes).
                 The matrix obtained from the discretization.
         """
+        if data is None:
+            mu = 1
+        else:
+            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+            mu = parameter_dictionary.get("mu", 1)
+
+        coeff = 2 * mu
+        p0 = pg.PwConstants(self.keyword)
 
         symgrad = self.assemble_symgrad_matrix(sd)
-        # TODO add the Lame' parameter in the computation of the P0 mass
-        p0 = pg.PwConstants(self.keyword)
-        mass = p0.assemble_mass_matrix(sd, data)
-        tensor_mass = sps.block_diag([mass] * np.square(sd.dim), format="csc")
+        mass = p0.assemble_mass_matrix(sd)
+        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim), format="csc")
 
         return symgrad.T @ tensor_mass @ symgrad
 
@@ -704,62 +717,25 @@ class VecLagrange1(pg.VecDiscretization):
 
         return sps.bmat([[symgrad], [div]], format="csc")
 
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
-        Interpolates a function onto the finite element space
+        Assembles the global stiffness matrix for the finite element method.
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
-                The grid onto which the function will be interpolated.
-            func (function): a function that returns the function values at coordinates
-                The function to be interpolated.
+            sd (pg.Grid): The grid on which the finite element method is defined.
+            data (Optional[dict]): Additional data required for the assembly process.
 
         Returns:
-            array: the values of the degrees of freedom
-                The interpolated values of the function on the finite element space.
-
-        NOTE: We are assuming the sd grid in the (x,y) coordinates
+            sps.csc_matrix: The assembled global stiffness matrix.
         """
-        return self.scalar_discr.interpolate(sd, func).ravel(order="F")
+        # compute the two parts of the global stiffness matrix
+        sym_sym = self.assemble_symgrad_symgrad_matrix(sd, data)
+        div_div = self.assemble_div_div_matrix(sd, data)
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Assembles the matrix by evaluating the Lagrange basis functions at the cell
-        centers of the given grid.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_matrix: The evaluation matrix.
-        """
-        proj = self.scalar_discr.eval_at_cell_centers(sd)
-        return sps.block_diag([proj] * sd.dim, format="csc")
-
-    def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
-    ) -> np.ndarray:
-        """
-        Assembles the natural boundary condition term
-        (Tr q, p)_Gamma
-
-        Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function that defines the
-                natural boundary condition.
-            b_faces (np.ndarray): List of boundary faces where the natural boundary
-                condition is applied.
-
-        Returns:
-            np.ndarray: The assembled natural boundary condition term.
-        """
-        bc_val = []
-        for d in np.arange(sd.dim):
-            f = lambda x: func(x)[d]
-            bc_val.append(self.scalar_discr.assemble_nat_bc(sd, f, b_faces))
-        return np.hstack(bc_val)
+        # return the global stiffness matrix
+        return sym_sym + div_div
 
     def get_range_discr_class(self, dim: int) -> object:
         """
@@ -784,8 +760,7 @@ class VecLagrange1(pg.VecDiscretization):
         self,
         sd: pg.Grid,
         u: np.ndarray,
-        labda: Union[float, np.ndarray],
-        mu: Union[float, np.ndarray],
+        data: dict,
     ) -> np.ndarray:
         """
         Compute the stress tensor for a given displacement field.
@@ -793,8 +768,8 @@ class VecLagrange1(pg.VecDiscretization):
         Args:
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
-            labda (float or ndarray): The first Lamé parameter.
-            mu (float or ndarray): The second Lamé parameter.
+            data (dict): Data for the computation including the Lame parameters accessed with
+                the keys "lambda" and "mu". Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.
@@ -805,6 +780,11 @@ class VecLagrange1(pg.VecDiscretization):
 
         p0 = pg.PwConstants(self.keyword)
         proj = p0.eval_at_cell_centers(sd)
+
+        # retrieve Lamé parameters
+        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        mu = parameter_dictionary["mu"]
+        labda = parameter_dictionary["lambda"]
 
         # compute the two terms and split on each component
         sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
