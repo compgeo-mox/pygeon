@@ -112,13 +112,16 @@ class VLagrange1Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(vals, vals_known))
 
-        self.assertRaises(
-            NotImplementedError,
-            discr.assemble_nat_bc,
-            sd,
-            lambda _: np.zeros(1),
-            np.zeros(1),
+        b_nodes = sd.tags["domain_boundary_nodes"]
+        vals = discr.assemble_nat_bc(sd, lambda x: np.ones(1), b_nodes)
+
+        # fmt: off
+        vals_known = np.array(
+        [3.5 , 2.5 , 2.25, 2.  , 2.75]
         )
+        # fmt: on
+
+        self.assertTrue(np.allclose(vals, vals_known))
 
         self.assertRaises(
             NotImplementedError,
@@ -269,13 +272,18 @@ class VLagrange1Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(vals, vals_known))
 
-        self.assertRaises(
-            NotImplementedError,
-            discr.assemble_nat_bc,
-            sd,
-            lambda _: np.zeros(1),
-            np.zeros(1),
+        b_nodes = sd.tags["domain_boundary_nodes"]
+        vals = discr.assemble_nat_bc(sd, lambda x: np.ones(1), b_nodes)
+
+        # fmt: off
+        vals_known = np.array(
+        [0.56066017, 0.56066017, 0.41421356, 0.41421356, 0.56066017,
+        0.56066017, 0.41421356, 0.41421356, 0.29289322, 0.29289322,
+        0.        , 0.        ]
         )
+        # fmt: on
+
+        self.assertTrue(np.allclose(vals, vals_known))
 
         self.assertRaises(
             NotImplementedError,

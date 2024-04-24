@@ -30,18 +30,15 @@ class ElasticityTestPrimal(unittest.TestCase):
                 - vec_p1 (pg.VecLagrange1): The Lagrange finite element space.
                 - A (pg.Matrix): The assembled elasticity matrix.
         """
-        labda = 1
-        mu = 0.5
+        data = {pp.PARAMETERS: {"elasticity": {"lambda": 1, "mu": 0.5}}}
         sd = pg.unit_grid(dim, h, as_mdg=False)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("elasticity")
 
-        sym_sym = vec_p1.assemble_symgrad_symgrad_matrix(sd)
-        div_div = vec_p1.assemble_div_div_matrix(sd)
+        A = vec_p1.assemble_stiff_matrix(sd, data)
 
-        A = 2 * mu * sym_sym + labda * div_div
-        return sd, vec_p1, A, labda, mu
+        return sd, vec_p1, A, data
 
     def test_rigid_body_motion_2d(self):
         """
@@ -54,7 +51,7 @@ class ElasticityTestPrimal(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A, labda, mu = self.setup(2, 0.125)
+        sd, vec_p1, A, data = self.setup(2, 0.125)
 
         b_nodes = np.hstack([sd.tags["domain_boundary_nodes"]] * 2)
         bc_fun = lambda x: np.array([0.5 - x[1], 0.5 + x[0]])
@@ -66,7 +63,7 @@ class ElasticityTestPrimal(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_ex))
 
-        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+        sigma = vec_p1.compute_stress(sd, u, data)
 
         self.assertTrue(np.allclose(sigma, 0))
 
@@ -80,7 +77,7 @@ class ElasticityTestPrimal(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A, labda, mu = self.setup(3, 0.125)
+        sd, vec_p1, A, data = self.setup(3, 0.125)
 
         b_nodes = np.hstack([sd.tags["domain_boundary_nodes"]] * 3)
         bc_fun = lambda x: np.array([0.5 - x[1], 0.5 + x[0] - x[2], 0.1 + x[1]])
@@ -92,7 +89,7 @@ class ElasticityTestPrimal(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_ex))
 
-        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+        sigma = vec_p1.compute_stress(sd, u, data)
 
         self.assertTrue(np.allclose(sigma, 0))
 
@@ -107,7 +104,7 @@ class ElasticityTestPrimal(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A, labda, mu = self.setup(2, 0.5)
+        sd, vec_p1, A, data = self.setup(2, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[1, :], 0)] * 2)
         top = np.isclose(sd.face_centers[1, :], 1)
@@ -130,7 +127,7 @@ class ElasticityTestPrimal(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, u_known))
 
-        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+        sigma = vec_p1.compute_stress(sd, u, data)
 
         self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
 
@@ -144,7 +141,7 @@ class ElasticityTestPrimal(unittest.TestCase):
         Returns:
             None
         """
-        sd, vec_p1, A, labda, mu = self.setup(3, 0.5)
+        sd, vec_p1, A, data = self.setup(3, 0.5)
 
         bottom = np.hstack([np.isclose(sd.nodes[2, :], 0)] * 3)
         top = np.isclose(sd.face_centers[2, :], 1)
@@ -158,7 +155,7 @@ class ElasticityTestPrimal(unittest.TestCase):
 
         self.assertTrue(np.all(u[-sd.num_nodes :] <= 0))
 
-        sigma = vec_p1.compute_stress(sd, u, labda, mu)
+        sigma = vec_p1.compute_stress(sd, u, data)
 
         self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
 

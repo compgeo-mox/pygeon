@@ -212,7 +212,7 @@ class VecLagrange1Test(unittest.TestCase):
         self.assertTrue(np.allclose(A.T, A))
         self.assertTrue(np.allclose(A @ np.ones(8), 0))
 
-        A_known = 0.25 * np.array(
+        A_known = 0.5 * np.array(
             [
                 [3, -2, -1, 0, 0, 0, 1, -1],
                 [-2, 3, 0, -1, 1, -1, 0, 0],

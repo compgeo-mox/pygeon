@@ -1,5 +1,6 @@
 """ Module contains a dummy unit test that always passes.
 """
+
 import unittest
 import numpy as np
 import porepy as pp
@@ -10,7 +11,10 @@ import pygeon as pg
 
 class SpanningTreeTest(unittest.TestCase):
     def sptr(self, mdg):
-        return [pg.SpanningTree(mdg), pg.SpanningWeightedTrees(mdg, [0.25, 0.5, 0.25])]
+        return [
+            pg.SpanningTree(mdg),
+            pg.SpanningWeightedTrees(mdg, pg.SpanningTree, [0.25, 0.5, 0.25]),
+        ]
 
     def check_flux(self, mdg, sptr):
         """
@@ -119,7 +123,6 @@ class SpanningTreeTest(unittest.TestCase):
         pg.convert_from_pp(mdg)
         mdg.compute_geometry()
 
-        sptr = pg.SpanningTreeElasticity(mdg)
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
 
         key = "tree"
@@ -136,9 +139,14 @@ class SpanningTreeTest(unittest.TestCase):
         B = sps.vstack((-div, -asym))
 
         f = np.random.rand(B.shape[0])
-        s_f = sptr.solve(f)
 
-        self.assertTrue(np.allclose(B @ s_f, f))
+        sptrs = [
+            pg.SpanningTreeElasticity(mdg),
+            pg.SpanningWeightedTrees(mdg, pg.SpanningTreeElasticity, [0.25, 0.5, 0.25]),
+        ]
+        for sptr in sptrs:
+            s_f = sptr.solve(f)
+            self.assertTrue(np.allclose(B @ s_f, f))
 
 
 if __name__ == "__main__":
