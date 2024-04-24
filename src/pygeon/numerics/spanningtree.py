@@ -20,18 +20,18 @@ class SpanningTree:
         expand (sps.csc_matrix): Expansion matrix from tree to global ordering.
 
         div (sps.csc_matrix): the divergence operator on the associated mdg.
-        starting_cell (int): the first cell of the spanning tree.
-        starting_face (int): the first face of the spanning tree.
+        starting_cells (np.ndarray): the first cells of the spanning tree.
+        starting_faces (np.ndarray): the first faces of the spanning tree.
         tree (sps.csc_array): The incidence matrix of the spanning tree.
 
     Methods:
         setup_system(mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
             Sets up the linear system for solving the spanning tree problem.
 
-        find_starting_face(mdg: pg.MixedDimensionalGrid) -> int:
+        find_starting_faces(mdg: pg.MixedDimensionalGrid) -> int:
             Find the starting face for the spanning tree if None is provided.
 
-        find_starting_cell() -> int:
+        find_starting_cells() -> int:
             Find the starting cell for the spanning tree.
 
         compute_tree() -> sps.csc_array:
@@ -52,24 +52,24 @@ class SpanningTree:
     """
 
     def __init__(
-        self, mdg: pg.MixedDimensionalGrid, starting_face: Optional[int] = None
+        self,
+        mdg: pg.MixedDimensionalGrid,
+        starting_faces: Optional[Union[str, np.ndarray, int]] = "first_bdry",
     ) -> None:
         """
         Initializes a SpanningTree object.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
-            starting_face (Optional[int], optional): The index of the starting face. Defaults
-                to None.
+            starting_faces (Union[np.ndarray, int, str], optional):
+                - "first_bdry" (default): Choose the first boundary face.
+                - "all_bdry": Choose all boundary faces.
+                - np.array or int: Indices of the starting faces.
         """
         self.div = pg.div(mdg)
 
-        if starting_face is None:
-            self.starting_face = self.find_starting_face(mdg)
-        else:
-            self.starting_face = starting_face
-
-        self.starting_cell = self.find_starting_cell()
+        self.starting_faces = self.find_starting_faces(mdg, starting_faces)
+        self.starting_cells = self.find_starting_cells()
         self.tree = self.compute_tree()
 
         flagged_faces = self.flag_tree_faces()
@@ -92,43 +92,67 @@ class SpanningTree:
         self.expand = pg.numerics.linear_system.create_restriction(
             flagged_faces
         ).T.tocsc()
-        self.system = pg.cell_mass(mdg) @ self.div @ self.expand
 
-    def find_starting_face(self, mdg: pg.MixedDimensionalGrid) -> int:
+        # Save the sparse LU decomposition of the system
+        system = pg.cell_mass(mdg) @ self.div @ self.expand
+        self.system = sps.linalg.splu(system)
+
+    def find_starting_faces(
+        self,
+        mdg: pg.MixedDimensionalGrid,
+        starting_faces: Union[str, np.ndarray, int],
+    ) -> np.ndarray:
         """
-        Find the starting face for the spanning tree if None is provided.
-
-        By default, this method returns the index of the first boundary face of the mesh.
+        Find the starting face for the spanning tree.
+        By default, this method returns the indices of the boundary faces of the mesh.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid object.
+            starting_faces:
+                - "first_bdry" (default): Choose the first boundary face.
+                - "all_bdry": Choose all boundary faces.
+                - np.array or int: Indices of the starting faces.
 
         Returns:
-            int: The index of the starting face for the spanning tree.
+            np.ndarray or int: The indices of the starting faces for the spanning tree.
 
         Raises:
-            TypeError: If the input argument `mdg` is not of type `pp.Grid` or
-            `pp.MixedDimensionalGrid`.
+            KeyError: if starting_faces does not have the right type
         """
-        if isinstance(mdg, pp.Grid):
-            sd = mdg
-        elif isinstance(mdg, pp.MixedDimensionalGrid):
-            # Extract the top-dimensional grid
-            sd = mdg.subdomains()[0]
-            assert sd.dim == mdg.dim_max()
+
+        if isinstance(starting_faces, str):
+            # Extract top-dimensional domain
+            sd = mdg.subdomains(dim=mdg.dim_max())[0]
+            bdry_faces = np.where(sd.tags["domain_boundary_faces"])[0]
+
+            # The default case
+            if starting_faces == "first_bdry":
+                return bdry_faces[[0]]
+
+            elif starting_faces == "all_bdry":
+                # Find the boundary faces and remove duplicate connections to boundary cells
+                I_cells, J_faces, _ = sps.find(self.div.tocsc()[:, bdry_faces])
+                _, uniq_ind = np.unique(I_cells, return_index=True)
+
+                return bdry_faces[J_faces[uniq_ind]]
+
+            else:
+                raise KeyError(
+                    "Not a supported string. Input must be first_bdry or all_bdry"
+                )
+
+        # Scalars and arrays
         else:
-            raise TypeError
+            return np.atleast_1d(starting_faces)
 
-        return np.argmax(sd.tags["domain_boundary_faces"])
-
-    def find_starting_cell(self) -> int:
+    def find_starting_cells(self) -> np.ndarray:
         """
         Find the starting cell for the spanning tree.
 
         Returns:
-            int: The index of the starting cell.
+            np.ndarray: The indices of the starting cells.
         """
-        return self.div.tocsc()[:, self.starting_face].indices[0]
+        return self.div.tocsc()[:, self.starting_faces].indices
 
     def compute_tree(self) -> sps.csc_array:
         """
@@ -137,9 +161,42 @@ class SpanningTree:
         Returns:
             sps.csc_array: The computed spanning tree as a compressed sparse column matrix.
         """
-        tree = sps.csgraph.breadth_first_tree(
-            self.div @ self.div.T, self.starting_cell, directed=False
-        )
+        incidence = self.div @ self.div.T
+
+        # If a single root is given, we default to the breadth-first tree generator from scipy
+        if len(self.starting_cells) == 1:
+            tree = sps.csgraph.breadth_first_tree(
+                incidence, self.starting_cells[0], directed=False
+            )
+
+        # For multiple roots, we use our own generator
+        else:
+            # Initialize the tree
+            tree = sps.lil_array(incidence.shape, dtype=int)
+
+            # Keep track of the cells that have been visited by the tree
+            visited_cells = np.zeros(np.size(incidence, 0), dtype=bool)
+            visited_cells[self.starting_cells] = True
+
+            while np.any(~visited_cells):
+                # Extract global indices of the (un)visited cells
+                vis_glob = np.where(visited_cells)[0]
+                unv_glob = np.where(~visited_cells)[0]
+
+                # Find connectivity between visited and unvisited cells
+                local_graph = incidence[np.ix_(vis_glob, unv_glob)]
+                vis_cell, unv_cell, _ = sps.find(local_graph)
+
+                assert len(unv_cell) > 0, "No new neighbors found."
+
+                # Each unvisited cell is linked to exactly one visited cell
+                unv_cell, nc_ind = np.unique(unv_cell, return_index=True)
+                vis_cell = vis_cell[nc_ind]
+
+                # Save the connectivity in the tree and mark the new cells as visited
+                tree[vis_glob[vis_cell], unv_glob[unv_cell]] = 1
+                visited_cells[unv_glob[unv_cell]] = True
+
         return sps.csc_array(tree)
 
     def flag_tree_faces(self) -> np.ndarray:
@@ -157,7 +214,9 @@ class SpanningTree:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        face_finder = sps.csc_array((vals, (rows, cols)))
+        face_finder = sps.csc_array(
+            (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
+        )
         face_finder = np.abs(self.div.T) @ face_finder
         I, J, V = sps.find(face_finder)
 
@@ -166,7 +225,7 @@ class SpanningTree:
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
-        flagged_faces[self.starting_face] = True
+        flagged_faces[self.starting_faces] = True
         flagged_faces[tree_faces] = True
 
         return flagged_faces
@@ -182,7 +241,7 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed flux field
         """
-        return self.expand @ sps.linalg.spsolve(self.system, f)
+        return self.expand @ self.system.solve(f)
 
     def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
@@ -195,7 +254,7 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed pressure field
         """
-        return sps.linalg.spsolve(self.system.T.tocsc(), self.expand.T.tocsc() @ rhs)
+        return self.system.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
@@ -230,7 +289,8 @@ class SpanningTree:
         ax = fig.add_subplot(111)
 
         node_color = ["blue"] * cell_centers.shape[1]
-        node_color[self.starting_cell] = "green"
+        for sc in self.starting_cells:
+            node_color[sc] = "green"
 
         ax.autoscale(False)
         nx.draw(
@@ -281,14 +341,13 @@ class SpanningTreeElasticity(SpanningTree):
         Returns:
             None
         """
-        # NOTE: we are assuming only one higher dimensional 2d grid
-        if isinstance(mdg, pg.MixedDimensionalGrid):
-            sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        else:
-            sd = mdg
-
+        # Extract top-dimensional domain
+        sd = mdg.subdomains(dim=mdg.dim_max())[0]
         self.expand = self.compute_expand(sd, flagged_faces)
-        self.system = self.compute_system(sd)
+
+        # Save the sparse LU decomposition of the system
+        system = self.compute_system(sd)
+        self.system = sps.linalg.splu(system)
 
     def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
         """
@@ -442,14 +501,9 @@ class SpanningWeightedTrees:
         Returns:
             np.ndarray: The selected faces at the boundary.
         """
-        if isinstance(mdg, pp.Grid):
-            sd = mdg
-        elif isinstance(mdg, pp.MixedDimensionalGrid):
-            # Extract the top-dimensional grid
-            sd = mdg.subdomains()[0]
-            assert sd.dim == mdg.dim_max()
-        else:
-            raise TypeError
 
+        # Extract top-dimensional domain
+        sd = mdg.subdomains(dim=mdg.dim_max())[0]
         faces = np.where(sd.tags["domain_boundary_faces"])[0]
+
         return faces[np.linspace(0, faces.size, num, endpoint=False, dtype=int)]

@@ -13,6 +13,7 @@ class SpanningTreeTest(unittest.TestCase):
     def sptr(self, mdg):
         return [
             pg.SpanningTree(mdg),
+            pg.SpanningTree(mdg, "all_bdry"),
             pg.SpanningWeightedTrees(mdg, pg.SpanningTree, [0.25, 0.5, 0.25]),
         ]
 
@@ -147,6 +148,14 @@ class SpanningTreeTest(unittest.TestCase):
         for sptr in sptrs:
             s_f = sptr.solve(f)
             self.assertTrue(np.allclose(B @ s_f, f))
+
+    def test_for_errors(self):
+        sd = pg.unit_grid(2, 0.125)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        self.assertRaises(KeyError, pg.SpanningTree, mdg, "error_str")
 
 
 if __name__ == "__main__":
