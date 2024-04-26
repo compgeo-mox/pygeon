@@ -22,7 +22,7 @@ def lloyd_regularization(sd, num_iter: int) -> pg.VoronoiGrid:
     return sd
 
 
-def laplace_regularization(sd: pg.Grid, key: str = "regularizer") -> pg.Grid:
+def graph_laplace_regularization(sd: pg.Grid) -> pg.Grid:
     """
     Perform Laplace regularization on the grid.
 
@@ -33,19 +33,73 @@ def laplace_regularization(sd: pg.Grid, key: str = "regularizer") -> pg.Grid:
         The Laplace regularized grid.
     """
     # Construct the Laplacian matrix
-    discr = pg.VLagrange1(key)
+    if sd.dim == 2:
+        incidence = sd.face_ridges
+    else:
+        incidence = sd.ridge_peaks
 
-    # Assemble the stiffness matrix
-    A = sps.block_diag([discr.assemble_stiff_matrix(sd, key)] * sd.dim)
+    A = incidence @ incidence.T
 
-    ess_nodes = np.tile(sd.tags["domain_boundary_nodes"], sd.dim)
+    # Preserve boundary nodes
+    ess_nodes = sd.tags["domain_boundary_nodes"]
 
-    # Solve the Laplace equation
-    ls = pg.LinearSystem(A, np.zeros(sd.num_nodes))
-    ls.flag_ess_bc(ess_nodes, np.zeros(discr.ndof(sd)))
+    # Assemble right-hand side
+    b = -A @ sd.nodes[: sd.dim, :].T
+
+    # Solve the Graph-Laplace equation
+    ls = pg.LinearSystem(A, b)
+    ls.flag_ess_bc(ess_nodes, np.zeros_like(ess_nodes, dtype=float))
     u = ls.solve()
 
     # Update the grid
-    sd.nodes = u
+    sd = sd.copy()
+    sd.nodes[: sd.dim, :] += u.T
+    sd.compute_geometry()
+
+    return sd
+
+
+def elasticity_regularization(
+    sd: pg.Grid, spring_const: float = 1, key: str = "reg", is_square: bool = True
+) -> pg.Grid:
+
+    discr = pg.VecVLagrange1(key)
+    A = discr.assemble_stiff_matrix(sd)
+    M = discr.assemble_mass_matrix(sd)
+
+    # Set the essential dofs
+    if is_square:
+        box_min = np.min(sd.nodes, axis=1)
+        box_max = np.max(sd.nodes, axis=1)
+
+        bdry = [
+            np.isclose(sd.nodes[ind, :], box_min[ind])
+            + np.isclose(sd.nodes[ind, :], box_max[ind])
+            for ind in np.arange(sd.dim)
+        ]
+
+        ess_nodes = np.hstack(bdry)
+    else:
+        ess_nodes = sd.tags["domain_boundary_nodes"]
+        ess_nodes = np.tile(ess_nodes, sd.dim)
+
+    # Assemble right-hand side
+    nodes, cells, _ = sps.find(sd.cell_nodes())
+    forces = spring_const * (sd.cell_centers[:, cells] - sd.nodes[:, nodes])
+    force_list = [
+        np.bincount(nodes, weights=forces[ind, :]) for ind in np.arange(sd.dim)
+    ]
+    b = M @ np.hstack(force_list)
+
+    # Solve the elasticity equation
+    ls = pg.LinearSystem(A, b)
+    ls.flag_ess_bc(ess_nodes, np.zeros_like(ess_nodes, dtype=float))
+    u = ls.solve()
+    u = u.reshape((sd.dim, -1))
+
+    # Update the grid
+    sd = sd.copy()
+    sd.nodes[: sd.dim, :] += u
+    sd.compute_geometry()
 
     return sd

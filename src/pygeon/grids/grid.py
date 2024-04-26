@@ -6,6 +6,8 @@ import numpy as np
 import porepy as pp
 import scipy.sparse as sps
 
+import pygeon as pg
+
 """
 Acknowledgments:
     The functionalities related to the ridge computations are modified from
@@ -290,3 +292,14 @@ class Grid(pp.Grid):
             )
         else:
             return self.face_nodes @ div_by_nodes_per_face @ sub_simplices
+
+    def copy(self):
+        """Create a new instance with some attributes deep-copied from the grid.
+
+        Returns:
+            A deep copy of ``self``. Some predefined attributes are also copied.
+
+        """
+        h = super(Grid, self).copy()
+        pg.convert_from_pp(h)
+        return h
