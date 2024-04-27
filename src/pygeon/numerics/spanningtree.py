@@ -366,16 +366,77 @@ class SpanningTreeElasticity(SpanningTree):
         # this operator fix one dof per face of the bdm space to capture displacement
         P_div = bdm1.proj_from_RT0(sd)
 
-        # this operator maps to div-free bdm to capture rotation
-        P_rot = P_div.copy()
-        P_rot.data[::2] *= -1
-
+        # Normalize the face normals and split into xyz-components
         fn = sd.face_normals.copy()
-        fn = fn / np.linalg.norm(fn, axis=0)
-        fn_x, fn_y, _ = np.split(fn.ravel(), 3)
+        fn /= np.linalg.norm(fn, axis=0)
+        fn_xyz = np.split(fn.ravel(), 3)
 
-        # scaled P_rot with the face normals to be consistent with the div operator
-        P_asym = sps.vstack((P_rot @ sps.diags(fn_x), P_rot @ sps.diags(fn_y)))
+        if sd.dim == 2:
+            # This operator maps to div-free functions to capture the scalar rotation
+            # We take the difference between the first basis func
+            # on a face and the second.
+            P_tn = sps.csc_array(P_div, copy=True)
+            P_tn.data[1::2] = -1
+
+            # scale with the face normals to obtain tensor-valued functions
+            n_times_P_tn = [P_tn * fn_xyz[i] for i in np.arange(sd.dim)]
+            P_asym = sps.vstack(n_times_P_tn)
+
+        elif sd.dim == 3:
+            # Given an orthonormal basis (s, t) of the face,
+            # we generate three matrices that capture asymmetries
+            # in (t, n), (n, s), and (s, t).
+            P_asym = np.empty(3, dtype=sps.csc_array)
+
+            # (t, n) Take the difference between
+            # the first dof on a face and the second dof
+            P_tn = sps.csc_array(P_div, copy=True)
+            # P_tn.data[0::3] = 1
+            P_tn.data[1::3] = -1
+            P_tn.data[2::3] = 0
+
+            # scale with the face normals
+            n_times_P_tn = [P_tn * fn_i for fn_i in fn_xyz]
+            P_asym[0] = sps.vstack(n_times_P_tn)
+
+            # (s, n) Take the difference between
+            # the first dof on a face and the third dof
+            P_sn = sps.csc_array(P_div, copy=True)
+            # P_sn.data[0::3] = 1
+            P_sn.data[1::3] = 0
+            P_sn.data[2::3] = -1
+
+            # scale with the face normals
+            n_times_P_sn = [P_sn * fn_i for fn_i in fn_xyz]
+            P_asym[1] = sps.vstack(n_times_P_sn)
+
+            # (s, t) This one is more complicated
+            # Extract the vectors s and t
+            dof_loc = [sd.nodes[:, sd.face_nodes.indices[i::3]] for i in np.arange(3)]
+            s = dof_loc[1] - dof_loc[0]
+            t = np.cross(fn, s, axisa=0, axisb=0, axisc=0)
+
+            # Normalize such that both scale as 1/h
+            s /= np.sum(np.square(s), axis=0)
+            t /= 2 * sd.face_areas
+
+            # Generate functions in the s-direction
+            P_s = sps.csc_array(P_div, copy=True)
+            for ind in np.arange(3):
+                P_s.data[ind::3] = np.sum((dof_loc[ind] - sd.face_centers) * s, axis=0)
+            # Scale in the t-direction
+            t_times_P_s = [P_s * t_i for t_i in t]
+            P_asym[2] = sps.vstack(t_times_P_s)
+
+            # Generate functions in the t-direction
+            P_t = sps.csc_array(P_div, copy=True)
+            for ind in np.arange(3):
+                P_t.data[ind::3] = np.sum((dof_loc[ind] - sd.face_centers) * t, axis=0)
+            # Scale in the s-direction
+            s_times_P_t = [P_t * s_i for s_i in s]
+            P_asym[2] -= sps.vstack(s_times_P_t)
+
+            P_asym = sps.hstack(P_asym)
 
         # combine all the P
         P_div = sps.block_diag([P_div] * sd.dim)
@@ -383,8 +444,10 @@ class SpanningTreeElasticity(SpanningTree):
 
         # restriction to the flagged faces and restrict P to them
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+        # 3 dof in 2D, 6 dof in 3D
+        dofs_per_face = sd.dim * (sd.dim + 1) // 2
 
-        return P @ sps.block_diag([expand] * 3, format="csc")
+        return P @ sps.block_diag([expand] * dofs_per_face, format="csc")
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -400,10 +463,16 @@ class SpanningTreeElasticity(SpanningTree):
         key = "tree"
         vec_bdm1 = pg.VecBDM1(key)
         vec_p0 = pg.VecPwConstants(key)
-        p0 = pg.PwConstants(key)
 
         M_div = vec_p0.assemble_mass_matrix(sd)
-        M_asym = p0.assemble_mass_matrix(sd)
+
+        if sd.dim == 2:
+            p0 = pg.PwConstants(key)
+            M_asym = p0.assemble_mass_matrix(sd)
+        elif sd.dim == 3:
+            M_asym = M_div
+        else:
+            raise NotImplementedError("Grid must be 2D or 3D.")
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
         asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd)
