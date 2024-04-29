@@ -920,6 +920,16 @@ class VecBDM1(pg.VecDiscretization):
         else:
             raise ValueError("The grid should be either bi or three-dimensional")
 
+    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+
+        proj = self.scalar_discr.proj_from_RT0(sd)
+        return sps.block_diag([proj] * sd.dim, format="csc")
+
+    def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+
+        proj = self.scalar_discr.proj_to_RT0(sd)
+        return sps.block_diag([proj] * sd.dim, format="csc")
+
     def get_range_discr_class(self, dim: int) -> object:
         """
         Returns the discretization class that contains the range of the differential
@@ -931,4 +941,52 @@ class VecBDM1(pg.VecDiscretization):
             pg.Discretization: The discretization class containing the range of the
                 differential
         """
+        return pg.VecPwConstants
+
+
+class VecRT0(pg.VecDiscretization):
+    def __init__(self, keyword: str) -> None:
+        """
+        Initialize the vector RT0 discretization class.
+        The scalar discretization class is pg.RT0.
+
+        We are considering the following structure of the stress tensor in 2d
+
+        sigma = [[sigma_xx, sigma_xy],
+                 [sigma_yx, sigma_yy]]
+
+        which is represented in the code unrolled row-wise as a vector of length 4
+
+        sigma = [sigma_xx, sigma_xy,
+                 sigma_yx, sigma_yy]
+
+        While in 3d the stress tensor can be written as
+
+        sigma = [[sigma_xx, sigma_xy, sigma_xz],
+                 [sigma_yx, sigma_yy, sigma_yz],
+                 [sigma_zx, sigma_zy, sigma_zz]]
+
+        where its vectorized structure of lenght 9 is given by
+
+        sigma = [sigma_xx, sigma_xy, sigma_xz,
+                 sigma_yx, sigma_yy, sigma_yz,
+                 sigma_zx, sigma_zy, sigma_zz]
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+
+        Returns:
+            None
+        """
+        super().__init__(keyword, pg.RT0)
+
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+
+        vecbdm1 = VecBDM1(self.keyword)
+        bdm_asym = vecbdm1.assemble_asym_matrix(sd)
+        proj = vecbdm1.proj_from_RT0(sd)
+
+        return bdm_asym @ proj
+
+    def get_range_discr_class(self, dim: int) -> object:
         return pg.VecPwConstants
