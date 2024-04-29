@@ -11,7 +11,7 @@ import pygeon as pg
 
 class vRT0(pg.Discretization, pp.MVEM):
     """
-    vRT0 class for the mixed virtual element method (MVEM) discretization.
+    vRT0 class for virtual lowest order Raviart-Thomas discretization.
 
     Each degree of freedom is the integral over a mesh face.
 
