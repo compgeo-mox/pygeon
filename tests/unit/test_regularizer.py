@@ -22,12 +22,27 @@ class TestRegularizer(unittest.TestCase):
         self.assertTrue(sd.num_cells == 30)
 
     def test_graph_laplace(self):
-        sd = pg.VoronoiGrid(30, seed=0)
+        sd = pg.VoronoiGrid(100, seed=0)
         sd.compute_geometry()
+
         fr_known = sd.face_ridges
         cf_known = sd.cell_faces
 
         sd = pg.graph_laplace_regularization(sd)
+        pp.plot_grid(sd, alpha=0)
+
+        self.assertTrue((sd.face_ridges - fr_known).nnz == 0)
+        self.assertTrue((sd.cell_faces - cf_known).nnz == 0)
+
+    def test_graph_laplace_with_centers(self):
+        sd = pg.VoronoiGrid(100, seed=0)
+        sd.compute_geometry()
+
+        fr_known = sd.face_ridges
+        cf_known = sd.cell_faces
+
+        sd = pg.graph_laplace_regularization_with_centers(sd)
+        pp.plot_grid(sd, alpha=0)
 
         self.assertTrue((sd.face_ridges - fr_known).nnz == 0)
         self.assertTrue((sd.cell_faces - cf_known).nnz == 0)
@@ -38,9 +53,10 @@ class TestRegularizer(unittest.TestCase):
 
         cond_old = self.compute_cond(sd)
 
-        for _ in np.arange(20):
-            sd = pg.elasticity_regularization(sd, 10, is_square=False)
-            pp.plot_grid(sd, alpha=0)
+        pp.plot_grid(sd, alpha=0)
+        for _ in np.arange(10):
+            sd = pg.elasticity_regularization(sd, 5e-2)
+        pp.plot_grid(sd, alpha=0)
 
         cond_new = self.compute_cond(sd)
 
@@ -53,9 +69,7 @@ class TestRegularizer(unittest.TestCase):
 
         sd = pg.EinSteinGrid(file_name)
         sd.compute_geometry()
-        sd = pg.graph_laplace_regularization(sd)
-
-        pp.plot_grid(sd, alpha=0)
+        sd = pg.graph_laplace_regularization(sd, False)
 
         pass
 
@@ -70,4 +84,6 @@ class TestRegularizer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    TestRegularizer().test_graph_laplace()
+    TestRegularizer().test_graph_laplace_with_centers()
+    # unittest.main()
