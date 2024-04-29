@@ -12,7 +12,7 @@ class VRT0Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.vRT0("flow")
+        discr = pg.VRT0("flow")
         self.assertEqual(discr.ndof(sd), sd.num_faces)
 
         M = discr.assemble_mass_matrix(sd)

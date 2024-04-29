@@ -9,9 +9,9 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class vRT0(pg.Discretization, pp.MVEM):
+class VRT0(pg.Discretization, pp.MVEM):
     """
-    vRT0 class for virtual lowest order Raviart-Thomas discretization.
+    VRT0 class for virtual lowest order Raviart-Thomas discretization.
 
     Each degree of freedom is the integral over a mesh face.
 
@@ -362,7 +362,7 @@ class VBDM1(pg.Discretization):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        mvem = pg.vRT0(self.keyword)
+        mvem = pg.VRT0(self.keyword)
         VRT0_diff = mvem.assemble_diff_matrix(sd)
 
         proj_to_vrt0 = self.proj_to_VRT0(sd)
