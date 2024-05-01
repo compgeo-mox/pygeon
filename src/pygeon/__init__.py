@@ -5,8 +5,8 @@ import pygeon.geometry.transformation as transformation
 from pygeon.filters.exporter import Exporter
 from pygeon.grids.graph import Graph
 from pygeon.grids.grid import Grid
-from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.md_grid import MixedDimensionalGrid
+from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.grids.octagon import OctagonGrid
 from pygeon.grids.voronoi import VoronoiGrid
@@ -22,7 +22,7 @@ from pygeon.discretizations.fem.hdiv import RT0, BDM1, VecBDM1
 from pygeon.discretizations.fem.h1 import Lagrange1, VecLagrange1
 from pygeon.discretizations.fem.l2 import PwConstants, PwLinears, VecPwConstants
 
-from pygeon.discretizations.vem.hdiv import MVEM, VBDM1
+from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1, VecVLagrange1
 
 from pygeon.numerics.differentials import grad, curl, div
