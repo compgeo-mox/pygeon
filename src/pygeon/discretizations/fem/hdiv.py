@@ -121,8 +121,8 @@ class RT0(pg.Discretization, pp.RT0):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
-
-        data = self.create_dummy_data(sd, data)
+        if data is None:
+            data = self.create_dummy_data(sd, data)
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][
             self.mass_matrix_key
