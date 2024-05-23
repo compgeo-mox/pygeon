@@ -16,8 +16,8 @@ from pygeon.grids.create_grid import grid_from_domain, grid_from_boundary_pts, u
 from pygeon.grids.regularizers import (
     lloyd_regularization,
     graph_laplace_regularization,
+    graph_laplace_dual_regularization,
     elasticity_regularization,
-    graph_laplace_regularization_with_centers,
 )
 
 from pygeon.discretizations.discretization import Discretization

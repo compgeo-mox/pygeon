@@ -4,12 +4,12 @@ import porepy as pp
 import pygeon as pg
 
 
-def lloyd_regularization(sd, num_iter: int) -> pg.VoronoiGrid:
+def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
     """
-    Perform Lloyd's relaxation on the Voronoi grid.
+    Perform Lloyd's relaxation on the Voronoi grid. The topology of the grid is not preserved.
 
     Args:
-        sd (pg.Grid): The Voronoi grid to relax.
+        sd (pg.VoronoiGrid): The Voronoi grid to relax.
         num_iter (int): The number of iterations to perform.
 
     Returns:
@@ -23,9 +23,10 @@ def lloyd_regularization(sd, num_iter: int) -> pg.VoronoiGrid:
     return sd
 
 
-def graph_laplace_regularization(sd: pg.Grid, is_sliding: bool = True) -> pg.Grid:
+def graph_laplace_regularization(sd: pg.Grid) -> pg.Grid:
     """
-    Perform Laplace regularization on the grid.
+    Perform Laplace regularization on the grid by solving a graph laplacian over the
+    face-ridges in 2d and ridge-peaks in 3d. The topology of the grid is preserved.
 
     Args:
         sd (pg.Grid): The grid to regularize.
@@ -35,96 +36,81 @@ def graph_laplace_regularization(sd: pg.Grid, is_sliding: bool = True) -> pg.Gri
     """
     # Construct the Laplacian matrix
     if sd.dim == 2:
-        incidence = sd.face_ridges
+        tags = sd.tags["domain_boundary_faces"]
+        incidence = sd.face_ridges[:, np.logical_not(tags)]
     else:
-        incidence = sd.ridge_peaks
+        tags = sd.tags["domain_boundary_ridges"]
+        incidence = sd.ridge_peaks[:, np.logical_not(tags)]
 
     A = incidence @ incidence.T
-    A = sps.block_diag([A] * sd.dim)
+    A = sps.block_diag([A] * sd.dim, format="csc")
 
     # Assemble right-hand side
     b = -A @ sd.nodes[: sd.dim, :].ravel()
 
-    return regularize(sd, A, b, is_sliding)
+    u = compute_displacement(sd, A, b, sd.nodes)
+    return update_grid(sd, u)
 
 
-def graph_laplace_regularization_with_centers(
-    sd: pg.Grid, is_sliding: bool = True
-) -> pg.Grid:
+def graph_laplace_dual_regularization(sd: pg.Grid) -> pg.VoronoiGrid:
     """
-    Perform Laplace regularization on the grid.
+    Perform Laplace regularization on the dual grid by solving a graph laplacian over the
+    cell-faces. A Voronoi grid is constructed based on the new cell centers.
+    The topology of the grid is not preserved.
 
     Args:
         sd (pg.Grid): The grid to regularize.
 
     Returns:
-        The Laplace regularized grid.
+        The regularized Voronoi grid.
     """
-    # Construct the Laplacian matrix
-    if sd.dim == 2:
-        incidence = sd.face_ridges
-        incidence = sps.vstack((incidence, sps.csc_array((sd.num_cells, sd.num_faces))))
-    else:
-        incidence = sd.ridge_peaks
+    # ghost cells at the boundary
+    bd_faces = sd.tags["domain_boundary_faces"]
 
-    nodes, cells, _ = sps.find(sd.cell_nodes().astype(int))
-    num_cn = len(nodes)
+    # create the new ghost cells based on the boundary faces
+    ghost_cells = sps.diags(bd_faces, dtype=int, format="csc")
+    ghost_cells = ghost_cells[:, ghost_cells.nonzero()[1]]
 
-    cc_n = sps.csc_matrix((-np.ones(num_cn), (nodes, np.arange(num_cn))))
-    cc_c = sps.csc_matrix((np.ones(num_cn), (cells, np.arange(num_cn))))
+    # consider the sign of the normal vector at the boundary and switch it
+    ghost_cells.eliminate_zeros()
+    ghost_cells.data = -sd.cell_faces[bd_faces].tocsr().data
 
-    cc_inc = sps.vstack((cc_n, cc_c))
+    incidence = sps.hstack([sd.cell_faces, ghost_cells])
 
-    incidence = sps.hstack((incidence, cc_inc))
-
-    A = incidence @ incidence.T
-
-    A = sps.block_diag([A] * sd.dim)
+    A = incidence.T @ incidence
+    A = sps.block_diag([A] * sd.dim, format="csc")
 
     # Assemble right-hand side
-    coords = np.hstack((sd.nodes[: sd.dim, :], sd.cell_centers[: sd.dim, :])).ravel()
-    b = -A @ coords
+    centers = np.hstack((sd.cell_centers, sd.face_centers[:, bd_faces]))
+    b = -A @ centers[: sd.dim].ravel()
 
-    # Set the essential dofs
-    if is_sliding:
-        box_min = np.min(sd.nodes, axis=1)
-        box_max = np.max(sd.nodes, axis=1)
+    # compute the new cell centers
+    u = compute_displacement(sd, A, b, centers)
+    # cell_centers = sd.cell_centers[: sd.dim, :] + u[:, : sd.num_cells]
+    cell_centers = centers[: sd.dim] + u
 
-        bdry = [
-            np.hstack(
-                (
-                    np.isclose(sd.nodes[ind, :], box_min[ind])
-                    + np.isclose(sd.nodes[ind, :], box_max[ind]),
-                    np.zeros(sd.num_cells, dtype=bool),
-                )
-            )
-            for ind in np.arange(sd.dim)
-        ]
-
-        ess_nodes = np.hstack(bdry)
-    else:
-        ess_nodes = sd.tags["domain_boundary_nodes"]
-        ess_nodes = np.hstack((ess_nodes, np.zeros(sd.num_cells, dtype=bool)))
-        ess_nodes = np.tile(ess_nodes, sd.dim)
-
-    # Solve the regularizing system
-    ls = pg.LinearSystem(A, b)
-    ls.flag_ess_bc(ess_nodes, np.zeros_like(ess_nodes, dtype=float))
-    u = ls.solve()
-    u = u.reshape((sd.dim, -1))
-
-    # Update the grid
-    sd = sd.copy()
-    sd.nodes[: sd.dim, :] += u[:, : sd.num_nodes]
+    # build a voronoi grid based on the new cell centers
+    sd = pg.VoronoiGrid(vrt=cell_centers)
     sd.compute_geometry()
 
     return sd
 
 
 def elasticity_regularization(
-    sd: pg.Grid, spring_const: float = 1, key: str = "reg", is_sliding: bool = True
+    sd: pg.Grid, spring_const: float = 1, key: str = "reg"
 ) -> pg.Grid:
+    """
+    Regularize the grid using the elasticity regularization. The topology of the grid is
+    preserved.
 
+    Args:
+        sd (pg.Grid): The grid to regularize.
+        spring_const (float): The spring constant, defaults to 1.
+        key (str): The key for the discretization, defaults to "reg".
+
+    Returns:
+        The regularized grid.
+    """
     discr = pg.VecVLagrange1(key)
     A = discr.assemble_stiff_matrix(sd)
     M = discr.assemble_mass_matrix(sd)
@@ -141,33 +127,58 @@ def elasticity_regularization(
     ]
     b = M @ np.hstack(force_list)
 
-    return regularize(sd, A, b, is_sliding)
+    u = compute_displacement(sd, A, b, sd.nodes)
+    return update_grid(sd, u)
 
 
-def regularize(sd, A, b, is_sliding):
+def compute_displacement(
+    sd: pg.Grid,
+    A: sps.csc_matrix,
+    b: np.ndarray,
+    coords: np.ndarray,
+) -> np.ndarray:
+    """
+    Solve the regularizing system to compute the displacement field.
 
-    # Set the essential dofs
-    if is_sliding:
-        box_min = np.min(sd.nodes, axis=1)
-        box_max = np.max(sd.nodes, axis=1)
+    Args:
+        sd (pg.Grid): The grid to regularize.
+        A (sps.csc_matrix): The system matrix.
+        b (np.ndarray): The right-hand side.
+        coords (np.ndarray): The coordinates of the nodes in the graph.
 
-        bdry = [
-            np.isclose(sd.nodes[ind, :], box_min[ind])
-            + np.isclose(sd.nodes[ind, :], box_max[ind])
-            for ind in np.arange(sd.dim)
-        ]
+    Returns:
+        The displacement field.
+    """
+    # Set the essential dofs for the sliding boundary
+    box_min = np.min(coords, axis=1)
+    box_max = np.max(coords, axis=1)
 
-        ess_nodes = np.hstack(bdry)
-    else:
-        ess_nodes = sd.tags["domain_boundary_nodes"]
-        ess_nodes = np.tile(ess_nodes, sd.dim)
+    bdry = [
+        np.isclose(coords[ind, :], box_min[ind])
+        + np.isclose(coords[ind, :], box_max[ind])
+        for ind in np.arange(sd.dim)
+    ]
+
+    ess = np.hstack(bdry)
 
     # Solve the regularizing system
     ls = pg.LinearSystem(A, b)
-    ls.flag_ess_bc(ess_nodes, np.zeros_like(ess_nodes, dtype=float))
+    ls.flag_ess_bc(ess, np.zeros_like(ess, dtype=float))
     u = ls.solve()
-    u = u.reshape((sd.dim, -1))
+    return u.reshape((sd.dim, -1))
 
+
+def update_grid(sd: pg.Grid, u: np.ndarray) -> pg.Grid:
+    """
+    Update the grid with the displacement field by modifiying the node coordinates.
+
+    Args:
+        sd (pg.Grid): The grid to update.
+        u (np.ndarray): The displacement field.
+
+    Returns:
+        The updated grid.
+    """
     # Update the grid
     sd = sd.copy()
     sd.nodes[: sd.dim, :] += u
