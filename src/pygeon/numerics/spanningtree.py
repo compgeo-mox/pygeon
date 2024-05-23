@@ -252,8 +252,8 @@ class SpanningTree:
         Returns:
             sps.sparray: S_I, a right inverse of the B-operator
         """
-        I = np.eye(self.system.shape[0])
-        inv_system = self.system_splu.solve(I)
+        identity = np.eye(self.system.shape[0])
+        inv_system = self.system_splu.solve(identity)
 
         return self.expand @ sps.csc_array(inv_system)
 
