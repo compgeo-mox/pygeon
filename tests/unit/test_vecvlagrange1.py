@@ -20,27 +20,31 @@ class VecVLagrange1_test(unittest.TestCase):
         div = discr.assemble_div_matrix(sd)
         symgrad = discr.assemble_symgrad_matrix(sd)
 
-        div.eliminate_zeros()
-        symgrad.eliminate_zeros()
-
         div_div = discr.assemble_div_div_matrix(sd)
         symgrad_symgrad = discr.assemble_symgrad_symgrad_matrix(sd)
 
-        div_div.eliminate_zeros()
-        symgrad_symgrad.eliminate_zeros()
-
         pen = discr.assemble_penalisation_matrix(sd)
         pen.data[np.abs(pen.data) < 1e-10] = 0
-        pen.eliminate_zeros()
 
         diff = discr.assemble_diff_matrix(sd)
-        diff.eliminate_zeros()
 
         stiff = discr.assemble_stiff_matrix(sd)
         stiff.data[np.abs(stiff.data) < 1e-10] = 0
-        stiff.eliminate_zeros()
+
+        for X in [div, symgrad, div_div, pen, symgrad_symgrad, diff, stiff]:
+            self.make_canonical(X)
 
         return M, div, symgrad, div_div, symgrad_symgrad, pen, diff, stiff, discr
+
+    def make_canonical(self, A: sps.sparray):
+        A.sum_duplicates()
+        A.eliminate_zeros()
+        A.sort_indices()
+
+    def assemble_known(self, data, indices, indptr, shape=None):
+        A = sps.csc_array((data, indices, indptr), shape=shape)
+        self.make_canonical(A)
+        return A
 
     def test_tri_grid(self):
         num_cells, dim = 2, 2
@@ -83,9 +87,11 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = self.assemble_known(M_known_data, M_known_indices, M_known_indptr)
+
+        self.assertTrue(np.allclose(M.data, M_known.data))
+        self.assertTrue(np.allclose(M.indices, M_known.indices))
+        self.assertTrue(np.allclose(M.indptr, M_known.indptr))
 
         # fmt: off
 
@@ -95,7 +101,7 @@ class VecVLagrange1_test(unittest.TestCase):
         -0.25, -0.25,  0.25, -0.25,  0.25,  0.25, -0.25, -0.25,  0.25,
         -0.25,  0.25,  0.25,  0.25,  0.25])
 
-        div_kwown_indices = np.array(
+        div_known_indices = np.array(
         [0, 0, 2, 2, 1, 4, 1, 3, 4, 6, 3, 6, 5, 5, 7, 7, 1, 0, 3, 2, 1, 5,
         0, 3, 4, 7, 2, 6, 5, 4, 7, 6])
 
@@ -104,10 +110,13 @@ class VecVLagrange1_test(unittest.TestCase):
         31, 32])
 
         # fmt: on
+        div_known = self.assemble_known(
+            div_known_data, div_known_indices, div_known_indptr
+        )
 
-        self.assertTrue(np.allclose(div.data, div_known_data))
-        self.assertTrue(np.allclose(div.indices, div_kwown_indices))
-        self.assertTrue(np.allclose(div.indptr, div_known_indptr))
+        self.assertTrue(np.allclose(div.data, div_known.data))
+        self.assertTrue(np.allclose(div.indices, div_known.indices))
+        self.assertTrue(np.allclose(div.indptr, div_known.indptr))
 
         # fmt: off
 
@@ -139,9 +148,13 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(symgrad.data, symgrad_known_data))
-        self.assertTrue(np.allclose(symgrad.indices, symgrad_known_indices))
-        self.assertTrue(np.allclose(symgrad.indptr, symgrad_known_indptr))
+        symgrad_known = self.assemble_known(
+            symgrad_known_data, symgrad_known_indices, symgrad_known_indptr
+        )
+
+        self.assertTrue(np.allclose(symgrad.data, symgrad_known.data))
+        self.assertTrue(np.allclose(symgrad.indices, symgrad_known.indices))
+        self.assertTrue(np.allclose(symgrad.indptr, symgrad_known.indptr))
 
         # fmt: off
 
@@ -171,10 +184,13 @@ class VecVLagrange1_test(unittest.TestCase):
         73,  83,  90,  94, 100, 104])
 
         # fmt: on
+        div_div_known = self.assemble_known(
+            div_div_known_data, div_div_known_indices, div_div_known_indptr
+        )
 
-        self.assertTrue(np.allclose(div_div.data, div_div_known_data))
-        self.assertTrue(np.allclose(div_div.indices, div_div_known_indices))
-        self.assertTrue(np.allclose(div_div.indptr, div_div_known_indptr))
+        self.assertTrue(np.allclose(div_div.data, div_div_known.data))
+        self.assertTrue(np.allclose(div_div.indices, div_div_known.indices))
+        self.assertTrue(np.allclose(div_div.indptr, div_div_known.indptr))
 
         # fmt: off
 
@@ -211,56 +227,33 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(symgrad_symgrad.data, symgrad_symgrad_known_data))
+        symgrad_symgrad_known = self.assemble_known(
+            symgrad_symgrad_known_data,
+            symgrad_symgrad_known_indices,
+            symgrad_symgrad_known_indptr,
+        )
+
+        self.assertTrue(np.allclose(symgrad_symgrad.data, symgrad_symgrad_known.data))
         self.assertTrue(
-            np.allclose(symgrad_symgrad.indices, symgrad_symgrad_known_indices)
+            np.allclose(symgrad_symgrad.indices, symgrad_symgrad_known.indices)
         )
         self.assertTrue(
-            np.allclose(symgrad_symgrad.indptr, symgrad_symgrad_known_indptr)
+            np.allclose(symgrad_symgrad.indptr, symgrad_symgrad_known.indptr)
         )
 
         self.assertTrue(np.allclose(pen.data, 0))
 
-        symgrad_known = sps.csc_matrix(
-            (symgrad_known_data, symgrad_known_indices, symgrad_known_indptr)
-        )
-        div_known = sps.csc_matrix(
-            (div_known_data, div_kwown_indices, div_known_indptr)
-        )
         diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
-        diff_known.eliminate_zeros()
+        self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))
         self.assertTrue(np.allclose(diff.indices, diff_known.indices))
         self.assertTrue(np.allclose(diff.indptr, diff_known.indptr))
 
-        symgrad_known = sps.csc_matrix(
-            (symgrad_known_data, symgrad_known_indices, symgrad_known_indptr)
-        )
-        div_known = sps.csc_matrix(
-            (div_known_data, div_kwown_indices, div_known_indptr)
-        )
-        diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
-        diff_known.eliminate_zeros()
-
-        self.assertTrue(np.allclose(diff.data, diff_known.data))
-        self.assertTrue(np.allclose(diff.indices, diff_known.indices))
-        self.assertTrue(np.allclose(diff.indptr, diff_known.indptr))
-
-        symgrad_symgrad_known = sps.csc_matrix(
-            (
-                symgrad_symgrad_known_data,
-                symgrad_symgrad_known_indices,
-                symgrad_symgrad_known_indptr,
-            )
-        )
-        div_div_known = sps.csc_matrix(
-            (div_div_known_data, div_div_known_indices, div_div_known_indptr)
-        )
         pen_known = sps.csc_matrix(pen.shape)
 
         stiff_known = symgrad_symgrad_known + div_div_known + pen_known
-        stiff_known.eliminate_zeros()
+        self.make_canonical(stiff_known)
 
         self.assertTrue(np.allclose(stiff.data, stiff_known.data))
         self.assertTrue(np.allclose(stiff.indices, stiff_known.indices))
@@ -324,9 +317,11 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = self.assemble_known(M_known_data, M_known_indices, M_known_indptr)
+
+        self.assertTrue(np.allclose(M.data, M_known.data))
+        self.assertTrue(np.allclose(M.indices, M_known.indices))
+        self.assertTrue(np.allclose(M.indptr, M_known.indptr))
 
         # fmt: off
 
@@ -336,7 +331,7 @@ class VecVLagrange1_test(unittest.TestCase):
         -0.25, -0.25,  0.25, -0.25,  0.25,  0.25, -0.25, -0.25,  0.25,
         -0.25,  0.25,  0.25,  0.25,  0.25])
 
-        div_kwown_indices = np.array(
+        div_known_indices = np.array(
         [0, 0, 1, 1, 0, 2, 0, 1, 2, 3, 1, 3, 2, 2, 3, 3, 0, 0, 1, 1, 0, 2,
         0, 1, 2, 3, 1, 3, 2, 2, 3, 3])
 
@@ -345,10 +340,13 @@ class VecVLagrange1_test(unittest.TestCase):
         31, 32])
 
         # fmt: on
+        div_known = self.assemble_known(
+            div_known_data, div_known_indices, div_known_indptr
+        )
 
-        self.assertTrue(np.allclose(div.data, div_known_data))
-        self.assertTrue(np.allclose(div.indices, div_kwown_indices))
-        self.assertTrue(np.allclose(div.indptr, div_known_indptr))
+        self.assertTrue(np.allclose(div.data, div_known.data))
+        self.assertTrue(np.allclose(div.indices, div_known.indices))
+        self.assertTrue(np.allclose(div.indptr, div_known.indptr))
 
         # fmt: off
 
@@ -379,10 +377,13 @@ class VecVLagrange1_test(unittest.TestCase):
         93, 96])
 
         # fmt: on
+        symgrad_known = self.assemble_known(
+            symgrad_known_data, symgrad_known_indices, symgrad_known_indptr
+        )
 
-        self.assertTrue(np.allclose(symgrad.data, symgrad_known_data))
-        self.assertTrue(np.allclose(symgrad.indices, symgrad_known_indices))
-        self.assertTrue(np.allclose(symgrad.indptr, symgrad_known_indptr))
+        self.assertTrue(np.allclose(symgrad.data, symgrad_known.data))
+        self.assertTrue(np.allclose(symgrad.indices, symgrad_known.indices))
+        self.assertTrue(np.allclose(symgrad.indptr, symgrad_known.indptr))
 
         # fmt: off
 
@@ -425,9 +426,13 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(div_div.data, div_div_known_data))
-        self.assertTrue(np.allclose(div_div.indices, div_div_known_indices))
-        self.assertTrue(np.allclose(div_div.indptr, div_div_known_indptr))
+        div_div_known = self.assemble_known(
+            div_div_known_data, div_div_known_indices, div_div_known_indptr
+        )
+
+        self.assertTrue(np.allclose(div_div.data, div_div_known.data))
+        self.assertTrue(np.allclose(div_div.indices, div_div_known.indices))
+        self.assertTrue(np.allclose(div_div.indptr, div_div_known.indptr))
 
         # fmt: off
 
@@ -473,12 +478,18 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(symgrad_symgrad.data, symgrad_symgrad_known_data))
+        symgrad_symgrad_known = self.assemble_known(
+            symgrad_symgrad_known_data,
+            symgrad_symgrad_known_indices,
+            symgrad_symgrad_known_indptr,
+        )
+
+        self.assertTrue(np.allclose(symgrad_symgrad.data, symgrad_symgrad_known.data))
         self.assertTrue(
-            np.allclose(symgrad_symgrad.indices, symgrad_symgrad_known_indices)
+            np.allclose(symgrad_symgrad.indices, symgrad_symgrad_known.indices)
         )
         self.assertTrue(
-            np.allclose(symgrad_symgrad.indptr, symgrad_symgrad_known_indptr)
+            np.allclose(symgrad_symgrad.indptr, symgrad_symgrad_known.indptr)
         )
 
         # fmt: off
@@ -510,26 +521,16 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(pen.data, pen_known_data))
-        self.assertTrue(np.allclose(pen.indices, pen_known_indices))
-        self.assertTrue(np.allclose(pen.indptr, pen_known_indptr))
+        pen_known = self.assemble_known(
+            pen_known_data, pen_known_indices, pen_known_indptr
+        )
 
-        symgrad_symgrad_known = sps.csc_matrix(
-            (
-                symgrad_symgrad_known_data,
-                symgrad_symgrad_known_indices,
-                symgrad_symgrad_known_indptr,
-            )
-        )
-        div_div_known = sps.csc_matrix(
-            (div_div_known_data, div_div_known_indices, div_div_known_indptr)
-        )
-        pen_known = sps.csc_matrix(
-            (pen_known_data, pen_known_indices, pen_known_indptr)
-        )
+        self.assertTrue(np.allclose(pen.data, pen_known.data))
+        self.assertTrue(np.allclose(pen.indices, pen_known.indices))
+        self.assertTrue(np.allclose(pen.indptr, pen_known.indptr))
 
         stiff_known = symgrad_symgrad_known + div_div_known + pen_known
-        stiff_known.eliminate_zeros()
+        self.make_canonical(stiff_known)
 
         self.assertTrue(np.allclose(stiff.data, stiff_known.data))
         self.assertTrue(np.allclose(stiff.indices, stiff_known.indices))
@@ -610,10 +611,11 @@ class VecVLagrange1_test(unittest.TestCase):
         93, 102, 111, 120, 129, 138, 147, 156, 159, 162, 165, 168])
 
         # fmt: on
+        M_known = self.assemble_known(M_known_data, M_known_indices, M_known_indptr)
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        self.assertTrue(np.allclose(M.data, M_known.data))
+        self.assertTrue(np.allclose(M.indices, M_known.indices))
+        self.assertTrue(np.allclose(M.indptr, M_known.indptr))
 
         # fmt: off
 
@@ -636,9 +638,13 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(div.data, div_known_data))
-        self.assertTrue(np.allclose(div.indices, div_known_indices))
-        self.assertTrue(np.allclose(div.indptr, div_known_indptr))
+        div_known = self.assemble_known(
+            div_known_data, div_known_indices, div_known_indptr
+        )
+
+        self.assertTrue(np.allclose(div.data, div_known.data))
+        self.assertTrue(np.allclose(div.indices, div_known.indices))
+        self.assertTrue(np.allclose(div.indptr, div_known.indptr))
 
         # fmt: off
 
@@ -677,10 +683,13 @@ class VecVLagrange1_test(unittest.TestCase):
         72, 76, 80, 84, 87, 90, 93, 96])
 
         # fmt: on
+        symgrad_known = self.assemble_known(
+            symgrad_known_data, symgrad_known_indices, symgrad_known_indptr
+        )
 
-        self.assertTrue(np.allclose(symgrad.data, symgrad_known_data))
-        self.assertTrue(np.allclose(symgrad.indices, symgrad_known_indices))
-        self.assertTrue(np.allclose(symgrad.indptr, symgrad_known_indptr))
+        self.assertTrue(np.allclose(symgrad.data, symgrad_known.data))
+        self.assertTrue(np.allclose(symgrad.indices, symgrad_known.indices))
+        self.assertTrue(np.allclose(symgrad.indptr, symgrad_known.indptr))
 
         # fmt: off
 
@@ -772,10 +781,13 @@ class VecVLagrange1_test(unittest.TestCase):
         168, 184, 200, 216, 234, 252, 270, 288, 292, 296, 300, 304])
 
         # fmt: on
+        div_div_known = self.assemble_known(
+            div_div_known_data, div_div_known_indices, div_div_known_indptr
+        )
 
-        self.assertTrue(np.allclose(div_div.data, div_div_known_data))
-        self.assertTrue(np.allclose(div_div.indices, div_div_known_indices))
-        self.assertTrue(np.allclose(div_div.indptr, div_div_known_indptr))
+        self.assertTrue(np.allclose(div_div.data, div_div_known.data))
+        self.assertTrue(np.allclose(div_div.indices, div_div_known.indices))
+        self.assertTrue(np.allclose(div_div.indptr, div_div_known.indptr))
 
         # fmt: off
 
@@ -871,13 +883,18 @@ class VecVLagrange1_test(unittest.TestCase):
         178, 196, 214, 232, 249, 266, 283, 300, 305, 310, 315, 320])
 
         # fmt: on
+        symgrad_symgrad_known = self.assemble_known(
+            symgrad_symgrad_known_data,
+            symgrad_symgrad_known_indices,
+            symgrad_symgrad_known_indptr,
+        )
 
-        self.assertTrue(np.allclose(symgrad_symgrad.data, symgrad_symgrad_known_data))
+        self.assertTrue(np.allclose(symgrad_symgrad.data, symgrad_symgrad_known.data))
         self.assertTrue(
-            np.allclose(symgrad_symgrad.indices, symgrad_symgrad_known_indices)
+            np.allclose(symgrad_symgrad.indices, symgrad_symgrad_known.indices)
         )
         self.assertTrue(
-            np.allclose(symgrad_symgrad.indptr, symgrad_symgrad_known_indptr)
+            np.allclose(symgrad_symgrad.indptr, symgrad_symgrad_known.indptr)
         )
 
         # fmt: off
@@ -926,40 +943,23 @@ class VecVLagrange1_test(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(pen.data, pen_known_data))
-        self.assertTrue(np.allclose(pen.indices, pen_known_indices))
-        self.assertTrue(np.allclose(pen.indptr, pen_known_indptr))
+        pen_known = self.assemble_known(
+            pen_known_data, pen_known_indices, pen_known_indptr, pen.shape
+        )
 
-        symgrad_known = sps.csc_matrix(
-            (symgrad_known_data, symgrad_known_indices, symgrad_known_indptr)
-        )
-        div_known = sps.csc_matrix(
-            (div_known_data, div_known_indices, div_known_indptr)
-        )
+        self.assertTrue(np.allclose(pen.data, pen_known.data))
+        self.assertTrue(np.allclose(pen.indices, pen_known.indices))
+        self.assertTrue(np.allclose(pen.indptr, pen_known.indptr))
+
         diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
-        diff_known.eliminate_zeros()
+        self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))
         self.assertTrue(np.allclose(diff.indices, diff_known.indices))
         self.assertTrue(np.allclose(diff.indptr, diff_known.indptr))
 
-        symgrad_symgrad_known = sps.csc_matrix(
-            (
-                symgrad_symgrad_known_data,
-                symgrad_symgrad_known_indices,
-                symgrad_symgrad_known_indptr,
-            )
-        )
-        div_div_known = sps.csc_matrix(
-            (div_div_known_data, div_div_known_indices, div_div_known_indptr)
-        )
-        pen_known = sps.csc_matrix(
-            (pen_known_data, pen_known_indices, pen_known_indptr),
-            shape=div_div_known.shape,
-        )
-
         stiff_known = symgrad_symgrad_known + div_div_known + pen_known
-        stiff_known.eliminate_zeros()
+        self.make_canonical(stiff_known)
 
         self.assertTrue(np.allclose(stiff.data, stiff_known.data))
         self.assertTrue(np.allclose(stiff.indices, stiff_known.indices))
