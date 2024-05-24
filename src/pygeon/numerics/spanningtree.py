@@ -94,8 +94,8 @@ class SpanningTree:
         ).T.tocsc()
 
         # Save the sparse LU decomposition of the system
-        system = pg.cell_mass(mdg) @ self.div @ self.expand
-        self.system = sps.linalg.splu(system)
+        self.system = pg.cell_mass(mdg) @ self.div @ self.expand
+        self.system_splu = sps.linalg.splu(self.system)
 
     def find_starting_faces(
         self,
@@ -241,7 +241,21 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed flux field
         """
-        return self.expand @ self.system.solve(f)
+        return self.expand @ self.system_splu.solve(f)
+
+    def assemble_SI(self) -> sps.sparray:
+        """
+        Assembles the operator S_I as a sparse array.
+        NOTE: This will be slow for large systems.
+        If you only need the action of S_I, consider using self.solve() instead.
+
+        Returns:
+            sps.sparray: S_I, a right inverse of the B-operator
+        """
+        identity = np.eye(self.system.shape[0])
+        inv_system = self.system_splu.solve(identity)
+
+        return self.expand @ sps.csc_array(inv_system)
 
     def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
@@ -254,7 +268,7 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed pressure field
         """
-        return self.system.solve(self.expand.T.tocsc() @ rhs, "T")
+        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
@@ -346,8 +360,8 @@ class SpanningTreeElasticity(SpanningTree):
         self.expand = self.compute_expand(sd, flagged_faces)
 
         # Save the sparse LU decomposition of the system
-        system = self.compute_system(sd)
-        self.system = sps.linalg.splu(system)
+        self.system = self.compute_system(sd)
+        self.system_splu = sps.linalg.splu(self.system)
 
     def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
         """
@@ -437,6 +451,8 @@ class SpanningTreeElasticity(SpanningTree):
             P_asym[2] -= sps.vstack(s_times_P_t)
 
             P_asym = sps.hstack(P_asym)
+        else:
+            raise NotImplementedError("Grid must be 2D or 3D.")
 
         # combine all the P
         P_div = sps.block_diag([P_div] * sd.dim)
@@ -543,6 +559,17 @@ class SpanningWeightedTrees:
             np.ndarray: The post-processed flux field.
         """
         return self.avg([st.solve(f) for st in self.sptrs])
+
+    def assemble_SI(self) -> sps.sparray:
+        """
+        Assembles the operator S_I as a sparse array.
+        NOTE: This will be slow for large systems.
+        If you only need the action of S_I, consider using self.solve() instead.
+
+        Returns:
+            sps.sparray: S_I, a right inverse of the B-operator
+        """
+        return self.avg([st.assemble_SI() for st in self.sptrs])
 
     def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """

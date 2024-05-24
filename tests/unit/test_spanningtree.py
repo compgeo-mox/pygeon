@@ -118,6 +118,20 @@ class SpanningTreeTest(unittest.TestCase):
             self.check_flux(mdg, s)
             self.check_pressure(mdg, s)
 
+    def test_assemble_SI(self):
+        N, dim = 3, 2
+        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        for s in self.sptr(mdg):
+            SI = s.assemble_SI()
+            B = pg.cell_mass(mdg) @ pg.div(mdg)
+            check = sps.eye_array(B.shape[0]) - B @ SI
+
+            self.assertTrue(np.allclose(check.data, 0))
+
     def test_for_errors(self):
         sd = pg.unit_grid(2, 0.125)
         mdg = pg.as_mdg(sd)
@@ -192,6 +206,28 @@ class SpanningTreeElasticityTest(unittest.TestCase):
         for sptr in self.sptr(mdg):
             s_f = sptr.solve(f)
             self.assertTrue(np.allclose(B @ s_f, f))
+
+    def test_assemble_SI(self):
+        N, dim = 3, 2
+        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        for s in self.sptr(mdg):
+            SI = s.assemble_SI()
+            B = self.assemble_B(mdg)
+            check = sps.eye_array(B.shape[0]) - B @ SI
+
+            self.assertTrue(np.allclose(check.data, 0))
+
+    def test_for_errors(self):
+        sd = pp.CartGrid(1, 1)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        self.assertRaises(NotImplementedError, pg.SpanningTreeElasticity, mdg)
 
 
 if __name__ == "__main__":
