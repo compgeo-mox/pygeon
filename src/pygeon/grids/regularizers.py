@@ -19,17 +19,17 @@ def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
     for _ in np.arange(num_iter):
         sd = pg.VoronoiGrid(vrt=sd.cell_centers)
         sd.compute_geometry()
-
     return sd
 
 
-def graph_laplace_regularization(sd: pg.Grid) -> pg.Grid:
+def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
     """
     Perform Laplace regularization on the grid by solving a graph laplacian over the
     face-ridges in 2d and ridge-peaks in 3d. The topology of the grid is preserved.
 
     Args:
         sd (pg.Grid): The grid to regularize.
+        sliding (bool): Whether the boundary is sliding, defaults to True.
 
     Returns:
         The Laplace regularized grid.
@@ -48,11 +48,14 @@ def graph_laplace_regularization(sd: pg.Grid) -> pg.Grid:
     # Assemble right-hand side
     b = -A @ sd.nodes[: sd.dim, :].ravel()
 
-    u = compute_displacement(sd, A, b, sd.nodes)
+    ess = np.tile(sd.tags["domain_boundary_nodes"], sd.dim)
+    u = compute_displacement(sd, A, b, sd.nodes, None if sliding else ess)
     return update_grid(sd, u)
 
 
-def graph_laplace_dual_regularization(sd: pg.Grid) -> pg.VoronoiGrid:
+def graph_laplace_dual_regularization(
+    sd: pg.Grid, sliding: bool = True
+) -> pg.VoronoiGrid:
     """
     Perform Laplace regularization on the dual grid by solving a graph laplacian over the
     cell-faces. A Voronoi grid is constructed based on the new cell centers.
@@ -60,6 +63,7 @@ def graph_laplace_dual_regularization(sd: pg.Grid) -> pg.VoronoiGrid:
 
     Args:
         sd (pg.Grid): The grid to regularize.
+        sliding (bool): Whether the boundary is sliding, defaults to True.
 
     Returns:
         The regularized Voronoi grid.
@@ -85,19 +89,26 @@ def graph_laplace_dual_regularization(sd: pg.Grid) -> pg.VoronoiGrid:
     b = -A @ centers[: sd.dim].ravel()
 
     # compute the new cell centers
-    u = compute_displacement(sd, A, b, centers)
-    # cell_centers = sd.cell_centers[: sd.dim, :] + u[:, : sd.num_cells]
+    ess = np.tile(
+        np.hstack(
+            (
+                np.zeros(sd.num_cells, dtype=bool),
+                np.ones(ghost_cells.shape[1], dtype=bool),
+            )
+        ),
+        sd.dim,
+    )
+    u = compute_displacement(sd, A, b, centers, None if sliding else ess)
     cell_centers = centers[: sd.dim] + u
 
     # build a voronoi grid based on the new cell centers
     sd = pg.VoronoiGrid(vrt=cell_centers)
     sd.compute_geometry()
-
     return sd
 
 
 def elasticity_regularization(
-    sd: pg.Grid, spring_const: float = 1, key: str = "reg"
+    sd: pg.Grid, spring_const: float = 1, key: str = "reg", sliding: bool = True
 ) -> pg.Grid:
     """
     Regularize the grid using the elasticity regularization. The topology of the grid is
@@ -107,6 +118,7 @@ def elasticity_regularization(
         sd (pg.Grid): The grid to regularize.
         spring_const (float): The spring constant, defaults to 1.
         key (str): The key for the discretization, defaults to "reg".
+        is_sliding (bool): Whether the boundary is sliding, defaults to True.
 
     Returns:
         The regularized grid.
@@ -127,7 +139,8 @@ def elasticity_regularization(
     ]
     b = M @ np.hstack(force_list)
 
-    u = compute_displacement(sd, A, b, sd.nodes)
+    ess = np.tile(sd.tags["domain_boundary_nodes"], sd.dim)
+    u = compute_displacement(sd, A, b, sd.nodes, None if sliding else ess)
     return update_grid(sd, u)
 
 
@@ -136,6 +149,7 @@ def compute_displacement(
     A: sps.csc_matrix,
     b: np.ndarray,
     coords: np.ndarray,
+    ess: np.ndarray,
 ) -> np.ndarray:
     """
     Solve the regularizing system to compute the displacement field.
@@ -145,21 +159,23 @@ def compute_displacement(
         A (sps.csc_matrix): The system matrix.
         b (np.ndarray): The right-hand side.
         coords (np.ndarray): The coordinates of the nodes in the graph.
+        ess (np.ndarray): The sliding degrees of freedom.
 
     Returns:
         The displacement field.
     """
     # Set the essential dofs for the sliding boundary
-    box_min = np.min(coords, axis=1)
-    box_max = np.max(coords, axis=1)
+    if ess is None:
+        box_min = np.min(coords, axis=1)
+        box_max = np.max(coords, axis=1)
 
-    bdry = [
-        np.isclose(coords[ind, :], box_min[ind])
-        + np.isclose(coords[ind, :], box_max[ind])
-        for ind in np.arange(sd.dim)
-    ]
+        bdry = [
+            np.isclose(coords[ind, :], box_min[ind])
+            + np.isclose(coords[ind, :], box_max[ind])
+            for ind in np.arange(sd.dim)
+        ]
 
-    ess = np.hstack(bdry)
+        ess = np.hstack(bdry)
 
     # Solve the regularizing system
     ls = pg.LinearSystem(A, b)
@@ -183,5 +199,4 @@ def update_grid(sd: pg.Grid, u: np.ndarray) -> pg.Grid:
     sd = sd.copy()
     sd.nodes[: sd.dim, :] += u
     sd.compute_geometry()
-
     return sd
