@@ -29,12 +29,13 @@ class VoronoiGrid(pg.Grid):
         Returns:
             None
         """
+        tol = kwargs.get("tol", 1e-8)
         # Generate the internal seed points for the Voronoi grid
         if vrt is None:
             vrt = self.generate_internal_pts(num_pts, **kwargs)
         else:
             assert (
-                np.amin(vrt) >= 0 and np.amax(vrt) <= 1
+                np.amin(vrt) >= -tol and np.amax(vrt) <= 1 + tol
             ), "Points must be in the unit square"
 
         # Use Scipy to generate the Voronoi grid
