@@ -497,6 +497,71 @@ class SpanningTreeElasticity(SpanningTree):
         return sps.vstack((-div, -asym)) @ self.expand
 
 
+class SpanningTreeCosserat(SpanningTreeElasticity):
+    """
+    Represents a class for computing the spanning tree for the Cosserat problem.
+
+    Attributes:
+        expand (sps.csc_matrix): The expanded matrix for spanning tree computation.
+        system (sps.csc_matrix): The computed system matrix.
+
+    Methods:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+            Set up the system for the spanning tree algorithm.
+
+        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+            Compute the expanded matrix for spanning tree computation.
+
+        compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+            Computes the system matrix for the given grid.
+    """
+
+    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+        """
+        Compute the expanded matrix for spanning tree computation.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            sps.csc_matrix: The expanded matrix for spanning tree computation.
+        """
+        key = "tree"
+        dim_sig_omega = sd.dim * (sd.dim + 1) // 2
+
+        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+
+        return sps.block_diag([expand] * dim_sig_omega, format="csc")
+
+    def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Computes the system matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the domain.
+
+        Returns:
+            sps.csc_matrix: The computed system matrix.
+        """
+        assert sd.dim == 3, "Only implemented the 3D Raviart-Thomas version."
+
+        # first we assemble the B matrix
+        key = "tree"
+        vec_rt0 = pg.VecRT0(key)
+        vec_p0 = pg.VecPwConstants(key)
+
+        M = vec_p0.assemble_mass_matrix(sd)
+
+        div = M @ vec_rt0.assemble_diff_matrix(sd)
+        asym = M @ vec_rt0.assemble_asym_matrix(sd)
+
+        B = sps.bmat([[-div, None], [-asym, -div]], format="csc")
+
+        # create the solution operator
+        return B @ self.expand
+
+
 class SpanningWeightedTrees:
     """
     Class that can perform a spanning weighted trees solve, based on one of

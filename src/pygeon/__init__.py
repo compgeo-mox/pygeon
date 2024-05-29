@@ -44,6 +44,7 @@ from pygeon.numerics.spanningtree import (
     SpanningTree,
     SpanningWeightedTrees,
     SpanningTreeElasticity,
+    SpanningTreeCosserat,
 )
 
 import pygeon.utils.bmat as bmat
