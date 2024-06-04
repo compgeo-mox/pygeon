@@ -527,7 +527,6 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         Returns:
             sps.csc_matrix: The expanded matrix for spanning tree computation.
         """
-        key = "tree"
         dim_sig_omega = sd.dim * (sd.dim + 1) // 2
 
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
