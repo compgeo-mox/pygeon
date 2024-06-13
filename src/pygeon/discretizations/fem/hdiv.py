@@ -599,7 +599,7 @@ class BDM1(pg.Discretization):
             sign = np.sum(sd.cell_faces.tocsr()[face, :])
             loc_vals = np.array(
                 [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
-            )
+            ).ravel()
 
             vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
 
@@ -888,8 +888,8 @@ class VecBDM1(pg.VecDiscretization):
                     np.arange(3 * nc, 4 * nc),
                 )
             )
-            # t_xy gets a +1 and t_yx a -1, represented as p0 dofs so with the cell volume
-            data_IJ = np.hstack((cv, -cv))
+            # t_xy gets a -1 and t_yx a +1, represented as p0 dofs so with the cell volume
+            data_IJ = np.hstack((-cv, cv))
             # Assemble the matrix with a given shape, t_xx and t_yy are not considered
             T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(nc, P.shape[0]))
             return T @ P
