@@ -391,7 +391,7 @@ class BDM1(pg.Discretization):
             weight = sps.block_diag([inv_K.values[:, :, c]] * (sd.dim + 1))
 
             # Compute the inner products
-            A = Psi @ M @ weight_c @ Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
