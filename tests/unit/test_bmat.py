@@ -58,7 +58,7 @@ class BlockMatrixTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(np.all(M_known == sps.bmat(M).A))
+        self.assertTrue(np.all(M_known == sps.bmat(M).toarray()))
 
     def test_mat_multiplication(self):
         """
@@ -73,7 +73,7 @@ class BlockMatrixTest(unittest.TestCase):
         block_prod = sps.bmat(M @ M)
         full_prod = M_full @ M_full
 
-        assert np.all(block_prod.A == full_prod.A)
+        assert np.all(block_prod.toarray() == full_prod.toarray())
 
     def test_mat_addition(self):
         """
@@ -88,7 +88,7 @@ class BlockMatrixTest(unittest.TestCase):
         block_sum = sps.bmat(M + 4 * M)
         full_sum = M_full + 4 * M_full
 
-        assert np.all(block_sum.A == full_sum.A)
+        assert np.all(block_sum.toarray() == full_sum.toarray())
 
     def test_transpose(self):
         """
@@ -98,7 +98,7 @@ class BlockMatrixTest(unittest.TestCase):
         M = self.create_block_mat()
         M_T = pg.bmat.transpose(M)
 
-        self.assertTrue(np.all(sps.bmat(M_T).A == sps.bmat(M).A.T))
+        self.assertTrue(np.all(sps.bmat(M_T).toarray() == sps.bmat(M).toarray().T))
 
 
 if __name__ == "__main__":

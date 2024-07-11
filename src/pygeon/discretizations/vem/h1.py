@@ -207,7 +207,7 @@ class VLagrange1(pg.Discretization):
             np.ndarray: The righthand side B.
         """
         normals = (
-            sd.face_normals[: sd.dim] * sd.cell_faces[:, cell].A.ravel()
+            sd.face_normals[: sd.dim] * sd.cell_faces[:, cell].toarray().ravel()
         ) @ sd.face_nodes[nodes, :].T
 
         B = np.empty((3, nodes.size))
