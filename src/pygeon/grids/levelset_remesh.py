@@ -300,7 +300,7 @@ def create_new_cell_faces(
 
         # Extract positively oriented face_node connectivity
         face_nodes_el = face_ridges[:, faces_el] * sps.diags(
-            sd.cell_faces[faces_el, el].A.ravel()
+            sd.cell_faces[faces_el, el].toarray().ravel()
         )
 
         (I_node, J_face, V_orient) = sps.find(face_nodes_el)
@@ -330,7 +330,7 @@ def create_new_cell_faces(
                 dtype=int,
             )
             rows.append(sub_faces)
-            data.append(sd.cell_faces[sub_faces, el].A.ravel())
+            data.append(sd.cell_faces[sub_faces, el].toarray().ravel())
 
             # Faces that are cut at the start/end of the loop
             start_face = faces_el[
