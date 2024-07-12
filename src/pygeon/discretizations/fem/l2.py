@@ -3,10 +3,9 @@
 from typing import Callable, Optional
 
 import numpy as np
-import scipy.sparse as sps
-
 import porepy as pp
 import pygeon as pg
+import scipy.sparse as sps
 
 
 class PwConstants(pg.Discretization):

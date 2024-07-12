@@ -3,11 +3,10 @@
 from typing import Callable, Optional
 
 import numpy as np
-import scipy.linalg as spl
-import scipy.sparse as sps
-
 import porepy as pp
 import pygeon as pg
+import scipy.linalg as spl
+import scipy.sparse as sps
 
 
 class Lagrange1(pg.Discretization):
