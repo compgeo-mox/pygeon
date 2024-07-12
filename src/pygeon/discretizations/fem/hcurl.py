@@ -3,8 +3,9 @@
 from typing import Callable, Optional
 
 import numpy as np
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 class Nedelec0(pg.Discretization):
