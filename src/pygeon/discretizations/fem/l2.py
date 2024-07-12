@@ -3,10 +3,9 @@
 from typing import Callable, Optional
 
 import numpy as np
-import scipy.sparse as sps
-
 import porepy as pp
 import pygeon as pg
+import scipy.sparse as sps
 
 
 class PwConstants(pg.Discretization):
@@ -320,7 +319,7 @@ class PwLinears(pg.Discretization):
 
         try:
             weight = data[pp.PARAMETERS][self.keyword]["weight"]
-        except:
+        except Exception:
             weight = np.ones(sd.num_cells)
 
         for c in np.arange(sd.num_cells):

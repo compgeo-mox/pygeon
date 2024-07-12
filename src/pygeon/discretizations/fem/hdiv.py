@@ -4,9 +4,8 @@ from typing import Callable, Optional
 
 import numpy as np
 import porepy as pp
-import scipy.sparse as sps
-
 import pygeon as pg
+import scipy.sparse as sps
 
 
 class RT0(pg.Discretization, pp.RT0):
@@ -372,7 +371,7 @@ class BDM1(pg.Discretization):
 
         try:
             inv_K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
-        except:
+        except Exception:
             inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
 
         cell_nodes = sd.cell_nodes()
