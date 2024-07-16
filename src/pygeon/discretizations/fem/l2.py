@@ -3,6 +3,7 @@
 from typing import Callable, Optional
 
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -317,9 +318,15 @@ class PwLinears(pg.Discretization):
 
         lagrange1 = pg.Lagrange1(self.keyword)
 
+        try:
+            weight = data[pp.PARAMETERS][self.keyword]["weight"]
+        except Exception:
+            weight = np.ones(sd.num_cells)
+
         for c in np.arange(sd.num_cells):
             # Compute the mass local matrix
             A = lagrange1.local_mass(sd.cell_volumes[c], sd.dim)
+            A *= weight[c]
 
             # Save values for mass local matrix in the global structure
             nodes_loc = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
