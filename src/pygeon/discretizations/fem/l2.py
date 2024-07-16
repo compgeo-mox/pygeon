@@ -477,3 +477,40 @@ class VecPwConstants(pg.VecDiscretization):
             np.ndarray: The assembled natural boundary condition vector.
         """
         return np.zeros(self.ndof(sd))
+
+    def error_l2(
+        self,
+        sd: pg.Grid,
+        num_sol: np.ndarray,
+        ana_sol: Callable[[np.ndarray], np.ndarray],
+        relative: Optional[bool] = True,
+        etype: Optional[str] = "specific",
+    ) -> float:
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            num_sol (np.ndarray): Vector of the numerical solution.
+            ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
+                analytical solution.
+            relative (Optional[bool], optional): Compute the relative error or not.
+                Defaults to True.
+            etype (Optional[str], optional): Type of error computed. Defaults to "specific".
+
+        Returns:
+            float: The computed error.
+        """
+        if etype == "standard":
+            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
+
+        int_sol = np.array([ana_sol(x) for x in sd.nodes.T]).ravel(order="F")
+        proj = self.eval_at_cell_centers(sd)
+        num_sol = proj @ num_sol
+
+        norm = (
+            self.scalar_discr._cell_error(sd, np.zeros_like(num_sol), int_sol)
+            if relative
+            else 1
+        )
+        return self.scalar_discr._cell_error(sd, num_sol, int_sol) / norm
