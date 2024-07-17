@@ -501,16 +501,15 @@ class VecPwConstants(pg.VecDiscretization):
         Returns:
             float: The computed error.
         """
-        if etype == "standard":
-            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
 
-        int_sol = np.array([ana_sol(x) for x in sd.nodes.T]).ravel(order="F")
-        proj = self.eval_at_cell_centers(sd)
-        num_sol = proj @ num_sol
+        err2 = 0
+        num_sol = num_sol.reshape((sd.dim, -1))
+        for d in np.arange(sd.dim):
+            ana_sol_dim = lambda x: ana_sol(x)[d]
+            num_sol_dim = num_sol[d]
 
-        norm = (
-            self.scalar_discr._cell_error(sd, np.zeros_like(num_sol), int_sol)
-            if relative
-            else 1
-        )
-        return self.scalar_discr._cell_error(sd, num_sol, int_sol) / norm
+            err2_dim = self.scalar_discr.error_l2(
+                sd, num_sol_dim, ana_sol_dim, relative, etype
+            )
+            err2 += err2_dim**2
+        return np.sqrt(err2)
