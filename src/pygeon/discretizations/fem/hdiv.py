@@ -911,7 +911,7 @@ class VecBDM1(pg.VecDiscretization):
                     np.arange(5 * nc, 8 * nc),
                 )
             )
-            # Assording to the ordering of rows and cols given abose we have the following
+            # Assuring to the ordering of rows and cols given above we have the following
             # signs (-1, +1, +1, -1, -1, +1), weighted by the cell volumes since it is
             # represented as a p0 vector element
             data_IJ = np.hstack((-cv, cv, cv, -cv, -cv, cv))
