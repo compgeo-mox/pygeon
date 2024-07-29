@@ -370,6 +370,11 @@ class BDM1(pg.Discretization):
 
         M = self.local_inner_product(sd.dim)
 
+        try:
+            inv_K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
+        except Exception:
+            inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+
         cell_nodes = sd.cell_nodes()
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -383,8 +388,10 @@ class BDM1(pg.Discretization):
             cell_nodes_loc = cell_nodes[:, c].toarray()
             Psi = self.eval_basis_at_node(sd, dof_loc, cell_nodes_loc, faces_loc)
 
+            weight = sps.block_diag([inv_K.values[:, :, c]] * (sd.dim + 1))
+
             # Compute the inner products
-            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -782,23 +789,36 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_matrix: The mass matrix obtained from the discretization.
         """
+        # Extract the data
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+
+        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(mu, np.ScalarType):
+            mu = np.full(sd.num_cells, mu)
+
+        # Save 1/(2mu) as a tensor so that it can be read by BDM1
+        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
+        data_for_BDM = pp.initialize_data(
+            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
+        )
+
+        # Save the coefficient for the trace contribution
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
         # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data)
+        D = super().assemble_mass_matrix(sd, data_for_BDM)
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
         # Assemble the piecewise linear mass mastrix, to assemble the term
         # (Trace(sigma), Trace(tau))
         discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_mass_matrix(sd)
-
-        # Extract the data and compute the coefficient for the trace part
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+        M = discr.assemble_mass_matrix(sd, data_for_PwL)
 
         # Compose all the parts and return them
-        return (D - coeff * B.T @ M @ B) / (2 * mu)
+        return D - B.T @ M @ B
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
