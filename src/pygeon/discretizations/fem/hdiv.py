@@ -121,8 +121,9 @@ class RT0(pg.Discretization, pp.RT0):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
-        if data is None:
-            data = self.create_dummy_data(sd, data)
+        # create dummy data, unitary permeability, in case not present
+        data = self.create_dummy_data(sd, data)
+        # perform the rt0 discretization
         pp.RT0.discretize(self, sd, data)
         return data[pp.DISCRETIZATION_MATRICES][self.keyword][
             self.mass_matrix_key
@@ -812,7 +813,7 @@ class VecBDM1(pg.VecDiscretization):
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
-        # Assemble the piecewise linear mass mastrix, to assemble the term
+        # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
         discr = pg.PwLinears(self.keyword)
         M = discr.assemble_mass_matrix(sd, data_for_PwL)
@@ -881,7 +882,7 @@ class VecBDM1(pg.VecDiscretization):
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
         The asymmetric operator `as' for a tensor is a scalar and it is defined in 2d as
-        as(tau) = tau_xy - tau_yx
+        as(tau) = tau_yx - tau_xy
         while for a tensor in 3d it is a vector and given by
         as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
 
@@ -954,12 +955,12 @@ class VecBDM1(pg.VecDiscretization):
             sps.csc_matrix: The assembled lumped matrix.
         """
         # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_lumped_matrix(sd)  # TODO add the data
+        D = super().assemble_lumped_matrix(sd)
 
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
-        # Assemble the piecewise linear mass mastrix, to assemble the term
+        # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
         discr = pg.PwLinears(self.keyword)
         M = discr.assemble_lumped_matrix(sd)
@@ -1034,7 +1035,7 @@ class VecRT0(pg.VecDiscretization):
                  [sigma_yx, sigma_yy, sigma_yz],
                  [sigma_zx, sigma_zy, sigma_zz]]
 
-        where its vectorized structure of lenght 9 is given by
+        where its vectorized structure of length 9 is given by
 
         sigma = [sigma_xx, sigma_xy, sigma_xz,
                  sigma_yx, sigma_yy, sigma_yz,
@@ -1068,7 +1069,7 @@ class VecRT0(pg.VecDiscretization):
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
-        # Assemble the piecewise linear mass mastrix, to assemble the term
+        # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
         discr = pg.PwLinears(self.keyword)
         M = discr.assemble_mass_matrix(sd)
