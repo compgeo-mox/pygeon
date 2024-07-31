@@ -291,8 +291,8 @@ class Graph(pp.Grid):
         """
 
         # make sure that an edge is sorted by dimension
-        sort = (
-            lambda e: e
+        sort = lambda e: (
+            e
             if self.graph.nodes[e[0]]["dim"] > self.graph.nodes[e[1]]["dim"]
             else np.flip(e)
         )
