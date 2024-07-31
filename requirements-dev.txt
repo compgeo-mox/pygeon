@@ -1,8 +1,8 @@
-black == 23.*
+black == 24.*
 deepdiff
 flake8
 isort
-mypy >= 0.981
+mypy
 pytest >= 4.6
 pytest-cov
 pytest-runner
