@@ -25,12 +25,14 @@ def grid_from_domain(
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
     """
-    mesh_size_min = kwargs.get("mesh_size_min", mesh_size / 10)
+    as_mdg = kwargs.pop("as_mdg", True)
+    mesh_size_min = kwargs.pop("mesh_size_min", mesh_size / 10)
+
     mesh_kwargs = {"mesh_size_frac": mesh_size, "mesh_size_min": mesh_size_min}
-    mdg = pp.create_fracture_network(domain=domain).mesh(mesh_kwargs)
+    mdg = pp.create_fracture_network(domain=domain).mesh(mesh_kwargs, **kwargs)
 
     pg.convert_from_pp(mdg)
-    if kwargs.get("as_mdg", True):
+    if as_mdg:
         return mdg
     else:
         return mdg.subdomains(dim=mdg.dim_max())[0]
