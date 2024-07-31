@@ -341,6 +341,22 @@ class PwLinears(pg.Discretization):
         # Construct the global matrix
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Assembles the lumped matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_matrix: The assembled lumped matrix.
+        """
+        diag = np.repeat(sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
+        return sps.diags(diag, format="csc")
+
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles the matrix corresponding to the differential operator.
@@ -468,3 +484,39 @@ class VecPwConstants(pg.VecDiscretization):
             np.ndarray: The assembled natural boundary condition vector.
         """
         return np.zeros(self.ndof(sd))
+
+    def error_l2(
+        self,
+        sd: pg.Grid,
+        num_sol: np.ndarray,
+        ana_sol: Callable[[np.ndarray], np.ndarray],
+        relative: Optional[bool] = True,
+        etype: Optional[str] = "specific",
+    ) -> float:
+        """
+        Returns the l2 error computed against an analytical solution given as a function.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            num_sol (np.ndarray): Vector of the numerical solution.
+            ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
+                analytical solution.
+            relative (Optional[bool], optional): Compute the relative error or not.
+                Defaults to True.
+            etype (Optional[str], optional): Type of error computed. Defaults to "specific".
+
+        Returns:
+            float: The computed error.
+        """
+
+        err2 = 0
+        num_sol = num_sol.reshape((sd.dim, -1))
+        for d in np.arange(sd.dim):
+            ana_sol_dim = lambda x: ana_sol(x)[d]
+            num_sol_dim = num_sol[d]
+
+            err2_dim = self.scalar_discr.error_l2(
+                sd, num_sol_dim, ana_sol_dim, relative, etype
+            )
+            err2 += err2_dim**2
+        return np.sqrt(err2)

@@ -52,6 +52,27 @@ class VecBDM1Test(unittest.TestCase):
         M = vec_bdm1.assemble_mass_matrix(sd, data)
         self.assertAlmostEqual(u.T @ M @ u, 30)
 
+    def test_assemble_lumped_matrix_2d(self):
+        N = 10
+        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        key = "vecbdm1"
+        vec_bdm1 = pg.VecBDM1(key)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
+        M = vec_bdm1.assemble_lumped_matrix(sd, data)
+
+        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
+        u = vec_bdm1.interpolate(sd, fun)
+
+        self.assertAlmostEqual(u.T @ M @ u, 26)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
+        M = vec_bdm1.assemble_lumped_matrix(sd, data)
+        self.assertAlmostEqual(u.T @ M @ u, 30)
+
     def test_eval_at_cell_centers_2d(self):
         N = 1
         sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
@@ -71,6 +92,24 @@ class VecBDM1Test(unittest.TestCase):
         known = np.array([linear(x).ravel() for x in sd.cell_centers.T]).T
 
         self.assertAlmostEqual(np.linalg.norm(eval - known), 0)
+
+    def test_proj_to_and_from_rt0_2d(self):
+        N = 1
+        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        key = "vecbdm1"
+        vec_bdm1 = pg.VecBDM1(key)
+
+        def linear(x):
+            return np.array([x, 2 * x])
+
+        interp = vec_bdm1.interpolate(sd, linear)
+        interp_to_rt0 = vec_bdm1.proj_to_RT0(sd) @ interp
+        interp_from_rt0 = vec_bdm1.proj_from_RT0(sd) @ interp_to_rt0
+
+        self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
 
     def test_range(self):
         key = "vecbdm1"
@@ -93,14 +132,14 @@ class VecBDM1Test(unittest.TestCase):
         p0 = pg.PwConstants("p0")
         cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)
 
-        self.assertTrue(np.allclose(cell_asym_u, -2))
+        self.assertTrue(np.allclose(cell_asym_u, 2))
 
     def test_trace_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        vec_bdm1 = pg.VecBDM1("vec_bdm1")
+        vec_bdm1 = pg.VecBDM1("vecbdm1")
 
         B = vec_bdm1.assemble_trace_matrix(sd)
 
@@ -118,7 +157,7 @@ class VecBDM1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        vec_bdm1 = pg.VecBDM1("vec_bdm1")
+        vec_bdm1 = pg.VecBDM1("vecbdm1")
 
         self.assertEqual(vec_bdm1.ndof(sd), 162)
 
@@ -128,7 +167,7 @@ class VecBDM1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        key = "vec_bdm1"
+        key = "vecbdm1"
         vec_bdm1 = pg.VecBDM1(key)
 
         data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
@@ -143,13 +182,34 @@ class VecBDM1Test(unittest.TestCase):
         M = vec_bdm1.assemble_mass_matrix(sd, data)
         self.assertAlmostEqual(u.T @ M @ u, 32)
 
+    def test_assemble_lumped_matrix_3d(self):
+        N = 1
+        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        key = "vecbdm1"
+        vec_bdm1 = pg.VecBDM1(key)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
+        M = vec_bdm1.assemble_lumped_matrix(sd, data)
+
+        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
+        u = vec_bdm1.interpolate(sd, fun)
+
+        self.assertAlmostEqual(u.T @ M @ u, 27)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
+        M = vec_bdm1.assemble_lumped_matrix(sd, data)
+        self.assertAlmostEqual(u.T @ M @ u, 32)
+
     def test_eval_at_cell_centers_3d(self):
         N = 1
         sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        key = "vec_bdm1"
+        key = "vecbdm1"
         vec_bdm1 = pg.VecBDM1(key)
 
         def linear(x):
@@ -168,7 +228,7 @@ class VecBDM1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        key = "vec_bdm1"
+        key = "vecbdm1"
         vec_bdm1 = pg.VecBDM1(key)
 
         fun = lambda _: np.array([[1, 2, -1], [4, 3, 2], [1, 1, 1]])
@@ -182,6 +242,24 @@ class VecBDM1Test(unittest.TestCase):
         self.assertTrue(np.allclose(cell_asym_u[0], -1))
         self.assertTrue(np.allclose(cell_asym_u[1], -2))
         self.assertTrue(np.allclose(cell_asym_u[2], 2))
+
+    def test_proj_to_and_from_rt0_3d(self):
+        N = 1
+        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        key = "vecbdm1"
+        vec_bdm1 = pg.VecBDM1(key)
+
+        def linear(x):
+            return np.array([x, 2 * x, 3 * x])
+
+        interp = vec_bdm1.interpolate(sd, linear)
+        interp_to_rt0 = vec_bdm1.proj_to_RT0(sd) @ interp
+        interp_from_rt0 = vec_bdm1.proj_from_RT0(sd) @ interp_to_rt0
+
+        self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
 
 
 if __name__ == "__main__":

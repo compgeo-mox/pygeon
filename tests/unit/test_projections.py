@@ -294,5 +294,4 @@ class ProjectionsUnitTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # ProjectionsUnitTest().test3()
     unittest.main()

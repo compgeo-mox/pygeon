@@ -89,26 +89,27 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         Returns:
             None
         """
+        unit_keyword = "unit"
         for sd, data in self.subdomains(return_data=True):
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
             data[pp.PARAMETERS] = pp.Parameters(
                 sd,
-                ["unit"],
+                [unit_keyword],
                 [
                     {"second_order_tensor": perm},
                 ],
             )
-            data[pp.DISCRETIZATION_MATRICES] = {}
+            data[pp.DISCRETIZATION_MATRICES] = {unit_keyword: {}}
 
         for _, data in self.interfaces(return_data=True):
             data[pp.PARAMETERS] = pp.Parameters(
                 sd,
-                ["unit"],
+                [unit_keyword],
                 [
                     {"normal_diffusivity": 1.0},
                 ],
             )
-            data[pp.DISCRETIZATION_MATRICES] = {}
+            data[pp.DISCRETIZATION_MATRICES] = {unit_keyword: {}}
 
     def num_subdomain_faces(
         self, cond: Optional[Callable[[pg.Grid], bool]] = None

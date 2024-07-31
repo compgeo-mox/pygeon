@@ -265,6 +265,7 @@ class Discretization(pp.numerics.discretization.Discretization):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: Optional[bool] = True,
         etype: Optional[str] = "standard",
+        data: dict = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
@@ -281,7 +282,7 @@ class Discretization(pp.numerics.discretization.Discretization):
             float: The computed error.
         """
         int_sol = self.interpolate(sd, ana_sol)
-        mass = self.assemble_mass_matrix(sd)
+        mass = self.assemble_mass_matrix(sd, data)
 
         norm = (int_sol @ mass @ int_sol.T) if relative else 1
 

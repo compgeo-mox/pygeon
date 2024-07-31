@@ -180,9 +180,9 @@ class ElasticityTestMixed(unittest.TestCase):
         asym = Mr @ vec_bdm1.assemble_asym_matrix(sd)
 
         # fmt: off
-        spp = sps.bmat([[   Ms, div.T, asym.T],
-                        [ -div,  None,   None],
-                        [-asym,  None,   None]], format = "csc")
+        spp = sps.bmat([[  Ms, div.T, -asym.T],
+                        [-div,  None,    None],
+                        [asym,  None,    None]], format = "csc")
         # fmt: on
 
         b_faces = sd.tags["domain_boundary_faces"]
