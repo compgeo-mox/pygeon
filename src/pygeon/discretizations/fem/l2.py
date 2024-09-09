@@ -409,7 +409,12 @@ class PwLinears(pg.Discretization):
         Returns:
             np.ndarray: The evaluation matrix.
         """
-        raise NotImplementedError
+
+        rows = np.repeat(np.arange(sd.num_cells), sd.dim + 1)
+        cols = np.arange(self.ndof(sd))
+        data = np.ones(self.ndof(sd)) / (sd.dim + 1)
+
+        return sps.csc_matrix((data, (rows, cols)))
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -520,3 +525,59 @@ class VecPwConstants(pg.VecDiscretization):
             )
             err2 += err2_dim**2
         return np.sqrt(err2)
+
+
+class VecPwLinears(pg.VecDiscretization):
+    """
+    A class representing the discretization using vector piecewise linear functions.
+
+    Attributes:
+        keyword (str): The keyword for the vector discretization class.
+
+    Methods:
+        get_range_discr_class(self, dim: int) -> pg.Discretization:
+            Returns the discretization class for the range of the differential.
+
+    """
+
+    def __init__(self, keyword: str) -> None:
+        """
+        Initialize the vector discretization class.
+        The scalar discretization class is pg.PwLinears.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+
+        Returns:
+            None
+        """
+        super().__init__(keyword, pg.PwLinears)
+
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the discretization class for the range of the differential.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            pg.Discretization: The discretization class for the range of the differential.
+        """
+        return self.scalar_discr.get_range_discr_class(dim)
+
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
+        """
+        Assembles the natural boundary condition vector, equal to zero.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            func (Callable[[np.ndarray], np.ndarray]): The function defining the
+                 natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition vector.
+        """
+        return np.zeros(self.ndof(sd))

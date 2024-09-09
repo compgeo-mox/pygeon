@@ -886,7 +886,7 @@ class VecBDM1(pg.VecDiscretization):
         while for a tensor in 3d it is a vector and given by
         as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
 
-        Note: We assume that the as(tau) is a cell variable.
+        Note: We assume that the as(tau) is a piecewise linear.
 
         Args:
             sd (pg.Grid): The grid.
@@ -894,52 +894,75 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_matrix: The asymmetric matrix obtained from the discretization.
         """
-        # We need to map the BDM1 to the cell center, thus we construct the proper operator
-        P = self.eval_at_cell_centers(sd)
-        nc, cv = sd.num_cells, sd.cell_volumes
-        # We consider a different approach if sd is 2d or 3d
-        if sd.dim == 2:
-            # Every cell has two entries, one for the t_xy and one for the t_yx
-            rows_I = np.tile(np.arange(nc), 2)
-            # Given a 2d tensor, represented as a vector, the t_xy component is the second
-            # and the t_yx is the third
-            cols_J = np.hstack(
-                (
-                    np.arange(nc, 2 * nc),
-                    np.arange(3 * nc, 4 * nc),
-                )
-            )
-            # t_xy gets a -1 and t_yx a +1, represented as p0 dofs so with the cell volume
-            data_IJ = np.hstack((-cv, cv))
-            # Assemble the matrix with a given shape, t_xx and t_yy are not considered
-            T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(nc, P.shape[0]))
-            return T @ P
-        elif sd.dim == 3:
-            # Define an help function
-            enum = lambda i: np.arange(i * nc, (i + 1) * nc)
-            # Since as(tau) is a piecewise vector we need to arrange the entries accordingly
-            # to the second component of the tensor
-            # as(tau)_x = tau_zy - tau_yz -> z and y with -1 and +1
-            # as(tau)_y = tau_xz - tau_zx -> z and x with +1 and -1
-            # as(tau)_z = tau_yx - tau_xy -> x and y with -1 and +1
-            rows_I = np.hstack((enum(2), enum(1), enum(2), enum(0), enum(1), enum(0)))
-            # Given a 3d tensor, represented as a vector, the involved components are
-            # (t_xy, t_xz, t_yx, t_yz, t_zx, t_zy) which are in positions (1, 2, 3) and
-            # (5, 6, 7)
-            cols_J = np.hstack(
-                (
-                    np.arange(nc, 4 * nc),
-                    np.arange(5 * nc, 8 * nc),
-                )
-            )
-            # Assuring to the ordering of rows and cols given above we have the following
-            # signs (-1, +1, +1, -1, -1, +1), weighted by the cell volumes since it is
-            # represented as a p0 vector element
-            data_IJ = np.hstack((-cv, cv, cv, -cv, -cv, cv))
-            T = sps.csc_matrix((data_IJ, (rows_I, cols_J)), shape=(3 * nc, P.shape[0]))
-            return T @ P
+        
+        # overestimate the size
+        size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Helper functions for inside the loop
+        negate_col = [2, 0, 1]
+        zeroed_col = [0, 1, 2]
+
+        if sd.dim == 3:
+            ind_list = np.arange(3)
+            shift = ind_list
+        elif sd.dim == 2:
+            ind_list = [2]
+            shift = [0, 0, 0]
         else:
             raise ValueError("The grid should be either bi or three-dimensional")
+
+        cell_nodes = sd.cell_nodes()
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces and
+            # determine the location of the dof
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            dof_loc = np.reshape(
+                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
+            )
+
+            cell_nodes_loc = cell_nodes[:, c].toarray()
+            Psi = self.scalar_discr.eval_basis_at_node(
+                sd, dof_loc, cell_nodes_loc, faces_loc
+            )
+
+            # Get all the components of the basis at node
+            Psi_i, Psi_j, Psi_v = sps.find(Psi)
+
+            for ind in ind_list:
+                Psi_v_copy = Psi_v.copy()
+                Psi_v_copy[np.mod(Psi_j, 3) == negate_col[ind]] *= -1
+                Psi_v_copy[np.mod(Psi_j, 3) == zeroed_col[ind]] *= 0
+
+                loc_ind = np.hstack([faces_loc] * sd.dim)
+                loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+
+                cols = np.tile(loc_ind, (3, 1))
+                cols[0, :] += np.mod(-ind, 3) * self.scalar_discr.ndof(sd)
+                cols[1, :] += np.mod(-ind - 1, 3) * self.scalar_discr.ndof(sd)
+                cols[2, :] += np.mod(-ind - 2, 3) * self.scalar_discr.ndof(sd)
+
+                cols = np.tile(cols, (sd.dim + 1, 1)).T
+
+                cols = cols[Psi_i, Psi_j]
+
+                nodes_loc = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
+                rows = np.repeat(nodes_loc, 3)[Psi_j]
+
+                # Save values of the local matrix in the global structure
+                loc_idx = slice(idx, idx + cols.size)
+                rows_I[loc_idx] = rows + shift[ind] * (sd.dim + 1) * sd.num_cells
+                cols_J[loc_idx] = cols
+                data_IJ[loc_idx] = Psi_v_copy
+                idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None

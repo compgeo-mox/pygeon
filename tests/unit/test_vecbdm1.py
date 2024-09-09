@@ -129,8 +129,8 @@ class VecBDM1Test(unittest.TestCase):
         u = vec_bdm1.interpolate(sd, fun)
         asym = vec_bdm1.assemble_asym_matrix(sd)
 
-        p0 = pg.PwConstants("p0")
-        cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)
+        p1 = pg.PwLinears("p1")
+        cell_asym_u = p1.eval_at_cell_centers(sd) @ (asym @ u)
 
         self.assertTrue(np.allclose(cell_asym_u, 2))
 
@@ -235,8 +235,8 @@ class VecBDM1Test(unittest.TestCase):
         u = vec_bdm1.interpolate(sd, fun)
         asym = vec_bdm1.assemble_asym_matrix(sd)
 
-        p0 = pg.VecPwConstants("p0")
-        cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)
+        p1 = pg.VecPwLinears("p1")
+        cell_asym_u = p1.eval_at_cell_centers(sd) @ (asym @ u)
         cell_asym_u = cell_asym_u.reshape((3, -1))
 
         self.assertTrue(np.allclose(cell_asym_u[0], -1))
