@@ -821,6 +821,44 @@ class VecBDM1(pg.VecDiscretization):
         # Compose all the parts and return them
         return D - B.T @ M @ B
 
+    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        """
+        Assembles and returns the mass matrix for vector BDM1, which is given by
+        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
+        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_matrix: The mass matrix obtained from the discretization.
+        """
+        M = self.assemble_mass_matrix(sd, data)
+
+        # Extract the data
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(coeff, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff)
+
+        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        if sd.dim == 2:
+            R_space = pg.PwLinears(self.keyword)
+        elif sd.dim == 3:
+            R_space = pg.VecPwLinears(self.keyword)
+
+        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
+
+        asym = self.assemble_asym_matrix(sd, False)
+
+        return M + asym.T @ R_mass @ asym
+
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles and returns the trace matrix for the vector BDM1.
@@ -877,7 +915,7 @@ class VecBDM1(pg.VecDiscretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
-    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_matrix:
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
@@ -894,7 +932,7 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_matrix: The asymmetric matrix obtained from the discretization.
         """
-        
+
         # overestimate the size
         size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -909,9 +947,13 @@ class VecBDM1(pg.VecDiscretization):
         if sd.dim == 3:
             ind_list = np.arange(3)
             shift = ind_list
+            rot_space = pg.VecPwLinears(self.keyword)
+            scaling = sps.diags(np.tile(sd.cell_volumes, 3))
         elif sd.dim == 2:
             ind_list = [2]
             shift = [0, 0, 0]
+            rot_space = pg.PwLinears(self.keyword)
+            scaling = sps.diags(sd.cell_volumes)
         else:
             raise ValueError("The grid should be either bi or three-dimensional")
 
@@ -961,8 +1003,12 @@ class VecBDM1(pg.VecDiscretization):
                 idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+        asym = sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
+        if as_pwconstant:
+            return scaling @ rot_space.eval_at_cell_centers(sd) @ asym
+        else:
+            return asym
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
