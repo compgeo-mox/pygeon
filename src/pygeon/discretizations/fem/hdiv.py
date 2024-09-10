@@ -823,9 +823,11 @@ class VecBDM1(pg.VecDiscretization):
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
         """
-        Assembles and returns the mass matrix for vector BDM1, which is given by
-        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
+        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat inner
+        product, which is given by (A sigma, tau) where
+        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu) + skw(sigma) / (2 mu_c)
+        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
+        mu_c the coupling Lamé modulus.
 
         Args:
             sd (pg.Grid): The grid.
@@ -928,6 +930,8 @@ class VecBDM1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
+            as_pwconstant (bool): Compute the operator with the range on the piece-wise
+                constant (default), otherwise the mapping is on the piece-wise linears.
 
         Returns:
             sps.csc_matrix: The asymmetric matrix obtained from the discretization.
@@ -955,7 +959,7 @@ class VecBDM1(pg.VecDiscretization):
             rot_space = pg.PwLinears(self.keyword)
             scaling = sps.diags(sd.cell_volumes)
         else:
-            raise ValueError("The grid should be either bi or three-dimensional")
+            raise ValueError("The grid should be either two or three-dimensional")
 
         cell_nodes = sd.cell_nodes()
         for c in np.arange(sd.num_cells):
@@ -1005,6 +1009,7 @@ class VecBDM1(pg.VecDiscretization):
         # Construct the global matrices
         asym = sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
+        # Return the operator that maps to the piece-wise constant
         if as_pwconstant:
             return scaling @ rot_space.eval_at_cell_centers(sd) @ asym
         else:
