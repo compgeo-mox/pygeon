@@ -354,7 +354,12 @@ class PwLinears(pg.Discretization):
         Returns:
             sps.csc_matrix: The assembled lumped matrix.
         """
-        diag = np.repeat(sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
+        try:
+            weight = data[pp.PARAMETERS][self.keyword]["weight"]
+        except Exception:
+            weight = np.ones(sd.num_cells)
+
+        diag = np.repeat(weight * sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
         return sps.diags(diag, format="csc")
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:

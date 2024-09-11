@@ -137,7 +137,11 @@ class PwLinearsTest(unittest.TestCase):
 
         discr = pg.PwLinears("P1b")
 
-        self.assertRaises(NotImplementedError, discr.eval_at_cell_centers, sd)
+        known_func = np.ones(discr.ndof(sd))
+
+        P = discr.eval_at_cell_centers(sd)
+
+        self.assertTrue(np.allclose(P @ known_func, np.ones(sd.num_cells)))
 
     def test_assemble_nat_bc(self):
         dim = 2

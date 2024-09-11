@@ -1047,6 +1047,45 @@ class VecBDM1(pg.VecDiscretization):
         # Compose all the parts and return them
         return (D - coeff * B.T @ M @ B) / (2 * mu)
 
+    def assemble_lumped_matrix_cosserat(
+        self, sd: pg.Grid, data: dict
+    ) -> sps.csc_matrix:
+        """
+        Assembles the lumped matrix with cosserat terms for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_matrix: The assembled lumped matrix.
+        """
+
+        M = self.assemble_lumped_matrix(sd, data)
+
+        # Extract the data
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(coeff, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff)
+
+        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        if sd.dim == 2:
+            R_space = pg.PwLinears(self.keyword)
+        elif sd.dim == 3:
+            R_space = pg.VecPwLinears(self.keyword)
+
+        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
+
+        asym = self.assemble_asym_matrix(sd, False)
+
+        return M + asym.T @ R_mass @ asym
+
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
@@ -1156,6 +1195,49 @@ class VecRT0(pg.VecDiscretization):
         # Compose all the parts and return them
         return (D - coeff * B.T @ M @ B) / (2 * mu)
 
+    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        """
+        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat inner
+        product, which is given by (A sigma, tau) where
+        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu) + skw(sigma) / (2 mu_c)
+        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
+        mu_c the coupling Lamé modulus.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_matrix: The mass matrix obtained from the discretization.
+
+        TODO: Consider using inheritance from VecBDM1.assemble_mass_matrix_cosserat
+        """
+
+        M = self.assemble_mass_matrix(sd, data)
+
+        # Extract the data
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(coeff, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff)
+
+        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        if sd.dim == 2:
+            R_space = pg.PwLinears(self.keyword)
+        elif sd.dim == 3:
+            R_space = pg.VecPwLinears(self.keyword)
+
+        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
+
+        asym = self.assemble_asym_matrix(sd, False)
+
+        return M + asym.T @ R_mass @ asym
+
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
         Assembles and returns the trace matrix for the vector BDM1.
@@ -1170,7 +1252,7 @@ class VecRT0(pg.VecDiscretization):
         proj = vec_bdm1.proj_from_RT0(sd)
         return vec_bdm1.assemble_trace_matrix(sd) @ proj
 
-    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_matrix:
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
@@ -1189,7 +1271,7 @@ class VecRT0(pg.VecDiscretization):
         """
         vec_bdm1 = VecBDM1(self.keyword)
         proj = vec_bdm1.proj_from_RT0(sd)
-        return vec_bdm1.assemble_asym_matrix(sd) @ proj
+        return vec_bdm1.assemble_asym_matrix(sd, as_pwconstant) @ proj
 
     def get_range_discr_class(self, dim: int) -> object:
         """

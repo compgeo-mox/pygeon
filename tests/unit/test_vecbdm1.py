@@ -90,6 +90,23 @@ class VecBDM1Test(unittest.TestCase):
         M = vec_bdm1.assemble_lumped_matrix(sd, data)
         self.assertAlmostEqual(u.T @ M @ u, 30)
 
+    def test_assemble_lumped_matrix_cosserat_2d(self):
+        N = 10
+        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        key = "vecbdm1"
+        vec_bdm1 = pg.VecBDM1(key)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
+        M = vec_bdm1.assemble_lumped_matrix_cosserat(sd, data)
+
+        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
+        u = vec_bdm1.interpolate(sd, fun)
+
+        self.assertAlmostEqual(u.T @ M @ u, 28)
+
     def test_eval_at_cell_centers_2d(self):
         N = 1
         sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
@@ -240,6 +257,23 @@ class VecBDM1Test(unittest.TestCase):
         data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
         M = vec_bdm1.assemble_lumped_matrix(sd, data)
         self.assertAlmostEqual(u.T @ M @ u, 32)
+
+    def test_assemble_lumped_matrix_cosserat_3d(self):
+        N = 1
+        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        key = "vecbdm1"
+        vec_bdm1 = pg.VecBDM1(key)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
+        M = vec_bdm1.assemble_lumped_matrix_cosserat(sd, data)
+
+        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
+        u = vec_bdm1.interpolate(sd, fun)
+
+        self.assertAlmostEqual(u.T @ M @ u, 29.5)
 
     def test_eval_at_cell_centers_3d(self):
         N = 1
