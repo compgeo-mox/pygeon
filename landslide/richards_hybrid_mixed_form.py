@@ -9,10 +9,13 @@ import matplotlib.pyplot as plt
 import porepy as pp
 import pygeon as pg
 
-from topograhy_file import theta_Chouly, penalty_factor_hyb, initial_pressure_func, generate_mesh, mark_boundary_faces, SlopeAngle, precipitation_func, there_is_gravity, theta, conductivity, DpsiDtheta, time_step, output_directory, num_steps, number_nonlin_it, L_scheme_coeff, abs_tol, rel_tol, DinvConductivityDpsi
+from topograhy_file import plot_Van_Genuchten_func, saving_time_interval, final_time, generate_msh, initial_pressure_func, mark_boundary_faces, precipitation_func, there_is_gravity, theta, conductivity, DthetaDpsi, time_step, output_directory, number_nonlin_it, abs_tol, DinvConductivityDpsi
 from limit_equilibrium import *
 
 from utils import *
+import gmsh
+
+import csv
 
 # prima gmsh poi match_2d per interpolare sulla nuova 
 # src/porepy/grids/match_grids.py
@@ -26,9 +29,11 @@ from utils import *
 # face_normals, normale pesata 
 # cell_faces, +/-1 orientazione delle normali
 
-subdomain = generate_mesh()
+subdomain = generate_msh()
 #pp.plot_grid(subdomain, info="all", alpha=0)
 #sys.exit()
+
+plot_Van_Genuchten_func()
 
 #g = pp.CartGrid([3] * 2, [1] * 2)
 #g.compute_geometry()
@@ -67,9 +72,6 @@ g_func = lambda x, t: np.array([0, -1, 0])
 g_proj = RT0.interpolate(subdomain, lambda x: g_func(x,0))
 gravity = RT0.assemble_mass_matrix(subdomain) @ g_proj
 
-# interpolate precipitation func on RT0
-prec_proj = RT0.interpolate(subdomain, lambda x: precipitation_func(x))
-
 # Prepare the inital pressure term by interpolating initial_pressure_func into the P0 space
 initial_pressure.append(P0.interpolate(subdomain, initial_pressure_func))
 
@@ -98,6 +100,7 @@ dof_l = np.size(gamma_topography[gamma_topography])
 # Set the essential boundary conditions (they will be enforced before solving the system)
 bc_essential_laterals   = np.hstack((gamma_laterals,   np.zeros(P0.ndof(subdomain), dtype=bool), np.zeros(dof_l, dtype=bool)))
 bc_essential_topography = np.hstack((gamma_topography, np.zeros(P0.ndof(subdomain), dtype=bool), np.zeros(dof_l, dtype=bool)))
+bc_essential_bedrock    = np.hstack((gamma_bedrock,    np.zeros(P0.ndof(subdomain), dtype=bool), np.zeros(dof_l, dtype=bool)))
 
 # Assemble initial solution
 initial_solution = np.zeros(dof_q + dof_psi + dof_l)
@@ -154,43 +157,66 @@ tree.from_grid(subdomain)
 #n = pp.adtree.ADTNode(99, [0.1] * 4)
 #n_nodes = tree.search(n)
 
+flux_bot_bc = np.zeros(dof_q)
 flux_lat_bc = np.zeros(dof_q)
 normal_vector_lat = -subdomain.face_normals[1,:][gamma_laterals]/subdomain.face_areas[gamma_laterals]
 normal_vector_top =  normal_vectors_sign[gamma_topography]
-
-gamma_Nitsche = penalty_factor_hyb/subdomain.face_areas[gamma_topography]
 
 #prec_term_Nitsche = precipitation_func(subdomain.face_centers[0][gamma_topography])*subdomain.face_normals[1,:][gamma_topography]/subdomain.face_areas[gamma_topography]
 
 #normal_vector_top*1./gamma_Nitsche*np.maximum((prec_proj[gamma_topography] - prev[:dof_q][gamma_topography])/subdomain.face_areas[gamma_topography]*0 - gamma_Nitsche*prev[-dof_psi:][subdomain.cell_faces[gamma_topography].nonzero()[1]], 0)
 
-
-
-L_mat = np.zeros((dof_q, dof_q))  
+L_mat = np.zeros((dof_q, dof_q))
 L_mat[gamma_topography, gamma_topography] = normal_vector_top/subdomain.face_areas[gamma_topography]
 L_mat = sps.csc_matrix(L_mat[gamma_topography])
 
 cp = Matrix_Computer(subdomain, dof_q, dof_psi)
-C_mat = sps.dok_matrix((dof_q, dof_psi))
+cp.set_L_coefficients(proj_psi @ initial_solution[dof_q:-dof_l])
 
 zeros_mat_psi_l = sps.dok_matrix((dof_psi, dof_l))
 zeros_mat_l_l   = sps.dok_matrix((dof_l,   dof_l))
 
-Nitsche_contribution_hybrid = Nitsche_term_hybrid(subdomain, dof_q, dof_l, gamma_Nitsche)
+Nitsche_contribution_hybrid = Nitsche_term_hybrid(subdomain, dof_q, dof_l, subdomain.face_areas[gamma_topography])
+
+# initialization
+prev = sol[-1]
+prev_prev = prev
 
 # Time loop
-for n in np.arange(num_steps):
-    current_time = (n + 1) * time_step
-    print('Time ' + str(round(current_time, 5)))
+tic()
+x_in  = 2.8
+x_out = 0.2
+eta = np.radians(20)
+#trial = np.array([5, -1, np.radians(70)])
+trial_ini = np.array([x_in, x_out, eta])
+trial = trial_ini
 
-    # Solution at the previous iteration (k=0 corresponds to the solution at the previous time step)
-    prev = sol[-1]
+file_id_iterate = open('landslide/output_evolutionary/csv_file_iterate', 'w')
+writer_iterate = csv.writer(file_id_iterate)
+file_id_FoS = open('landslide/output_evolutionary/csv_file_FoS', 'w')
+writer_FoS = csv.writer(file_id_FoS)
+current_time = 0
+k_it = 0
+
+# stability check in dry conditions
+zero = call_optimizer(trial, prev[dof_q:-dof_l], tree)
+trial = zero.x
+writer_FoS.writerow([zero.fun])
+fig = plot_circ_2pts_tan(trial)
+fig.savefig("landslide/output_evolutionary/circle_plot_"+str(k_it)+".png")
+k_it = k_it + 1
+
+n_step_old = round(current_time//saving_time_interval)
+while current_time < final_time:
+    #time_step = time_step - np.maximum(((current_time+time_step)//saving_time_interval-1),0)*saving_time_interval # - (current_time+time_step)%saving_time_interval 
+    current_time += time_step
+    print('Simulation percentage ' + str(round(current_time/final_time*100, 5)) + ' Time step ' + str(time_step))
 
     # Rhs that changes with time (but not with k)
     time_rhs = fixed_rhs.copy()
 
     # Add the (natural) boundary conditions
-    time_rhs[:dof_q] += 0 #bc_value_bedrock(current_time) 
+    time_rhs[:dof_q] += bc_value_bedrock(current_time) 
 
 
     # Add \Theta^n:
@@ -200,16 +226,20 @@ for n in np.arange(num_steps):
     # 4. Multiply by psi-mass
     time_rhs[dof_q:-dof_l] += M_psi @ project_psi_to_fe( theta( proj_psi @ prev[dof_q:-dof_l] ) ) /time_step
 
-    # Solution at the previous iteration (k=0 corresponds to the solution at the previous time step)
-    #prev = sol[-1]
-    #current = None
-    #L_scheme_coeff = np.max(np.abs(DpsiDtheta(prev[-dof_psi:])))
-
+    cp.eta_lin = 1e8
     # Non-linear solver
     for k in np.arange(number_nonlin_it):
         
         # Actual rhs
         rhs = time_rhs.copy()
+
+        if cp.eta_lin < 1e3 and k>20: #k > 90:
+            cp.is_newton_scheme = True
+        else:
+            cp.is_newton_scheme = False
+
+        # interpolate precipitation func on RT0
+        prec_proj = RT0.interpolate(subdomain, lambda x: precipitation_func(x, current_time))
 
         # Assemble Nitsche contributions
         Nitsche_contribution_hybrid.compute_Nitsche_contributions(gamma_topography, prec_proj, prev, normal_vector_top)
@@ -218,70 +248,85 @@ for n in np.arange(num_steps):
         # \Theta^{n+1}_k, same steps as \Theta^n
         rhs[dof_q:-dof_l] -= M_psi @ project_psi_to_fe( theta( proj_psi @ prev[dof_q:-dof_l] ) ) /time_step
         
-        N_mat = P0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(DpsiDtheta(proj_psi @ prev[dof_q:-dof_l]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
-
-        pic_term = N_mat # L_scheme_coeff*M_psi #N_mat
+        pic_term = cp.compute_P0_mass_matrix(subdomain, DthetaDpsi(proj_psi @ prev[dof_q:-dof_l]))
 
         # L-term
         rhs[dof_q:-dof_l] += pic_term/time_step @ prev[dof_q:-dof_l]
         
         # questa varia con le iterazioni
-        Mass_u = cp.compute_RT0_mass_matrix(conductivity(proj_psi @ prev[dof_q:-dof_l]))
+        Mass_u = cp.compute_RT0_mass_matrix(1./conductivity(proj_psi @ prev[dof_q:-dof_l]))
         #Mass_u = RT0.assemble_mass_matrix(subdomain, {pp.PARAMETERS: {key: {"second_order_tensor": pp.SecondOrderTensor(conductivity(proj_psi @ prev[dof_q:-dof_l]))}}, pp.DISCRETIZATION_MATRICES: {key: {}},})
 
         # add the Newton contribution 
-        #C_mat = cp.compute_dual_C(subdomain, prev[:dof_q], DinvConductivityDpsi(proj_psi @ prev[-dof_psi:]))
+        C_mat = cp.compute_dual_C(subdomain, prev[:dof_q], DinvConductivityDpsi(proj_psi @ prev[dof_q:-dof_l]))
         rhs[:dof_q] += C_mat @ prev[dof_q:-dof_l]  
 
         # Assemble the system to be solved at time n and interation k, for the L-scheme
         spp = sps.bmat(
-            [[Mass_u,                                               B.T + C_mat,        L_mat.T                                        ],
-            [-B,                                                    pic_term/time_step, zeros_mat_psi_l                                ],
-            [L_mat + Nitsche_contribution_hybrid.matrix_Nitsche_lq, zeros_mat_psi_l.T,  Nitsche_contribution_hybrid.matrix_Nitsche_ll  ]], format="csc"
+            [[Mass_u,                                                B.T + C_mat,        L_mat.T                                      ],
+             [-B,                                                    pic_term/time_step, zeros_mat_psi_l                              ],
+             [L_mat + Nitsche_contribution_hybrid.matrix_Nitsche_lq, zeros_mat_psi_l.T,  Nitsche_contribution_hybrid.matrix_Nitsche_ll]], format="csc"
         )
 
         # Prepare the linear solver
         ls = pg.LinearSystem(spp, rhs)
         
         # Fix the essential boundary conditions
+        flux_bot_bc[gamma_bedrock ] = 0
         flux_lat_bc[gamma_laterals] = normal_vector_lat*conductivity(prev[dof_q:-dof_l][subdomain.cell_faces[gamma_laterals].nonzero()[1]]/subdomain.cell_volumes[subdomain.cell_faces[gamma_laterals].nonzero()[1]]) 
-        ls.flag_ess_bc(np.hstack(bc_essential_laterals  ), np.hstack((flux_lat_bc, np.zeros(dof_psi), np.zeros(dof_l))))
-        #ls.flag_ess_bc(np.hstack(bc_essential_topography), np.hstack((prec_proj,   np.zeros(dof_psi), np.zeros(dof_l))))
+        ls.flag_ess_bc(np.hstack(bc_essential_laterals), np.hstack((flux_lat_bc, np.zeros(dof_psi), np.zeros(dof_l))))
+        #ls.flag_ess_bc(np.hstack(bc_essential_bedrock ), np.hstack((flux_bot_bc, np.zeros(dof_psi), np.zeros(dof_l))))
         
-
         # Solve the system
         current = ls.solve()
-        
+
+        #if current_time==3703 and (k+1)==2:
+        #    print('here')
+
+        cp.update_L_coefficients(subdomain, time_step, proj_psi @ current[dof_q:-dof_l], proj_psi @ prev[dof_q:-dof_l], proj_psi @ prev_prev[dof_q:-dof_l], current[:dof_q], prev[:dof_q])
+
         # Check if we have reached convergence
-        rel_err_psi  = np.sqrt(np.sum(np.power(current[dof_q:-dof_l] - prev[dof_q:-dof_l], 2)))
-        abs_err_prev = np.sqrt(np.sum(np.power(prev   [dof_q:-dof_l]                     , 2)))
+        #rel_err_psi  = np.sqrt(np.sum((current[-dof_psi:] - prev[-dof_psi:])*(current[-dof_psi:] - prev[-dof_psi:])))
+        #abs_err_prev = np.sqrt(np.sum(prev[-dof_psi:]*prev[-dof_psi:]))
 
         # Log message with error and current iteration
-        print('Iteration #' + str(k+1) + ', error L2 relative psi: ' + str(rel_err_psi))
+        print('Current time ' + str(round(current_time, 5)) + ' ' + 'Iteration #' + str(k+1) + ', absolute energy error psi: ' + str(cp.eta_lin) + ' ' + str(cp.eta_ll) + ' ' + str(cp.L_scheme_coeff))
+        #print('Iteration #' + str(k+1) + ', error L2 relative psi: ' + str(rel_err_psi) + ' ' + str(abs_tol + rel_tol * abs_err_prev))
         
-        if rel_err_psi > abs_tol + rel_tol * abs_err_prev:
+        if cp.eta_lin>abs_tol: #cp.eta_lin>1e-7: # rel_err_psi > abs_tol + rel_tol * abs_err_prev:
+            prev_prev = prev
             prev = current.copy()
         else:
+            writer_iterate.writerow([k+1])
             break
-        
-    sol.append( current )
-    export_solution(saver, current_sol=current, num_step=(n+1))
+
+        if (k+1)==number_nonlin_it:
+            writer_iterate.writerow([k+1])
+
+    if n_step_old != round((current_time//saving_time_interval)):
+        n_step_old = round(current_time//saving_time_interval)
+        sol.append( current )
+        export_solution(saver, current_sol=current, num_step=n_step_old)
 
     # now call the structural part!
-    x_in  = domain_extent_right
-    x_out = domain_extent_left
-    #trial = np.array([5, -1, np.radians(70)])
-    trial = np.array([x_in, x_out, np.radians(40)])
     #func(trial)
     #sys.exit()
-    #zero = call_optimizer(trial, current[-dof_psi:], tree)
+    zero = call_optimizer(trial_ini, current[dof_q:-dof_l], tree)
+    trial = zero.x
+    writer_FoS.writerow([zero.fun])
+
+    fig = plot_circ_2pts_tan(trial)
+    fig.savefig("landslide/output_evolutionary/circle_plot_"+str(k_it)+".png")
+    k_it = k_it + 1
+    #print(zero)
     
 
 
-saver.write_pvd([n * time_step for n in np.arange(num_steps + 1)])
+#saver.write_pvd([n * time_step for n in np.arange(num_steps + 1)])
 
-
-
+file_id_iterate.close()
+file_id_FoS.close()
+toc()
 
 
 
