@@ -13,7 +13,7 @@ class VecBDM1Test(unittest.TestCase):
         sd.compute_geometry()
 
         vec_bdm1 = pg.VecBDM1("vecbdm1")
-        self.assertRaises(KeyError, pg.SpanningTree, vec_bdm1.assemble_asym_matrix, sd)
+        self.assertRaises(ValueError, vec_bdm1.assemble_asym_matrix, sd)
 
     def test_trace_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
