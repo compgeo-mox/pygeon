@@ -41,7 +41,7 @@ class RT0(pg.Discretization, pp.RT0):
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
             b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition term (n dot q, func)_\Gamma
+            Assembles the natural boundary condition term (n dot q, func)_Gamma
 
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.
@@ -212,7 +212,7 @@ class RT0(pg.Discretization, pp.RT0):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_\Gamma
+        (n dot q, func)_Gamma
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -585,7 +585,7 @@ class BDM1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_\Gamma
+        (n dot q, func)_Gamma
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.

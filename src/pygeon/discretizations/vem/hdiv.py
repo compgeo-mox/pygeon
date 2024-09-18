@@ -167,7 +167,7 @@ class VRT0(pg.Discretization, pp.MVEM):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_\Gamma.
+        (n dot q, func)_Gamma.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -408,7 +408,7 @@ class VBDM1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_\Gamma
+        (n dot q, func)_Gamma
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.

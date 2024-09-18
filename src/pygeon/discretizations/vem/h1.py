@@ -150,7 +150,7 @@ class VLagrange1(pg.Discretization):
     ) -> np.ndarray:
         """
         Computes the local projection onto the monomials
-        Returns the coefficients {a_i} in a_0 + [a_1, a_2] \dot (x - c) / d
+        Returns the coefficients {a_i} in a_0 + [a_1, a_2] dot (x - c) / d
         for each VL1 basis function.
 
         Args:
