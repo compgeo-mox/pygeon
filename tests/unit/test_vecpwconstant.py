@@ -13,7 +13,7 @@ class VecPwConstantsTest(unittest.TestCase):
         sd.compute_geometry()
 
         discr = pg.VecPwConstants("P0")
-        assert discr.ndof(sd) == sd.num_cells * dim
+        self.assertTrue(discr.ndof(sd) == sd.num_cells * dim)
 
     def test_assemble_mass_matrix(self):
         dim = 2

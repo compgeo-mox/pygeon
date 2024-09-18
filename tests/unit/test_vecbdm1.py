@@ -6,6 +6,15 @@ import pygeon as pg
 
 
 class VecBDM1Test(unittest.TestCase):
+
+    def test_1d(self):
+        sd = pp.CartGrid([1])
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        vec_bdm1 = pg.VecBDM1("vecbdm1")
+        self.assertRaises(KeyError, pg.SpanningTree, vec_bdm1.assemble_asym_matrix, sd)
+
     def test_trace_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
         pg.convert_from_pp(sd)
