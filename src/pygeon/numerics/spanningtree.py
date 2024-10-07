@@ -278,6 +278,7 @@ class SpanningTree:
             draw_grid (bool): Plot the grid
             draw_tree (bool): Plot the tree spanning the cells
             draw_cotree (bool): Plot the tree spanning the nodes
+            start_color (str): Color of the "starting" cells, next to the boundary
         """
         import matplotlib.pyplot as plt
         import networkx as nx
@@ -288,6 +289,7 @@ class SpanningTree:
         draw_grid = kwargs.get("draw_grid", True)
         draw_tree = kwargs.get("draw_tree", True)
         draw_complement = kwargs.get("draw_cotree", False)
+        start_color = kwargs.get("start_color", "green")
 
         fig_num = 1
 
@@ -334,7 +336,7 @@ class SpanningTree:
             cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
             node_color = ["blue"] * cell_centers.shape[1]
             for sc in self.starting_cells:
-                node_color[sc] = "blue"
+                node_color[sc] = start_color
 
             nx.draw(
                 graph,
