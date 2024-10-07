@@ -255,12 +255,7 @@ class SpanningTree:
         return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
-        self,
-        mdg: pg.MixedDimensionalGrid,
-        fig_name: Optional[str] = None,
-        draw_grid=True,
-        draw_tree=True,
-        draw_complement=False,
+        self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None, **kwargs
     ):
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
@@ -269,34 +264,60 @@ class SpanningTree:
             mdg (pg.MixedDimensionalGrid) The object representing the grid.
             fig_name (Optional[str], optional). The name of the figure file to save the
                 visualization.
+
+        Optional Args
+            draw_grid (bool): Plot the grid
+            draw_tree (bool): Plot the tree spanning the cells
+            draw_cotree (bool): Plot the tree spanning the nodes
         """
         import matplotlib.pyplot as plt
         import networkx as nx
 
         assert mdg.dim_max() == 2
 
+        draw_grid = kwargs.get("draw_grid", True)
+        draw_tree = kwargs.get("draw_tree", True)
+        draw_complement = kwargs.get("draw_cotree", False)
+
         fig_num = 1
 
         # Draw grid
         if draw_grid:
             pp.plot_grid(
-                mdg,
-                alpha=0,
-                fig_num=fig_num,
-                plot_2d=True,
-                if_plot=False,
+                mdg, alpha=0, fig_num=fig_num, plot_2d=True, if_plot=False, title=""
             )
 
         # Define the figure and axes
         fig = plt.figure(fig_num)
 
+        # The grid is drawn by PorePy if desired
         if draw_grid:
             pp_ax = fig.gca()
+            pp_ax.set_xlabel("")
+            pp_ax.set_ylabel("")
+            pp_ax.set_aspect("equal")
+            plt.tick_params(
+                left=False,
+                labelleft=False,
+                labelbottom=False,
+                bottom=False,
+            )
             ax = fig.add_subplot(111)
             ax.set_xlim(pp_ax.get_xlim())
             ax.set_ylim(pp_ax.get_ylim())
+
+        # If there is no PorePy grid plot, we create our own axes
         else:
             ax = fig.gca()
+            sd = mdg.subdomains()[0]
+
+            min_coord = np.min(sd.nodes, axis=1)
+            max_coord = np.max(sd.nodes, axis=1)
+
+            ax.set_xlim((min_coord[0], max_coord[0]))
+            ax.set_ylim((min_coord[1], max_coord[1]))
+
+        ax.set_aspect("equal")
 
         # Draw the tree that spans all cells
         if draw_tree:
@@ -304,7 +325,7 @@ class SpanningTree:
             cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
             node_color = ["blue"] * cell_centers.shape[1]
             for sc in self.starting_cells:
-                node_color[sc] = "green"
+                node_color[sc] = "blue"
 
             nx.draw(
                 graph,
