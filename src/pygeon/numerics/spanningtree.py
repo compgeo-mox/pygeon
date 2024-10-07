@@ -126,8 +126,10 @@ class SpanningTree:
 
         if isinstance(starting_faces, str):
             # Extract top-dimensional domain
-            sd = mdg.subdomains(dim=mdg.dim_max())[0]
-            bdry_faces = np.where(sd.tags["domain_boundary_faces"])[0]
+            bdry_face_tags = np.hstack(
+                [sd.tags["domain_boundary_faces"] for sd in mdg.subdomains()]
+            )
+            bdry_faces = np.where(bdry_face_tags)[0]
 
             # The default case
             if starting_faces == "first_bdry":
@@ -155,6 +157,10 @@ class SpanningTree:
         return self.div.tocsc()[:, self.starting_faces].indices
 
     def add_outside_cell(self) -> None:
+        """
+        Include a fictitious outside cell in the div operator.
+        This cell will be used as the root of the tree.
+        """
         outside_cell = np.zeros((1, self.div.shape[1]))
         outside_cell[0, self.starting_faces] = -np.sum(
             self.div[:, self.starting_faces], axis=0
@@ -163,6 +169,9 @@ class SpanningTree:
         self.div = sps.vstack([self.div, outside_cell], format="csc")
 
     def remove_outside_cell(self) -> None:
+        """
+        Remove the fictitious outside cell from the div operator and the tree
+        """
         self.div = self.div[:-1, :]
         self.tree = self.tree[:-1, :-1]
 
@@ -274,6 +283,7 @@ class SpanningTree:
         import networkx as nx
 
         assert mdg.dim_max() == 2
+        sd_top = mdg.subdomains()[0]
 
         draw_grid = kwargs.get("draw_grid", True)
         draw_tree = kwargs.get("draw_tree", True)
@@ -309,10 +319,9 @@ class SpanningTree:
         # If there is no PorePy grid plot, we create our own axes
         else:
             ax = fig.gca()
-            sd = mdg.subdomains()[0]
 
-            min_coord = np.min(sd.nodes, axis=1)
-            max_coord = np.max(sd.nodes, axis=1)
+            min_coord = np.min(sd_top.nodes, axis=1)
+            max_coord = np.max(sd_top.nodes, axis=1)
 
             ax.set_xlim((min_coord[0], max_coord[0]))
             ax.set_ylim((min_coord[1], max_coord[1]))
@@ -344,11 +353,13 @@ class SpanningTree:
                 shape=(2 * num_bdry, 2 * num_bdry),
             )
             graph = nx.from_scipy_sparse_array(bdry_graph)
-            sd = mdg.subdomains()[0]
+
+            face_centers = np.hstack([sd.face_centers for sd in mdg.subdomains()])
+            cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
             node_centers = np.hstack(
                 (
-                    sd.face_centers[: mdg.dim_max(), self.starting_faces],
-                    sd.cell_centers[: mdg.dim_max(), self.starting_cells],
+                    face_centers[: mdg.dim_max(), self.starting_faces],
+                    cell_centers[: mdg.dim_max(), self.starting_cells],
                 )
             ).T
 
@@ -367,13 +378,12 @@ class SpanningTree:
             incidence -= sps.triu(incidence)
 
             graph = nx.from_scipy_sparse_array(incidence)
-            nodes = np.hstack([sd.nodes for sd in mdg.subdomains()])
 
-            node_color = ["black"] * nodes.shape[1]
+            node_color = ["black"] * sd_top.nodes.shape[1]
 
             nx.draw(
                 graph,
-                nodes[: mdg.dim_max(), :].T,
+                sd_top.nodes[: mdg.dim_max(), :].T,
                 node_color=node_color,
                 node_size=30,
                 edge_color="purple",
