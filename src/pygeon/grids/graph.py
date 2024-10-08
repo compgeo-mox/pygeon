@@ -12,7 +12,7 @@ class Graph(pp.Grid):
     def __init__(self, graph, dim=2):
         """Construct a pp.Grid like representation of a graph.
 
-        The following informations are stored
+        The following information are stored
         dim: the dimension of the graph, always
         nodes: the coordinate of the nodes
         cell_faces: the map from the cells (graph nodes) to the faces (graph edges)
@@ -89,7 +89,7 @@ class Graph(pp.Grid):
 
         This function create mapping between the faces and the ridges in the graph,
         the following data are created
-        num_ridges: the number of rideges (graph cicles)
+        num_ridges: the number of ridges (graph cycles)
         num_peaks: the number of peaks (always 0)
         face_ridges: the map from the faces to the ridges
         ridge_peaks: an empty matrix that maps the ridges to peaks
@@ -182,7 +182,7 @@ class Graph(pp.Grid):
 
     def collapse(self, dim):
         """Collapse the graph removing the nodes with a given dimension.
-        From a bipartite graph it is possible to create a dim = 2 graph (only fracures)
+        From a bipartite graph it is possible to create a dim = 2 graph (only fractures)
         or a dim = 1 (only fracture intersections) graph.
         """
 
@@ -224,7 +224,7 @@ class Graph(pp.Grid):
         return np.array(list(sp), dtype=np.object)
 
     def not_shortest_paths(self, start, end, sp=None, cutoff=None):
-        """Compyte all the not shortest paths between two graph nodes.
+        """Compute all the not shortest paths between two graph nodes.
         It is possible to set a cutoff to make the computation faster leaving out long paths.
         """
 
@@ -291,8 +291,8 @@ class Graph(pp.Grid):
         """
 
         # make sure that an edge is sorted by dimension
-        sort = (
-            lambda e: e
+        sort = lambda e: (
+            e
             if self.graph.nodes[e[0]]["dim"] > self.graph.nodes[e[1]]["dim"]
             else np.flip(e)
         )

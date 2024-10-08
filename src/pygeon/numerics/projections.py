@@ -72,7 +72,7 @@ def proj_faces_to_cells(
     )
 
     if discr is None:
-        discr = pg.RT0("flow")
+        discr = pg.RT0("unit")
 
     # Local mass matrices
     for nn_sd, (sd, d_sd) in enumerate(mdg.subdomains(return_data=True)):

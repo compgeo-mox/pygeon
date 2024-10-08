@@ -230,5 +230,57 @@ class SpanningTreeElasticityTest(unittest.TestCase):
         self.assertRaises(NotImplementedError, pg.SpanningTreeElasticity, mdg)
 
 
+class SpanningTreeCosseratTest(unittest.TestCase):
+    def check(self, sd):
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        B = self.assemble_B(mdg)
+        f = np.random.rand(B.shape[0])
+
+        sptr = pg.SpanningTreeCosserat(mdg)
+
+        s_f = sptr.solve(f)
+        self.assertTrue(np.allclose(B @ s_f, f))
+
+    def assemble_B(self, mdg):
+        sd = mdg.subdomains(dim=mdg.dim_max())[0]
+
+        key = "tree"
+        vec_rt0 = pg.VecRT0(key)
+        vec_p0 = pg.VecPwConstants(key)
+
+        M = vec_p0.assemble_mass_matrix(sd)
+
+        div = M @ vec_rt0.assemble_diff_matrix(sd)
+        asym = M @ vec_rt0.assemble_asym_matrix(sd)
+
+        return sps.bmat([[-div, None], [-asym, -div]])
+
+    def test_elasticity_struct_tet_grid(self):
+        sd = pp.StructuredTetrahedralGrid([1] * 3)
+        self.check(sd)
+
+    def test_elasticity_unstruct_tet_grid(self):
+        sd = pg.unit_grid(3, 1.0)
+        self.check(sd)
+
+    def test_assemble_SI(self):
+        N, dim = 3, 3
+        sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
+        mdg = pg.as_mdg(sd)
+        pg.convert_from_pp(mdg)
+        mdg.compute_geometry()
+
+        sptr = pg.SpanningTreeCosserat(mdg)
+
+        SI = sptr.assemble_SI()
+        B = self.assemble_B(mdg)
+        check = sps.eye_array(B.shape[0]) - B @ SI
+
+        self.assertTrue(np.allclose(check.data, 0))
+
+
 if __name__ == "__main__":
     unittest.main()

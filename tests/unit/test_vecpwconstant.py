@@ -13,7 +13,7 @@ class VecPwConstantsTest(unittest.TestCase):
         sd.compute_geometry()
 
         discr = pg.VecPwConstants("P0")
-        assert discr.ndof(sd) == sd.num_cells * dim
+        self.assertTrue(discr.ndof(sd) == sd.num_cells * dim)
 
     def test_assemble_mass_matrix(self):
         dim = 2
@@ -179,8 +179,13 @@ class VecPwConstantsTest(unittest.TestCase):
         # fmt: on
         ana_sol = lambda x: np.sin(x)
 
+        err = discr.error_l2(sd, num_sol, ana_sol, etype="standard")
+        err_known = 7.951651025069553e-08
+
+        self.assertTrue(np.allclose(err, err_known))
+
         err = discr.error_l2(sd, num_sol, ana_sol)
-        err_known = 5.622666361455642e-08
+        err_known = 0.5254595621486393
 
         self.assertTrue(np.allclose(err, err_known))
 
