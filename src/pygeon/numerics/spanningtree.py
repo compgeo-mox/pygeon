@@ -69,12 +69,16 @@ class SpanningTree:
         self.div = pg.div(mdg)
 
         self.starting_faces = self.find_starting_faces(mdg, starting_faces)
-        self.starting_cells = self.find_starting_cells()
+
+        self.add_outside_cell()
+
         self.tree = self.compute_tree()
+        self.flagged_faces = self.flag_tree_faces()
 
-        flagged_faces = self.flag_tree_faces()
+        self.remove_outside_cell()
 
-        self.setup_system(mdg, flagged_faces)
+        self.starting_cells = self.find_starting_cells()
+        self.setup_system(mdg, self.flagged_faces)
 
     def setup_system(
         self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
@@ -122,19 +126,17 @@ class SpanningTree:
 
         if isinstance(starting_faces, str):
             # Extract top-dimensional domain
-            sd = mdg.subdomains(dim=mdg.dim_max())[0]
-            bdry_faces = np.where(sd.tags["domain_boundary_faces"])[0]
+            bdry_face_tags = np.hstack(
+                [sd.tags["domain_boundary_faces"] for sd in mdg.subdomains()]
+            )
+            bdry_faces = np.where(bdry_face_tags)[0]
 
             # The default case
             if starting_faces == "first_bdry":
                 return bdry_faces[[0]]
 
             elif starting_faces == "all_bdry":
-                # Find the boundary faces and remove duplicate connections to boundary cells
-                I_cells, J_faces, _ = sps.find(self.div.tocsc()[:, bdry_faces])
-                _, uniq_ind = np.unique(I_cells, return_index=True)
-
-                return bdry_faces[J_faces[uniq_ind]]
+                return bdry_faces
 
             else:
                 raise KeyError(
@@ -154,6 +156,25 @@ class SpanningTree:
         """
         return self.div.tocsc()[:, self.starting_faces].indices
 
+    def add_outside_cell(self) -> None:
+        """
+        Include a fictitious outside cell in the div operator.
+        This cell will be used as the root of the tree.
+        """
+        outside_cell = np.zeros((1, self.div.shape[1]))
+        outside_cell[0, self.starting_faces] = -np.sum(
+            self.div[:, self.starting_faces], axis=0
+        )
+
+        self.div = sps.vstack([self.div, outside_cell], format="csc")
+
+    def remove_outside_cell(self) -> None:
+        """
+        Remove the fictitious outside cell from the div operator and the tree
+        """
+        self.div = self.div[:-1, :]
+        self.tree = self.tree[:-1, :-1]
+
     def compute_tree(self) -> sps.csc_array:
         """
         Construct a spanning tree of the elements.
@@ -163,39 +184,9 @@ class SpanningTree:
         """
         incidence = self.div @ self.div.T
 
-        # If a single root is given, we default to the breadth-first tree generator from scipy
-        if len(self.starting_cells) == 1:
-            tree = sps.csgraph.breadth_first_tree(
-                incidence, self.starting_cells[0], directed=False
-            )
-
-        # For multiple roots, we use our own generator
-        else:
-            # Initialize the tree
-            tree = sps.lil_array(incidence.shape, dtype=int)
-
-            # Keep track of the cells that have been visited by the tree
-            visited_cells = np.zeros(np.size(incidence, 0), dtype=bool)
-            visited_cells[self.starting_cells] = True
-
-            while np.any(~visited_cells):
-                # Extract global indices of the (un)visited cells
-                vis_glob = np.where(visited_cells)[0]
-                unv_glob = np.where(~visited_cells)[0]
-
-                # Find connectivity between visited and unvisited cells
-                local_graph = incidence[np.ix_(vis_glob, unv_glob)]
-                vis_cell, unv_cell, _ = sps.find(local_graph)
-
-                assert len(unv_cell) > 0, "No new neighbors found."
-
-                # Each unvisited cell is linked to exactly one visited cell
-                unv_cell, nc_ind = np.unique(unv_cell, return_index=True)
-                vis_cell = vis_cell[nc_ind]
-
-                # Save the connectivity in the tree and mark the new cells as visited
-                tree[vis_glob[vis_cell], unv_glob[unv_cell]] = 1
-                visited_cells[unv_glob[unv_cell]] = True
+        tree = sps.csgraph.breadth_first_tree(
+            incidence, incidence.shape[0] - 1, directed=False
+        )
 
         return sps.csc_array(tree)
 
@@ -225,8 +216,10 @@ class SpanningTree:
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
-        flagged_faces[self.starting_faces] = True
         flagged_faces[tree_faces] = True
+
+        # Update the starting faces by removing the ones that are unnecessary
+        self.starting_faces = self.starting_faces[flagged_faces[self.starting_faces]]
 
         return flagged_faces
 
@@ -271,8 +264,8 @@ class SpanningTree:
         return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
-        self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
-    ):  # pragma: no cover
+        self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None, **kwargs
+    ):
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
 
@@ -280,45 +273,129 @@ class SpanningTree:
             mdg (pg.MixedDimensionalGrid) The object representing the grid.
             fig_name (Optional[str], optional). The name of the figure file to save the
                 visualization.
+
+        Optional Args
+            draw_grid (bool): Plot the grid
+            draw_tree (bool): Plot the tree spanning the cells
+            draw_cotree (bool): Plot the tree spanning the nodes
+            start_color (str): Color of the "starting" cells, next to the boundary
         """
         import matplotlib.pyplot as plt
         import networkx as nx
 
         assert mdg.dim_max() == 2
+        sd_top = mdg.subdomains()[0]
 
-        graph = nx.from_scipy_sparse_array(self.tree)
-        cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+        draw_grid = kwargs.get("draw_grid", True)
+        draw_tree = kwargs.get("draw_tree", True)
+        draw_complement = kwargs.get("draw_cotree", False)
+        start_color = kwargs.get("start_color", "green")
 
         fig_num = 1
 
-        pp.plot_grid(
-            mdg,
-            alpha=0,
-            fig_num=fig_num,
-            plot_2d=True,
-            if_plot=False,
-        )
+        # Draw grid
+        if draw_grid:
+            pp.plot_grid(
+                mdg, alpha=0, fig_num=fig_num, plot_2d=True, if_plot=False, title=""
+            )
 
+        # Define the figure and axes
         fig = plt.figure(fig_num)
-        ax = fig.add_subplot(111)
 
-        node_color = ["blue"] * cell_centers.shape[1]
-        for sc in self.starting_cells:
-            node_color[sc] = "green"
+        # The grid is drawn by PorePy if desired
+        if draw_grid:
+            pp_ax = fig.gca()
+            pp_ax.set_xlabel("")
+            pp_ax.set_ylabel("")
+            pp_ax.set_aspect("equal")
+            plt.tick_params(
+                left=False,
+                labelleft=False,
+                labelbottom=False,
+                bottom=False,
+            )
+            ax = fig.add_subplot(111)
+            ax.set_xlim(pp_ax.get_xlim())
+            ax.set_ylim(pp_ax.get_ylim())
 
-        ax.autoscale(False)
-        nx.draw(
-            graph,
-            cell_centers[: mdg.dim_max(), :].T,
-            node_color=node_color,
-            node_size=40,
-            edge_color="red",
-            ax=ax,
-        )
+        # If there is no PorePy grid plot, we create our own axes
+        else:
+            ax = fig.gca()
+
+            min_coord = np.min(sd_top.nodes, axis=1)
+            max_coord = np.max(sd_top.nodes, axis=1)
+
+            ax.set_xlim((min_coord[0], max_coord[0]))
+            ax.set_ylim((min_coord[1], max_coord[1]))
+
+        ax.set_aspect("equal")
+
+        # Draw the tree that spans all cells
+        if draw_tree:
+            graph = nx.from_scipy_sparse_array(self.tree)
+            cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+            node_color = ["blue"] * cell_centers.shape[1]
+            for sc in self.starting_cells:
+                node_color[sc] = start_color
+
+            nx.draw(
+                graph,
+                cell_centers[: mdg.dim_max(), :].T,
+                node_color=node_color,
+                node_size=40,
+                edge_color="red",
+                ax=ax,
+            )
+
+            # Add connections from the roots to the starting faces
+            num_bdry = len(self.starting_faces)
+            bdry_graph = sps.diags(
+                np.ones(num_bdry),
+                num_bdry,
+                shape=(2 * num_bdry, 2 * num_bdry),
+            )
+            graph = nx.from_scipy_sparse_array(bdry_graph)
+
+            face_centers = np.hstack([sd.face_centers for sd in mdg.subdomains()])
+            cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+            node_centers = np.hstack(
+                (
+                    face_centers[: mdg.dim_max(), self.starting_faces],
+                    cell_centers[: mdg.dim_max(), self.starting_cells],
+                )
+            ).T
+
+            nx.draw(
+                graph,
+                node_centers,
+                node_size=0,
+                edge_color="red",
+                ax=ax,
+            )
+
+        # Draw the tree that spans all nodes
+        if draw_complement:
+            curl = pg.curl(mdg)[~self.flagged_faces, :]
+            incidence = curl.T @ curl
+            incidence -= sps.triu(incidence)
+
+            graph = nx.from_scipy_sparse_array(incidence)
+
+            node_color = ["black"] * sd_top.nodes.shape[1]
+
+            nx.draw(
+                graph,
+                sd_top.nodes[: mdg.dim_max(), :].T,
+                node_color=node_color,
+                node_size=30,
+                edge_color="purple",
+                width=1.5,
+                ax=ax,
+            )
 
         plt.draw()
         if fig_name is not None:
-            plt.savefig(fig_name, bbox_inches="tight", pad_inches=0)
+            plt.savefig(fig_name, bbox_inches="tight", pad_inches=0.1)
 
         plt.close()
 
