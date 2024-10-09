@@ -233,7 +233,7 @@ while current_time < final_time:
         # Actual rhs
         rhs = time_rhs.copy()
 
-        if cp.eta_lin < 1e3 and k>20: #k > 90:
+        if cp.eta_lin < 1e3 and k>40: #k > 90:
             cp.is_newton_scheme = True
         else:
             cp.is_newton_scheme = False
