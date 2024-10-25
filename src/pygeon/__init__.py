@@ -27,7 +27,7 @@ from pygeon.discretizations.fem.l2 import (
     VecPwLinears,
 )
 
-from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
+from pygeon.discretizations.vem.hdiv import VRT0, VBDM1, VecVRT0
 from pygeon.discretizations.vem.h1 import VLagrange1, VecVLagrange1
 
 from pygeon.numerics.differentials import grad, curl, div
