@@ -28,7 +28,7 @@ saving_time_interval = 20*3600#30*60#1000#.005*3600*unit_measure_transform_time
 potential_time_step = 20*3600#900#1000#.0001*3600*unit_measure_transform_time
 final_time = 1*3600*20
 
-for i in range(1):
+for i in range(w):
     theta_s = array[i][0]
     theta_r = array[i][1]
     alpha   = array[i][2]
