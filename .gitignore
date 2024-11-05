@@ -171,7 +171,6 @@ nbproject/
 *.un~
 *.pos
 *.mtx
-*.m
 *.fab
 *.mat
 *.py_o
