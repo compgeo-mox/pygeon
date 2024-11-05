@@ -1,9 +1,9 @@
 import time
-from typing import Callable, Optional, Union
+from typing import Optional #Callable, Optional, Union
 import numpy as np
 import scipy.sparse as sps
 import porepy as pp 
-from topograhy_file import theta, conductivity, DthetaDpsi#, DConductivityDpsi
+#from topograhy_file import theta, conductivity, DthetaDpsi#, DConductivityDpsi
 
 def TicTocGenerator():
     # Generator that returns time differences
@@ -61,7 +61,7 @@ class Nitsche_term:
 
         self.subdomain = subdomain
 
-        self.pressure_head_thr = 0e-2
+        self.pressure_head_thr = 1e-2
 
     def compute_Nitsche_contributions(self, gamma_topography, prec_proj, prev, normal_vector_top):
 
@@ -89,7 +89,7 @@ class Nitsche_term_hybrid:
 
         self.subdomain = subdomain
 
-        self.pressure_head_thr = 0e-2
+        self.pressure_head_thr = 1e-2
 
     def compute_Nitsche_contributions(self, gamma_topography, prec_proj, prev, normal_vector_top):
         
@@ -113,7 +113,9 @@ class Matrix_Computer:
     """
     A simple class used to generate the various matrices required to perform the FEM method.
     """
-    def __init__(self, sd, dof_q, dof_psi):
+    def __init__(self, sd, dof_q, dof_psi, PERM):
+        self.PERM = PERM
+
         self.dof_q   = dof_q
         self.dof_psi = dof_psi
 
@@ -206,7 +208,7 @@ class Matrix_Computer:
         # Mass_u.toarray()[63][Mass_u.toarray()[63]>0]
 
     def set_L_coefficients(self, initial_solution):
-        self.L_scheme_coeff_M = np.maximum(1*np.max(DthetaDpsi(initial_solution)), 1e-6)
+        self.L_scheme_coeff_M = np.maximum(1*np.max(self.PERM.DthetaDpsi(initial_solution)), 1e-6)
         self.L_scheme_coeff_m = self.L_scheme_coeff_M/8.
         self.coeff_LL = np.sqrt(2.)
         self.L_scheme_coeff = self.L_scheme_coeff_m
@@ -227,8 +229,8 @@ class Matrix_Computer:
         self.eta_lin_old = self.eta_lin
         self.eta_lin = self.compute_energy_norm(tau, sd, psi, psi_it_old, q_it, q_it_old)
 
-        eta_square_poten = np.sum(sd.cell_volumes*(1./np.sqrt(self.L_scheme_coeff)*(self.L_scheme_coeff*(psi_it_old - psi_it_old_old) -  (theta(psi_it_old) - theta(psi_it_old_old))))*(1./np.sqrt(self.L_scheme_coeff)*(self.L_scheme_coeff*(psi_it_old - psi_it_old_old) -  (theta(psi_it_old) - theta(psi_it_old_old)))))
-        eta_square_flux  = np.dot(q_it_old, self.compute_RT0_mass_matrix((conductivity(psi_it_old) - conductivity(psi_it_old_old))*(conductivity(psi_it_old) - conductivity(psi_it_old_old))/(conductivity(psi_it_old)*conductivity(psi_it_old)*conductivity(psi_it_old)))*q_it_old) 
+        eta_square_poten = np.sum(sd.cell_volumes*(1./np.sqrt(self.L_scheme_coeff)*(self.L_scheme_coeff*(psi_it_old - psi_it_old_old) -  (self.PERM.theta(psi_it_old) - self.PERM.theta(psi_it_old_old))))*(1./np.sqrt(self.L_scheme_coeff)*(self.L_scheme_coeff*(psi_it_old - psi_it_old_old) -  (self.PERM.theta(psi_it_old) - self.PERM.theta(psi_it_old_old)))))
+        eta_square_flux  = np.dot(q_it_old, self.compute_RT0_mass_matrix((self.PERM.conductivity(psi_it_old) - self.PERM.conductivity(psi_it_old_old))*(self.PERM.conductivity(psi_it_old) - self.PERM.conductivity(psi_it_old_old))/(self.PERM.conductivity(psi_it_old)*self.PERM.conductivity(psi_it_old)*self.PERM.conductivity(psi_it_old)))*q_it_old) 
         self.eta_ll_old_old = self.eta_ll_old
         self.eta_ll_old = self.eta_ll
         self.eta_ll = np.sqrt(eta_square_poten + tau*eta_square_flux)
@@ -248,13 +250,13 @@ class Matrix_Computer:
     def compute_energy_norm(self, tau, sd, psi, psi_it_old, q_it, q_it_old):
         delta_psi = psi-psi_it_old
         if self.is_newton_scheme:
-            res = np.sum(DthetaDpsi(psi_it_old)*delta_psi*delta_psi*sd.cell_volumes)
+            res = np.sum(self.PERM.DthetaDpsi(psi_it_old)*delta_psi*delta_psi*sd.cell_volumes)
         else:
             res = np.sum(self.L_scheme_coeff*delta_psi*delta_psi*sd.cell_volumes)
 
-        res += tau*np.dot(q_it, self.compute_RT0_mass_matrix(conductivity(psi_it_old)/(conductivity(psi)*conductivity(psi)))*q_it)
-        res += tau*np.dot(q_it_old, self.compute_RT0_mass_matrix(1./conductivity(psi_it_old))*q_it_old)
-        res -= tau*np.dot(q_it_old, self.compute_RT0_mass_matrix(1./conductivity(psi))*q_it)*2
+        res += tau*np.dot(q_it, self.compute_RT0_mass_matrix(self.PERM.conductivity(psi_it_old)/(self.PERM.conductivity(psi)*self.PERM.conductivity(psi)))*q_it)
+        res += tau*np.dot(q_it_old, self.compute_RT0_mass_matrix(1./self.PERM.conductivity(psi_it_old))*q_it_old)
+        res -= tau*np.dot(q_it_old, self.compute_RT0_mass_matrix(1./self.PERM.conductivity(psi))*q_it)*2
 
         if res<1e-10:
             res = np.abs(abs(res))

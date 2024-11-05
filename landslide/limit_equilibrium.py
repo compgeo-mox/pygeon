@@ -1,11 +1,11 @@
-import sys
+#import sys
 import numpy as np
 import scipy.optimize as optimize
 import matplotlib.pyplot as plt
 
 import porepy as pp
 
-from topograhy_file import theta_r, theta_s, theta, porosity, gamma, cohesion, phi, Ns, gamma_water, gravity_field, topography_func, bedrock_func, SlopeHeight, SlopeAngle, domain_extent_left, domain_extent_right, xx_plot
+from topograhy_file import topography_func, bedrock_func
 
 # Implementation of Morgenstern-Price method for the standard slope problem with the Simplex optimization algorithm 
 # to find the failure surface that minimizes the Factor of Safety (FOS)
@@ -20,7 +20,7 @@ from topograhy_file import theta_r, theta_s, theta, porosity, gamma, cohesion, p
 #sys.exit()
 
 
-def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
+def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree, PERM):
     """
     xa , ya , Ra = centro e raggio sds
     sds_in , sds_out, eta = ingresso e uscita sds (solo ascissa), eta: angolo 
@@ -43,7 +43,7 @@ def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
     alpha_out = np.arctan((x_out - xa)/(ya - y_out))
     alpha_in  = alpha_out + 2.*eta; 
 
-    alpha = np.linspace(alpha_out, alpha_in, Ns+1)
+    alpha = np.linspace(alpha_out, alpha_in, PERM.Ns+1)
     alpha_center = (alpha[1:] + alpha[0:-1])*.5
     
     x_vect = Ra*np.array([np.sin(alpha), -np.cos(alpha)]) + np.array([xa*np.ones(np.size(alpha)), ya*np.ones(np.size(alpha))])
@@ -85,21 +85,21 @@ def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
         pore_press_slice_gamma[i] = np.mean(psi[n_nodes])
 
 
-    sat_deg_r = theta(pore_press_slice_gamma)/porosity
-    sat_deg_e = (theta(pore_press_slice) - theta_r)/(theta_s - theta_r)
+    sat_deg_r = PERM.theta(pore_press_slice_gamma)/PERM.porosity
+    sat_deg_e = (PERM.theta(pore_press_slice) - PERM.theta_r)/(PERM.theta_s - PERM.theta_r)
     
     # scale by density and gravity to get the dimension of pressure from \psi, the density in ton/m^3 is such that we obtain kN/m^2
-    pore_press_slice = pore_press_slice*gamma_water #density_water*gravity_field
+    pore_press_slice = pore_press_slice*PERM.gamma_water #density_water*gravity_field
     #print(pore_press_slice)
 
-    mois_term = porosity*sat_deg_r*(1 - porosity)*gamma/gamma_water
-    gamma_mixture = (1 - porosity)*gamma*(1 + mois_term)
+    mois_term = PERM.porosity*sat_deg_r*(1 - PERM.porosity)*PERM.gamma/PERM.gamma_water
+    gamma_mixture = (1 - PERM.porosity)*PERM.gamma*(1 + mois_term)
     weight_force = gamma_mixture * delta_z*delta_x
     driving_moment = weight_force*np.sin(alpha_center)
  
     beta_coeff = np.sqrt(delta_x*delta_x + delta_y*delta_y)
-    cohesion_tot = cohesion*beta_coeff
-    resisting_moment = cohesion_tot + weight_force*np.cos(alpha_center)*np.tan(phi)
+    cohesion_tot = PERM.cohesion*beta_coeff
+    resisting_moment = cohesion_tot + weight_force*np.cos(alpha_center)*np.tan(PERM.phi)
 
     FoS_ini = np.sum(resisting_moment)/np.sum(driving_moment) # \dfrac{KN \cdot m^{-1}}{kN \cdot m^{-1}}
 
@@ -118,16 +118,16 @@ def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
     f_x = fx(x_vect_center[0]) #1.
 
     def normal_force(x): # this is the total force at the slip surface
-        m_alpha = np.cos(alpha_center) + np.tan(phi)*np.sin(alpha_center)/x[0]
-        return((weight_force - cohesion_tot/x[0]*(np.sin(alpha_center) - np.cos(alpha_center)*x[1]*f_x) + sat_deg_e*pore_press_slice*beta_coeff*np.tan(phi)/x[0]*np.sin(alpha_center) )/(m_alpha + x[1]*f_x*np.cos(alpha_center)*(np.tan(alpha_center) - np.tan(phi)/x[0]) ))
+        m_alpha = np.cos(alpha_center) + np.tan(PERM.phi)*np.sin(alpha_center)/x[0]
+        return((weight_force - cohesion_tot/x[0]*(np.sin(alpha_center) - np.cos(alpha_center)*x[1]*f_x) + sat_deg_e*pore_press_slice*beta_coeff*np.tan(PERM.phi)/x[0]*np.sin(alpha_center) )/(m_alpha + x[1]*f_x*np.cos(alpha_center)*(np.tan(alpha_center) - np.tan(PERM.phi)/x[0]) ))
         #return((weight_force - cohesion_tot/x[0]*(np.sin(alpha_center) - np.cos(alpha_center)*x[1]*f_x) + pore_press_slice*beta_coeff*np.tan(phi)/x[0]*(np.sin(alpha_center)-x[1]*f_x*np.cos(alpha_center)) )/(m_alpha + x[1]*f_x*np.cos(alpha_center)*(np.tan(alpha_center) - np.tan(phi)/x[0]) ))
     
     def FoS_func_momentum(x):
-        resisting_moment = cohesion_tot + (normal_force(x)-sat_deg_e*pore_press_slice*beta_coeff)*np.tan(phi)
+        resisting_moment = cohesion_tot + (normal_force(x)-sat_deg_e*pore_press_slice*beta_coeff)*np.tan(PERM.phi)
         return ((np.sum(resisting_moment)/np.sum(driving_moment)) - x[0])
     
     def FoS_func_force(x):
-        resisting_moment = (cohesion_tot + (normal_force(x)-sat_deg_e*pore_press_slice*beta_coeff)*np.tan(phi))*np.cos(alpha_center)
+        resisting_moment = (cohesion_tot + (normal_force(x)-sat_deg_e*pore_press_slice*beta_coeff)*np.tan(PERM.phi))*np.cos(alpha_center)
         return ((np.sum(resisting_moment)/np.sum(normal_force(x)*np.sin(alpha_center))) - x[0]) 
     
     def FoS_func(x):
@@ -146,7 +146,7 @@ def MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi, tree):
     #FoS = optimize.newton(FoS_func_momentum_Bishp, FoS)
 
     sol = optimize.root(FoS_func, [FoS_ini, 0])
-    while sol.message!='The solution converged.':
+    while sol.message!='The solution converged.' and np.abs(sol.x[0])<1e-4 and np.abs(sol.x[1])<1e-4:
         sol = optimize.root(FoS_func, [FoS_ini, -np.random.rand(1)[0]])
 
     FoS = sol.x[0]
@@ -222,7 +222,7 @@ def circ_2pts_tan(sds_in , sds_out , eta):
     
     return xc, yc, R, delta
 
-def plot_circ_2pts_tan(trial):
+def plot_circ_2pts_tan(trial, domain_extent_left, domain_extent_right):
     """
     trova il centro, il raggio e l'arco di cerchio dati 
     i punti di ingresso e uscita della sds e la tangente all'ingresso
@@ -260,6 +260,8 @@ def plot_circ_2pts_tan(trial):
     yc = y_mid_point + height*np.cos(alfa_angle)
     
     delta = alfa_angle+eta
+
+    xx_plot = np.linspace(domain_extent_left, domain_extent_right, 500)
     
     #plt.close()
     fig = plt.figure(figsize=(8, 6))
@@ -298,7 +300,7 @@ def plot_circ_2pts_tan(trial):
     
 
 
-def func(trial, psi_sol, tree):
+def func(trial, psi_sol, tree, PERM):
     x_in, x_out, eta = trial[0], trial[1], trial[2]
 
     sds_in  = [x_in,  topography_func(x_in )]
@@ -308,17 +310,17 @@ def func(trial, psi_sol, tree):
     
     xa, ya, Ra, delta = circ_2pts_tan(sds_in, sds_out, eta)
     if ya>sds_in[1] and ya>sds_out[1]:# and delta>delta_min:
-        [ff_ini, ff, lambda_val] = MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi_sol, tree)
+        [ff_ini, ff, lambda_val] = MorgensternPrice(xa, ya, Ra, sds_in, sds_out, eta, psi_sol, tree, PERM)
     else:
         ff = 30.
         ff_ini = 30.
         lambda_val = 1.
-    print(ff_ini, ff, lambda_val, x_in, x_out, eta)
+    print(ff_ini, ff, lambda_val)#, x_in, x_out, eta)
     return ff
 
 
-def call_optimizer(trial, psi_sol, tree):
-    zero = optimize.minimize(func, x0=trial, args=(psi_sol, tree), method='Nelder-Mead', 
+def call_optimizer(trial, psi_sol, tree, domain_extent_left, domain_extent_right, PERM):
+    zero = optimize.minimize(func, x0=trial, args=(psi_sol, tree, PERM), method='Nelder-Mead', 
                              bounds = ((0, domain_extent_right), #(domain_extent_left, SlopeHeight/np.tan(SlopeAngle))
                                        (domain_extent_left, 3), #(0, domain_extent_right)
                                        (np.radians(5), .5*np.pi)), 
