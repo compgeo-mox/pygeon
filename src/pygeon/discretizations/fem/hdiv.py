@@ -383,8 +383,8 @@ class BDM1(pg.Discretization):
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
 
-            opposites_loc = opposite_nodes[faces_loc, c].data
             Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             weight = sps.block_diag([inv_K.values[:, :, c]] * (sd.dim + 1))
@@ -531,8 +531,7 @@ class BDM1(pg.Discretization):
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
-
-            opposites_loc = opposite_nodes[faces_loc, c].data
+            opposites_loc = opposite_nodes.data[loc]
 
             Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc).todense()
             basis_at_center = np.sum(np.split(Psi, sd.dim + 1, axis=1), axis=0) / (
@@ -882,7 +881,7 @@ class VecBDM1(pg.VecDiscretization):
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
-            opposites_loc = opposite_nodes[faces_loc, c].data
+            opposites_loc = opposite_nodes.data[loc]
 
             Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
@@ -963,8 +962,8 @@ class VecBDM1(pg.VecDiscretization):
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
 
-            opposites_loc = opposite_nodes[faces_loc, c].data
             Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
