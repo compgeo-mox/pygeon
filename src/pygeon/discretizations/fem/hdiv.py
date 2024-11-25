@@ -376,18 +376,16 @@ class BDM1(pg.Discretization):
         except Exception:
             inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
 
-        cell_nodes = sd.cell_nodes()
+        opposite_nodes = sd.compute_opposite_nodes()
+
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
-            dof_loc = np.reshape(
-                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
-            )
 
-            cell_nodes_loc = cell_nodes[:, c].toarray()
-            Psi = self.eval_basis_at_node(sd, dof_loc, cell_nodes_loc, faces_loc)
+            opposites_loc = opposite_nodes[faces_loc, c].data
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             weight = sps.block_diag([inv_K.values[:, :, c]] * (sd.dim + 1))
 
@@ -411,8 +409,7 @@ class BDM1(pg.Discretization):
     def eval_basis_at_node(
         self,
         sd: pg.Grid,
-        dof_loc: np.ndarray,
-        cell_nodes_loc: np.ndarray,
+        opposites: np.ndarray,
         faces_loc: np.ndarray,
     ) -> np.ndarray:
         """
@@ -420,33 +417,37 @@ class BDM1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            dof_loc (np.ndarray): The local degrees of freedom.
+            opposites (np.ndarray): The local degrees of freedom.
             cell_nodes_loc (np.ndarray): The local nodes of the cell.
             faces_loc (np.ndarray): The local faces.
 
         Returns:
             np.ndarray: The local mass matrix.
         """
-        face_nodes_loc = sd.face_nodes[:, faces_loc].astype(bool).toarray()
+        if sd.face_nodes.has_sorted_indices:
+            nodes = sps.find(sd.face_nodes[:, faces_loc])[0]
+            node_ind = np.repeat(np.arange(sd.dim + 1), sd.dim)
+        else:
+            nodes_loc = sd.face_nodes[:, faces_loc].indices
+            nodes = nodes_loc.reshape((sd.dim, -1), order="F").ravel()
+            node_ind = np.unique(nodes, return_inverse=True)[1]
+
+        face_ind = np.tile(np.arange(sd.dim + 1), sd.dim)
 
         # get the opposite node id for each face
-        opposite_node = np.logical_xor(face_nodes_loc, cell_nodes_loc)
-
-        # Find the nodes of the cell and their coordinates
-        indices = np.unique(dof_loc, return_inverse=True)[1].reshape((sd.dim, -1))
+        # opposite_node = sd.compute_opposite_nodes()
+        opposite_nodes = opposites[face_ind]
 
         # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
-        Psi = np.empty((sd.dim * (sd.dim + 1), sd.dim + 1), np.ndarray)
-        for face, nodes in enumerate(indices.T):
-            tangents = (
-                sd.nodes[:, face_nodes_loc[:, face]]
-                - sd.nodes[:, opposite_node[:, face]]
-            )
-            normal = sd.face_normals[:, faces_loc[face]]
-            for index, node in enumerate(nodes):
-                val_at_node = tangents[:, index] / np.dot(tangents[:, index], normal)
-                Psi[face + index * (sd.dim + 1), node] = val_at_node.reshape((1, -1))
-        return sps.bmat(Psi)
+        tangents = sd.nodes[:, nodes] - sd.nodes[:, opposite_nodes]
+        normals = sd.face_normals[:, faces_loc[face_ind]]
+        vals = tangents / np.sum(tangents * normals, axis=0)
+
+        # Create a (i, j, v) triplet
+        dof_id = np.tile(np.arange(sd.dim * (sd.dim + 1)), (3, 1))
+        nod_id = 3 * np.tile(node_ind, (3, 1)) + np.arange(3)[:, None]
+
+        return sps.csc_matrix((vals.ravel(), (dof_id.ravel(), nod_id.ravel())))
 
     def local_inner_product(self, dim: int) -> sps.csc_matrix:
         """
@@ -524,20 +525,17 @@ class BDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_nodes = sd.cell_nodes()
+        opposite_nodes = sd.compute_opposite_nodes()
+
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
-            dof_loc = np.reshape(
-                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
-            )
 
-            cell_nodes_loc = cell_nodes[:, c].toarray()
-            Psi = self.eval_basis_at_node(
-                sd, dof_loc, cell_nodes_loc, faces_loc
-            ).todense()
+            opposites_loc = opposite_nodes[faces_loc, c].data
+
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc).todense()
             basis_at_center = np.sum(np.split(Psi, sd.dim + 1, axis=1), axis=0) / (
                 sd.dim + 1
             )

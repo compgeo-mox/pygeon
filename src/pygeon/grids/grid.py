@@ -290,3 +290,21 @@ class Grid(pp.Grid):
             )
         else:
             return self.face_nodes @ div_by_nodes_per_face @ sub_simplices
+
+    def compute_opposite_nodes(self, recompute=False) -> sps.csc_matrix:
+        """
+        Computes a matrix containing the index of the opposite node for every (face, cell) pair.
+        Sets it as an attribute for later use.
+
+        Returns:
+            sps.csc_matrix: the index k of the opposite node is in the entry (face, cell)
+        """
+        if recompute or not hasattr(self, "opposite_nodes"):
+            cell_nodes = self.cell_nodes()
+            faces, cells, _ = sps.find(self.cell_faces)
+
+            opposites = cell_nodes[:, cells] - self.face_nodes[:, faces].astype(bool)
+
+            self.opposite_nodes = sps.csc_matrix((opposites.indices, (faces, cells)))
+
+        return self.opposite_nodes
