@@ -424,8 +424,11 @@ class BDM1(pg.Discretization):
         Returns:
             np.ndarray: The local mass matrix.
         """
-        nodes_loc = sd.face_nodes[:, faces_loc].indices
-        nodes = nodes_loc.reshape((sd.dim, -1), order="F").ravel()
+        fn = sd.face_nodes
+        nodes = np.vstack(
+            [fn.indices[fn.indptr[face] : fn.indptr[face + 1]] for face in faces_loc]
+        ).ravel(order="F")
+
         node_ind = np.unique(nodes, return_inverse=True)[1]
 
         face_ind = np.tile(np.arange(sd.dim + 1), sd.dim)
@@ -440,10 +443,10 @@ class BDM1(pg.Discretization):
         vals = tangents / np.sum(tangents * normals, axis=0)
 
         # Create a (i, j, v) triplet
-        dof_id = np.tile(np.arange(sd.dim * (sd.dim + 1)), (3, 1))
+        dof_id = np.tile(np.arange(sd.dim * (sd.dim + 1)), 3)
         nod_id = 3 * np.tile(node_ind, (3, 1)) + np.arange(3)[:, None]
 
-        return sps.csc_matrix((vals.ravel(), (dof_id.ravel(), nod_id.ravel())))
+        return sps.csc_matrix((vals.ravel(), (dof_id, nod_id.ravel())))
 
     def local_inner_product(self, dim: int) -> sps.csc_matrix:
         """
@@ -953,6 +956,7 @@ class VecBDM1(pg.VecDiscretization):
             raise ValueError("The grid should be either two or three-dimensional")
 
         opposite_nodes = sd.compute_opposite_nodes()
+        ndof_scalar = self.scalar_discr.ndof(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -971,13 +975,13 @@ class VecBDM1(pg.VecDiscretization):
                 Psi_v_copy[np.mod(Psi_j, 3) == negate_col[ind]] *= -1
                 Psi_v_copy[np.mod(Psi_j, 3) == zeroed_col[ind]] *= 0
 
-                loc_ind = np.hstack([faces_loc] * sd.dim)
+                loc_ind = np.tile(faces_loc, sd.dim)
                 loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
 
                 cols = np.tile(loc_ind, (3, 1))
-                cols[0, :] += np.mod(-ind, 3) * self.scalar_discr.ndof(sd)
-                cols[1, :] += np.mod(-ind - 1, 3) * self.scalar_discr.ndof(sd)
-                cols[2, :] += np.mod(-ind - 2, 3) * self.scalar_discr.ndof(sd)
+                cols[0, :] += np.mod(-ind, 3) * ndof_scalar
+                cols[1, :] += np.mod(-ind - 1, 3) * ndof_scalar
+                cols[2, :] += np.mod(-ind - 2, 3) * ndof_scalar
 
                 cols = np.tile(cols, (sd.dim + 1, 1)).T
 
