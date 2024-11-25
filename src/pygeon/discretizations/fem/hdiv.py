@@ -424,13 +424,9 @@ class BDM1(pg.Discretization):
         Returns:
             np.ndarray: The local mass matrix.
         """
-        if sd.face_nodes.has_sorted_indices:
-            nodes = sps.find(sd.face_nodes[:, faces_loc])[0]
-            node_ind = np.repeat(np.arange(sd.dim + 1), sd.dim)
-        else:
-            nodes_loc = sd.face_nodes[:, faces_loc].indices
-            nodes = nodes_loc.reshape((sd.dim, -1), order="F").ravel()
-            node_ind = np.unique(nodes, return_inverse=True)[1]
+        nodes_loc = sd.face_nodes[:, faces_loc].indices
+        nodes = nodes_loc.reshape((sd.dim, -1), order="F").ravel()
+        node_ind = np.unique(nodes, return_inverse=True)[1]
 
         face_ind = np.tile(np.arange(sd.dim + 1), sd.dim)
 
