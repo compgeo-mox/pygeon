@@ -876,20 +876,17 @@ class VecBDM1(pg.VecDiscretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_nodes = sd.cell_nodes()
+        opposite_nodes = sd.compute_opposite_nodes()
+
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
-            dof_loc = np.reshape(
-                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
-            )
+            opposites_loc = opposite_nodes[faces_loc, c].data
 
-            cell_nodes_loc = cell_nodes[:, c].toarray()
-            Psi = self.scalar_discr.eval_basis_at_node(
-                sd, dof_loc, cell_nodes_loc, faces_loc
-            )
+            Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
+
             # Get all the components of the basis at node
             Psi_i, Psi_j, Psi_v = sps.find(Psi)
 
@@ -959,20 +956,16 @@ class VecBDM1(pg.VecDiscretization):
         else:
             raise ValueError("The grid should be either two or three-dimensional")
 
-        cell_nodes = sd.cell_nodes()
+        opposite_nodes = sd.compute_opposite_nodes()
+
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
-            dof_loc = np.reshape(
-                sd.face_nodes[:, faces_loc].indices, (sd.dim, -1), order="F"
-            )
 
-            cell_nodes_loc = cell_nodes[:, c].toarray()
-            Psi = self.scalar_discr.eval_basis_at_node(
-                sd, dof_loc, cell_nodes_loc, faces_loc
-            )
+            opposites_loc = opposite_nodes[faces_loc, c].data
+            Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
             Psi_i, Psi_j, Psi_v = sps.find(Psi)
