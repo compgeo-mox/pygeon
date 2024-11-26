@@ -426,9 +426,10 @@ class BDM1(pg.Discretization):
             np.ndarray: The local mass matrix.
         """
         fn = sd.face_nodes
-        nodes = np.vstack(
-            [fn.indices[fn.indptr[face] : fn.indptr[face + 1]] for face in faces_loc]
-        ).ravel(order="F")
+        nodes = np.empty((sd.dim + 1, sd.dim), int)
+        for ind, face in enumerate(faces_loc):
+            nodes[ind] = fn.indices[fn.indptr[face] : fn.indptr[face + 1]]
+        nodes = nodes.ravel(order="F")
 
         node_ind = np.repeat(np.arange(sd.dim + 1), sd.dim)
 
