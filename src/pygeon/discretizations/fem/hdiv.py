@@ -600,13 +600,20 @@ class BDM1(pg.Discretization):
         local_mass = p1.local_mass(np.ones(1), sd.dim - 1)
 
         vals = np.zeros(self.ndof(sd))
+        signs = sd.cell_faces @ np.ones(sd.num_cells)
+        fn = sd.face_nodes
+
         for face in b_faces:
-            sign = np.sum(sd.cell_faces.tocsr()[face, :])
             loc_vals = np.array(
-                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+                [
+                    func(sd.nodes[:, node])
+                    for node in fn.indices[fn.indptr[face] : fn.indptr[face + 1]]
+                ]
             ).ravel()
 
-            vals[face + np.arange(sd.dim) * sd.num_faces] = sign * local_mass @ loc_vals
+            vals[face + np.arange(sd.dim) * sd.num_faces] = (
+                signs[face] * local_mass @ loc_vals
+            )
 
         return vals
 
@@ -970,7 +977,8 @@ class VecBDM1(pg.VecDiscretization):
             Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
-            Psi_i, Psi_j, Psi_v = sps.find(Psi)
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]
 
             for ind in ind_list:
                 Psi_v_copy = Psi_v.copy()
