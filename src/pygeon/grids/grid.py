@@ -296,6 +296,10 @@ class Grid(pp.Grid):
         Computes a matrix containing the index of the opposite node
         for every (face, cell) pair. Sets it as an attribute for later use.
 
+        Args:
+            recompute (bool, optional): Whether to recompute the opposite nodes.
+                                        Defaults to False.
+
         Returns:
             sps.csc_matrix: the index k of the opposite node is in the entry (face, cell)
         """

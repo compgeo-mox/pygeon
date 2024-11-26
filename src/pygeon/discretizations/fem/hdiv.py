@@ -421,6 +421,8 @@ class BDM1(pg.Discretization):
             opposites (np.ndarray): The local degrees of freedom.
             cell_nodes_loc (np.ndarray): The local nodes of the cell.
             faces_loc (np.ndarray): The local faces.
+            return_node_ind (bool): Whether to return the local indexing of the nodes,
+                                    used in assemble_lumped_matrix
 
         Returns:
             np.ndarray: The local mass matrix.
