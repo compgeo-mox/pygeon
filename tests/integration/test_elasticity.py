@@ -247,7 +247,7 @@ class ElasticityTestMixed(unittest.TestCase):
         vec_p0 = pg.VecPwConstants(key)
 
         data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
-        Ms = vec_bdm1.assemble_lumped_matrix(sd, data)
+        Ms = vec_bdm1.assemble_mass_matrix(sd, data)
         Mu = vec_p0.assemble_mass_matrix(sd)
         Mr = Mu
 
