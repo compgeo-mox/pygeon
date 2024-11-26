@@ -1,14 +1,1 @@
-future
-gmsh
-matplotlib
-meshio >= 5.0
-networkx
-numba >= 0.57
-numpy
-requests
-scipy
-shapely
-six
-sympy
-typing_extensions
 porepy @ git+https://github.com/pmgbergen/porepy.git@develop
