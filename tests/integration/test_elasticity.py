@@ -247,7 +247,13 @@ class ElasticityTestMixed(unittest.TestCase):
         vec_p0 = pg.VecPwConstants(key)
 
         data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
+        import time
+
+        t = time.time()
         Ms = vec_bdm1.assemble_mass_matrix(sd, data)
+        print("Important: {}".format(time.time() - t))
+
+        return
         Mu = vec_p0.assemble_mass_matrix(sd)
         Mr = Mu
 
@@ -278,7 +284,7 @@ class ElasticityTestMixed(unittest.TestCase):
         return cell_sigma, cell_u, cell_r, sd
 
     def test_elasticity_rbm_3d(self):
-        N = 3
+        N = 7
         u_boundary = lambda x: np.array([-0.5 - x[1], -0.5 + x[0] - x[2], -0.5 + x[1]])
         cell_sigma, cell_u, cell_r, sd = self.run_elasticity_3d(u_boundary, N)
 
@@ -323,4 +329,5 @@ class ElasticityTestMixed(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    # unittest.main()
+    ElasticityTestMixed().test_elasticity_rbm_3d()
