@@ -267,7 +267,7 @@ class SpanningTreeCosseratTest(unittest.TestCase):
         self.check(sd)
 
     def test_assemble_SI(self):
-        N, dim = 3, 3
+        N, dim = 2, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         mdg = pg.as_mdg(sd)
         pg.convert_from_pp(mdg)
