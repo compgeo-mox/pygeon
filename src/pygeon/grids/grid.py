@@ -293,8 +293,8 @@ class Grid(pp.Grid):
 
     def compute_opposite_nodes(self, recompute=False) -> sps.csc_matrix:
         """
-        Computes a matrix containing the index of the opposite node for every (face, cell) pair.
-        Sets it as an attribute for later use.
+        Computes a matrix containing the index of the opposite node
+        for every (face, cell) pair. Sets it as an attribute for later use.
 
         Returns:
             sps.csc_matrix: the index k of the opposite node is in the entry (face, cell)
