@@ -429,7 +429,10 @@ class BDM1(pg.Discretization):
             [fn.indices[fn.indptr[face] : fn.indptr[face + 1]] for face in faces_loc]
         ).ravel(order="F")
 
-        node_ind = np.unique(nodes, return_inverse=True)[1]
+        node_ind = np.repeat(np.arange(sd.dim + 1), sd.dim)
+
+        if not np.all(nodes[:: sd.dim][node_ind] == nodes):
+            node_ind = np.unique(nodes, return_inverse=True)[1]
 
         face_ind = np.tile(np.arange(sd.dim + 1), sd.dim)
 
