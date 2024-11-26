@@ -369,7 +369,7 @@ class BDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        M = self.local_inner_product(sd.dim).toarray()
+        M = self.local_inner_product(sd.dim)
 
         try:
             inv_K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
@@ -385,9 +385,9 @@ class BDM1(pg.Discretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc).toarray()
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
-            weight = np.kron(np.eye(sd.dim + 1),inv_K.values[:, :, c])
+            weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
 
             # Compute the inner products
             A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
@@ -446,7 +446,10 @@ class BDM1(pg.Discretization):
         dof_id = np.tile(np.arange(sd.dim * (sd.dim + 1)), 3)
         nod_id = 3 * np.tile(node_ind, (3, 1)) + np.arange(3)[:, None]
 
-        return sps.csc_matrix((vals.ravel(), (dof_id, nod_id.ravel())))
+        result = np.zeros((sd.dim * (sd.dim + 1), 3 * (sd.dim + 1)))
+        result[dof_id, nod_id.ravel()] = vals.ravel()
+
+        return result
 
     def local_inner_product(self, dim: int) -> sps.csc_matrix:
         """
@@ -461,12 +464,7 @@ class BDM1(pg.Discretization):
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)
 
-        M = sps.lil_matrix((3 * (dim + 1), 3 * (dim + 1)))
-        for i in np.arange(3):
-            mask = np.arange(i, i + 3 * (dim + 1), 3)
-            M[np.ix_(mask, mask)] = M_loc
-
-        return M.tocsc()
+        return np.kron(M_loc, np.eye(3))
 
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -533,7 +531,7 @@ class BDM1(pg.Discretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc).todense()
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
             basis_at_center = np.sum(np.split(Psi, sd.dim + 1, axis=1), axis=0) / (
                 sd.dim + 1
             )
@@ -875,6 +873,7 @@ class VecBDM1(pg.VecDiscretization):
         idx = 0
 
         opposite_nodes = sd.compute_opposite_nodes()
+        scalar_ndof = self.scalar_discr.ndof(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -886,14 +885,15 @@ class VecBDM1(pg.VecDiscretization):
             Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
-            Psi_i, Psi_j, Psi_v = sps.find(Psi)
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
 
             cols = np.tile(loc_ind, (3, 1))
-            cols[1, :] += self.scalar_discr.ndof(sd)
-            cols[2, :] += 2 * self.scalar_discr.ndof(sd)
+            cols[1, :] += scalar_ndof
+            cols[2, :] += 2 * scalar_ndof
             cols = np.tile(cols, (sd.dim + 1, 1)).T
             cols = cols[Psi_i, Psi_j]
 
