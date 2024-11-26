@@ -369,7 +369,7 @@ class BDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        M = self.local_inner_product(sd.dim)
+        M = self.local_inner_product(sd.dim).toarray()
 
         try:
             inv_K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
@@ -385,9 +385,9 @@ class BDM1(pg.Discretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc).toarray()
 
-            weight = sps.block_diag([inv_K.values[:, :, c]] * (sd.dim + 1))
+            weight = np.kron(np.eye(sd.dim + 1),inv_K.values[:, :, c])
 
             # Compute the inner products
             A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
@@ -400,7 +400,7 @@ class BDM1(pg.Discretization):
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.todense().ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrices
