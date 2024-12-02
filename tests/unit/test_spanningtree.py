@@ -13,15 +13,13 @@ class SpanningTreeTest(unittest.TestCase):
     def sptr(self, mdg):
 
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        bottom = np.where(
-            np.isclose(sd.face_centers[1, :], sd.face_centers[1, :].min())
-        )[0]
+        bottom = np.isclose(sd.face_centers[1, :], sd.face_centers[1, :].min())
 
         return [
             pg.SpanningTree(mdg),
             pg.SpanningTree(mdg, "all_bdry"),
-            pg.SpanningWeightedTrees(mdg, pg.SpanningTree, [0.25, 0.5, 0.25]),
             pg.SpanningTree(mdg, bottom),
+            pg.SpanningWeightedTrees(mdg, pg.SpanningTree, [0.25, 0.5, 0.25]),
         ]
 
     def check_flux(self, mdg, sptr):
@@ -150,9 +148,13 @@ class SpanningTreeTest(unittest.TestCase):
 
 class SpanningTreeElasticityTest(unittest.TestCase):
     def sptr(self, mdg):
+        sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        bottom = np.isclose(sd.face_centers[1, :], sd.face_centers[1, :].min())
+
         return [
             pg.SpanningTreeElasticity(mdg),
             pg.SpanningTreeElasticity(mdg, "all_bdry"),
+            pg.SpanningTreeElasticity(mdg, bottom),
             pg.SpanningWeightedTrees(mdg, pg.SpanningTreeElasticity, [0.25, 0.5, 0.25]),
         ]
 
