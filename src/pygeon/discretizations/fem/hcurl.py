@@ -80,7 +80,7 @@ class Nedelec0(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        M = self.local_inner_product(sd.dim)
+        M = pg.BDM1.local_inner_product(sd.dim)
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
         ridge_peaks = sd.ridge_peaks
@@ -94,54 +94,51 @@ class Nedelec0(pg.Discretization):
                 ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
             )
 
-            # Find the nodes of the cell and their coordinates
-            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
-            indices = np.reshape(indices, (2, -1))
-            coords = sd.nodes[:, nodes_uniq]
-
-            # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
-
-            # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
-            Psi = np.empty((6, 4), np.ndarray)
-            for ridge, peaks in enumerate(indices.T):
-                Psi[ridge, peaks[0]] = dphi[:, peaks[1]].reshape((1, -1))
-                Psi[ridge, peaks[1]] = -dphi[:, peaks[0]].reshape((1, -1))
-            Psi = sps.bmat(Psi)
+            Psi = self.eval_basis_at_node(sd, peaks_loc)
 
             # Compute the inner products
-            A = Psi * M * Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
 
             # Put in the right spot
             cols = np.tile(ridges_loc, (ridges_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.todense().ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_inner_product(self, dim: int) -> sps.csc_matrix:
+    def eval_basis_at_node(self, sd: pg.Grid, peaks_loc: np.ndarray) -> np.ndarray:
         """
-        Compute the local inner product matrix for the given dimension.
+        Compute the local basis function for the BDM1 finite element space.
 
         Args:
-            dim (int): The dimension of the matrix.
+            sd (pg.Grid): The grid object.
+            opposites (np.ndarray): The local degrees of freedom.
+            cell_nodes_loc (np.ndarray): The local nodes of the cell.
+            faces_loc (np.ndarray): The local faces.
+            return_node_ind (bool): Whether to return the local indexing of the nodes,
+                                    used in assemble_lumped_matrix
 
         Returns:
-            sps.csc_matrix: The local inner product matrix.
+            np.ndarray: The local mass matrix.
         """
-        M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        M_loc /= (dim + 1) * (dim + 2)
+        # Find the nodes of the cell and their coordinates
+        nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
+        indices = np.reshape(indices, (2, -1))
+        coords = sd.nodes[:, nodes_uniq]
 
-        M = sps.lil_matrix((12, 12))
-        for i in np.arange(3):
-            range = np.arange(i, i + 12, 3)
-            M[np.ix_(range, range)] = M_loc
+        # Compute the gradients of the Lagrange basis functions
+        dphi = pg.Lagrange1.local_grads(coords, sd.dim)
 
-        return M.tocsc()
+        # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
+        Psi = np.zeros((6, 12))
+        for ridge, peaks in enumerate(indices.T):
+            Psi[ridge, 3 * peaks[0] : 3 * (peaks[0] + 1)] = dphi[:, peaks[1]]
+            Psi[ridge, 3 * peaks[1] : 3 * (peaks[1] + 1)] = -dphi[:, peaks[0]]
+        return Psi
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
