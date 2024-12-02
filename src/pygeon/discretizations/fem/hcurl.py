@@ -83,18 +83,14 @@ class Nedelec0(pg.Discretization):
         M = pg.BDM1.local_inner_product(sd.dim)
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
-        ridge_peaks = sd.ridge_peaks
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
             ridges_loc = cell_ridges.indices[loc]
-            peaks_loc = np.reshape(
-                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
-            )
 
-            Psi = self.eval_basis_at_node(sd, peaks_loc)
+            Psi = self.eval_basis_at_node(sd, ridges_loc)
 
             # Compute the inner products
             A = Psi @ M @ Psi.T * sd.cell_volumes[c]
@@ -110,23 +106,33 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def eval_basis_at_node(self, sd: pg.Grid, peaks_loc: np.ndarray) -> np.ndarray:
+    def eval_basis_at_node(self, sd: pg.Grid, ridges_loc: np.ndarray) -> np.ndarray:
         """
-        Compute the local basis function for the BDM1 finite element space.
+        Compute the local basis function for the Nedelec0 finite element space.
 
         Args:
             sd (pg.Grid): The grid object.
-            opposites (np.ndarray): The local degrees of freedom.
-            cell_nodes_loc (np.ndarray): The local nodes of the cell.
-            faces_loc (np.ndarray): The local faces.
-            return_node_ind (bool): Whether to return the local indexing of the nodes,
-                                    used in assemble_lumped_matrix
+            ridges_loc (np.ndarray): The local ridges.
 
         Returns:
             np.ndarray: The local mass matrix.
         """
-        # Find the nodes of the cell and their coordinates
-        nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
+
+        # Extract the indices of the local peaks
+        rp = sd.ridge_peaks
+        peaks_loc = np.empty((6, 2), int)
+        for ind, ridge in enumerate(ridges_loc):
+            peaks_loc[ind] = rp.indices[rp.indptr[ridge] : rp.indptr[ridge + 1]]
+        peaks_loc = peaks_loc.T
+
+        # If they follow a conventional structure, these can be hardcoded
+        nodes_uniq = peaks_loc.ravel()[[2, 1, 0, 6]]
+        indices = np.array([2, 1, 0, 1, 0, 0, 3, 3, 3, 2, 2, 1])
+
+        # Recompute using unique if the convention is not followed
+        if not np.all(nodes_uniq[indices] == peaks_loc.ravel()):
+            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
+
         indices = np.reshape(indices, (2, -1))
         coords = sd.nodes[:, nodes_uniq]
 
