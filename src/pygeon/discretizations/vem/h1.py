@@ -8,7 +8,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class VLagrange1(pg.Discretization):
+class VLagrange1(pg.Lagrange1):
     """
     Discretization class for the VLagrange1 method.
 
@@ -66,19 +66,6 @@ class VLagrange1(pg.Discretization):
             Assembles the 'natural' boundary condition.
     """
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes.
-
-        Args:
-            sd (pg.Grid): grid, or a subclass.
-
-        Returns:
-            int: the number of degrees of freedom.
-        """
-        return sd.num_nodes
-
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
@@ -107,14 +94,14 @@ class VLagrange1(pg.Discretization):
             loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
             nodes_loc = cell_nodes.indices[loc]
 
-            M_loc = self.assemble_loc_mass_matrix(sd, cell, diam, nodes_loc)
+            A = self.assemble_loc_mass_matrix(sd, cell, diam, nodes_loc)
 
             # Save values for local mass matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
-            data_V[loc_idx] = M_loc.ravel()
+            data_V[loc_idx] = A.ravel()
             idx += cols.size
 
         return sps.csc_matrix((data_V, (rows_I, cols_J)))
@@ -353,67 +340,6 @@ class VLagrange1(pg.Discretization):
         """
         p1 = pg.Lagrange1(self.keyword)
         return p1.assemble_diff_matrix(sd)
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Evaluate the function at the cell centers of the given grid.
-
-        Args:
-            sd (pg.Grid): The grid on which to evaluate the function.
-
-        Returns:
-            sps.csc_matrix: The evaluated function values at the cell centers.
-        """
-        eval = sd.cell_nodes()
-        num_nodes = sps.diags(1.0 / sd.num_cell_nodes())
-
-        return (eval @ num_nodes).T.tocsc()
-
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a function over the given grid.
-
-        Args:
-            sd (pg.Grid): The grid to interpolate the function on.
-            func (Callable[[np.ndarray], np.ndarray]): The function to interpolate.
-
-        Returns:
-            np.ndarray: The interpolated values of the function on the grid.
-        """
-        return np.array([func(x) for x in sd.nodes.T])
-
-    def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
-    ) -> np.ndarray:
-        """
-        Assembles the 'natural' boundary condition
-        (u, func)_Gamma with u a test function in Lagrange1
-
-        Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function defining the
-                'natural' boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
-
-        Returns:
-            np.ndarray: The assembled 'natural' boundary condition.
-        """
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
-
-        vals = np.zeros(self.ndof(sd))
-
-        for face in b_faces:
-            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
-            loc_n = sd.face_nodes.indices[loc]
-
-            vals[loc_n] += (
-                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
-            )
-
-        return vals
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
