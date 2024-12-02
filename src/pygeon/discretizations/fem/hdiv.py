@@ -461,7 +461,8 @@ class BDM1(pg.Discretization):
         else:
             return result
 
-    def local_inner_product(self, dim: int) -> sps.csc_matrix:
+    @staticmethod
+    def local_inner_product(dim: int) -> np.ndarray:
         """
         Compute the local inner product matrix for the given dimension.
 
@@ -469,7 +470,7 @@ class BDM1(pg.Discretization):
             dim (int): The dimension of the matrix.
 
         Returns:
-            sps.csc_matrix: The computed local inner product matrix.
+            np.ndarray: The computed local inner product matrix.
         """
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)

@@ -80,68 +80,72 @@ class Nedelec0(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        M = self.local_inner_product(sd.dim)
+        M = pg.BDM1.local_inner_product(sd.dim)
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
-        ridge_peaks = sd.ridge_peaks
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
             ridges_loc = cell_ridges.indices[loc]
-            peaks_loc = np.reshape(
-                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
-            )
 
-            # Find the nodes of the cell and their coordinates
-            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
-            indices = np.reshape(indices, (2, -1))
-            coords = sd.nodes[:, nodes_uniq]
-
-            # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
-
-            # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
-            Psi = np.empty((6, 4), np.ndarray)
-            for ridge, peaks in enumerate(indices.T):
-                Psi[ridge, peaks[0]] = dphi[:, peaks[1]].reshape((1, -1))
-                Psi[ridge, peaks[1]] = -dphi[:, peaks[0]].reshape((1, -1))
-            Psi = sps.bmat(Psi)
+            Psi = self.eval_basis_at_node(sd, ridges_loc)
 
             # Compute the inner products
-            A = Psi * M * Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
 
             # Put in the right spot
             cols = np.tile(ridges_loc, (ridges_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.todense().ravel()
+            data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_inner_product(self, dim: int) -> sps.csc_matrix:
+    def eval_basis_at_node(self, sd: pg.Grid, ridges_loc: np.ndarray) -> np.ndarray:
         """
-        Compute the local inner product matrix for the given dimension.
+        Compute the local basis function for the Nedelec0 finite element space.
 
         Args:
-            dim (int): The dimension of the matrix.
+            sd (pg.Grid): The grid object.
+            ridges_loc (np.ndarray): The local ridges.
 
         Returns:
-            sps.csc_matrix: The local inner product matrix.
+            np.ndarray: The local mass matrix.
         """
-        M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        M_loc /= (dim + 1) * (dim + 2)
 
-        M = sps.lil_matrix((12, 12))
-        for i in np.arange(3):
-            range = np.arange(i, i + 12, 3)
-            M[np.ix_(range, range)] = M_loc
+        # Extract the indices of the local peaks
+        rp = sd.ridge_peaks
+        peaks_loc = np.empty((6, 2), int)
+        for ind, ridge in enumerate(ridges_loc):
+            peaks_loc[ind] = rp.indices[rp.indptr[ridge] : rp.indptr[ridge + 1]]
+        peaks_loc = peaks_loc.T
 
-        return M.tocsc()
+        # If they follow a conventional structure, these can be hardcoded
+        nodes_uniq = peaks_loc.ravel()[[2, 1, 0, 6]]
+        indices = np.array([2, 1, 0, 1, 0, 0, 3, 3, 3, 2, 2, 1])
+
+        # Recompute using unique if the convention is not followed
+        if not np.all(nodes_uniq[indices] == peaks_loc.ravel()):
+            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
+
+        indices = np.reshape(indices, (2, -1))
+        coords = sd.nodes[:, nodes_uniq]
+
+        # Compute the gradients of the Lagrange basis functions
+        dphi = pg.Lagrange1.local_grads(coords, sd.dim)
+
+        # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
+        Psi = np.zeros((6, 12))
+        for ridge, peaks in enumerate(indices.T):
+            Psi[ridge, 3 * peaks[0] : 3 * (peaks[0] + 1)] = dphi[:, peaks[1]]
+            Psi[ridge, 3 * peaks[1] : 3 * (peaks[1] + 1)] = -dphi[:, peaks[0]]
+
+        return Psi
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -173,35 +177,26 @@ class Nedelec0(pg.Discretization):
         idx = 0
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
-        ridge_peaks = sd.ridge_peaks
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
             ridges_loc = cell_ridges.indices[loc]
-            peaks_loc = np.reshape(
-                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
-            )
 
-            # Find the nodes of the cell and their coordinates
-            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
-            indices = np.reshape(indices, (2, -1))
-            coords = sd.nodes[:, nodes_uniq]
+            # Create a matrix with the evaluation of the basis functions at the nodes
+            Psi = self.eval_basis_at_node(sd, ridges_loc)
 
-            # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
-
-            Psi = np.zeros((3, 6))
-            for ridge, peaks in enumerate(indices.T):
-                Psi[:, ridge] = dphi[:, peaks[1]] - dphi[:, peaks[0]]
+            # The center-values are the mean of the four nodes
+            Psi_split = np.split(Psi, 4, axis=1)
+            Psi_at_centre = np.sum(Psi_split, axis=0).T / 4.0
 
             # Put in the right spot
-            loc_idx = slice(idx, idx + Psi.size)
+            loc_idx = slice(idx, idx + Psi_at_centre.size)
             rows_I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
             cols_J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
-            data_IJ[loc_idx] = Psi.ravel() / 4.0
-            idx += Psi.size
+            data_IJ[loc_idx] = Psi_at_centre.ravel()
+            idx += Psi_at_centre.size
 
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
