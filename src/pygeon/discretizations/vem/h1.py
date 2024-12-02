@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H1 space. """
 
-from typing import Callable, Optional
+from typing import Optional
 
 import numpy as np
 import scipy.sparse as sps
