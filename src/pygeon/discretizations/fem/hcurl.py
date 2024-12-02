@@ -183,28 +183,18 @@ class Nedelec0(pg.Discretization):
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
             ridges_loc = cell_ridges.indices[loc]
-            peaks_loc = np.reshape(
-                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
-            )
 
-            # Find the nodes of the cell and their coordinates
-            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
-            indices = np.reshape(indices, (2, -1))
-            coords = sd.nodes[:, nodes_uniq]
+            Psi = self.eval_basis_at_node(sd, ridges_loc)
 
-            # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
-
-            Psi = np.zeros((3, 6))
-            for ridge, peaks in enumerate(indices.T):
-                Psi[:, ridge] = dphi[:, peaks[1]] - dphi[:, peaks[0]]
+            Psi_split = np.split(Psi, 4, axis=1)
+            Psi_at_centre = np.sum(Psi_split, axis=0).T / 4.0
 
             # Put in the right spot
-            loc_idx = slice(idx, idx + Psi.size)
+            loc_idx = slice(idx, idx + Psi_at_centre.size)
             rows_I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
             cols_J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
-            data_IJ[loc_idx] = Psi.ravel() / 4.0
-            idx += Psi.size
+            data_IJ[loc_idx] = Psi_at_centre.ravel()
+            idx += Psi_at_centre.size
 
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
