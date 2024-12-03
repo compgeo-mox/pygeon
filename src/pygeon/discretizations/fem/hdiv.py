@@ -62,6 +62,7 @@ class RT0(pg.Discretization):
             None
         """
         pg.Discretization.__init__(self, keyword)
+        # Set the reference configuration from PorePy from which we take some functionalities
         self.ref_discr = pp.RT0
 
     def ndof(self, sd: pg.Grid) -> int:
