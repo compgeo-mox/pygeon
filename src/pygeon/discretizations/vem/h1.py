@@ -328,19 +328,6 @@ class VLagrange1(pg.Lagrange1):
 
         return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Returns the differential mapping in the discrete cochain complex.
-
-        Args:
-            sd (pg.Grid): The grid on which the differential mapping is computed.
-
-        Returns:
-            sps.csc_matrix: The differential mapping matrix.
-        """
-        p1 = pg.Lagrange1(self.keyword)
-        return p1.assemble_diff_matrix(sd)
-
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
         Returns the range discretization class for the given dimension.
