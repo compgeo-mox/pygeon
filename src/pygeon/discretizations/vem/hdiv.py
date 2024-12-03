@@ -59,6 +59,7 @@ class VRT0(pg.RT0):
             None
         """
         pg.RT0.__init__(self, keyword)
+        # Set the reference configuration from PorePy from which we take some functionalities
         self.ref_discr = pp.MVEM
 
 

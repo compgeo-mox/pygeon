@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H1 space. """
 
-from typing import Callable, Optional
+from typing import Optional
 
 import numpy as np
 import scipy.sparse as sps
@@ -327,19 +327,6 @@ class VLagrange1(pg.Lagrange1):
         I_minus_Pi = np.eye(nodes.size) - D @ proj
 
         return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
-
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Returns the differential mapping in the discrete cochain complex.
-
-        Args:
-            sd (pg.Grid): The grid on which the differential mapping is computed.
-
-        Returns:
-            sps.csc_matrix: The differential mapping matrix.
-        """
-        p1 = pg.Lagrange1(self.keyword)
-        return p1.assemble_diff_matrix(sd)
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
