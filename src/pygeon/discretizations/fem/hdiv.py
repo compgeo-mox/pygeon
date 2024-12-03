@@ -9,7 +9,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class RT0(pg.Discretization, pp.RT0):
+class RT0(pg.Discretization):
     """
     Discretization class for Raviart-Thomas of lowest order.
     Each degree of freedom is the integral over a mesh face.
@@ -62,7 +62,8 @@ class RT0(pg.Discretization, pp.RT0):
             None
         """
         pg.Discretization.__init__(self, keyword)
-        pp.RT0.__init__(self, keyword)
+        # Set the reference configuration from PorePy from which we take some functionalities
+        self.ref_discr = pp.RT0
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -123,11 +124,13 @@ class RT0(pg.Discretization, pp.RT0):
         """
         # create dummy data, unitary permeability, in case not present
         data = self.create_dummy_data(sd, data)
+
         # perform the rt0 discretization
-        pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][
-            self.mass_matrix_key
-        ].tocsc()
+        discr = self.ref_discr(self.keyword)
+        discr.discretize(sd, data)
+
+        M = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
+        return M.tocsc()
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -171,7 +174,7 @@ class RT0(pg.Discretization, pp.RT0):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        return sd.cell_faces.T
+        return sd.cell_faces.T.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -204,8 +207,12 @@ class RT0(pg.Discretization, pp.RT0):
             sps.csc_matrix: The evaluation matrix.
         """
         data = self.create_dummy_data(sd, None)
-        pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
+
+        discr = self.ref_discr(self.keyword)
+        discr.discretize(sd, data)
+
+        P = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.vector_proj_key]
+        return P.tocsc()
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -346,7 +353,7 @@ class BDM1(pg.Discretization):
 
         """
         if isinstance(sd, pg.Grid):
-            return sd.num_faces * sd.dim
+            return sd.face_nodes.nnz
         else:
             raise ValueError
 

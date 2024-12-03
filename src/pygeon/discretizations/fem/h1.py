@@ -275,32 +275,10 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_matrix: The matrix representing the projection at the cell centers.
         """
-        if sd.dim == 0:
-            return sd.cell_nodes().T.tocsc()
+        eval = sd.cell_nodes()
+        num_nodes = sps.diags(1.0 / sd.num_cell_nodes())
 
-        # Allocation
-        size = (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-
-            loc_idx = slice(idx, idx + nodes_loc.size)
-            rows_I[loc_idx] = c
-            cols_J[loc_idx] = nodes_loc
-            data_IJ[loc_idx] = 1.0 / (sd.dim + 1)
-            idx += nodes_loc.size
-
-        # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return (eval @ num_nodes).T.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -348,7 +326,7 @@ class Lagrange1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
         Returns the appropriate range discretization class based on the dimension.
 
