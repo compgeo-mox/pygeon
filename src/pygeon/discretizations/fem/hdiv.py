@@ -122,15 +122,162 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_matrix((sd.num_faces, sd.num_faces))
+
         # create dummy data, unitary permeability, in case not present
         data = self.create_dummy_data(sd, data)
 
-        # perform the rt0 discretization
-        discr = self.ref_discr(self.keyword)
-        discr.discretize(sd, data)
+        # Get dictionary for parameter storage
+        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        # Retrieve the inverse of permeability
+        inv_K = parameter_dictionary["second_order_tensor"]
 
-        M = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
-        return M.tocsc()
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
+        nodes = nodes[: sd.dim, :]
+
+        if not data.get("is_tangential", False):
+            # Rotate the permeability tensor and delete last dimension
+            if sd.dim < 3:
+                inv_K = inv_K.copy()
+                inv_K.rotate(R)
+                remove_dim = np.where(np.logical_not(dim))[0]
+                inv_K.values = np.delete(inv_K.values, (remove_dim), axis=0)
+                inv_K.values = np.delete(inv_K.values, (remove_dim), axis=1)
+
+        # Allocate the data to store matrix A entries
+        size = np.square(sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        M = self.local_inner_product(sd)
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+            sign_loc = sd.cell_faces.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = nodes[:, opposites_loc]
+
+            Psi = self.eval_basis(coord_loc, sign_loc, sd.dim)
+
+            weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
+
+            # Compute the H_div-mass local matrix
+            A = Psi @ M @ weight @ Psi.T / sd.cell_volumes[c]
+
+            # Save values for local matrix in the global structure
+            cols = np.concatenate(faces_loc.size * [[faces_loc]])
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+
+    @staticmethod
+    def local_inner_product(sd: pg.Grid) -> np.ndarray:
+        """
+        Compute the local inner product matrix for a given grid.
+
+        Args:
+            sd (pg.Grid): The grid object containing the discretization information.
+
+        Returns:
+            np.ndarray: local inner product matrix.
+        """
+        size = sd.dim * (sd.dim + 1)
+        M = np.zeros((size, size))
+
+        for it in np.arange(0, size, sd.dim):
+            M += np.diagflat(np.ones(size - it), it)
+
+        M += M.T
+        M /= sd.dim * sd.dim * (sd.dim + 1) * (sd.dim + 2)
+        return M
+
+    @staticmethod
+    def eval_basis(
+        coord: np.ndarray,
+        sign: np.ndarray,
+        dim: int,
+    ) -> np.ndarray:
+
+        N = coord.flatten("F").reshape((-1, 1)) * np.ones(
+            (1, dim + 1)
+        ) - np.concatenate((dim + 1) * [coord])
+
+        return (N * sign).T
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Evaluate the finite element solution at the cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to evaluate the solution.
+
+        Returns:
+            sps.csc_matrix: The finite element solution evaluated at the cell centers.
+        """
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        c_centers, f_normals, f_centers, R, dim, node_coords = pp.map_geometry.map_grid(
+            sd
+        )
+
+        # Allocate the data to store matrix P entries
+        size = 3 * (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+        idx_row = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = node_coords[:, opposites_loc]
+
+            # Compute the flux reconstruction matrix
+            P = pp.RT0.faces_to_cell(
+                c_centers[:, c],
+                coord_loc,
+                f_centers[:, faces_loc],
+                f_normals[:, faces_loc],
+                dim,
+                R,
+            )
+
+            # Save values for projection P local matrix in the global structure
+            loc_idx = slice(idx, idx + P.size)
+            cols_J[loc_idx] = np.concatenate(3 * [[faces_loc]]).ravel()
+            rows_I[loc_idx] = np.repeat(np.arange(3), faces_loc.size) + idx_row
+            data_IJ[loc_idx] = P.ravel()
+            idx += P.size
+            idx_row += 3
+
+        # Construct the global matrix
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
