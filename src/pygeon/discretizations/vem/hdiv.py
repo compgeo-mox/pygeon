@@ -85,6 +85,24 @@ class VRT0(pg.RT0):
         M = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
         return M.tocsc()
 
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles the matrix for evaluating the solution at the cell centers.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_matrix: The evaluation matrix.
+        """
+        data = self.create_dummy_data(sd, None)
+
+        discr = self.ref_discr(self.keyword)
+        discr.discretize(sd, data)
+
+        P = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.vector_proj_key]
+        return P.tocsc()
+
 
 class VBDM1(pg.BDM1):
     """
