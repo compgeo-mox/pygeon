@@ -244,7 +244,6 @@ class RT0(pg.Discretization):
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
-        idx_row = 0
 
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
@@ -270,11 +269,10 @@ class RT0(pg.Discretization):
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + P.size)
-            cols_J[loc_idx] = np.concatenate(3 * [[faces_loc]]).ravel()
-            rows_I[loc_idx] = np.repeat(np.arange(3), faces_loc.size) + idx_row
+            rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, sd.dim + 1)
+            cols_J[loc_idx] = np.tile(faces_loc, 3)
             data_IJ[loc_idx] = P.ravel()
             idx += P.size
-            idx_row += 3
 
         # Construct the global matrix
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
@@ -342,24 +340,6 @@ class RT0(pg.Discretization):
             for (x, normal) in zip(sd.face_centers.T, sd.face_normals.T)
         ]
         return np.array(vals)
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Assembles the matrix for evaluating the solution at the cell centers.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_matrix: The evaluation matrix.
-        """
-        data = self.create_dummy_data(sd, None)
-
-        discr = self.ref_discr(self.keyword)
-        discr.discretize(sd, data)
-
-        P = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.vector_proj_key]
-        return P.tocsc()
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -429,7 +409,7 @@ class RT0(pg.Discretization):
 
         proj = self.eval_at_cell_centers(sd)
         int_sol = np.vstack([ana_sol(x).T for x in sd.cell_centers.T]).T
-        num_sol = (proj * num_sol).reshape((3, -1), order="F")
+        num_sol = (proj * num_sol).reshape((3, -1))
 
         D = sps.diags(sd.cell_volumes)
         norm = np.trace(int_sol @ D @ int_sol.T) if relative else 1
