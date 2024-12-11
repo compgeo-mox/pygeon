@@ -61,7 +61,7 @@ class RT0(pg.Discretization):
         Returns:
             None
         """
-        pg.Discretization.__init__(self, keyword)
+        super().__init__(keyword)
         # Set the reference configuration from PorePy from which we take some functionalities
         self.ref_discr = pp.RT0
 
