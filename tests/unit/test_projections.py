@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import scipy.sparse as sps
 import porepy as pp
 
 import pygeon as pg
@@ -54,41 +55,15 @@ class ProjectionsUnitTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(P.todense(), P_default.todense()))
 
-        # fmt: off
-        P_known_data = np.array(
-        [-0.66666667, -1.33333333,  0.        ,  1.33333333,  0.66666667,
-         0.        ,  0.66666667, -0.66666667,  0.        ,  0.66666667,
-        -0.66666667,  0.        , -0.66666667, -1.33333333,  0.        ,
-         1.33333333,  0.66666667,  0.        ,  1.33333333,  0.66666667,
-         0.        ,  0.66666667, -0.66666667,  0.        ,  0.66666667,
-        -0.66666667,  0.        ,  1.33333333,  0.66666667,  0.        ,
-        -0.66666667, -1.33333333,  0.        , -0.66666667, -1.33333333,
-         0.        ,  1.33333333,  0.66666667,  0.        ,  0.66666667,
-        -0.66666667,  0.        ,  0.66666667, -0.66666667,  0.        ,
-        -0.66666667, -1.33333333,  0.        , -0.66666667, -1.33333333,
-         0.        ,  1.33333333,  0.66666667,  0.        ,  1.33333333,
-         0.66666667,  0.        ,  0.66666667, -0.66666667,  0.        ,
-         0.66666667, -0.66666667,  0.        ,  1.33333333,  0.66666667,
-         0.        , -0.66666667, -1.33333333,  0.        , -0.66666667,
-        -1.33333333,  0.        ]
-        )
+        data = discr.create_dummy_data(sd, None)
+        discr_pp = pp.RT0("rt0")
+        discr_pp.discretize(sd, data)
+        P_pp = data[pp.DISCRETIZATION_MATRICES][discr_pp.keyword][
+            discr_pp.vector_proj_key
+        ]
+        indices = np.reshape(np.arange(3 * sd.num_cells), (3, -1), order="F").ravel()
 
-        P_known_indices = np.array(
-        [ 0,  1,  2,  3,  4,  5,  0,  1,  2,  3,  4,  5,  6,  7,  8,  0,  1,
-         2,  9, 10, 11,  6,  7,  8,  9, 10, 11,  6,  7,  8,  3,  4,  5, 12,
-        13, 14, 15, 16, 17, 12, 13, 14, 15, 16, 17,  9, 10, 11, 18, 19, 20,
-        12, 13, 14, 21, 22, 23, 18, 19, 20, 21, 22, 23, 18, 19, 20, 15, 16,
-        17, 21, 22, 23]
-        )
-
-        P_known_indptr = np.array(
-        [ 0,  3,  6, 12, 15, 21, 27, 30, 36, 39, 45, 51, 57, 63, 66, 69, 72]
-        )
-        # fmt: on
-
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
+        self.assertEqual((P_pp.tolil()[indices] - P).nnz, 0)
 
     def test2(self):
         mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.125}
