@@ -75,7 +75,7 @@ def proj_faces_to_cells(
         discr = pg.RT0("unit")
 
     # Local mass matrices
-    for nn_sd, (sd, d_sd) in enumerate(mdg.subdomains(return_data=True)):
+    for nn_sd, sd in enumerate(mdg.subdomains()):
         bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
