@@ -9,7 +9,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class RT0(pg.Discretization, pp.RT0):
+class RT0(pg.Discretization):
     """
     Discretization class for Raviart-Thomas of lowest order.
     Each degree of freedom is the integral over a mesh face.
@@ -61,8 +61,9 @@ class RT0(pg.Discretization, pp.RT0):
         Returns:
             None
         """
-        pg.Discretization.__init__(self, keyword)
-        pp.RT0.__init__(self, keyword)
+        super().__init__(keyword)
+        # Set the reference configuration from PorePy from which we take some functionalities
+        self.ref_discr = pp.RT0
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -121,13 +122,160 @@ class RT0(pg.Discretization, pp.RT0):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_matrix((sd.num_faces, sd.num_faces))
+
         # create dummy data, unitary permeability, in case not present
         data = self.create_dummy_data(sd, data)
-        # perform the rt0 discretization
-        pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][
-            self.mass_matrix_key
-        ].tocsc()
+
+        # Get dictionary for parameter storage
+        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        # Retrieve the inverse of permeability
+        inv_K = parameter_dictionary["second_order_tensor"]
+
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
+        nodes = nodes[: sd.dim, :]
+
+        if not data.get("is_tangential", False):
+            # Rotate the permeability tensor and delete last dimension
+            if sd.dim < 3:
+                inv_K = inv_K.copy()
+                inv_K.rotate(R)
+                remove_dim = np.where(np.logical_not(dim))[0]
+                inv_K.values = np.delete(inv_K.values, (remove_dim), axis=0)
+                inv_K.values = np.delete(inv_K.values, (remove_dim), axis=1)
+
+        # Allocate the data to store matrix A entries
+        size = np.square(sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        M = self.local_inner_product(sd)
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+            sign_loc = sd.cell_faces.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = nodes[:, opposites_loc]
+
+            Psi = self.eval_basis(coord_loc, sign_loc, sd.dim)
+
+            weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
+
+            # Compute the H_div-mass local matrix
+            A = Psi @ M @ weight @ Psi.T / sd.cell_volumes[c]
+
+            # Save values for local matrix in the global structure
+            cols = np.concatenate(faces_loc.size * [[faces_loc]])
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+
+    @staticmethod
+    def local_inner_product(sd: pg.Grid) -> np.ndarray:
+        """
+        Compute the local inner product matrix for a given grid.
+
+        Args:
+            sd (pg.Grid): The grid object containing the discretization information.
+
+        Returns:
+            np.ndarray: local inner product matrix.
+        """
+        size = sd.dim * (sd.dim + 1)
+        M = np.zeros((size, size))
+
+        for it in np.arange(0, size, sd.dim):
+            M += np.diagflat(np.ones(size - it), it)
+
+        M += M.T
+        M /= sd.dim * sd.dim * (sd.dim + 1) * (sd.dim + 2)
+        return M
+
+    @staticmethod
+    def eval_basis(
+        coord: np.ndarray,
+        sign: np.ndarray,
+        dim: int,
+    ) -> np.ndarray:
+
+        N = coord.flatten("F").reshape((-1, 1)) * np.ones(
+            (1, dim + 1)
+        ) - np.concatenate((dim + 1) * [coord])
+
+        return (N * sign).T
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Evaluate the finite element solution at the cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to evaluate the solution.
+
+        Returns:
+            sps.csc_matrix: The finite element solution evaluated at the cell centers.
+        """
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        c_centers, f_normals, f_centers, R, dim, node_coords = pp.map_geometry.map_grid(
+            sd
+        )
+
+        # Allocate the data to store matrix P entries
+        size = 3 * (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = node_coords[:, opposites_loc]
+
+            # Compute the flux reconstruction matrix
+            P = pp.RT0.faces_to_cell(
+                c_centers[:, c],
+                coord_loc,
+                f_centers[:, faces_loc],
+                f_normals[:, faces_loc],
+                dim,
+                R,
+            )
+
+            # Save values for projection P local matrix in the global structure
+            loc_idx = slice(idx, idx + P.size)
+            rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, sd.dim + 1)
+            cols_J[loc_idx] = np.tile(faces_loc, 3)
+            data_IJ[loc_idx] = P.ravel()
+            idx += P.size
+
+        # Construct the global matrix
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -171,7 +319,7 @@ class RT0(pg.Discretization, pp.RT0):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        return sd.cell_faces.T
+        return sd.cell_faces.T.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -192,20 +340,6 @@ class RT0(pg.Discretization, pp.RT0):
             for (x, normal) in zip(sd.face_centers.T, sd.face_normals.T)
         ]
         return np.array(vals)
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
-        """
-        Assembles the matrix for evaluating the solution at the cell centers.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_matrix: The evaluation matrix.
-        """
-        data = self.create_dummy_data(sd, None)
-        pp.RT0.discretize(self, sd, data)
-        return data[pp.DISCRETIZATION_MATRICES][self.keyword][self.vector_proj_key]
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -275,7 +409,7 @@ class RT0(pg.Discretization, pp.RT0):
 
         proj = self.eval_at_cell_centers(sd)
         int_sol = np.vstack([ana_sol(x).T for x in sd.cell_centers.T]).T
-        num_sol = (proj * num_sol).reshape((3, -1), order="F")
+        num_sol = (proj * num_sol).reshape((3, -1))
 
         D = sps.diags(sd.cell_volumes)
         norm = np.trace(int_sol @ D @ int_sol.T) if relative else 1
@@ -346,7 +480,7 @@ class BDM1(pg.Discretization):
 
         """
         if isinstance(sd, pg.Grid):
-            return sd.num_faces * sd.dim
+            return sd.face_nodes.nnz
         else:
             raise ValueError
 

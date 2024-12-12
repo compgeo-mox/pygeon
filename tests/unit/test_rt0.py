@@ -54,8 +54,32 @@ class RT0Test(unittest.TestCase):
         self.assertTrue(np.allclose(vals, vals_known))
         self.assertTrue(np.allclose(vals_from_bool, vals_known))
 
-        self.assertTrue(discr.get_range_discr_class(sd.dim) is pg.PwConstants)
+    def test_mass_matrix(self):
+        discr = pg.RT0("flow")
+        discr_pp = pp.RT0("flow")
+
+        for dim in np.arange(1, 4):
+            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
+            sd.compute_geometry()
+
+            M = discr.assemble_mass_matrix(sd)
+
+            data = discr.create_dummy_data(sd)
+            discr_pp.discretize(sd, data)
+
+            M_pp = data[pp.DISCRETIZATION_MATRICES]["flow"][
+                discr_pp.mass_matrix_key
+            ].tocsc()
+
+            self.assertTrue(np.allclose(M.data, M_pp.data))
+            self.assertTrue(np.allclose(M.indptr, M_pp.indptr))
+            self.assertTrue(np.allclose(M.indices, M_pp.indices))
+
+    def test_range_discr_class(self):
+        discr = pg.RT0("flow")
+        self.assertTrue(discr.get_range_discr_class(2) is pg.PwConstants)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    RT0Test().test_mass_matrix()
+    # unittest.main()

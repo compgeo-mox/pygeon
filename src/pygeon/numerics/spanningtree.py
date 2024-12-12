@@ -118,7 +118,7 @@ class SpanningTree:
                 - np.array or int: Indices of the starting faces.
 
         Returns:
-            np.ndarray or int: The indices of the starting faces for the spanning tree.
+            np.ndarray: The indices of the starting faces for the spanning tree.
 
         Raises:
             KeyError: if starting_faces does not have the right type
@@ -143,7 +143,11 @@ class SpanningTree:
                     "Not a supported string. Input must be first_bdry or all_bdry"
                 )
 
-        # Scalars and arrays
+        # Boolean arrays
+        if starting_faces.dtype == bool:
+            return np.where(starting_faces)[0]
+
+        # Index arrays and scalars
         else:
             return np.atleast_1d(starting_faces)
 

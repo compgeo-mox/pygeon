@@ -81,6 +81,7 @@ class Nedelec0(pg.Discretization):
         idx = 0
 
         M = pg.BDM1.local_inner_product(sd.dim)
+        M = pg.BDM1.local_inner_product(sd.dim)
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
 
@@ -144,6 +145,7 @@ class Nedelec0(pg.Discretization):
         for ridge, peaks in enumerate(indices.T):
             Psi[ridge, 3 * peaks[0] : 3 * (peaks[0] + 1)] = dphi[:, peaks[1]]
             Psi[ridge, 3 * peaks[1] : 3 * (peaks[1] + 1)] = -dphi[:, peaks[0]]
+
         return Psi
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
@@ -176,7 +178,6 @@ class Nedelec0(pg.Discretization):
         idx = 0
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
-        ridge_peaks = sd.ridge_peaks
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
@@ -184,8 +185,10 @@ class Nedelec0(pg.Discretization):
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
             ridges_loc = cell_ridges.indices[loc]
 
+            # Create a matrix with the evaluation of the basis functions at the nodes
             Psi = self.eval_basis_at_node(sd, ridges_loc)
 
+            # The center-values are the mean of the four nodes
             Psi_split = np.split(Psi, 4, axis=1)
             Psi_at_centre = np.sum(Psi_split, axis=0).T / 4.0
 

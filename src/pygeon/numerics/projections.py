@@ -75,11 +75,8 @@ def proj_faces_to_cells(
         discr = pg.RT0("unit")
 
     # Local mass matrices
-    for nn_sd, (sd, d_sd) in enumerate(mdg.subdomains(return_data=True)):
-        discr.discretize(sd, d_sd)
-        bmat_sd[nn_sd, nn_sd] = d_sd[pp.DISCRETIZATION_MATRICES][discr.keyword][
-            "vector_proj"
-        ]
+    for nn_sd, sd in enumerate(mdg.subdomains()):
+        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
     return bmat_sd if as_bmat else sps.bmat(bmat_sd, format="csc")
