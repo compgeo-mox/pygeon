@@ -6,6 +6,14 @@ import pygeon as pg
 
 
 class RT0Test(unittest.TestCase):
+
+    def test_0d(self):
+        sd = pp.PointGrid(np.zeros(3))
+
+        discr = pg.RT0("flow")
+        M = discr.assemble_mass_matrix(sd)
+        self.assertEqual(M.shape, (0, 0))
+
     def test0(self):
         N, dim = 2, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
@@ -81,5 +89,4 @@ class RT0Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    RT0Test().test_mass_matrix()
-    # unittest.main()
+    unittest.main()
