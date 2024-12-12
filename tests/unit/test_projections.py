@@ -147,7 +147,16 @@ class ProjectionsUnitTest(unittest.TestCase):
         mdg.initialize_data()
         discr = pg.RT0("rt0")
         P = pg.proj_faces_to_cells(mdg, discr)
-        P.eliminate_zeros()
+
+        # Generate a matrix R that reorders from the pp to the pg convention
+        R_list = []
+        for sd in mdg.subdomains():
+            arange = np.arange(3 * sd.num_cells)
+            indices = np.reshape(arange, (3, -1), order="F").ravel()
+            R_sd = sps.csc_matrix((np.ones_like(indices), (arange, indices)))
+            R_list.append(R_sd)
+
+        R = sps.block_diag(R_list, "csc")
 
         # fmt: off
         P_known_data = np.array(
@@ -263,9 +272,11 @@ class ProjectionsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
+        # Assemble the sparse matrix and reorder the rows to the pg convention
+        P_known = sps.csc_matrix((P_known_data, P_known_indices, P_known_indptr))
+        P_known = R @ P_known
+
+        self.assertTrue(np.allclose((P_known - P).data, 0))
 
 
 if __name__ == "__main__":
