@@ -51,20 +51,6 @@ class RT0(pg.Discretization):
             Returns the l2 error computed against an analytical solution given as a function.
     """
 
-    def __init__(self, keyword: str) -> None:
-        """
-        Initialize the HDiv class.
-
-        Args:
-            keyword (str): The keyword for the discretization.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        # Set the reference configuration from PorePy from which we take some functionalities
-        self.ref_discr = pp.RT0
-
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of faces.
@@ -75,7 +61,6 @@ class RT0(pg.Discretization):
         Returns:
             int: the number of degrees of freedom.
         """
-
         return sd.num_faces
 
     def create_dummy_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
@@ -89,7 +74,6 @@ class RT0(pg.Discretization):
         Returns:
             dict: Dictionary with required attributes.
         """
-
         if data is None:
             data = {
                 pp.PARAMETERS: {self.keyword: {}},
@@ -117,7 +101,9 @@ class RT0(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
+            data (Optional[dict]): Optional dictionary with physical parameters for scaling,
+                in particular the second_order_tensor that is the inverse of the diffusion
+                tensor (permeability for porous media).
 
         Returns:
             sps.csc_matrix: The mass matrix.
@@ -140,7 +126,7 @@ class RT0(pg.Discretization):
         nodes = nodes[: sd.dim, :]
 
         if not data.get("is_tangential", False):
-            # Rotate the permeability tensor and delete last dimension
+            # Rotate the inverse of the permeability tensor and delete last dimension
             if sd.dim < 3:
                 inv_K = inv_K.copy()
                 inv_K.rotate(R)
@@ -210,12 +196,18 @@ class RT0(pg.Discretization):
         return M
 
     @staticmethod
-    def eval_basis(
-        coord: np.ndarray,
-        sign: np.ndarray,
-        dim: int,
-    ) -> np.ndarray:
+    def eval_basis(coord: np.ndarray, sign: np.ndarray, dim: int) -> np.ndarray:
+        """
+        Evaluate the basis functions.
 
+        Args:
+            coord (np.ndarray): the coordinates of the opposite node for each face.
+            sign (np.ndarray): The sign associated to each of the face of the degree of freedom
+            dim (int): The dimension of the grid.
+
+        Return:
+            np.ndarray: The value of the basis functions.
+        """
         N = coord.flatten("F").reshape((-1, 1)) * np.ones(
             (1, dim + 1)
         ) - np.concatenate((dim + 1) * [coord])
