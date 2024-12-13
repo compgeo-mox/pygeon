@@ -51,6 +51,7 @@ from pygeon.numerics.spanningtree import (
     SpanningTreeElasticity,
     SpanningTreeCosserat,
 )
+from pygeon.numerics.poincare import Poincare
 
 import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
