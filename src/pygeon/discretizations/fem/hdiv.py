@@ -14,6 +14,8 @@ class RT0(pg.Discretization):
     Discretization class for Raviart-Thomas of lowest order.
     Each degree of freedom is the integral over a mesh face.
 
+    The implementation of this class is inspired by the RT0 class in PorePy.
+
     Attributes:
         keyword (str): The keyword for the discretization.
 
@@ -65,7 +67,9 @@ class RT0(pg.Discretization):
 
     def create_dummy_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
         """
-        Updates data such that it has all the necessary components for pp.RT0
+        Updates data such that it has all the necessary components for pp.RT0, if the
+        second order tensor is not present, it is set to the identity. It represents
+        the inverse of the diffusion tensor (permeability for porous media).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -141,6 +145,7 @@ class RT0(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
+        # Compute the local inner product matrix
         M = self.local_inner_product(sd)
 
         # Compute the opposite nodes for each face
@@ -273,12 +278,13 @@ class RT0(pg.Discretization):
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
         """
-        Assembles the lumped mass matrix L such that
-        B^T L^{-1} B is a TPFA method.
+        Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
             data (Optional[dict]): Optional dictionary with physical parameters for scaling.
+                In particular the second_order_tensor that is the inverse of the diffusion
+                tensor (permeability for porous media).
 
         Returns:
             sps.csc_matrix: The lumped mass matrix.
@@ -288,14 +294,13 @@ class RT0(pg.Discretization):
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        # Retrieve the permeability
-        k = parameter_dictionary["second_order_tensor"]
+        # Retrieve the inverse of the permeability
+        inv_k = parameter_dictionary["second_order_tensor"]
 
         h_perp = np.zeros(sd.num_faces)
         for face, cell in zip(*sd.cell_faces.nonzero()):
-            inv_k = np.linalg.inv(k.values[:, :, cell])
             dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            h_perp_loc = dist.T @ inv_k @ dist
+            h_perp_loc = dist.T @ inv_k.values[:, :, cell] @ dist
             norm_dist = np.linalg.norm(dist)
             h_perp[face] += h_perp_loc / norm_dist if norm_dist else 0
 
@@ -303,7 +308,8 @@ class RT0(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Assembles the matrix corresponding to the differential operator.
+        Assembles the matrix corresponding to the differential operator, the divergence in
+        this case.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
