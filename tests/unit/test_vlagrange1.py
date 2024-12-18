@@ -20,7 +20,7 @@ class VLagrange1Test(unittest.TestCase):
         sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
         sd.compute_geometry()
 
-        discr = pg.VLagrange1("flow")
+        discr = pg.VLagrange1()
         diam = sd.cell_diameters()[0]
         loc_nodes = np.arange(5)
 
@@ -133,7 +133,7 @@ class VLagrange1Test(unittest.TestCase):
         sd = pg.OctagonGrid([1] * 2)
         sd.compute_geometry()
 
-        discr = pg.VLagrange1("flow")
+        discr = pg.VLagrange1()
 
         M = discr.assemble_mass_matrix(sd)
 

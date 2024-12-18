@@ -48,7 +48,7 @@ class VRT0(pg.RT0):
             Returns the range discretization class for the given dimension.
     """
 
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the MVEM class.
 

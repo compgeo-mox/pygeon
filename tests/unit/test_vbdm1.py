@@ -14,7 +14,7 @@ class VBDM1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VBDM1("flow")
+        discr = pg.VBDM1()
 
         M = discr.assemble_mass_matrix(sd)
 

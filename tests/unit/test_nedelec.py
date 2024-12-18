@@ -16,7 +16,7 @@ class NedelecTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.Nedelec0("flow")
+        discr = pg.Nedelec0()
 
         # Check that the number of degrees of freedom is correct
         self.assertEqual(discr.ndof(sd), 19)
@@ -143,7 +143,7 @@ class NedelecTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.Nedelec1("flow")
+        discr = pg.Nedelec1()
 
         # Check that the number of degrees of freedom is correct
         self.assertEqual(discr.ndof(sd), 19 * 2)
@@ -270,7 +270,7 @@ class NedelecTest(unittest.TestCase):
         def r_constant(x):
             return np.array([1.0, 2.0, np.pi])
 
-        for discr in [pg.Nedelec0("flow"), pg.Nedelec1("flow")]:
+        for discr in [pg.Nedelec0(), pg.Nedelec1()]:
             interp_r = discr.interpolate(sd, r_constant)
             eval_r = discr.eval_at_cell_centers(sd) * interp_r
             eval_r = np.reshape(eval_r, (3, -1), order="F")
