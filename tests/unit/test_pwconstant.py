@@ -185,6 +185,18 @@ class PwConstantsTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(err, err_known))
 
+    def test_source(self):
+        dim = 2
+        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        sd.compute_geometry()
+
+        discr = pg.PwConstants("P0")
+
+        func = lambda _: 2
+        source = discr.source_term(sd, func)
+
+        self.assertTrue(np.allclose(source, 2))
+
 
 if __name__ == "__main__":
     unittest.main()
