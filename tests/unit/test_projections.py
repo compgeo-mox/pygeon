@@ -50,10 +50,7 @@ class ProjectionsUnitTest(unittest.TestCase):
 
         mdg.initialize_data()
         discr = pg.RT0("rt0")
-        P_default = pg.proj_faces_to_cells(mdg)
-        P = pg.proj_faces_to_cells(mdg, discr)
-
-        self.assertTrue(np.allclose(P.todense(), P_default.todense()))
+        P = pg.eval_at_cell_centers(mdg, discr)
 
         data = discr.create_dummy_data(sd, None)
         discr_pp = pp.RT0("rt0")
@@ -146,7 +143,7 @@ class ProjectionsUnitTest(unittest.TestCase):
 
         mdg.initialize_data()
         discr = pg.RT0("rt0")
-        P = pg.proj_faces_to_cells(mdg, discr)
+        P = pg.eval_at_cell_centers(mdg, discr)
 
         # Generate a matrix R that reorders from the pp to the pg convention
         R_list = []
