@@ -83,8 +83,7 @@ class VecRT0Test(unittest.TestCase):
 
         interp = vec_rt0.interpolate(sd, linear)
         eval = vec_rt0.eval_at_cell_centers(sd) @ interp
-        eval = np.reshape(eval, (3, -1), order="F")
-        eval = np.vstack(np.split(eval, sd.dim, axis=1))
+        eval = np.reshape(eval, (6, sd.num_cells))
 
         known = np.array([linear(x).ravel() for x in sd.cell_centers.T]).T
 
@@ -190,8 +189,7 @@ class VecRT0Test(unittest.TestCase):
 
         interp = vec_rt0.interpolate(sd, linear)
         eval = vec_rt0.eval_at_cell_centers(sd) @ interp
-        eval = np.reshape(eval, (3, -1), order="F")
-        eval = np.vstack(np.split(eval, sd.dim, axis=1))
+        eval = np.reshape(eval, (9, sd.num_cells))
 
         known = np.array([linear(x).ravel() for x in sd.cell_centers.T]).T
         self.assertAlmostEqual(np.linalg.norm(eval - known), 0)

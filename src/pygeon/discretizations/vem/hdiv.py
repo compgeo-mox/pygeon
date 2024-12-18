@@ -62,6 +62,47 @@ class VRT0(pg.RT0):
         # Set the reference configuration from PorePy from which we take some functionalities
         self.ref_discr = pp.MVEM
 
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Assembles the mass matrix
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_matrix: The mass matrix.
+        """
+        # create dummy data, unitary permeability, in case not present
+        data = self.create_dummy_data(sd, data)
+
+        # perform the mvem discretization
+        discr = self.ref_discr(self.keyword)
+        discr.discretize(sd, data)
+
+        M = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
+        return M.tocsc()
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Assembles the matrix for evaluating the solution at the cell centers.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_matrix: The evaluation matrix.
+        """
+        data = self.create_dummy_data(sd, None)
+
+        discr = self.ref_discr(self.keyword)
+        discr.discretize(sd, data)
+
+        P = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.vector_proj_key]
+        return P.tocsc()
+
 
 class VBDM1(pg.BDM1):
     """
