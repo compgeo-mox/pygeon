@@ -72,7 +72,7 @@ class RT0Test(unittest.TestCase):
 
             M = discr.assemble_mass_matrix(sd)
 
-            data = discr.create_dummy_data(sd)
+            data = discr.create_unitary_data(sd)
             discr_pp.discretize(sd, data)
 
             M_pp = data[pp.DISCRETIZATION_MATRICES]["flow"][

@@ -75,8 +75,8 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
-        # create dummy data, unitary permeability, in case not present
-        data = self.create_dummy_data(sd, data)
+        # create unitary data, unitary permeability, in case not present
+        data = self.create_unitary_data(sd, data)
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
@@ -95,7 +95,7 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_matrix: The evaluation matrix.
         """
-        data = self.create_dummy_data(sd, None)
+        data = self.create_unitary_data(sd, None)
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)
@@ -171,7 +171,7 @@ class VBDM1(pg.BDM1):
         idx = 0
 
         dof = self.get_dof_enumeration(sd)
-        disc_VL1 = pg.VLagrange1("dummy")
+        disc_VL1 = pg.VLagrange1(pg.UNITARY_DATA)
 
         tangents = sd.nodes * sd.face_ridges
         cell_diams = sd.cell_diameters(cell_nodes)

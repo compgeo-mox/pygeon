@@ -1,4 +1,4 @@
-""" Module contains a dummy unit test that always passes.
+""" Module contains virtual Lagrangean tests.
 """
 
 import unittest
