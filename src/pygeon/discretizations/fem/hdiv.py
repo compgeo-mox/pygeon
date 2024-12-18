@@ -295,12 +295,12 @@ class RT0(pg.Discretization):
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
         # Retrieve the inverse of the permeability
-        inv_k = parameter_dictionary["second_order_tensor"]
+        inv_K = parameter_dictionary["second_order_tensor"]
 
         h_perp = np.zeros(sd.num_faces)
         for face, cell in zip(*sd.cell_faces.nonzero()):
             dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            h_perp_loc = dist.T @ inv_k.values[:, :, cell] @ dist
+            h_perp_loc = dist.T @ inv_K.values[:, :, cell] @ dist
             norm_dist = np.linalg.norm(dist)
             h_perp[face] += h_perp_loc / norm_dist if norm_dist else 0
 
