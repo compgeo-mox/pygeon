@@ -10,7 +10,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class Discretization(pp.numerics.discretization.Discretization):
+class Discretization(abc.ABC):
     """
     Abstract class for pygeon discretization methods.
     For full compatibility, a child class requires the following methods:
@@ -33,29 +33,29 @@ class Discretization(pp.numerics.discretization.Discretization):
             term in the discretization matrix dictionary.
     """
 
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = "unit") -> None:
         """
         Initialize the Discretization object.
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
-
-        Attributes:
-            mass_matrix_key (str): The keyword used to identify the mass matrix
-                term in the discretization matrix dictionary.
-            diff_matrix_key (str): The keyword used to identify the diffusion matrix
-                term in the discretization matrix dictionary.
-            stiff_matrix_key (str): The keyword used to identify the stiffness matrix
-                term in the discretization matrix dictionary.
-            lumped_matrix_key (str): The keyword used to identify the lumped matrix
-                term in the discretization matrix dictionary.
         """
-        super().__init__(keyword)
+        self.keyword = keyword
 
-        self.mass_matrix_key = "mass"
-        self.diff_matrix_key = "diff"
-        self.stiff_matrix_key = "stiff"
-        self.lumped_matrix_key = "lumped"
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the Discretization object.
+
+        The string includes the type of the discretization and, if available,
+        the keyword associated with it.
+
+        Returns:
+            str: A string representation of the Discretization object.
+        """
+        s = f"Discretization of type {self.__class__.__name__}"
+        if hasattr(self, "keyword"):
+            s += f" with keyword {self.keyword}"
+        return s
 
     @abc.abstractmethod
     def ndof(self, sd: pg.Grid) -> int:
@@ -69,29 +69,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns
             ndof: the number of degrees of freedom.
         """
-        pass
-
-    def discretize(self, sd: pg.Grid, data: dict) -> None:
-        """
-        Discretizes the given grid using the specified data.
-
-        Args:
-            sd (pg.Grid): The grid to be discretized.
-            data (dict): The data required for discretization.
-
-        Returns:
-            None
-        """
-        if self.keyword not in data[pp.DISCRETIZATION_MATRICES]:
-            data[pp.DISCRETIZATION_MATRICES][self.keyword] = {}
-        matrix_dictionary = data[pp.DISCRETIZATION_MATRICES][self.keyword]
-
-        matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(sd, data)
-        matrix_dictionary[self.diff_matrix_key] = self.assemble_diff_matrix(sd)
-        matrix_dictionary[self.stiff_matrix_key] = self.assemble_stiff_matrix(sd, data)
-        matrix_dictionary[self.lumped_matrix_key] = self.assemble_lumped_matrix(
-            sd, data
-        )
 
     @abc.abstractmethod
     def assemble_mass_matrix(
@@ -107,7 +84,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             sps.csc_matrix: The mass matrix.
         """
-        pass
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -136,7 +112,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        pass
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -163,7 +138,7 @@ class Discretization(pp.numerics.discretization.Discretization):
         discr = self.get_range_discr_class(sd.dim)(self.keyword)
         A = discr.assemble_mass_matrix(sd, data)
 
-        return B.T * A * B
+        return B.T @ A @ B
 
     @abc.abstractmethod
     def interpolate(
@@ -179,7 +154,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             np.ndarray: the values of the degrees of freedom
         """
-        pass
 
     @abc.abstractmethod
     def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
@@ -192,7 +166,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             np.ndarray: The evaluation matrix.
         """
-        pass
 
     def source_term(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -208,8 +181,7 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             np.ndarray: The evaluation matrix.
         """
-
-        return self.assemble_mass_matrix(sd) * self.interpolate(sd, func)
+        return self.assemble_mass_matrix(sd) @ self.interpolate(sd, func)
 
     @abc.abstractmethod
     def assemble_nat_bc(
@@ -227,7 +199,6 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        pass
 
     @abc.abstractmethod
     def get_range_discr_class(self, dim: int) -> object:
@@ -241,22 +212,6 @@ class Discretization(pp.numerics.discretization.Discretization):
             pg.Discretization: The discretization class containing the range of the
                 differential
         """
-        pass
-
-    def assemble_matrix_rhs(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> tuple[sps.csc_matrix, np.ndarray]:
-        """
-        Assembles a mass matrix and returns it along with a zero rhs vector.
-
-        Args:
-            sd (pg.Grid): The grid on which the matrix is assembled.
-            data (dict, optional): Additional data for the assembly process. Defaults to None.
-
-        Returns:
-            tuple[sps.csc_matrix, np.ndarray]: The assembled mass matrix and zero rhs vector.
-        """
-        return self.assemble_mass_matrix(sd, data), np.zeros(self.ndof(sd))
 
     def error_l2(
         self,

@@ -90,4 +90,4 @@ def stiff_matrix(mdg, n_minus_k, discr, **kwargs):
         mdg, n_minus_k - 1, discr, **kwargs
     )
 
-    return (diff.T * mass_plus_1 * diff).tocsc()
+    return (diff.T @ mass_plus_1 @ diff).tocsc()
