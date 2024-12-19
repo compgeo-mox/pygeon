@@ -121,6 +121,22 @@ class NedelecTest(unittest.TestCase):
 
         self.assertTrue(discr.get_range_discr_class(dim) is pg.RT0)
 
+    def test_nedelec0_lumped(self):
+        dim = 3
+        N = 1
+
+        sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        discr = pg.Nedelec0()
+
+        Ml = discr.assemble_lumped_matrix(sd)
+        M = discr.assemble_mass_matrix(sd)
+
+        ones = np.ones(discr.ndof(sd))
+        self.assertTrue(np.allclose(Ml @ ones, M @ ones))
+
     def test_nedelec1(self):
         N, dim = 1, 3
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)

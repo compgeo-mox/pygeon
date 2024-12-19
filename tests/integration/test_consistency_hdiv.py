@@ -1,11 +1,9 @@
 import unittest
-
 import numpy as np
-import porepy as pp
 
 import pygeon as pg
 
-""" 
+"""
 Module contains tests to validate the consistency between H(div) discretizations.
 """
 
@@ -47,4 +45,3 @@ class HdivMatricesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    # HdivMatricesTest().test_interp_eval_constants()
