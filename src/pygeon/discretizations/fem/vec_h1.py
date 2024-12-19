@@ -94,7 +94,7 @@ class VecLagrange1(pg.VecDiscretization):
             Interpolates a function onto the finite element space.
     """
 
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
         The scalar discretization class is pg.Lagrange1.

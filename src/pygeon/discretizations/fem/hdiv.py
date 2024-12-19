@@ -23,7 +23,7 @@ class RT0(pg.Discretization):
         ndof(sd: pg.Grid) -> int:
             Returns the number of faces.
 
-        create_dummy_data(sd: pg.Grid, data: Optional[dict] = None) -> dict:
+        create_unitary_data(sd: pg.Grid, data: Optional[dict] = None) -> dict:
             Updates data such that it has all the necessary components for pp.RT0
 
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
@@ -65,7 +65,7 @@ class RT0(pg.Discretization):
         """
         return sd.num_faces
 
-    def create_dummy_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
+    def create_unitary_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
         """
         Updates data such that it has all the necessary components for pp.RT0, if the
         second order tensor is not present, it is set to the identity. It represents
@@ -116,8 +116,8 @@ class RT0(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_matrix((sd.num_faces, sd.num_faces))
 
-        # create dummy data, unitary permeability, in case not present
-        data = self.create_dummy_data(sd, data)
+        # create unitary data, unitary permeability, in case not present
+        data = self.create_unitary_data(sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -290,7 +290,7 @@ class RT0(pg.Discretization):
             sps.csc_matrix: The lumped mass matrix.
         """
         if data is None:
-            data = self.create_dummy_data(sd, data)
+            data = self.create_unitary_data(sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]

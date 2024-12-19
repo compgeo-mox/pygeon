@@ -10,7 +10,7 @@ class RT0Test(unittest.TestCase):
     def test_0d(self):
         sd = pp.PointGrid(np.zeros(3))
 
-        discr = pg.RT0("flow")
+        discr = pg.RT0()
         M = discr.assemble_mass_matrix(sd)
         self.assertEqual(M.shape, (0, 0))
 
@@ -20,7 +20,7 @@ class RT0Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.RT0("flow")
+        discr = pg.RT0()
         self.assertEqual(discr.ndof(sd), sd.num_faces)
 
         M = discr.assemble_lumped_matrix(sd)
@@ -72,7 +72,7 @@ class RT0Test(unittest.TestCase):
 
             M = discr.assemble_mass_matrix(sd)
 
-            data = discr.create_dummy_data(sd)
+            data = discr.create_unitary_data(sd)
             discr_pp.discretize(sd, data)
 
             M_pp = data[pp.DISCRETIZATION_MATRICES]["flow"][
@@ -84,7 +84,7 @@ class RT0Test(unittest.TestCase):
             self.assertTrue(np.allclose(M.indices, M_pp.indices))
 
     def test_range_discr_class(self):
-        discr = pg.RT0("flow")
+        discr = pg.RT0()
         self.assertTrue(discr.get_range_discr_class(2) is pg.PwConstants)
 
 

@@ -23,7 +23,7 @@ class VecPwConstants(pg.VecDiscretization):
             Assembles the natural boundary condition vector, equal to zero.
     """
 
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
         The scalar discretization class is pg.PwConstants.
@@ -115,7 +115,7 @@ class VecPwLinears(pg.VecDiscretization):
 
     """
 
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
         The scalar discretization class is pg.PwLinears.

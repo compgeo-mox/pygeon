@@ -1,4 +1,4 @@
-""" Module contains a dummy unit test that always passes.
+""" Module contains sub volume tests.
 """
 
 import unittest
