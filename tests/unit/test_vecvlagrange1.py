@@ -1,4 +1,4 @@
-""" Module contains a dummy unit test that always passes.
+""" Module contains vector virtual Lagrangean tests.
 """
 
 import unittest
@@ -14,7 +14,7 @@ class VecVLagrange1_test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecVLagrange1("flow")
+        discr = pg.VecVLagrange1()
         M = discr.assemble_mass_matrix(sd)
 
         div = discr.assemble_div_matrix(sd)
@@ -988,7 +988,7 @@ class VecVLagrange1_test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecVLagrange1("flow")
+        discr = pg.VecVLagrange1()
         self.assertRaises(ValueError, discr.assemble_symgrad_matrix, sd)
         self.assertRaises(NotImplementedError, discr.get_range_discr_class, None)
 

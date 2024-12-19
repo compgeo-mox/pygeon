@@ -13,7 +13,7 @@ class Lagrange1Test(unittest.TestCase):
     def test_0d(self):
         sd = pp.PointGrid([1] * 3)
         sd.compute_geometry()
-        discr = pg.Lagrange1("flow")
+        discr = pg.Lagrange1()
 
         D = discr.assemble_diff_matrix(sd).todense()
         D_known = sps.csc_matrix((0, 1)).todense()
@@ -34,7 +34,7 @@ class Lagrange1Test(unittest.TestCase):
         sd = pp.CartGrid(3, dim)
         sd.compute_geometry()
 
-        discr = pg.Lagrange1("flow")
+        discr = pg.Lagrange1()
 
         M = discr.assemble_mass_matrix(sd)
 
@@ -126,7 +126,7 @@ class Lagrange1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.Lagrange1("flow")
+        discr = pg.Lagrange1()
 
         M = discr.assemble_mass_matrix(sd)
 
@@ -235,7 +235,7 @@ class Lagrange1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.Lagrange1("flow")
+        discr = pg.Lagrange1()
 
         M = discr.assemble_mass_matrix(sd)
 

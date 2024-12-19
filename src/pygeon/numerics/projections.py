@@ -71,7 +71,7 @@ def proj_faces_to_cells(
     )
 
     if discr is None:
-        discr = pg.RT0("unit")
+        discr = pg.RT0(pg.UNITARY_DATA)
 
     # Local mass matrices
     for nn_sd, sd in enumerate(mdg.subdomains()):
