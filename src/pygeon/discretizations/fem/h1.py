@@ -230,7 +230,7 @@ class Lagrange1(pg.Discretization):
 
         dphi = self.local_grads(coord, dim)
 
-        return c_volume * np.dot(dphi.T, np.dot(K, dphi))
+        return c_volume * dphi.T @ K @ dphi
 
     @staticmethod
     def local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
