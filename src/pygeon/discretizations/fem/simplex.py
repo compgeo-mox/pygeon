@@ -1,5 +1,8 @@
 import numpy as np
+import scipy.sparse as sps
+
 import pygeon as pg
+import porepy as pp
 import math
 
 
@@ -61,7 +64,7 @@ def get_num_edges(dim):
     return dim * (dim + 1) // 2
 
 
-def get_local_edge_numbering(dim: int):
+def get_local_edge_numbering(dim: int) -> np.ndarray:
 
     n_nodes = dim + 1
     n_edges = get_num_edges(dim)
@@ -96,18 +99,12 @@ def assemble_local_mass(dim: int) -> np.ndarray:
     # Make a list of monomials up to degree 2,
     # by exponents, consisting of
     # - the linears lambda_i
-    # - the quadratics lambda_i^2
     # - the cross-quadratics lambda_i \lambda_j
-    if dim == 0:
-        return np.ones((1, 1))
-    elif dim == 1:
-        quads = np.ones((2, 1))
-    elif dim == 2:
-        quads = 1 - eye
-    elif dim == 3:
-        quad_0 = np.vstack((np.zeros((1, 3)), 1 - np.eye(3)))
-        quad_1 = np.vstack((np.ones((1, 3)), np.eye(3)[::-1]))
-        quads = np.hstack((quad_0, quad_1))
+    # - the quadratics lambda_i^2
+    quads = np.zeros((dim + 1, n_edges))
+    e_nodes = get_local_edge_numbering(dim)
+    for ind, nodes in enumerate(e_nodes):
+        quads[nodes, ind] = 1
     exponents = np.hstack((eye, quads, 2 * eye))
 
     # Compute the local mass matrix of the monomials
@@ -118,15 +115,13 @@ def assemble_local_mass(dim: int) -> np.ndarray:
     # - edges: 4 lambda_i lambda_j
     basis_nodes = np.vstack((-eye, zero, 2 * eye))
     basis_edges = np.zeros((2 * (dim + 1) + n_edges, n_edges))
-    basis_edges[dim + 1 : dim + n_edges + 1] = 4 * np.eye(n_edges)
+    basis_edges[dim + 1 : dim + n_edges + 1, :] = 4 * np.eye(n_edges)
     basis = np.hstack((basis_nodes, basis_edges))
 
     return basis.T @ monomial_mass @ basis
 
 
-def eval_grads_at_nodes(dphi):
-
-    # Preallocaion
+def eval_grads_at_nodes(dphi, e_nodes):
 
     # the gradient of our basis functions are given by
     # - nodes: grad lambda_i ( 4 lambda_i - 1 )
@@ -141,66 +136,143 @@ def eval_grads_at_nodes(dphi):
 
     # edge dofs
     n_edges = get_num_edges(n_nodes - 1)
-    if n_nodes == 2:
-        Psi_edges = 4 * np.hstack((dphi[:, 1], dphi[:, 0]))
-    elif n_nodes == 3:
-        zero = np.zeros(3)
-        Psi_edges = 4 * np.block(
-            [
-                [zero, dphi[:, 2], dphi[:, 1]],
-                [dphi[:, 2], zero, dphi[:, 0]],
-                [dphi[:, 1], dphi[:, 0], zero],
-            ]
-        )
-    elif n_nodes == 4:
-        zero = np.zeros(3)
-        Psi_edges = 4 * np.block(
-            [
-                [zero, zero, dphi[:, 3], dphi[:, 2]],
-                [zero, dphi[:, 3], zero, dphi[:, 1]],
-                [zero, dphi[:, 2], dphi[:, 1], zero],
-                [dphi[:, 3], zero, zero, dphi[:, 0]],
-                [dphi[:, 2], zero, dphi[:, 0], zero],
-                [dphi[:, 1], dphi[:, 0], zero, zero],
-            ]
-        )
+    Psi_edges = np.zeros((n_edges, 3 * n_nodes))
+
+    for ind, (e0, e1) in enumerate(e_nodes):
+        Psi_edges[ind, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
+        Psi_edges[ind, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
+
     return np.vstack((Psi_nodes, Psi_edges))
 
 
-def assemble_local_stiff(sd: pg.Grid, data: dict) -> np.ndarray:
+def get_global_edge_nrs(sd, c, faces):
+    # Find global edge number
+    if sd.dim == 1:
+        # The only edge in 1d is the cell
+        edges = np.array([c])
+    elif sd.dim == 2:
+        # The edges (0, 1), (0, 2), and (1, 2)
+        # are the faces opposite nodes 2, 1, and 0, respectively.
+        edges = faces[::-1]
+    elif sd.dim == 3:
+        # We first find the edges adjacent to the local faces
+        cell_edges = np.abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
+        edge_inds = np.where(cell_edges)[0]
+
+        # Experimentally, we always find the following numbering
+        edges = edge_inds[[5, 4, 2, 3, 1, 0]]
+
+    # The edge dofs come after the nodal dofs
+    return edges + sd.num_nodes
+
+
+def assemble_mass(sd: pg.Grid, data: dict) -> np.ndarray:
+
+    size = np.square((sd.dim + 1) + get_num_edges(sd.dim)) * sd.num_cells
+    rows_I = np.empty(size, dtype=int)
+    cols_J = np.empty(size, dtype=int)
+    data_IJ = np.empty(size)
+    idx = 0
 
     opposite_nodes = sd.compute_opposite_nodes()
-    local_mass = pg.BDM1.local_inner_product(sd.dim)
+    local_mass = assemble_local_mass(sd.dim)
 
     for c in np.arange(sd.num_cells):
         loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
         faces = opposite_nodes.indices[loc]
         nodes = opposite_nodes.data[loc]
+        edges = get_global_edge_nrs(sd, c, faces)
+
+        A = local_mass.ravel() * sd.cell_volumes[c]
+
+        loc_ind = np.hstack((nodes, edges))
+
+        cols = np.tile(loc_ind, (loc_ind.size, 1))
+        loc_idx = slice(idx, idx + cols.size)
+        rows_I[loc_idx] = cols.T.ravel()
+        cols_J[loc_idx] = cols.ravel()
+        data_IJ[loc_idx] = A.ravel()
+        idx += cols.size
+
+    # Assemble
+    return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+
+def assemble_stiff(sd: pg.Grid, data: dict) -> np.ndarray:
+
+    size = np.square((sd.dim + 1) + get_num_edges(sd.dim)) * sd.num_cells
+    rows_I = np.empty(size, dtype=int)
+    cols_J = np.empty(size, dtype=int)
+    data_IJ = np.empty(size)
+    idx = 0
+
+    opposite_nodes = sd.compute_opposite_nodes()
+    local_mass = pg.BDM1.local_inner_product(sd.dim)
+    e_nodes = get_local_edge_numbering(sd.dim)
+
+    for c in np.arange(sd.num_cells):
+        loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
+        faces = opposite_nodes.indices[loc]
+        nodes = opposite_nodes.data[loc]
+        edges = get_global_edge_nrs(sd, c, faces)
+
         signs = sd.cell_faces.data[loc]
-
         dphi = -sd.face_normals[:, faces] * signs / (sd.dim * sd.cell_volumes[c])
+        Psi = eval_grads_at_nodes(dphi, e_nodes)
 
-        Psi = eval_grads_at_nodes(dphi)
+        A = Psi @ local_mass @ Psi.T * sd.cell_volumes[c]
 
-        A = Psi @ local_mass @ Psi.T
+        loc_ind = np.hstack((nodes, edges))
 
-        if sd.dim == 1:
-            edges = np.array([c])
-        elif sd.dim == 2:
-            pass
-        pass
+        cols = np.tile(loc_ind, (loc_ind.size, 1))
+        loc_idx = slice(idx, idx + cols.size)
+        rows_I[loc_idx] = cols.T.ravel()
+        cols_J[loc_idx] = cols.ravel()
+        data_IJ[loc_idx] = A.ravel()
+        idx += cols.size
+
+    # Assemble
+    return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
 
 if __name__ == "__main__":
 
-    for dim in range(1, 4):
-        print(get_local_edge_numbering(dim))
-        # M = assemble_local_mass(dim)
-        # print(M.sum())
+    # for dim in range(1, 4):
+    #     #     print(get_local_edge_numbering(dim))
+    #     M = assemble_local_mass(dim)
+    # print(M.sum())
 
-    dim = 2
-    mdg = pg.unit_grid(dim, 0.5)
-    sd = mdg.subdomains()[0]
+    dim = 3
+    # mdg = pg.unit_grid(dim, 0.15)
+    # sd = mdg.subdomains()[0]
 
-    assemble_local_stiff(sd, None)
+    sd = pp.StructuredTetrahedralGrid([10] * 3)
+    # sd = pp.CartGrid(100, [1])
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    A = assemble_stiff(sd, None)
+
+    source = np.ones(sd.num_nodes + sd.num_ridges)
+    M = assemble_mass(sd, None)
+    f = M @ source
+
+    ess_bc = np.hstack(
+        (sd.tags["domain_boundary_nodes"], sd.tags["domain_boundary_ridges"])
+    )
+    ess_vals = np.zeros_like(ess_bc, dtype=float)
+
+    ridge_centers = sd.nodes @ np.abs(sd.ridge_peaks) / 2
+    x = np.hstack((sd.nodes, ridge_centers))
+    true_sol = np.sum(x * (1 - x), axis=0) / (2 * dim)
+
+    ess_vals[ess_bc] = true_sol[ess_bc]
+
+    LS = pg.LinearSystem(A, f)
+    LS.flag_ess_bc(ess_bc, ess_vals)
+
+    u = LS.solve()
+
+    print(np.linalg.norm(u - true_sol))
+    pass
     # )

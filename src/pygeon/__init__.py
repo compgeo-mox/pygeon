@@ -19,7 +19,7 @@ from pygeon.discretizations.vec_discretization import VecDiscretization
 
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
 from pygeon.discretizations.fem.hdiv import RT0, BDM1
-from pygeon.discretizations.fem.h1 import Lagrange1
+from pygeon.discretizations.fem.h1 import Lagrange1, Lagrange2
 from pygeon.discretizations.fem.l2 import PwConstants, PwLinears
 from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0
 from pygeon.discretizations.fem.vec_h1 import VecLagrange1

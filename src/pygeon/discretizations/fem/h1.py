@@ -5,6 +5,7 @@ from typing import Callable, Optional
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
+import math
 
 import pygeon as pg
 
@@ -345,5 +346,367 @@ class Lagrange1(pg.Discretization):
             return pg.RT0
         elif dim == 1:
             return pg.PwConstants
+        else:
+            raise NotImplementedError("There's no zero discretization in PyGeoN")
+
+
+class Lagrange2(pg.Discretization):
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+        In this case number of nodes plus the number of edges,
+        where edges are one-dimensional mesh entities.
+
+        Args
+            sd: grid, or a subclass.
+
+        Returns
+            ndof: the number of degrees of freedom.
+        """
+        if sd.dim == 0:
+            num_edges = 0
+        elif sd.dim == 1:
+            num_edges = sd.num_cells
+        elif sd.dim == 2:
+            num_edges = sd.num_faces
+        elif sd.dim == 3:
+            num_edges = sd.num_ridges
+
+        return sd.num_nodes + num_edges
+
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Returns the mass matrix for the second order Lagrange element
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (Optional[dict]): Optional data for the assembly process.
+
+        Returns:
+            sps.csc_matrix: The mass matrix obtained from the discretization.
+        """
+
+        # Data allocation
+        size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        opposite_nodes = sd.compute_opposite_nodes()
+        local_mass = self.assemble_local_mass(sd.dim)
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
+            faces = opposite_nodes.indices[loc]
+            nodes = opposite_nodes.data[loc]
+            edges = self.get_global_edge_nrs(sd, c, faces)
+
+            A = local_mass.ravel() * sd.cell_volumes[c]
+
+            loc_ind = np.hstack((nodes, edges))
+
+            cols = np.tile(loc_ind, (loc_ind.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Assemble
+        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local mass matrix of the basis functions
+        on a d-simplex with measure 1.
+
+        Args:
+            dim (int): The dimension of the simplex.
+
+        Returns:
+            np.ndarray: the local mass matrix.
+        """
+
+        # Helper constants
+        n_edges = self.num_edges_per_cell(dim)
+        eye = np.eye(dim + 1)
+        zero = np.zeros((n_edges, dim + 1))
+
+        # List the barycentric functions up to degree 2,
+        # by exponents, consisting of
+        # - the linears lambda_i
+        # - the cross-quadratics lambda_i lambda_j
+        # - the quadratics lambda_i^2
+        quads = np.zeros((dim + 1, n_edges))
+        e_nodes = self.get_local_edge_numbering(dim)
+        for ind, nodes in enumerate(e_nodes):
+            quads[nodes, ind] = 1
+        exponents = np.hstack((eye, quads, 2 * eye))
+
+        # Compute the local mass matrix of the barycentric functions
+        barycentric_mass = self.assemble_barycentric_mass(exponents)
+
+        # Our basis functions are given by
+        # - nodes: lambda_i (2 lambda_i - 1)
+        # - edges: 4 lambda_i lambda_j
+        # We list the coefficients in the array "basis"
+        basis_nodes = np.vstack((-eye, zero, 2 * eye))
+        basis_edges = np.zeros((2 * (dim + 1) + n_edges, n_edges))
+        basis_edges[dim + 1 : dim + n_edges + 1, :] = 4 * np.eye(n_edges)
+        basis = np.hstack((basis_nodes, basis_edges))
+
+        return basis.T @ barycentric_mass @ basis
+
+    def assemble_barycentric_mass(self, expnts: np.ndarray) -> np.ndarray:
+        """
+        Compute the inner products of all monomials up to degree 2
+
+        Args:
+            expnts (np.ndarray): each column is an array of exponents
+                alpha_i of the monomial basis function expressed as
+                prod_i lambda_i ^ alpha_i.
+
+        Returns:
+            np.ndarray: the inner products of the monomials
+                on a simplex with measure 1.
+        """
+        n_monomials = expnts.shape[1]
+        mass = np.empty((n_monomials, n_monomials))
+
+        for i in np.arange(n_monomials):
+            for j in np.arange(n_monomials):
+                mass[i, j] = self.integrate_monomial(expnts[:, i] + expnts[:, j])
+
+        return mass
+
+    @staticmethod
+    def factorial(n: float) -> int:
+        """
+        Compute the factorial of a float by first rounding to an int.
+        Args:
+            n (float): the input float
+
+        Returns:
+            int: the factorial n!
+        """
+        return math.factorial(int(n))
+
+    def integrate_monomial(self, alphas: np.ndarray) -> float:
+        """
+        Exact integration of products of monomials based on
+        Vermolen and Segal (2018).
+
+        Args:
+            alphas (np.ndarray): array of exponents alpha_i of the polynomial
+                expressed as prod_i lambda_i ^ alpha_i
+
+        Returns:
+            float: the integral of the polynomial on a simplex with measure 1
+        """
+        dim = len(alphas) - 1
+        fac_alph = [self.factorial(a_i) for a_i in alphas]
+
+        return (
+            self.factorial(dim)
+            * np.prod(fac_alph)
+            / self.factorial(dim + np.sum(alphas))
+        )
+
+    def num_edges_per_cell(self, dim):
+        return dim * (dim + 1) // 2
+
+    def get_local_edge_numbering(self, dim: int) -> np.ndarray:
+
+        n_nodes = dim + 1
+        n_edges = self.num_edges_per_cell(dim)
+        loc_edges = np.empty((n_edges, 2), int)
+
+        ind = 0
+        for first_node in np.arange(n_nodes):
+            for second_node in np.arange(first_node + 1, n_nodes):
+                loc_edges[ind] = [first_node, second_node]
+                ind += 1
+
+        return loc_edges
+
+    def eval_grads_at_nodes(self, dphi, e_nodes):
+
+        # the gradient of our basis functions are given by
+        # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
+        # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
+
+        # nodal dofs
+        n_nodes = dphi.shape[1]
+        Psi_nodes = np.zeros((n_nodes, 3 * n_nodes))
+        for ind in np.arange(n_nodes):
+            Psi_nodes[ind, 3 * ind : 3 * (ind + 1)] = 4 * dphi[:, ind]
+        Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
+
+        # edge dofs
+        n_edges = self.num_edges_per_cell(n_nodes - 1)
+        Psi_edges = np.zeros((n_edges, 3 * n_nodes))
+
+        for ind, (e0, e1) in enumerate(e_nodes):
+            Psi_edges[ind, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
+            Psi_edges[ind, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
+
+        return np.vstack((Psi_nodes, Psi_edges))
+
+    def get_global_edge_nrs(self, sd, c, faces):
+        # Find global edge number
+        if sd.dim == 1:
+            # The only edge in 1d is the cell
+            edges = np.array([c])
+        elif sd.dim == 2:
+            # The edges (0, 1), (0, 2), and (1, 2)
+            # are the faces opposite nodes 2, 1, and 0, respectively.
+            edges = faces[::-1]
+        elif sd.dim == 3:
+            # We first find the edges adjacent to the local faces
+            cell_edges = np.abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
+            edge_inds = np.where(cell_edges)[0]
+
+            # Experimentally, we always find the following numbering
+            edges = edge_inds[[5, 4, 2, 3, 1, 0]]
+
+        # The edge dofs come after the nodal dofs
+        return edges + sd.num_nodes
+
+    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict) -> np.ndarray:
+
+        size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        opposite_nodes = sd.compute_opposite_nodes()
+        local_mass = pg.BDM1.local_inner_product(sd.dim)
+        e_nodes = self.get_local_edge_numbering(sd.dim)
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
+            faces = opposite_nodes.indices[loc]
+            nodes = opposite_nodes.data[loc]
+            edges = self.get_global_edge_nrs(sd, c, faces)
+
+            signs = sd.cell_faces.data[loc]
+            dphi = -sd.face_normals[:, faces] * signs / (sd.dim * sd.cell_volumes[c])
+            Psi = self.eval_grads_at_nodes(dphi, e_nodes)
+
+            A = Psi @ local_mass @ Psi.T * sd.cell_volumes[c]
+
+            loc_ind = np.hstack((nodes, edges))
+
+            cols = np.tile(loc_ind, (loc_ind.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Assemble
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+    def assemble_diff_matrix(self):
+        raise NotImplementedError
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+        """
+        Construct the matrix for evaluating a Lagrangian function at the
+        cell centers of the given grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_matrix: The matrix representing the projection at the cell centers.
+        """
+        val_at_cc = 1 / (sd.dim + 1)
+        eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
+
+        val_at_cc = 4 / ((sd.dim + 1) * (sd.dim + 1))
+        if sd.dim == 1:
+            eval_edges = sps.eye(sd.num_cells)
+        elif sd.dim == 2:
+            eval_edges = np.abs(sd.cell_faces).T
+        elif sd.dim == 3:
+            eval_edges = np.abs(sd.cell_faces).T @ np.abs(sd.face_ridges).T
+            eval_edges.data[:] = 1
+
+        eval_edges = val_at_cc * eval_edges
+
+        return sps.hstack((eval_nodes, eval_edges), format="csc")
+
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        """
+        Interpolates a given function over the nodes of a grid.
+
+        Args:
+            sd (pg.Grid): The grid on which to interpolate the function.
+            func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
+
+        Returns:
+            np.ndarray: An array containing the interpolated values at each node of the grid.
+        """
+        if sd.dim == 0:
+            edge_coords = []
+        elif sd.dim == 1:
+            edge_coords = sd.cell_centers
+        elif sd.dim == 2:
+            edge_coords = sd.face_centers
+        elif sd.dim == 3:
+            edge_coords = sd.nodes @ np.abs(sd.ridge_peaks) / 2
+
+        coords = np.hstack((sd.nodes, edge_coords))
+
+        return np.array([func(x) for x in coords.T])
+
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
+        """
+        Assembles the 'natural' boundary condition
+        (u, func)_Gamma with u a test function in Lagrange1
+
+        Args:
+            sd (pg.Grid): The grid object representing the computational domain
+            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
+                the 'natural' boundary condition
+            b_faces (np.ndarray): The array of boundary faces
+
+        Returns:
+            np.ndarray: The assembled 'natural' boundary condition values
+        """
+        raise NotImplementedError
+        if b_faces.dtype == "bool":
+            b_faces = np.where(b_faces)[0]
+
+        vals = np.zeros(self.ndof(sd))
+
+    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+        """
+        Returns the appropriate range discretization class based on the dimension.
+
+        Args:
+            dim (int): The dimension of the problem.
+
+        Returns:
+            object: The range discretization class.
+
+        Raises:
+            NotImplementedError: If there's no zero discretization in PyGeoN.
+        """
+        if dim == 3:
+            return pg.Nedelec1
+        elif dim == 2:
+            return pg.BDM1
+        elif dim == 1:
+            return pg.PwLinears
         else:
             raise NotImplementedError("There's no zero discretization in PyGeoN")
