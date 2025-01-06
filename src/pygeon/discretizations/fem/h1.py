@@ -92,6 +92,7 @@ class Lagrange1(pg.Discretization):
         idx = 0
 
         cell_nodes = sd.cell_nodes()
+        local_mass = self.local_mass(sd.dim)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
@@ -99,7 +100,7 @@ class Lagrange1(pg.Discretization):
             nodes_loc = cell_nodes.indices[loc]
 
             # Compute the mass-H1 local matrix
-            A = self.local_mass(sd.cell_volumes[c], sd.dim)
+            A = local_mass * sd.cell_volumes[c]
 
             # Save values for mass-H1 local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
@@ -112,11 +113,10 @@ class Lagrange1(pg.Discretization):
         # Construct the global matrix
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_mass(self, c_volume: np.ndarray, dim: int) -> np.ndarray:
-        """Compute the local mass matrix.
+    def local_mass(self, dim: int) -> np.ndarray:
+        """Compute the local mass matrix on an element with measure 1.
 
         Args:
-            c_volume (np.ndarray): Cell volume.
             dim (int): Dimension of the matrix.
 
         Returns:
@@ -124,7 +124,7 @@ class Lagrange1(pg.Discretization):
         """
 
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        return c_volume * M / ((dim + 1) * (dim + 2))
+        return M / ((dim + 1) * (dim + 2))
 
     def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
         """

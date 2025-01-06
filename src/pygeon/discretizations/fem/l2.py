@@ -317,6 +317,7 @@ class PwLinears(pg.Discretization):
         idx = 0
 
         lagrange1 = pg.Lagrange1(self.keyword)
+        local_mass = lagrange1.local_mass(sd.dim)
 
         try:
             weight = data[pp.PARAMETERS][self.keyword]["weight"]
@@ -325,8 +326,7 @@ class PwLinears(pg.Discretization):
 
         for c in np.arange(sd.num_cells):
             # Compute the mass local matrix
-            A = lagrange1.local_mass(sd.cell_volumes[c], sd.dim)
-            A *= weight[c]
+            A = local_mass * sd.cell_volumes[c] * weight[c]
 
             # Save values for mass local matrix in the global structure
             nodes_loc = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
