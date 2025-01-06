@@ -1,4 +1,4 @@
-""" Module contains a dummy unit test that always passes.
+""" Module contains BDM1 tests.
 """
 
 import unittest
@@ -58,7 +58,7 @@ class BDM1Test(unittest.TestCase):
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
-        discr_bdm1 = pg.BDM1("flow")
+        discr_bdm1 = pg.BDM1()
 
         def q_linear(x):
             return x
@@ -75,7 +75,7 @@ class BDM1Test(unittest.TestCase):
         sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
-        discr_bdm1 = pg.BDM1("flow")
+        discr_bdm1 = pg.BDM1()
 
         def q_linear(x):
             return x
@@ -120,8 +120,8 @@ class BDM1Test(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr_bdm1 = pg.BDM1("flow")
-        discr_p0 = pg.PwConstants("flow")
+        discr_bdm1 = pg.BDM1()
+        discr_p0 = pg.PwConstants()
 
         mass_matrices = [
             discr_bdm1.assemble_mass_matrix(sd, None),

@@ -86,7 +86,7 @@ def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
     Construct the default discretization operator depending on n_minus_k.
     These correspond to the Whitney forms.
     """
-    keyword = kwargs.get("keyword", "unit")
+    keyword = kwargs.get("keyword", pg.UNITARY_DATA)
     if n_minus_k == 0:
         return pg.PwConstants(keyword)
     elif n_minus_k == 1:
@@ -185,7 +185,7 @@ def mass_matrix(
     elif discr is not None:
         keyword = discr.keyword
     else:
-        keyword = "unit"
+        keyword = pg.UNITARY_DATA
 
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix

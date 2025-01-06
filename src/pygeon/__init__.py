@@ -1,5 +1,7 @@
 """ isort:skip_file """
 
+from pygeon.utils.common_constants import *
+
 from pygeon.filters.importer import graph_from_file
 import pygeon.geometry.transformation as transformation
 from pygeon.filters.exporter import Exporter

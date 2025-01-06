@@ -50,7 +50,7 @@ class VecBDM1(pg.VecDiscretization):
             Returns the range discretization class for the given dimension.
     """
 
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector BDM1 discretization class.
         The scalar discretization class is pg.BDM1.
@@ -432,7 +432,7 @@ class VecBDM1(pg.VecDiscretization):
 
 
 class VecRT0(pg.VecDiscretization):
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT0 discretization class.
         The scalar discretization class is pg.RT0.

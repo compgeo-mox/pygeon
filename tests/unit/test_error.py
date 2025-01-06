@@ -1,5 +1,6 @@
 """ Module contains a unit test for the error computation.
 """
+
 import unittest
 
 import numpy as np
@@ -20,7 +21,7 @@ class ErrorTest(unittest.TestCase):
 
         int_sol = np.array([1.5, 2.5, 3.5, 3.5, 4.5, 5.5, 5.5, 6.5, 7.5])
 
-        discr = pg.PwConstants("flow")
+        discr = pg.PwConstants()
 
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
         self.assertTrue(np.isclose(err, 1))
@@ -45,7 +46,7 @@ class ErrorTest(unittest.TestCase):
        -7.,  7.,  0.,  8., -4., -6., -8.])
         # fmt: on
 
-        discr = pg.RT0("flow")
+        discr = pg.RT0()
 
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
         self.assertTrue(np.isclose(err, 1))
@@ -94,7 +95,7 @@ class ErrorTest(unittest.TestCase):
                    3.5,  3.5,  4.5,  5.5])
         # fmt: on
 
-        discr = pg.Nedelec0("flow")
+        discr = pg.Nedelec0()
 
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
         self.assertTrue(np.isclose(err, 1))
