@@ -285,7 +285,7 @@ class PwLinears(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the number of cells in the grid.
+        In this case, there are (dim + 1) degrees of freedom per cell.
 
         Args:
             sd (pg.Grid): The grid object.

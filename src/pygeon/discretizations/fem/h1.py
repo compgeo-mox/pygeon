@@ -27,7 +27,7 @@ class Lagrange1(pg.Discretization):
         local_mass(c_volume: np.ndarray, dim: int) -> np.ndarray:
             Computes the local mass matrix.
 
-        assemble_stiffness_matrix(sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        assemble_stiff_matrix(sd: pg.Grid, data: dict) -> sps.csc_matrix:
             Assembles the stiffness matrix for the finite element method.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
@@ -127,7 +127,7 @@ class Lagrange1(pg.Discretization):
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         return M / ((dim + 1) * (dim + 2))
 
-    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+    def assemble_stiff_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
         """
         Assembles the stiffness matrix for the finite element method.
 
@@ -139,9 +139,11 @@ class Lagrange1(pg.Discretization):
             sps.csc_matrix: The assembled stiffness matrix.
         """
         # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        # Retrieve the permeability, boundary conditions
-        k = parameter_dictionary["second_order_tensor"]
+        try:
+            K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
+        except Exception:
+            K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+            data = {"is_tangential": True}
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
@@ -150,11 +152,11 @@ class Lagrange1(pg.Discretization):
         if not data.get("is_tangential", False):
             # Rotate the permeability tensor and delete last dimension
             if sd.dim < 3:
-                k = k.copy()
-                k.rotate(R)
+                K = K.copy()
+                K.rotate(R)
                 remove_dim = np.where(np.logical_not(dim))[0]
-                k.values = np.delete(k.values, (remove_dim), axis=0)
-                k.values = np.delete(k.values, (remove_dim), axis=1)
+                K.values = np.delete(K.values, (remove_dim), axis=0)
+                K.values = np.delete(K.values, (remove_dim), axis=1)
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
@@ -175,7 +177,7 @@ class Lagrange1(pg.Discretization):
 
             # Compute the stiff-H1 local matrix
             A = self.local_stiff(
-                k.values[0 : sd.dim, 0 : sd.dim, c],
+                K.values[0 : sd.dim, 0 : sd.dim, c],
                 sd.cell_volumes[c],
                 coord_loc,
                 sd.dim,
@@ -575,7 +577,7 @@ class Lagrange2(pg.Discretization):
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
 
-    def assemble_stiffness_matrix(self, sd: pg.Grid, data: dict) -> np.ndarray:
+    def assemble_stiff_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
 
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -611,8 +613,50 @@ class Lagrange2(pg.Discretization):
         # Assemble
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-    def assemble_diff_matrix(self):
-        raise NotImplementedError
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
+
+        if sd.dim == 1:
+            diff_nodes = sd.cell_faces.T / sd.cell_volumes[:, None]
+
+            diff_nodes = diff_nodes.tocsr()[
+                np.repeat(np.arange(diff_nodes.shape[0]), 2), :
+            ]
+            diff_nodes.data[0::4] *= 3
+            diff_nodes.data[1::4] *= -1
+            diff_nodes.data[2::4] *= -1
+            diff_nodes.data[3::4] *= 3
+
+            diff_edges = sps.block_diag(
+                [np.array([[4], [-4]]) / vol for vol in sd.cell_volumes]
+            )
+
+            return sps.hstack((diff_nodes, diff_edges), format="csc")
+
+        elif sd.dim == 2:
+            edge_nodes = sd.face_ridges
+            num_edges = sd.num_faces
+            second_dof_scaling = 1
+
+        elif sd.dim == 3:
+            edge_nodes = sd.ridge_peaks
+            num_edges = sd.num_ridges
+            second_dof_scaling = -1
+
+        diff_nodes_0 = edge_nodes.copy().T
+        diff_nodes_0.data[edge_nodes.data == -1] = -3
+        diff_nodes_0.data[edge_nodes.data == 1] = -1
+
+        diff_0 = sps.hstack((diff_nodes_0, 4 * sps.eye(num_edges)))
+
+        diff_nodes_1 = edge_nodes.copy().T
+        diff_nodes_1.data[edge_nodes.data == 1] = 3
+        diff_nodes_1.data[edge_nodes.data == -1] = 1
+
+        diff_1 = second_dof_scaling * sps.hstack(
+            (diff_nodes_1, -4 * sps.eye(num_edges))
+        )
+
+        return sps.vstack((diff_0, diff_1), format="csc")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -628,7 +672,6 @@ class Lagrange2(pg.Discretization):
         val_at_cc = 1 / (sd.dim + 1)
         eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
 
-        val_at_cc = 4 / ((sd.dim + 1) * (sd.dim + 1))
         if sd.dim == 1:
             eval_edges = sps.eye(sd.num_cells)
         elif sd.dim == 2:
@@ -637,7 +680,7 @@ class Lagrange2(pg.Discretization):
             eval_edges = np.abs(sd.cell_faces).T @ np.abs(sd.face_ridges).T
             eval_edges.data[:] = 1
 
-        eval_edges = val_at_cc * eval_edges
+        eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
 
         return sps.hstack((eval_nodes, eval_edges), format="csc")
 
