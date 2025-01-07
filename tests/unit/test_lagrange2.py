@@ -30,7 +30,7 @@ class Lagrange2Test(unittest.TestCase):
         self.interpolate_and_evaluate(sd, func)
 
     def interpolate_and_evaluate(self, sd, func):
-        """For a given polynomial, interpolate onto the discrete space,
+        """For a given polynomial in the space, interpolate onto the discrete space,
         and evaluate at cell centers"""
 
         sd.compute_geometry()
@@ -93,4 +93,3 @@ class Lagrange2Test(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    # Lagrange2Test().test_cochain_property_3D()

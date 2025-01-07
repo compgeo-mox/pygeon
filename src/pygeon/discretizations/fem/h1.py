@@ -578,6 +578,16 @@ class Lagrange2(pg.Discretization):
         return edges + sd.num_nodes
 
     def assemble_stiff_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        """
+        Assembles the stiffness matrix for the P2 finite element method.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+            data (dict): A dictionary containing the necessary data for assembling the matrix.
+
+        Returns:
+            sps.csc_matrix: The assembled stiffness matrix.
+        """
 
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -614,53 +624,84 @@ class Lagrange2(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the differential matrix based on the dimension of the grid.
 
-        if sd.dim == 1:
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_matrix: The differential matrix.
+        """
+
+        if sd.dim == 0:
+            # In a point, the differential is the trivial map
+            return sps.csc_array((0, 1))
+        elif sd.dim == 1:
+            # In 1D, the gradient of the nodal functions scales as 1/h
             diff_nodes = sd.cell_faces.T / sd.cell_volumes[:, None]
 
+            # Because of the numbering of the pw linears, the
+            # first dof of Lagrange2 maps to the first two dofs of PwLinears
             diff_nodes = diff_nodes.tocsr()[
                 np.repeat(np.arange(diff_nodes.shape[0]), 2), :
             ]
+            # The derivative of the nodal basis functions is equal to 3
+            # on one side of the element and -1 on the other
             diff_nodes.data[0::4] *= 3
             diff_nodes.data[1::4] *= -1
             diff_nodes.data[2::4] *= -1
             diff_nodes.data[3::4] *= 3
 
+            # The derivative of the edge (cell) basis functions are 4 and -4
             diff_edges = sps.block_diag(
                 [np.array([[4], [-4]]) / vol for vol in sd.cell_volumes]
             )
 
             return sps.hstack((diff_nodes, diff_edges), format="csc")
 
+        # The 2D and 3D cases can be handled in a general way
         elif sd.dim == 2:
             edge_nodes = sd.face_ridges
             num_edges = sd.num_faces
+            # The second degree of freedom on an edge
+            # is oriented in the same way as the first
             second_dof_scaling = 1
 
         elif sd.dim == 3:
             edge_nodes = sd.ridge_peaks
             num_edges = sd.num_ridges
+            # By choice of design, we orient the second dof
+            # on an edge opposite to the first in 3D
             second_dof_scaling = -1
 
+        # Start of the edge
+        # The nodal function associated with the start has derivative -3 here.
+        # The other nodal function has derivative -1.
         diff_nodes_0 = edge_nodes.copy().T
         diff_nodes_0.data[edge_nodes.data == -1] = -3
         diff_nodes_0.data[edge_nodes.data == 1] = -1
 
         diff_0 = sps.hstack((diff_nodes_0, 4 * sps.eye(num_edges)))
 
+        # End of the edge
+        # The nodal function associated with the start has derivative 1 here.
+        # The other nodal function has derivative 3.
         diff_nodes_1 = edge_nodes.copy().T
         diff_nodes_1.data[edge_nodes.data == 1] = 3
         diff_nodes_1.data[edge_nodes.data == -1] = 1
 
+        # Rescale due to design choices in Nedelec1
         diff_1 = second_dof_scaling * sps.hstack(
             (diff_nodes_1, -4 * sps.eye(num_edges))
         )
 
+        # Combine
         return sps.vstack((diff_0, diff_1), format="csc")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
-        Construct the matrix for evaluating a Lagrangian function at the
+        Construct the matrix for evaluating a P2 function at the
         cell centers of the given grid.
 
         Args:
@@ -715,7 +756,7 @@ class Lagrange2(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
-        (u, func)_Gamma with u a test function in Lagrange1
+        (func, u)_Gamma with u a test function in Lagrange2
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain
@@ -731,6 +772,16 @@ class Lagrange2(pg.Discretization):
             b_faces = np.where(b_faces)[0]
 
         vals = np.zeros(self.ndof(sd))
+
+        for face in b_faces:
+            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
+            loc_n = sd.face_nodes.indices[loc]
+
+            vals[loc_n] += (
+                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
+            )
+
+        return vals
 
     def get_range_discr_class(self, dim: int) -> pg.Discretization:
         """
