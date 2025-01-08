@@ -90,6 +90,36 @@ class Lagrange2Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, true_sol))
 
+    def check_natural_bc(self, sd):
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        func = lambda x: x[0]
+        disc = pg.Lagrange2()
+
+        b_faces = sd.face_centers[sd.dim - 1] <= 1e-5
+
+        return disc.assemble_nat_bc(sd, func, b_faces)
+
+    def test_natural_bc_2D(self):
+        sd = pp.StructuredTriangleGrid([1, 1])
+        b = self.check_natural_bc(sd)
+
+        known_b = np.zeros_like(b)
+        known_b[[1, 4]] = np.array([1, 2]) / 6
+
+        self.assertTrue(np.allclose(b, known_b))
+
+    def test_natural_bc_3D(self):
+        sd = pp.StructuredTetrahedralGrid([1, 1, 1])
+        b = self.check_natural_bc(sd)
+
+        known_b = np.zeros_like(b)
+        known_b[[0, 1, 2, 3, 8, 9, 11, 12, 16]] = [-1, 3, -3, 1, 8, 4, 20, 16, 12]
+        known_b /= 120
+
+        self.assertTrue(np.allclose(b, known_b))
+
     def test_mixed_bcs_1d(self):
         """Solve a Laplace problem with (partial) Neumann bcs in 2D"""
         sd = pp.CartGrid([10], 1)
@@ -104,7 +134,6 @@ class Lagrange2Test(unittest.TestCase):
     def test_mixed_bcs_3d(self):
         """Solve a Laplace problem with (partial) Neumann bcs in 3D"""
         sd = pg.unit_grid(3, 0.5, as_mdg=False)
-        pg.convert_from_pp(sd)
         self.solve_mixed_bcs(sd)
 
     def solve_mixed_bcs(self, sd):
