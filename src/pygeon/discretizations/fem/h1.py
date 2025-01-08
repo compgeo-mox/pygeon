@@ -767,19 +767,53 @@ class Lagrange2(pg.Discretization):
         Returns:
             np.ndarray: The assembled 'natural' boundary condition values
         """
-        raise NotImplementedError
+        # In 1D, we reuse the code from P1
+        if sd.dim == 1:
+            # NOTE we pass self so that ndof() is taken from P2, not P1
+            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces)
+
+        # 2D and 3D
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
         vals = np.zeros(self.ndof(sd))
 
+        M = self.assemble_local_mass(sd.dim - 1)
+        edge_nodes = sd.face_ridges if sd.dim == 2 else sd.ridge_peaks
+
         for face in b_faces:
             loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
             loc_n = sd.face_nodes.indices[loc]
 
-            vals[loc_n] += (
-                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
-            )
+            if sd.dim == 2:
+                edges = np.array([face])
+            elif sd.dim == 3:
+                # List local edges
+                edges = sd.face_ridges.indices[loc]
+
+                # Swap ordering so that edge 0 is opposite node 2
+                edges = np.roll(edges, -1)[::-1]
+
+                # Check whether each edge is opposite
+                # the appropriate node in loc_n
+                check = sd.face_nodes[:, [face] * 3].astype(bool) - edge_nodes[
+                    :, edges
+                ].astype(bool)
+                assert np.all(loc_n[::-1] == check.indices)
+
+            # Evaluate f at the nodes and edges
+            f_vals = np.empty(sd.dim + len(edges))
+            f_vals[: sd.dim] = [func(x) for x in sd.nodes[:, loc_n].T]
+
+            for ind, edge in enumerate(edges):
+                x0, x1 = sd.nodes[:, edge_nodes[:, edge].indices].T
+                f_vals[sd.dim + ind] = func((x0 + x1) / 2)
+
+            # Use the local mass matrix on the boundary
+            vals_loc = M @ f_vals * sd.face_areas[face]
+
+            vals[loc_n] += vals_loc[: sd.dim]
+            vals[sd.num_nodes + edges] += vals_loc[sd.dim :]
 
         return vals
 

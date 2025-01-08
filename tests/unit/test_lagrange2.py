@@ -46,7 +46,7 @@ class Lagrange2Test(unittest.TestCase):
 
     def test_laplacian_1d(self):
         """Solve a Laplace problem with known, quadratic solution in 1D"""
-        sd = pp.CartGrid([10])
+        sd = pp.CartGrid([10], 1)
         pg.convert_from_pp(sd)
         self.solve_laplacian(sd)
 
@@ -84,6 +84,59 @@ class Lagrange2Test(unittest.TestCase):
         ess_vals[ess_bc] = true_sol[ess_bc]
 
         LS = pg.LinearSystem(A, f)
+        LS.flag_ess_bc(ess_bc, ess_vals)
+
+        u = LS.solve()
+
+        self.assertTrue(np.allclose(u, true_sol))
+
+    def test_mixed_bcs_1d(self):
+        """Solve a Laplace problem with (partial) Neumann bcs in 2D"""
+        sd = pp.CartGrid([10], 1)
+        pg.convert_from_pp(sd)
+        self.solve_mixed_bcs(sd)
+
+    def test_mixed_bcs_2d(self):
+        """Solve a Laplace problem with (partial) Neumann bcs in 2D"""
+        sd = pg.unit_grid(2, 0.5, as_mdg=False)
+        self.solve_mixed_bcs(sd)
+
+    def test_mixed_bcs_3d(self):
+        """Solve a Laplace problem with (partial) Neumann bcs in 3D"""
+        sd = pg.unit_grid(3, 0.5, as_mdg=False)
+        pg.convert_from_pp(sd)
+        self.solve_mixed_bcs(sd)
+
+    def solve_mixed_bcs(self, sd):
+
+        sd.compute_geometry()
+        discr = pg.Lagrange2()
+        A = discr.assemble_stiff_matrix(sd, None)
+
+        source_func = lambda _: 1.0
+        sol_func = lambda x: np.sum(x * (1 - x)) / (2 * sd.dim)
+        flux_func = lambda _: -1 / (2 * sd.dim)
+
+        true_sol = discr.interpolate(sd, sol_func)
+        f = discr.source_term(sd, source_func)
+
+        bdry_nodes = sd.nodes[0, :] <= 1e-6
+        if sd.dim == 1:
+            bdry_edges = np.zeros(sd.num_cells, dtype=bool)
+        elif sd.dim == 2:
+            bdry_edges = bdry_nodes @ np.abs(sd.face_ridges) > 1
+        elif sd.dim == 3:
+            bdry_edges = bdry_nodes @ np.abs(sd.ridge_peaks) > 1
+        ess_bc = np.hstack((bdry_nodes, bdry_edges), dtype=bool)
+
+        ess_vals = np.zeros_like(ess_bc, dtype=float)
+        ess_vals[ess_bc] = true_sol[ess_bc]
+
+        ess_bdry_faces = sd.face_centers[0, :] <= 1e-6
+        b_faces = np.logical_xor(sd.tags["domain_boundary_faces"], ess_bdry_faces)
+        b = discr.assemble_nat_bc(sd, flux_func, b_faces)
+
+        LS = pg.LinearSystem(A, f + b)
         LS.flag_ess_bc(ess_bc, ess_vals)
 
         u = LS.solve()
