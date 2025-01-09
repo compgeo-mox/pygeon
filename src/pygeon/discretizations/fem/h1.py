@@ -1,11 +1,11 @@
 """ Module for the discretizations of the H1 space. """
 
+import math
 from typing import Callable, Optional
 
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
-import math
 
 import pygeon as pg
 
