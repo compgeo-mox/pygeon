@@ -32,7 +32,7 @@ class Discretization(abc.ABC):
             term in the discretization matrix dictionary.
     """
 
-    def __init__(self, keyword: str = "unit") -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the Discretization object.
 

@@ -4,7 +4,7 @@ import pygeon as pg
 
 
 class VecVRT0(pg.VecDiscretization):
-    def __init__(self, keyword: str) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector virtual RT0 discretization class.
         The scalar discretization class is pg.VRT0.

@@ -41,7 +41,9 @@ class VecDiscretization(pg.Discretization):
             Assembles the natural boundary condition vector.
     """
 
-    def __init__(self, keyword: str, scalar_discr: pg.Discretization) -> None:
+    def __init__(
+        self, keyword: str = pg.UNITARY_DATA, scalar_discr: pg.Discretization = None
+    ) -> None:
         """
         Initialize the vector discretization class.
 
