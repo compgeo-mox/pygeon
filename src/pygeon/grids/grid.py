@@ -24,6 +24,8 @@ class Grid(pp.Grid):
         face_ridges (scipy.sparse.csc_matrix): Connectivity between each face and ridge.
         ridge_peaks (scipy.sparse.csc_matrix): Connectivity between each ridge and peak.
         tags (dict): Tags for entities in the grid.
+        edge_lengths (numpy.ndarray): The lengths of the one-dimensional edges.
+        mesh_size (float): The typical mesh size.
 
     Methods:
         compute_geometry():
@@ -49,6 +51,12 @@ class Grid(pp.Grid):
 
         compute_subvolumes(return_subsimplices=False):
             Computes the subvolumes of the grid.
+
+        compute_edge_lengths():
+            Computes the lengths of the one-dimensional edges.
+
+        compute_mesh_size():
+            Computes the mesh size as the mean of the edge lengths.
 
     """
 
@@ -76,7 +84,8 @@ class Grid(pp.Grid):
         3: "peaks"
 
         This method computes the geometry of the grid by calling the
-        superclass's compute_geometry method and then computing the ridges.
+        superclass's compute_geometry method, computing the ridge
+        and peak connectivities, and storing the edge lengths and mesh size.
 
         Args:
             None
@@ -86,6 +95,9 @@ class Grid(pp.Grid):
         """
         super(Grid, self).compute_geometry()
         self.compute_ridges()
+
+        self.compute_edge_lengths()
+        self.compute_mesh_size()
 
     def compute_ridges(self) -> None:
         """
@@ -158,7 +170,7 @@ class Grid(pp.Grid):
         R = pp.map_geometry.project_plane_matrix(self.nodes)
         loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
         rot = R.T @ loc_rot @ R
-        rotated_normal = rot.dot(self.face_normals)
+        rotated_normal = rot @ self.face_normals
 
         # The face-ridge orientation is determined by whether the rotated normal
         # coincides with the difference vector between the ridges.
@@ -168,7 +180,7 @@ class Grid(pp.Grid):
 
         orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-        self.face_ridges = face_ridges * sps.diags(orients)
+        self.face_ridges = face_ridges @ sps.diags(orients)
 
     def _compute_ridges_3d(self) -> None:
         """
@@ -318,3 +330,41 @@ class Grid(pp.Grid):
             self.opposite_nodes = sps.csc_matrix((opposites.indices, (faces, cells)))
 
         return self.opposite_nodes
+
+    def compute_edge_lengths(self) -> None:
+        """
+        Computes and stores the lengths
+        of the grid edges (1D entities).
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        match self.dim:
+            case 0:
+                edge_lengths = np.array([])
+            case 1:
+                edge_lengths = self.cell_volumes
+            case 2:
+                edge_lengths = self.face_areas
+            case 3:
+                tangents = self.nodes @ self.ridge_peaks
+                edge_lengths = np.sqrt(np.sum(tangents**2, axis=0))
+
+        self.edge_lengths = edge_lengths
+
+    def compute_mesh_size(self) -> None:
+        """
+        Computes and stores the typical
+        mesh size as the mean of the edge lengths.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        self.mesh_size = np.mean(self.edge_lengths)
