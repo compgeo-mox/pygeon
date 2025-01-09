@@ -19,13 +19,14 @@ class EdgeLengthTest(unittest.TestCase):
         self.assertTrue(len(sd.edge_lengths) == 0)
         self.assertTrue(np.isnan(sd.mesh_size))
 
-    def test_grid_1d_lines(self):
-        sd = pp.CartGrid([2], 1)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+    def test_cartgrids(self):
+        for dim in np.arange(1, 4):
+            sd = pp.CartGrid([2] * dim, [1] * dim)
+            pg.convert_from_pp(sd)
+            sd.compute_geometry()
 
-        self.assertTrue(np.allclose(sd.edge_lengths, 0.5))
-        self.assertTrue(np.allclose(sd.mesh_size, 0.5))
+            self.assertTrue(np.allclose(sd.edge_lengths, 0.5))
+            self.assertTrue(np.allclose(sd.mesh_size, 0.5))
 
     def test_grid_2d_tris(self):
         sd = pp.StructuredTriangleGrid([1] * 2)
@@ -52,13 +53,6 @@ class EdgeLengthTest(unittest.TestCase):
 
         known_meshsize = (12 + 6 * np.sqrt(2) + np.sqrt(3)) / 19
         self.assertTrue(np.allclose(sd.mesh_size, known_meshsize))
-
-    def test_non_simplicial_grid(self):
-        sd = pp.CartGrid([1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        self.assertRaises(TypeError, sd.compute_opposite_nodes)
 
 
 if __name__ == "__main__":
