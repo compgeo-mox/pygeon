@@ -390,6 +390,11 @@ class Lagrange2(pg.Discretization):
             sps.csc_matrix: The mass matrix obtained from the discretization.
         """
 
+        try:
+            weight = data[pp.PARAMETERS][self.keyword]["weight"]
+        except Exception:
+            weight = np.ones(sd.num_cells)
+
         # Data allocation
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -406,7 +411,7 @@ class Lagrange2(pg.Discretization):
             nodes = opposite_nodes.data[loc]
             edges = self.get_global_edge_nrs(sd, c, faces)
 
-            A = local_mass.ravel() * sd.cell_volumes[c]
+            A = local_mass.ravel() * weight[c] * sd.cell_volumes[c]
 
             loc_ind = np.hstack((nodes, edges))
 
@@ -589,6 +594,11 @@ class Lagrange2(pg.Discretization):
             sps.csc_matrix: The assembled stiffness matrix.
         """
 
+        try:
+            K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
+        except Exception:
+            K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -609,7 +619,9 @@ class Lagrange2(pg.Discretization):
             dphi = -sd.face_normals[:, faces] * signs / (sd.dim * sd.cell_volumes[c])
             Psi = self.eval_grads_at_nodes(dphi, e_nodes)
 
-            A = Psi @ local_mass @ Psi.T * sd.cell_volumes[c]
+            weight = np.kron(np.eye(sd.dim + 1), K.values[:, :, c])
+
+            A = Psi @ local_mass @ weight @ Psi.T * sd.cell_volumes[c]
 
             loc_ind = np.hstack((nodes, edges))
 

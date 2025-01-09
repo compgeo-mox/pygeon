@@ -96,13 +96,12 @@ class DifferentialsTest(unittest.TestCase):
         self.check_stiffness_consistency(sd, disc)
 
     def check_stiffness_consistency(self, sd, disc):
+        """Compare the implemented stiffness matrix
+        to the one obtained by mapping to the range discretization"""
         sd.compute_geometry()
-        Stiff_1 = disc.assemble_stiff_matrix(sd, None)
 
-        Diff = disc.assemble_diff_matrix(sd)
-        range_discr = disc.get_range_discr_class(sd.dim)()
-        Mass = range_discr.assemble_mass_matrix(sd, None)
-        Stiff_2 = Diff.T @ Mass @ Diff
+        Stiff_1 = disc.assemble_stiff_matrix(sd, None)
+        Stiff_2 = pg.Discretization.assemble_stiff_matrix(disc, sd)
 
         diff = Stiff_1 - Stiff_2
         self.assertTrue(np.allclose(diff.data, 0))
