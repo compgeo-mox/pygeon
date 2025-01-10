@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H1 space. """
 
-import math
+from math import factorial
 from typing import Callable, Optional
 
 import numpy as np
@@ -494,18 +494,6 @@ class Lagrange2(pg.Discretization):
 
         return mass
 
-    @staticmethod
-    def factorial(n: float) -> int:
-        """
-        Compute the factorial of a float by first rounding to an int.
-        Args:
-            n (float): the input float
-
-        Returns:
-            int: the factorial n!
-        """
-        return math.factorial(int(n))
-
     def integrate_monomial(self, alphas: np.ndarray) -> float:
         """
         Exact integration of products of monomials based on
@@ -518,14 +506,11 @@ class Lagrange2(pg.Discretization):
         Returns:
             float: the integral of the monomial on a simplex with measure 1
         """
+        alphas = alphas.astype(int)
         dim = len(alphas) - 1
-        fac_alph = [self.factorial(a_i) for a_i in alphas]
+        fac_alph = [factorial(a_i) for a_i in alphas]
 
-        return (
-            self.factorial(dim)
-            * np.prod(fac_alph)
-            / self.factorial(dim + np.sum(alphas))
-        )
+        return factorial(dim) * np.prod(fac_alph) / factorial(dim + np.sum(alphas))
 
     def num_edges_per_cell(self, dim: int) -> int:
         """
