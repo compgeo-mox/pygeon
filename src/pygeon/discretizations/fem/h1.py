@@ -366,7 +366,8 @@ class Lagrange2(pg.Discretization):
             Returns the mass matrix for the second order Lagrange element.
 
         assemble_local_mass(dim: int) -> np.ndarray:
-            Computes the local mass matrix of the basis functions on a d-simplex with measure 1.
+            Computes the local mass matrix of the basis functions on a d-simplex with measure
+            1.
 
         assemble_barycentric_mass(expnts: np.ndarray) -> np.ndarray:
             Compute the inner products of all monomials up to degree 2.
@@ -383,19 +384,23 @@ class Lagrange2(pg.Discretization):
             Evaluates the gradients of the basis functions at the nodes.
 
         get_edge_dof_indices(sd, cell, faces) -> np.ndarray:
-            Finds the indices for the edge degrees of freedom that correspond to the local numbering of the edges.
+            Finds the indices for the edge degrees of freedom that correspond to the local
+            numbering of the edges.
 
         assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
-            Construct the matrix for evaluating a P2 function at the cell centers of the given grid.
+            Construct the matrix for evaluating a P2 function at the cell centers of the given
+            grid.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
 
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray) -> np.ndarray:
-            Assembles the 'natural' boundary condition (func, u)_Gamma with u a test function in Lagrange2.
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
+            np.ndarray) -> np.ndarray:
+            Assembles the 'natural' boundary condition (func, u)_Gamma with u a test function
+            in Lagrange2.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
     """
