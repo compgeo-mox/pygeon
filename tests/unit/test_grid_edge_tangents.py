@@ -10,14 +10,15 @@ Module contains a unit tests to validate the edge length computations for grids
 """
 
 
-class EdgeLengthTest(unittest.TestCase):
+class EdgeTangentTest(unittest.TestCase):
     def test_grid_0d(self):
         sd = pp.PointGrid([0, 0, 0])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
+        self.assertTrue(len(sd.edge_tangents) == 0)
         self.assertTrue(len(sd.edge_lengths) == 0)
-        self.assertTrue(np.isnan(sd.mesh_size))
+        self.assertTrue(sd.mesh_size == 0)
 
     def test_cartgrids(self):
         for dim in np.arange(1, 4):
@@ -37,6 +38,7 @@ class EdgeLengthTest(unittest.TestCase):
         known_lengths = np.sqrt(np.arange(1, 3))
 
         self.assertTrue(np.allclose(unique_lengths, known_lengths))
+        self.assertTrue(np.allclose(sd.edge_lengths, sd.face_areas))
 
         known_meshsize = (4 + np.sqrt(2)) / 5
         self.assertTrue(np.allclose(sd.mesh_size, known_meshsize))
@@ -56,5 +58,4 @@ class EdgeLengthTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

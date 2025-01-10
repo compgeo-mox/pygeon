@@ -96,7 +96,7 @@ class Grid(pp.Grid):
         super(Grid, self).compute_geometry()
         self.compute_ridges()
 
-        self.compute_edge_lengths()
+        self.compute_edge_properties()
         self.compute_mesh_size()
 
     def compute_ridges(self) -> None:
@@ -331,9 +331,9 @@ class Grid(pp.Grid):
 
         return self.opposite_nodes
 
-    def compute_edge_lengths(self) -> None:
+    def compute_edge_properties(self) -> None:
         """
-        Computes and stores the lengths
+        Computes and stores the tangent vectors and lengths
         of the grid edges (1D entities).
 
         Args:
@@ -344,16 +344,18 @@ class Grid(pp.Grid):
         """
         match self.dim:
             case 0:
-                edge_lengths = np.array([])
+                self.edge_tangents = np.zeros((0, 3))
+                self.edge_lengths = np.zeros(0)
+                return
             case 1:
-                edge_lengths = self.cell_volumes
+                edge_nodes = self.cell_faces
             case 2:
-                edge_lengths = self.face_areas
+                edge_nodes = self.face_ridges
             case 3:
-                tangents = self.nodes @ self.ridge_peaks
-                edge_lengths = np.sqrt(np.sum(tangents**2, axis=0))
+                edge_nodes = self.ridge_peaks
 
-        self.edge_lengths = edge_lengths
+        self.edge_tangents = self.nodes @ edge_nodes
+        self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
 
     def compute_mesh_size(self) -> None:
         """
@@ -366,5 +368,7 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-
-        self.mesh_size = np.mean(self.edge_lengths)
+        if self.dim == 0:
+            self.mesh_size = 0
+        else:
+            self.mesh_size = np.mean(self.edge_lengths)
