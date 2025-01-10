@@ -54,7 +54,7 @@ class DifferentialsTest(unittest.TestCase):
             diff1 = pg.numerics.differentials.exterior_derivative(grid, n_minus_k)
             diff2 = pg.numerics.differentials.exterior_derivative(grid, n_minus_k + 1)
 
-            product = diff1 * diff2
+            product = diff1 @ diff2
             self.assertTrue(product.nnz == 0)
 
     def test_stiffness_P1_3D(self):
@@ -62,24 +62,10 @@ class DifferentialsTest(unittest.TestCase):
         Test whether the stiffness matrix of P1 corresponds to
         grad.T M grad where M is the mass matrix of Ne0.
         """
-
-        la = pg.Lagrange1("flow")
-        ne = pg.Nedelec0("flow")
-
-        grid = pp.StructuredTetrahedralGrid([4] * 3, [1] * 3)
-        pg.convert_from_pp(grid)
-        grid.compute_geometry()
-
-        data = {pp.PARAMETERS: {"flow": {}}}
-        k = pp.SecondOrderTensor(np.ones(grid.num_cells))
-        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = k
-
-        A_la = la.assemble_stiffness_matrix(grid, data)
-        M_ne = ne.assemble_mass_matrix(grid, data)
-        grad = pg.grad(grid)
-
-        diff = A_la - grad.T * M_ne * grad
-        self.assertAlmostEqual(np.linalg.norm(diff.data), 0)
+        sd = pp.StructuredTetrahedralGrid([4] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
+        disc = pg.Lagrange1()
+        self.check_stiffness_consistency(sd, disc)
 
     def test_stiffness_P1_2D(self):
         """
@@ -87,25 +73,78 @@ class DifferentialsTest(unittest.TestCase):
         curl.T M curl where M is the mass matrix of RT0.
         """
 
-        la = pg.Lagrange1("flow")
-        rt = pp.RT0("flow")
+        sd = pp.StructuredTriangleGrid([4] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
+        disc = pg.Lagrange1()
+        self.check_stiffness_consistency(sd, disc)
 
-        grid = pp.StructuredTriangleGrid([4] * 2, [1] * 2)
-        pg.convert_from_pp(grid)
-        grid.compute_geometry()
+    def test_stiffness_P2_1D(self):
+        sd = pp.CartGrid([3], 1)
+        pg.convert_from_pp(sd)
+        disc = pg.Lagrange2()
+        self.check_stiffness_consistency(sd, disc)
 
-        data = {pp.PARAMETERS: {"flow": {}}, pp.DISCRETIZATION_MATRICES: {"flow": {}}}
-        k = pp.SecondOrderTensor(np.ones(grid.num_cells))
-        data[pp.PARAMETERS]["flow"]["second_order_tensor"] = k
+    def test_stiffness_P2_2D_structured(self):
+        sd = pp.StructuredTriangleGrid([2, 2])
+        pg.convert_from_pp(sd)
+        disc = pg.Lagrange2()
+        self.check_stiffness_consistency(sd, disc)
 
-        rt.discretize(grid, data)
+    def test_stiffness_P2_2D_unstructured(self):
+        sd = pg.unit_grid(2, 0.5, as_mdg=False)
+        disc = pg.Lagrange2()
+        self.check_stiffness_consistency(sd, disc)
 
-        A_la = la.assemble_stiffness_matrix(grid, data)
-        M_rt = data[pp.DISCRETIZATION_MATRICES]["flow"]["mass"]
-        curl = pg.curl(grid)
+    def check_stiffness_consistency(self, sd, disc):
+        """Compare the implemented stiffness matrix
+        to the one obtained by mapping to the range discretization"""
+        sd.compute_geometry()
 
-        diff = A_la - curl.T * M_rt * curl
-        self.assertAlmostEqual(np.linalg.norm(diff.data), 0)
+        Stiff_1 = disc.assemble_stiff_matrix(sd, None)
+        Stiff_2 = pg.Discretization.assemble_stiff_matrix(disc, sd)
+
+        diff = Stiff_1 - Stiff_2
+        self.assertTrue(np.allclose(diff.data, 0))
+
+    def test_cochain_property_P1_2D(self):
+        sd = pg.unit_grid(2, 0.5, as_mdg=False)
+        disc = pg.Lagrange1()
+        self.check_cochain_property(sd, disc)
+
+    def test_cochain_property_P2_2D(self):
+        sd = pg.unit_grid(2, 0.5, as_mdg=False)
+        disc = pg.Lagrange2()
+        self.check_cochain_property(sd, disc)
+
+    def test_cochain_property_P1_3D(self):
+        sd = pg.unit_grid(3, 0.5, as_mdg=False)
+        disc = pg.Lagrange1()
+        self.check_cochain_property(sd, disc)
+
+    def test_cochain_property_P2_3D(self):
+        sd = pg.unit_grid(3, 0.5, as_mdg=False)
+        disc = pg.Lagrange2()
+        self.check_cochain_property(sd, disc)
+
+    def test_cochain_property_N0_3D(self):
+        sd = pg.unit_grid(3, 0.5, as_mdg=False)
+        disc = pg.Nedelec0()
+        self.check_cochain_property(sd, disc)
+
+    def test_cochain_property_N1_3D(self):
+        sd = pg.unit_grid(3, 0.5, as_mdg=False)
+        disc = pg.Nedelec1()
+        self.check_cochain_property(sd, disc)
+
+    def check_cochain_property(self, sd, disc):
+        sd.compute_geometry()
+
+        Diff = disc.assemble_diff_matrix(sd)
+        range_discr = disc.get_range_discr_class(sd.dim)()
+        range_Diff = range_discr.assemble_diff_matrix(sd)
+
+        prod = range_Diff @ Diff
+        self.assertTrue(np.allclose(prod.data, 0))
 
 
 if __name__ == "__main__":
