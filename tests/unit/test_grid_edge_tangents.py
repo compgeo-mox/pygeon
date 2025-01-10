@@ -39,6 +39,9 @@ class EdgeTangentTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(unique_lengths, known_lengths))
         self.assertTrue(np.allclose(sd.edge_lengths, sd.face_areas))
+        self.assertTrue(
+            np.allclose(np.sum(sd.edge_tangents * sd.face_normals, axis=0), 0)
+        )
 
         known_meshsize = (4 + np.sqrt(2)) / 5
         self.assertTrue(np.allclose(sd.mesh_size, known_meshsize))
