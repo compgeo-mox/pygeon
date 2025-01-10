@@ -615,7 +615,7 @@ class Lagrange2(pg.Discretization):
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
 
-    def assemble_stiff_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+    def assemble_stiff_matrix(self, sd: pg.Grid,  Optional[dict] = None) -> sps.csc_matrix:
         """
         Assembles the stiffness matrix for the P2 finite element method.
 
