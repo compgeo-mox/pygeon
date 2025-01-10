@@ -127,7 +127,9 @@ class Lagrange1(pg.Discretization):
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         return M / ((dim + 1) * (dim + 2))
 
-    def assemble_stiff_matrix(self, sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the stiffness matrix for the finite element method.
 
@@ -615,7 +617,9 @@ class Lagrange2(pg.Discretization):
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
 
-    def assemble_stiff_matrix(self, sd: pg.Grid,  Optional[dict] = None) -> sps.csc_matrix:
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
         """
         Assembles the stiffness matrix for the P2 finite element method.
 
