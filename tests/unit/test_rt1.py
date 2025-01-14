@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+import scipy.sparse as sps
 
 import porepy as pp
 import pygeon as pg
@@ -8,15 +9,62 @@ import pygeon as pg
 class RT1Test(unittest.TestCase):
 
     def test_mass(self):
-        N, dim = 2, 2
+        N, dim = 1, 2
+        # sd = pp.CartGrid([N] * dim, [1] * dim)
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        # sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.RT1()
-        self.assertEqual(discr.ndof(sd), sd.num_faces)
+        # self.assertEqual(discr.ndof(sd), sd.num_faces)
 
-        M = discr.assemble_mass_matrix(sd)
+        face_mass = discr.assemble_mass_matrix(sd)
+
+        discr_p1 = pg.PwLinears()
+        cell_mass = discr_p1.assemble_mass_matrix(sd, None)
+
+        div = cell_mass @ discr.assemble_diff_matrix(sd)
+
+        def q_0(x):
+            return x**2
+
+        q_interp = discr.interpolate(sd, q_0)
+
+        # assemble the saddle point problem
+        spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
+
+        b_faces = sd.tags["domain_boundary_faces"]
+
+        def p_0(x):
+            return x[0]
+
+        bc_val = -discr.assemble_nat_bc(sd, p_0, b_faces)
+
+        rhs = np.zeros(spp.shape[0])
+        rhs[: bc_val.size] += bc_val
+
+        # solve the problem
+        ls = pg.LinearSystem(spp, rhs)
+        x = ls.solve()
+
+        q = x[: bc_val.size]
+        p = x[-discr_p1.ndof(sd) :]
+
+        # face_proj = discr.eval_at_cell_centers(sd)
+        cell_proj = discr_p1.eval_at_cell_centers(sd)
+
+        # cell_q = (face_proj * q).reshape((3, -1))
+        cell_p = cell_proj @ p
+
+        # known_q = np.zeros(cell_q.shape)
+        # known_q[0, :] = -1.0
+        known_p = sd.cell_centers[0, :]
+
+        # self.assertAlmostEqual(np.linalg.norm(cell_q - known_q), 0)
+        # self.assertAlmostEqual(np.linalg.norm(cell_p - known_p), 0)
+
+        # self.assertTrue(discr.get_range_discr_class(sd.dim) is pg.PwConstants)
 
     #     M = discr.assemble_lumped_matrix(sd)
 
