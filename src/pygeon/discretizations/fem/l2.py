@@ -434,4 +434,14 @@ class PwLinears(pg.Discretization):
         Returns:
             np.ndarray: the values of the degrees of freedom
         """
-        raise NotImplementedError
+
+        cell_nodes = sd.cell_nodes()
+        vals = np.zeros((sd.num_cells, sd.dim + 1))
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+            nodes_loc = cell_nodes.indices[loc]
+
+            vals[c] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+
+        return vals.ravel()

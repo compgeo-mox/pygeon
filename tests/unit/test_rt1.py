@@ -9,37 +9,34 @@ import pygeon as pg
 class RT1Test(unittest.TestCase):
 
     def test_mass(self):
-        N, dim = 1, 2
+        N, dim = 20, 2
         # sd = pp.CartGrid([N] * dim, [1] * dim)
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        # sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
         # sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
+        # pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.RT1()
-        # self.assertEqual(discr.ndof(sd), sd.num_faces)
+        discr_q = pg.RT1()
+        discr_p = pg.PwLinears()
 
-        face_mass = discr.assemble_mass_matrix(sd)
-
-        discr_p1 = pg.PwLinears()
-        cell_mass = discr_p1.assemble_mass_matrix(sd, None)
-
-        div = cell_mass @ discr.assemble_diff_matrix(sd)
+        # Provide the solution
+        def p_0(x):
+            return x[0] - 2 * x[1]
 
         def q_0(x):
-            return x**2
-
-        q_interp = discr.interpolate(sd, q_0)
+            return np.array([-1, 2, 0])
 
         # assemble the saddle point problem
+        face_mass = discr_q.assemble_mass_matrix(sd)
+        cell_mass = discr_p.assemble_mass_matrix(sd, None)
+        div = cell_mass @ discr_q.assemble_diff_matrix(sd)
+
         spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
 
+        # set the boundary conditions
         b_faces = sd.tags["domain_boundary_faces"]
-
-        def p_0(x):
-            return x[0]
-
-        bc_val = -discr.assemble_nat_bc(sd, p_0, b_faces)
+        bc_val = -discr_q.assemble_nat_bc(sd, p_0, b_faces)
 
         rhs = np.zeros(spp.shape[0])
         rhs[: bc_val.size] += bc_val
@@ -49,20 +46,21 @@ class RT1Test(unittest.TestCase):
         x = ls.solve()
 
         q = x[: bc_val.size]
-        p = x[-discr_p1.ndof(sd) :]
+        p = x[-discr_p.ndof(sd) :]
 
-        # face_proj = discr.eval_at_cell_centers(sd)
-        cell_proj = discr_p1.eval_at_cell_centers(sd)
+        known_p = discr_p.interpolate(sd, p_0)
+        known_q = discr_q.interpolate(sd, q_0)
 
-        # cell_q = (face_proj * q).reshape((3, -1))
-        cell_p = cell_proj @ p
+        P = discr_q.eval_at_cell_centers(sd)
 
-        # known_q = np.zeros(cell_q.shape)
-        # known_q[0, :] = -1.0
-        known_p = sd.cell_centers[0, :]
+        x_known = np.hstack((known_q, known_p))
+        res = spp @ x_known - rhs
 
         # self.assertAlmostEqual(np.linalg.norm(cell_q - known_q), 0)
-        # self.assertAlmostEqual(np.linalg.norm(cell_p - known_p), 0)
+        self.assertTrue(np.allclose(p, known_p))
+        self.assertTrue(np.allclose(q, known_q))
+
+        pass
 
         # self.assertTrue(discr.get_range_discr_class(sd.dim) is pg.PwConstants)
 

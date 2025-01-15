@@ -125,7 +125,7 @@ Using these, we can rapidly compute, for example
 $$
     \Psi_1^0 \coloneqq \pm \frac1{d |\Delta|}\left(
     \begin{bmatrix} 
-        \tau_{01} \\ 0 \\ 0 \\
+        0 \\ \tau_{01} \\ 0 \\
         0 \\ 0 \\ 0 
     \end{bmatrix}
     - (\psi_0 - \psi_1)

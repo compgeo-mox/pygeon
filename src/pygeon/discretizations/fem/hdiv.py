@@ -877,8 +877,6 @@ class RT1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        bdm1 = pg.BDM1()
-
         # Compute the local inner product matrix
         M = self.local_inner_product(sd.dim)
 
@@ -889,28 +887,29 @@ class RT1(pg.Discretization):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
+            signs_loc = sd.cell_faces.data[loc]
             opposites_loc = opposite_nodes.data[loc]
-            nodes_loc = opposites_loc[::-1]
 
-            BDM_eval = bdm1.eval_basis_at_node(sd, opposites_loc, faces_loc)
+            # Find the ordering
+            nodes_loc = np.sort(opposites_loc)
 
-            Psi_at_nodes = np.zeros((BDM_eval.shape[0], 3))
-            for ind in np.arange(sd.dim + 1):
-                Psi_at_nodes += BDM_eval[:, np.arange(3 * ind, 3 * (ind + 1))]
-            Psi_at_center = self.eval_basis_at_center(
-                sd, nodes_loc, sd.cell_volumes[c]
-            ).T
+            # Reorder the faces so that
+            # face_0 is (0, 1) and opposite node 2
+            # face_1 is (0, 2) and opposite node 1
+            # face_2 is (1, 2) and opposite node 0
+            sorter = np.argsort(opposites_loc)[[2, 1, 0]]
+            faces_loc = faces_loc[sorter]
 
-            Psi = np.vstack((Psi_at_nodes, Psi_at_center))
-
-            vector_inner_prods = Psi @ inv_K.values[:, :, c] @ Psi.T
+            Psi = self.eval_basis_functions(
+                sd, nodes_loc, sd.cell_volumes[c], signs_loc
+            )
 
             # Compute the H_div-mass local matrix
-            A = vector_inner_prods * M * sd.cell_volumes[c]
+            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
 
             loc_face = np.hstack([faces_loc] * sd.dim)
             loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
-            loc_cell = sd.dim * sd.num_faces + np.arange(sd.dim) * sd.num_cells + c
+            loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
             loc_ind = np.hstack((loc_face, loc_cell))
 
             # Save values of the local matrix in the global structure
@@ -927,18 +926,17 @@ class RT1(pg.Discretization):
     def local_inner_product(self, dim: int):
 
         lagrange2 = pg.Lagrange2()
-        alphas = np.eye(dim + 1)
+        alphas_nodes = np.eye(dim + 1)
 
         e_nodes = lagrange2.get_local_edge_nodes(dim)
-        alphas_faces = np.zeros((dim + 1, e_nodes.shape[0]))
+        alphas_edges = np.zeros((dim + 1, e_nodes.shape[0]))
         for ind, edge in enumerate(e_nodes):
-            alphas_faces[edge, ind] = 1
+            alphas_edges[edge, ind] = 1
 
-        alphas = np.hstack((alphas, alphas_faces))
+        alphas = np.hstack((alphas_nodes, alphas_edges))
         M = lagrange2.assemble_barycentric_mass(alphas)
 
-        opposite_node = np.tile(np.arange(dim, -1, -1), dim)
-        dof_at_node = np.repeat(np.arange(dim + 1), dim)
+        return np.kron(M, np.eye(3))
 
         alphas_of_face = np.zeros_like(opposite_node)
         for ind in np.arange(len(alphas_of_face)):
@@ -958,11 +956,58 @@ class RT1(pg.Discretization):
 
         return basis.T @ M @ basis
 
+    def eval_basis_functions(self, sd, nodes_loc, volume, signs_loc):
+
+        dim = sd.dim
+        n_edges = dim * (dim + 1) // 2
+
+        opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
+        loc_node = np.repeat(np.arange(dim + 1), dim)
+
+        tangent = lambda i, j: sd.nodes[:, nodes_loc[j]] - sd.nodes[:, nodes_loc[i]]
+
+        signs = np.tile(signs_loc, dim)
+
+        if dim == 2:
+            # helper functions
+            psi_0 = np.zeros((dim + 1 + n_edges, 3))
+            psi_0[dim + 1] = tangent(0, 1)
+            psi_0[dim + 2] = tangent(0, 2)
+
+            psi_1 = np.zeros_like(psi_0)
+            psi_1[dim + 1] = tangent(1, 0)
+            psi_1[dim + 3] = tangent(1, 2)
+
+            psi_2 = np.zeros_like(psi_0)
+            psi_2[dim + 2] = tangent(2, 0)
+            psi_2[dim + 3] = tangent(2, 1)
+
+            psi = np.vstack([psi.ravel() for psi in [psi_0, psi_1, psi_2]])
+        else:
+            raise NotImplementedError
+
+        # Let's go
+        Psi = np.zeros((dim * (dim + 2), 3 * (dim + 1 + n_edges)))
+
+        for ind, (i, j) in enumerate(zip(loc_node, opp_node)):
+            Psi[ind, 3 * i : 3 * (i + 1)] = tangent(j, i)
+            Psi[ind] -= psi[j] - psi[i]
+            Psi[ind] *= signs[ind]
+
+        Psi[-dim:] = (dim + 1) ** 2 * psi[:dim]
+
+        return Psi / (dim * volume)
+
     def eval_basis_at_center(self, sd, nodes_loc, volume):
-        tangents = (
-            sd.nodes[:, nodes_loc[1:]] - sd.nodes[:, np.repeat(nodes_loc[0], sd.dim)]
-        )
-        return tangents / (sd.dim * volume)
+        basis = np.zeros((3, sd.dim))
+
+        for ind in np.arange(sd.dim):
+            basis[:, ind] = np.sum(
+                sd.nodes[:, nodes_loc]
+                - sd.nodes[:, np.repeat(nodes_loc[ind], sd.dim + 1)],
+                axis=1,
+            )
+        return basis / (sd.dim * volume)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -974,15 +1019,9 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_matrix: The finite element solution evaluated at the cell centers.
         """
-        raise NotImplementedError
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        c_centers, f_normals, f_centers, R, dim, node_coords = pp.map_geometry.map_grid(
-            sd
-        )
 
         # Allocate the data to store matrix P entries
-        size = 3 * (sd.dim + 1) * sd.num_cells
+        size = 3 * sd.dim * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -994,64 +1033,20 @@ class RT1(pg.Discretization):
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            # get the opposite node id for each face
-            coord_loc = node_coords[:, opposites_loc]
+            P = self.eval_basis_at_center(sd, opposites_loc[::-1], sd.cell_volumes[c])
 
-            # Compute the flux reconstruction matrix
-            P = pp.RT0.faces_to_cell(
-                c_centers[:, c],
-                coord_loc,
-                f_centers[:, faces_loc],
-                f_normals[:, faces_loc],
-                dim,
-                R,
-            )
-
+            cell_dofs = sd.num_faces * sd.dim + sd.num_cells * np.arange(sd.dim) + c
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + P.size)
-            rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, sd.dim + 1)
-            cols_J[loc_idx] = np.tile(faces_loc, 3)
+            rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, sd.dim)
+            cols_J[loc_idx] = np.tile(cell_dofs, 3)
             data_IJ[loc_idx] = P.ravel()
             idx += P.size
 
         # Construct the global matrix
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
-        """
-        Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
-                In particular the second_order_tensor that is the inverse of the diffusion
-                tensor (permeability for porous media).
-
-        Returns:
-            sps.csc_matrix: The lumped mass matrix.
-        """
-        raise NotImplementedError
-        if data is None:
-            data = self.create_unitary_data(sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of the permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
-
-        h_perp = np.zeros(sd.num_faces)
-        for face, cell in zip(*sd.cell_faces.nonzero()):
-            dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            h_perp_loc = dist.T @ inv_K.values[:, :, cell] @ dist
-            norm_dist = np.linalg.norm(dist)
-            h_perp[face] += h_perp_loc / norm_dist if norm_dist else 0
-
-        return sps.diags(h_perp / sd.face_areas).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         """
@@ -1072,26 +1067,17 @@ class RT1(pg.Discretization):
         idx = 0
 
         # Local indices related to dof
-        opposite_node = np.tile(np.arange(sd.dim, -1, -1), sd.dim)
-        dof_at_node = np.repeat(np.arange(sd.dim + 1), sd.dim)
-
-        face_div = np.ones((sd.dim + 1, sd.dim * (sd.dim + 1)))
-        face_div[dof_at_node, np.arange(dof_at_node.size)] += sd.dim + 1
-        face_div[opposite_node, np.arange(dof_at_node.size)] -= sd.dim + 1
-
-        cell_div = np.ones((1, sd.dim))
-        cell_div = np.vstack((cell_div, -np.eye(sd.dim)))
-        cell_div *= (sd.dim + 1) ** 2
+        loc_div = self.compute_local_div_matrix(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
 
-            signs = np.tile(sd.cell_faces.data[loc], sd.dim)
-            face_div_loc = face_div * signs[None, :]
+            signs = np.ones(loc_div.shape[1])
+            signs[: -sd.dim] = np.tile(sd.cell_faces.data[loc], sd.dim)
 
-            div = np.hstack((face_div_loc, cell_div)) / (sd.dim * sd.cell_volumes[c])
+            div = loc_div * signs / (sd.dim * sd.cell_volumes[c])
 
             loc_face = np.hstack([faces_loc] * sd.dim)
             loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -1112,6 +1098,21 @@ class RT1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
+    def compute_local_div_matrix(self, sd):
+        opp_node = np.tile(np.arange(sd.dim + 1), sd.dim)[::-1]
+        loc_node = np.repeat(np.arange(sd.dim + 1), sd.dim)
+
+        face_div = np.ones((sd.dim + 1, sd.dim * (sd.dim + 1)))
+        face_div[loc_node, np.arange(loc_node.size)] += sd.dim + 1
+        face_div[opp_node, np.arange(loc_node.size)] -= sd.dim + 1
+
+        cell_div = 3 * np.eye(sd.dim + 1, sd.dim)
+        cell_div -= 1
+        cell_div *= (sd.dim + 1) ** 2
+
+        loc_div = np.hstack((face_div, cell_div))
+        return loc_div
+
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
@@ -1130,7 +1131,6 @@ class RT1(pg.Discretization):
         bdm1 = pg.BDM1()
         interp_faces = bdm1.interpolate(sd, func)
         interp_cells = np.zeros(sd.dim * sd.num_cells)
-
         cell_nodes = sd.cell_nodes()
 
         for c in np.arange(sd.num_cells):
@@ -1139,10 +1139,10 @@ class RT1(pg.Discretization):
             ]
             basis_at_center = self.eval_basis_at_center(
                 sd, nodes_loc, sd.cell_volumes[c]
-            )
+            )[: sd.dim, :]
 
             coefficients = np.linalg.solve(
-                basis_at_center[: sd.dim], func(sd.cell_centers[:, c])[: sd.dim]
+                basis_at_center, func(sd.cell_centers[:, c])[: sd.dim]
             )
 
             interp_cells[sd.num_cells * np.arange(sd.dim) + c] = coefficients
