@@ -880,7 +880,7 @@ class RT1(pg.Discretization):
         bdm1 = pg.BDM1()
 
         # Compute the local inner product matrix
-        M = self.local_inner_product(sd)
+        M = self.local_inner_product(sd.dim)
 
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
@@ -924,37 +924,37 @@ class RT1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_inner_product(self, sd):
+    def local_inner_product(self, dim: int):
 
         lagrange2 = pg.Lagrange2()
-        alphas = np.eye(sd.dim + 1)
+        alphas = np.eye(dim + 1)
 
-        e_nodes = lagrange2.get_local_edge_nodes(sd.dim)
-        alphas_faces = np.zeros((sd.dim + 1, e_nodes.shape[0]))
+        e_nodes = lagrange2.get_local_edge_nodes(dim)
+        alphas_faces = np.zeros((dim + 1, e_nodes.shape[0]))
         for ind, edge in enumerate(e_nodes):
             alphas_faces[edge, ind] = 1
 
         alphas = np.hstack((alphas, alphas_faces))
         M = lagrange2.assemble_barycentric_mass(alphas)
 
-        opposite_node = np.tile(np.arange(sd.dim, -1, -1), sd.dim)
-        dof_at_node = np.repeat(np.arange(sd.dim + 1), sd.dim)
+        opposite_node = np.tile(np.arange(dim, -1, -1), dim)
+        dof_at_node = np.repeat(np.arange(dim + 1), dim)
 
         alphas_of_face = np.zeros_like(opposite_node)
         for ind in np.arange(len(alphas_of_face)):
-            alpha_temp = np.zeros(sd.dim + 1)
+            alpha_temp = np.zeros(dim + 1)
             alpha_temp[opposite_node[ind]] = 1
             alpha_temp[dof_at_node[ind]] = 1
 
             alphas_of_face[ind] = np.where(alpha_temp @ alphas == 2)[0]
 
-        alphas_of_cell = np.arange(sd.dim + 1, 2 * sd.dim + 1)
+        alphas_of_cell = np.arange(dim + 1, 2 * dim + 1)
 
         basis = np.zeros((alphas.shape[1], alphas_of_face.size + alphas_of_cell.size))
         basis[dof_at_node, np.arange(dof_at_node.size)] = 1
-        basis[alphas_of_face, np.arange(dof_at_node.size)] = -(sd.dim + 1)
+        basis[alphas_of_face, np.arange(dof_at_node.size)] = -(dim + 1)
 
-        basis[alphas_of_cell, np.arange(-sd.dim, 0)] = (sd.dim + 1) ** 2
+        basis[alphas_of_cell, np.arange(-dim, 0)] = (dim + 1) ** 2
 
         return basis.T @ M @ basis
 
