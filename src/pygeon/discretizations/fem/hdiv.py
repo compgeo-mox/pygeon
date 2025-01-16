@@ -884,21 +884,7 @@ class RT1(pg.Discretization):
         opposite_nodes = sd.compute_opposite_nodes()
 
         for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its faces
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
-            signs_loc = sd.cell_faces.data[loc]
-            opposites_loc = opposite_nodes.data[loc]
-
-            # Find the ordering
-            nodes_loc = np.sort(opposites_loc)
-
-            # Reorder the faces so that
-            # face_0 is (0, 1) and opposite node 2
-            # face_1 is (0, 2) and opposite node 1
-            # face_2 is (1, 2) and opposite node 0
-            sorter = np.argsort(opposites_loc)[[2, 1, 0]]
-            faces_loc = faces_loc[sorter]
+            nodes_loc, faces_loc, signs_loc = self.reorder_faces(sd, opposite_nodes, c)
 
             Psi = self.eval_basis_functions(
                 sd, nodes_loc, sd.cell_volumes[c], signs_loc
@@ -938,23 +924,25 @@ class RT1(pg.Discretization):
 
         return np.kron(M, np.eye(3))
 
-        alphas_of_face = np.zeros_like(opposite_node)
-        for ind in np.arange(len(alphas_of_face)):
-            alpha_temp = np.zeros(dim + 1)
-            alpha_temp[opposite_node[ind]] = 1
-            alpha_temp[dof_at_node[ind]] = 1
+    def reorder_faces(self, sd, opposite_nodes, c):
+        # For the current cell retrieve its faces
+        loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+        faces_loc = sd.cell_faces.indices[loc]
+        signs_loc = sd.cell_faces.data[loc]
+        opposites_loc = opposite_nodes.data[loc]
 
-            alphas_of_face[ind] = np.where(alpha_temp @ alphas == 2)[0]
+        # Sort the nodes
+        nodes_loc = np.sort(opposites_loc)
 
-        alphas_of_cell = np.arange(dim + 1, 2 * dim + 1)
+        # Reorder the faces so that
+        # face_0 is (0, 1) and opposite node 2
+        # face_1 is (0, 2) and opposite node 1
+        # face_2 is (1, 2) and opposite node 0
+        sorter = np.argsort(opposites_loc)[::-1]
+        faces_loc = faces_loc[sorter]
+        signs_loc = signs_loc[sorter]
 
-        basis = np.zeros((alphas.shape[1], alphas_of_face.size + alphas_of_cell.size))
-        basis[dof_at_node, np.arange(dof_at_node.size)] = 1
-        basis[alphas_of_face, np.arange(dof_at_node.size)] = -(dim + 1)
-
-        basis[alphas_of_cell, np.arange(-dim, 0)] = (dim + 1) ** 2
-
-        return basis.T @ M @ basis
+        return nodes_loc, faces_loc, signs_loc
 
     def eval_basis_functions(self, sd, nodes_loc, volume, signs_loc):
 
@@ -1068,14 +1056,13 @@ class RT1(pg.Discretization):
 
         # Local indices related to dof
         loc_div = self.compute_local_div_matrix(sd)
+        opposite_nodes = sd.compute_opposite_nodes()
 
         for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its faces
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
+            _, faces_loc, signs_loc = self.reorder_faces(sd, opposite_nodes, c)
 
             signs = np.ones(loc_div.shape[1])
-            signs[: -sd.dim] = np.tile(sd.cell_faces.data[loc], sd.dim)
+            signs[: -sd.dim] = np.tile(signs_loc, sd.dim)
 
             div = loc_div * signs / (sd.dim * sd.cell_volumes[c])
 
