@@ -121,17 +121,17 @@ $$
 \begin{align}
     \psi_0 &= 
     \begin{bmatrix} 
-        0 \\ 0 \\ 0 \\ \tau_{01} \\ \tau_{02} \\ 0 
+        0 \\\ 0 \\\ 0 \\\ \tau_{01} \\\ \tau_{02} \\\ 0 
     \end{bmatrix}
     &
     \psi_1 &= 
     \begin{bmatrix} 
-        0 \\ 0 \\ 0 \\ \tau_{10} \\ 0 \\ \tau_{12}
+        0 \\\ 0 \\\ 0 \\\ \tau_{10} \\\ 0 \\\ \tau_{12}
     \end{bmatrix}
     &
     \psi_2 &= 
     \begin{bmatrix} 
-        0 \\ 0 \\ 0 \\ 0 \\ \tau_{20} \\ \tau_{21} 
+        0 \\\ 0 \\\ 0 \\\ 0 \\\ \tau_{20} \\\ \tau_{21} 
     \end{bmatrix}
 \end{align}
 $$
@@ -142,7 +142,7 @@ Using these, we can rapidly compute, for example
 $$
     \Psi_1^0 \coloneqq \pm \frac1{d |\Delta|}\left(
     \begin{bmatrix} 
-        0 \\ \tau_{01} \\ 0 \\ 0 \\ 0 \\ 0 
+        0 \\\ \tau_{01} \\\ 0 \\\ 0 \\\ 0 \\\ 0 
     \end{bmatrix}
     - (\psi_0 - \psi_1)
     \right).\text{ravel}()
