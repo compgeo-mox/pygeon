@@ -21,8 +21,7 @@ At the cell center, each $\lambda_i = \frac1{d + 1}$, so we have the following i
 
 $$
 \begin{align}
-    (\varphi_0 - \varphi_1)|_{c} 
-    &= \frac{1}{(d + 1)^2}(\tau_{02} + \tau_{01} - \tau_{10} - \tau_{12}) \\
+    (\varphi_0 - \varphi_1)|_{c} &= \frac{1}{(d + 1)^2}(\tau_{02} + \tau_{01} - \tau_{10} - \tau_{12}) \\
     &= \frac{1}{(d + 1)^2}(3 \tau_{01} - (\tau_{01} + \tau_{12} + \tau_{20}))
     = \frac{3}{(d + 1)^2}\tau_{01}
     = \frac{1}{d + 1}\tau_{01}
@@ -110,14 +109,8 @@ From which we easily deduce that $\int_\Delta \nabla \cdot \phi_i^j = \pm \frac1
 We consider the following spatial basis functions (in order)
 
 $$
-    \left \{ 
-        \lambda_0, \  
-        \lambda_1, \  
-        \lambda_2, \  
-        \lambda_0 \lambda_1, \ 
-        \lambda_0 \lambda_2, \ 
-        \lambda_1 \lambda_2. 
-    \right \}
+    \{ 
+        \lambda_0, \ \lambda_1, \ \lambda_2, \ \lambda_0 \lambda_1,  \lambda_0 \lambda_2,  \lambda_1 \lambda_2 \}
 $$
 
 Since these are the basis functions used for Lagrange2, we can fetch the inner products from there. After applying a Kronecker product, this local mass matrix is adapted to the vector-valued setting.
