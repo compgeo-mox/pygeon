@@ -93,6 +93,22 @@ class RT1Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(q_at_cc, q_known_at_cc))
 
+    def test_norm_of_known_function(self):
+        N, dim = 3, 3
+        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
+        sd.compute_geometry()
+
+        def q_func(x):
+            return np.array([-x[1], 2 * x[0], x[2] - 1])
+
+        discr = pg.RT1()
+        interp = discr.interpolate(sd, q_func)
+        M = discr.assemble_mass_matrix(sd)
+
+        computed_norm = interp @ M @ interp
+
+        self.assertTrue(np.isclose(computed_norm, 2))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -913,7 +913,7 @@ class RT1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def local_inner_product(self, dim: int):
+    def local_inner_product(self, dim: int) -> np.ndarray:
 
         lagrange2 = pg.Lagrange2()
         alphas_nodes = np.eye(dim + 1)
@@ -928,7 +928,9 @@ class RT1(pg.Discretization):
 
         return np.kron(M, np.eye(3))
 
-    def reorder_faces(self, cell_faces, opposite_nodes, c):
+    def reorder_faces(
+        self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, c: int
+    ) -> tuple[np.ndarray]:
         # For the current cell retrieve its faces
         loc = slice(cell_faces.indptr[c], cell_faces.indptr[c + 1])
         faces_loc = cell_faces.indices[loc]
@@ -949,7 +951,9 @@ class RT1(pg.Discretization):
 
         return nodes_loc, faces_loc, signs_loc
 
-    def eval_basis_functions(self, sd, nodes_loc, volume, signs_loc):
+    def eval_basis_functions(
+        self, sd: pg.Grid, nodes_loc: np.ndarray, volume: float, signs_loc: np.ndarray
+    ) -> np.ndarray:
 
         dim = sd.dim
 
@@ -966,26 +970,30 @@ class RT1(pg.Discretization):
         psi_nodes = np.zeros((dim + 1, 3 * (dim + 1)))
         psi_edges = np.zeros((dim + 1, 3 * n_edges))
 
-        for ind, (i, j) in enumerate(edge_nodes):
-            psi_edges[i, 3 * ind : 3 * (ind + 1)] = tangent(i, j)
-            psi_edges[j, 3 * ind : 3 * (ind + 1)] = tangent(j, i)
+        for edge, (i, j) in enumerate(edge_nodes):
+            psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j)
+            psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i)
 
         psi = np.hstack((psi_nodes, psi_edges))
 
-        # Let's go
+        # Preallocation
         Psi = np.zeros((dim * (dim + 2), 3 * (dim + 1 + n_edges)))
 
-        for ind, (k, j) in enumerate(zip(loc_node, opp_node)):
-            Psi[ind, 3 * k : 3 * (k + 1)] = tangent(j, k)
-            Psi[ind] -= psi[j] - psi[k]
-            Psi[ind] *= signs[ind]
+        # Include the basis functions of the face-dofs
+        for dof, (k, j) in enumerate(zip(loc_node, opp_node)):
+            Psi[dof, 3 * k : 3 * (k + 1)] = tangent(j, k)
+            Psi[dof] -= psi[j] - psi[k]
+            Psi[dof] *= signs[dof]
 
+        # Include the basis functions of the cell-dofs
         Psi[-dim:] = psi[:dim]
 
         return Psi / (dim * volume)
 
-    def eval_basis_at_center(self, sd, nodes_loc, volume):
-        basis = np.zeros((3, sd.dim))
+    def eval_basis_at_center(
+        self, sd: pg.Grid, nodes_loc: np.ndarray, volume: float
+    ) -> np.ndarray:
+        basis = np.empty((3, sd.dim))
 
         for ind in np.arange(sd.dim):
             basis[:, ind] = np.sum(
@@ -1086,7 +1094,7 @@ class RT1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def compute_local_div_matrix(self, dim):
+    def compute_local_div_matrix(self, dim: int) -> np.ndarray:
         opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
         loc_node = np.repeat(np.arange(dim + 1), dim)
 
