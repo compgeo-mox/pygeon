@@ -884,14 +884,18 @@ class RT1(pg.Discretization):
         opposite_nodes = sd.compute_opposite_nodes()
 
         for c in np.arange(sd.num_cells):
-            nodes_loc, faces_loc, signs_loc = self.reorder_faces(sd, opposite_nodes, c)
+            nodes_loc, faces_loc, signs_loc = self.reorder_faces(
+                sd.cell_faces, opposite_nodes, c
+            )
 
             Psi = self.eval_basis_functions(
                 sd, nodes_loc, sd.cell_volumes[c], signs_loc
             )
 
+            weight = np.kron(np.eye(M.shape[0] // 3), inv_K.values[:, :, c])
+
             # Compute the H_div-mass local matrix
-            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
             loc_face = np.hstack([faces_loc] * sd.dim)
             loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -924,11 +928,11 @@ class RT1(pg.Discretization):
 
         return np.kron(M, np.eye(3))
 
-    def reorder_faces(self, sd, opposite_nodes, c):
+    def reorder_faces(self, cell_faces, opposite_nodes, c):
         # For the current cell retrieve its faces
-        loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-        faces_loc = sd.cell_faces.indices[loc]
-        signs_loc = sd.cell_faces.data[loc]
+        loc = slice(cell_faces.indptr[c], cell_faces.indptr[c + 1])
+        faces_loc = cell_faces.indices[loc]
+        signs_loc = cell_faces.data[loc]
         opposites_loc = opposite_nodes.data[loc]
 
         # Sort the nodes
@@ -938,6 +942,7 @@ class RT1(pg.Discretization):
         # face_0 is (0, 1) and opposite node 2
         # face_1 is (0, 2) and opposite node 1
         # face_2 is (1, 2) and opposite node 0
+        # I.e. the order of the faces needs to be reversed
         sorter = np.argsort(opposites_loc)[::-1]
         faces_loc = faces_loc[sorter]
         signs_loc = signs_loc[sorter]
@@ -947,42 +952,35 @@ class RT1(pg.Discretization):
     def eval_basis_functions(self, sd, nodes_loc, volume, signs_loc):
 
         dim = sd.dim
-        n_edges = dim * (dim + 1) // 2
 
         opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
         loc_node = np.repeat(np.arange(dim + 1), dim)
+        signs = np.tile(signs_loc, dim)
 
         tangent = lambda i, j: sd.nodes[:, nodes_loc[j]] - sd.nodes[:, nodes_loc[i]]
 
-        signs = np.tile(signs_loc, dim)
+        # helper functions
+        edge_nodes = pg.Lagrange2().get_local_edge_nodes(dim)
+        n_edges = edge_nodes.shape[0]
 
-        if dim == 2:
-            # helper functions
-            psi_0 = np.zeros((dim + 1 + n_edges, 3))
-            psi_0[dim + 1] = tangent(0, 1)
-            psi_0[dim + 2] = tangent(0, 2)
+        psi_nodes = np.zeros((dim + 1, 3 * (dim + 1)))
+        psi_edges = np.zeros((dim + 1, 3 * n_edges))
 
-            psi_1 = np.zeros_like(psi_0)
-            psi_1[dim + 1] = tangent(1, 0)
-            psi_1[dim + 3] = tangent(1, 2)
+        for ind, (i, j) in enumerate(edge_nodes):
+            psi_edges[i, 3 * ind : 3 * (ind + 1)] = tangent(i, j)
+            psi_edges[j, 3 * ind : 3 * (ind + 1)] = tangent(j, i)
 
-            psi_2 = np.zeros_like(psi_0)
-            psi_2[dim + 2] = tangent(2, 0)
-            psi_2[dim + 3] = tangent(2, 1)
-
-            psi = np.vstack([psi.ravel() for psi in [psi_0, psi_1, psi_2]])
-        else:
-            raise NotImplementedError
+        psi = np.hstack((psi_nodes, psi_edges))
 
         # Let's go
         Psi = np.zeros((dim * (dim + 2), 3 * (dim + 1 + n_edges)))
 
-        for ind, (i, j) in enumerate(zip(loc_node, opp_node)):
-            Psi[ind, 3 * i : 3 * (i + 1)] = tangent(j, i)
-            Psi[ind] -= psi[j] - psi[i]
+        for ind, (k, j) in enumerate(zip(loc_node, opp_node)):
+            Psi[ind, 3 * k : 3 * (k + 1)] = tangent(j, k)
+            Psi[ind] -= psi[j] - psi[k]
             Psi[ind] *= signs[ind]
 
-        Psi[-dim:] = (dim + 1) ** 2 * psi[:dim]
+        Psi[-dim:] = psi[:dim]
 
         return Psi / (dim * volume)
 
@@ -994,7 +992,8 @@ class RT1(pg.Discretization):
                 sd.nodes[:, nodes_loc]
                 - sd.nodes[:, np.repeat(nodes_loc[ind], sd.dim + 1)],
                 axis=1,
-            )
+            ) / ((sd.dim + 1) ** 2)
+
         return basis / (sd.dim * volume)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
@@ -1021,9 +1020,9 @@ class RT1(pg.Discretization):
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            opposites_loc = opposite_nodes.data[loc]
+            nodes_loc = np.sort(opposite_nodes.data[loc])
 
-            P = self.eval_basis_at_center(sd, opposites_loc[::-1], sd.cell_volumes[c])
+            P = self.eval_basis_at_center(sd, nodes_loc, sd.cell_volumes[c])
 
             cell_dofs = sd.num_faces * sd.dim + sd.num_cells * np.arange(sd.dim) + c
             # Save values for projection P local matrix in the global structure
@@ -1055,11 +1054,13 @@ class RT1(pg.Discretization):
         idx = 0
 
         # Local indices related to dof
-        loc_div = self.compute_local_div_matrix(sd)
+        loc_div = self.compute_local_div_matrix(sd.dim)
         opposite_nodes = sd.compute_opposite_nodes()
 
         for c in np.arange(sd.num_cells):
-            _, faces_loc, signs_loc = self.reorder_faces(sd, opposite_nodes, c)
+            _, faces_loc, signs_loc = self.reorder_faces(
+                sd.cell_faces, opposite_nodes, c
+            )
 
             signs = np.ones(loc_div.shape[1])
             signs[: -sd.dim] = np.tile(signs_loc, sd.dim)
@@ -1085,17 +1086,16 @@ class RT1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
-    def compute_local_div_matrix(self, sd):
-        opp_node = np.tile(np.arange(sd.dim + 1), sd.dim)[::-1]
-        loc_node = np.repeat(np.arange(sd.dim + 1), sd.dim)
+    def compute_local_div_matrix(self, dim):
+        opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
+        loc_node = np.repeat(np.arange(dim + 1), dim)
 
-        face_div = np.ones((sd.dim + 1, sd.dim * (sd.dim + 1)))
-        face_div[loc_node, np.arange(loc_node.size)] += sd.dim + 1
-        face_div[opp_node, np.arange(loc_node.size)] -= sd.dim + 1
+        face_div = np.ones((dim + 1, dim * (dim + 1)))
+        face_div[loc_node, np.arange(loc_node.size)] += dim + 1
+        face_div[opp_node, np.arange(loc_node.size)] -= dim + 1
 
-        cell_div = 3 * np.eye(sd.dim + 1, sd.dim)
+        cell_div = (dim + 1) * np.eye(dim + 1, dim)
         cell_div -= 1
-        cell_div *= (sd.dim + 1) ** 2
 
         loc_div = np.hstack((face_div, cell_div))
         return loc_div
