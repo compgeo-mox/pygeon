@@ -21,7 +21,7 @@ At the cell center, each $\lambda_i = \frac1{d + 1}$, so we have the following i
 
 $$
 \begin{align}
-    (\varphi_0 - \varphi_1)|_{c} &= \frac{1}{(d + 1)^2}(\tau_{02} + \tau_{01} - \tau_{10} - \tau_{12}) \\
+    (\varphi_0 - \varphi_1)(x_c) &= \frac{1}{(d + 1)^2}(\tau_{02} + \tau_{01} - \tau_{10} - \tau_{12}) \\
     &= \frac{1}{(d + 1)^2}(3 \tau_{01} - (\tau_{01} + \tau_{12} + \tau_{20}))
     = \frac{3}{(d + 1)^2}\tau_{01}
     = \frac{1}{d + 1}\tau_{01}
@@ -173,7 +173,7 @@ A similar calculation as in 2D shows us that
 
 $$
 \begin{align}
-    (\varphi_0 - \varphi_1)|_{c} 
+    (\varphi_0 - \varphi_1)(x_c)
     &= \frac{1}{(d + 1)^2}(\tau_{01} + \tau_{02} + \tau_{03} - \tau_{10} - \tau_{12} - \tau_{13}) \\
     &= \frac{1}{(d + 1)^2}(4 \tau_{01} - (\tau_{01} + \tau_{12} + \tau_{20}) - (\tau_{01} + \tau_{13} + \tau_{30}))
     = \frac{4\tau_{01}}{(d + 1)^2}
