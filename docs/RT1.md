@@ -8,44 +8,44 @@ $$
 
 Following Eggers and Radu (2020), we consider the following basis functions
 $$
-\begin{align}
+\begin{aligned}
     \varphi_0 &\coloneqq \lambda_0 \lambda_2 \tau_{02} + \lambda_0 \lambda_1 \tau_{01} \\
     \varphi_1 &\coloneqq \lambda_1 \lambda_0 \tau_{10} + \lambda_1 \lambda_2 \tau_{12} \\
     \varphi_2 &\coloneqq \lambda_2 \lambda_1 \tau_{21} + \lambda_2 \lambda_0 \tau_{20}
-\end{align}
+\end{aligned}
 $$
 At the cell center, each $\lambda_i = \frac1{d + 1}$, so we have the following identity:
 $$
-\begin{align}
+\begin{aligned}
     (\varphi_0 - \varphi_1)|_{c} 
     &= \frac{1}{(d + 1)^2}(\tau_{02} + \tau_{01} - \tau_{10} - \tau_{12}) \\
     &= \frac{1}{(d + 1)^2}(3 \tau_{01} - (\tau_{01} + \tau_{12} + \tau_{20}))
     = \frac{3}{(d + 1)^2}\tau_{01}
     = \frac{1}{d + 1}\tau_{01}
-\end{align}
+\end{aligned}
 $$
 
 Let $\phi_i^j$ denote the basis function for the the degree of freedom at face $f_j$ and node $x_i$. Letting $x^j$ be the node opposite face $f_j$,
 we propose the following basis function
 $$
-\begin{align}
+\begin{aligned}
     \phi_1^0 &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{01} - (\varphi_0 - \varphi_1) \right) 
     % &= \pm  \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{01} -( 2 \lambda_0 \lambda_1 \tau_{01} + \lambda_0 \lambda_2 \tau_{02} - \lambda_1 \lambda_2 \tau_{12}) \right)
-\end{align}
+\end{aligned}
 $$
 More generally, we define
 $$
-\begin{align}
+\begin{aligned}
     \phi_i^j &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{ji} - (\varphi_j - \varphi_i) \right)
-\end{align}
+\end{aligned}
 $$
 where the sign is determined by whether the normal of face $j$ is outward with respect to the element. 
 
 For the cell degrees of freedom, we define
 $$
-\begin{align}
+\begin{aligned}
     \phi_k &\coloneqq \frac{1}{d |\Delta|} \varphi_k
-\end{align}
+\end{aligned}
 $$
 Note that $\phi_0 + \phi_1 + \phi_2 = 0$, so we can span all three with $\{\phi_0, \phi_1\}$. 
 
@@ -69,22 +69,22 @@ This means that we can evaluate the degrees of freedom by considering the nodal 
 
 The divergence of the cell basis functions can be calculated as:
 $$
-\begin{align}
+\begin{aligned}
     \nabla \cdot \varphi_k 
     &= \nabla \cdot(\lambda_k \lambda_{k - 1} \tau_{k,k - 1} + \lambda_k \lambda_{k + 1} \tau_{k, k + 1}) \\
     &= (\lambda_k (\nabla \lambda_{k - 1}) + (\nabla \lambda_k) \lambda_{k - 1}) \cdot \tau_{k,k - 1} + (\lambda_k (\nabla \lambda_{k + 1}) + (\nabla \lambda_k) \lambda_{k + 1}) \cdot \tau_{k, k + 1} \\
     &= \lambda_k - \lambda_{k - 1} + \lambda_k - \lambda_{k + 1} \\
     &= 3\lambda_k - (\lambda_{k - 1} + \lambda_k + \lambda_{k + 1}) \\
     &= (d + 1) \lambda_k - 1,
-\end{align}
+\end{aligned}
 $$
 where $k$ is understood modulo 3. This has mean zero. For the face degrees of freedom, we compute
 $$
-\begin{align}
+\begin{aligned}
     \nabla \cdot \phi_i^j 
     &= \pm \frac{1}{d |\Delta|} \left(\nabla\lambda_i \cdot \tau_{ji} - \nabla \cdot(\varphi_j - \varphi_i) \right) \\
     &= \pm \frac{1}{d |\Delta|}\left( 1 - (d + 1) (\lambda_j - \lambda_i) \right)
-\end{align}
+\end{aligned}
 $$
 From which we easily deduce that $\int_\Delta \nabla \cdot \phi_i^j = \pm \frac1d$.
 
@@ -105,7 +105,7 @@ Since these are the basis functions used for Lagrange2, we can fetch the inner p
 
 As is common in PyGeoN, we then create an array $\Psi$ whose rows contain the coefficents for each basis function. As an example, let us compute the row for $\phi_1^0$. We first introduce the helper functions
 $$
-\begin{align}
+\begin{aligned}
     \psi_0 &= 
     \begin{bmatrix} 
         0 \\ 0 \\ 0 \\
@@ -123,7 +123,7 @@ $$
         0 \\ 0 \\ 0 \\
         0 \\ \tau_{20} \\ \tau_{21} 
     \end{bmatrix}
-\end{align}
+\end{aligned}
 $$
 
 These are computed by looping over the edges of the element.
@@ -148,29 +148,29 @@ $$
 The three-dimensional generalization of $\varphi$ is given by
 
 $$
-\begin{align}
+\begin{aligned}
     \varphi_k &\coloneqq
     \sum_{i \ne k} \lambda_k \lambda_i \tau_{ki}
-\end{align}
+\end{aligned}
 $$
 
 A similar calculation as in 2D shows us that
 $$
-\begin{align}
+\begin{aligned}
     (\varphi_0 - \varphi_1)|_{c} 
     &= \frac{1}{(d + 1)^2}(\tau_{01} + \tau_{02} + \tau_{03} - \tau_{10} - \tau_{12} - \tau_{13}) \\
     &= \frac{1}{(d + 1)^2}(4 \tau_{01} - (\tau_{01} + \tau_{12} + \tau_{20}) - (\tau_{01} + \tau_{13} + \tau_{30}))
     = \frac{4\tau_{01}}{(d + 1)^2}
     = \frac{\tau_{01}}{d + 1}
-\end{align}
+\end{aligned}
 $$
 
 so we again propose the basis functions
 $$
-\begin{align}
+\begin{aligned}
     \phi_i^j &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{ji} - (\varphi_j - \varphi_i) \right) \\
     \phi_k &\coloneqq \frac{1}{d |\Delta|} \varphi_k
-\end{align}
+\end{aligned}
 $$
 
 The properties concerning the degrees of freedom follow immediately. All we need to double check is the divergence
@@ -178,18 +178,18 @@ The properties concerning the degrees of freedom follow immediately. All we need
 ### The divergence
 
 $$
-\begin{align}
+\begin{aligned}
     \nabla \cdot \varphi_k &=
     \sum_{i \ne k} \nabla \cdot \lambda_k \lambda_i \tau_{ki} \\
     &= \sum_{i \ne k} \lambda_k - \lambda_i \\
     &= (d + 1) \lambda_k - 1
-\end{align}
+\end{aligned}
 $$
 
 this gives us
 $$
-\begin{align}
+\begin{aligned}
     \nabla \cdot (\varphi_j - \varphi_i) &=
     (d + 1) (\lambda_j - \lambda_i)
-\end{align}
+\end{aligned}
 $$
