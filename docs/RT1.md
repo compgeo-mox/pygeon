@@ -74,7 +74,7 @@ $$
     &= \nabla \cdot(\lambda_k \lambda_{k - 1} \tau_{k,k - 1} + \lambda_k \lambda_{k + 1} \tau_{k, k + 1}) \\
     &= (\lambda_k (\nabla \lambda_{k - 1}) + (\nabla \lambda_k) \lambda_{k - 1}) \cdot \tau_{k,k - 1} + (\lambda_k (\nabla \lambda_{k + 1}) + (\nabla \lambda_k) \lambda_{k + 1}) \cdot \tau_{k, k + 1} \\
     &= \lambda_k - \lambda_{k - 1} + \lambda_k - \lambda_{k + 1} \\
-    &= 2\lambda_k - \lambda_{k - 1} - \lambda_{k + 1} \\
+    &= 3\lambda_k - (\lambda_{k - 1} + \lambda_k + \lambda_{k + 1}) \\
     &= (d + 1) \lambda_k - 1,
 \end{align}
 $$
