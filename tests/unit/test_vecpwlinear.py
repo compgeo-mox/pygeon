@@ -78,7 +78,9 @@ class VecPwLinearsTest(unittest.TestCase):
 
         discr = pg.VecPwLinears("P1")
 
-        self.assertRaises(NotImplementedError, discr.assemble_diff_matrix, sd)
+        B = discr.assemble_diff_matrix(sd)
+
+        self.assertTrue(B.nnz == 0)
 
     def test_assemble_stiff_matrix(self):
         dim = 2
