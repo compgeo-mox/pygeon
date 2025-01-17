@@ -21,15 +21,6 @@ class Discretization(abc.ABC):
         assemble_nat_bc
         get_range_discr_class
 
-    Attributes:
-        mass_matrix_key (str): The keyword used to identify the mass matrix
-            term in the discretization matrix dictionary.
-        diff_matrix_key (str): The keyword used to identify the diffusion matrix
-            term in the discretization matrix dictionary.
-        stiff_matrix_key (str): The keyword used to identify the stiffness matrix
-            term in the discretization matrix dictionary.
-        lumped_matrix_key (str): The keyword used to identify the lumped matrix
-            term in the discretization matrix dictionary.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -137,7 +128,7 @@ class Discretization(abc.ABC):
         discr = self.get_range_discr_class(sd.dim)(self.keyword)
         A = discr.assemble_mass_matrix(sd, data)
 
-        return B.T @ A @ B
+        return (B.T @ A @ B).tocsc()
 
     @abc.abstractmethod
     def interpolate(
