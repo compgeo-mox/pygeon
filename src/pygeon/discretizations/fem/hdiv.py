@@ -830,6 +830,7 @@ class BDM1(pg.Discretization):
 
 
 class RT1(pg.Discretization):
+    """TODO: docstring"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -877,7 +878,7 @@ class RT1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        # Compute the local inner product matrix
+        # Precompute the local inner product matrix
         M = self.local_inner_product(sd.dim)
 
         # Compute the opposite nodes for each face
@@ -889,7 +890,7 @@ class RT1(pg.Discretization):
             )
 
             Psi = self.eval_basis_functions(
-                sd, nodes_loc, sd.cell_volumes[c], signs_loc
+                sd, nodes_loc, signs_loc, sd.cell_volumes[c]
             )
 
             weight = np.kron(np.eye(M.shape[0] // 3), inv_K.values[:, :, c])
@@ -897,6 +898,7 @@ class RT1(pg.Discretization):
             # Compute the H_div-mass local matrix
             A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
+            # Get the indices for the local face and cell degrees of freedom
             loc_face = np.hstack([faces_loc] * sd.dim)
             loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
             loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
@@ -914,37 +916,64 @@ class RT1(pg.Discretization):
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def local_inner_product(self, dim: int) -> np.ndarray:
+        """
+        Assembles the local inner products based on the Lagrange2 element
+
+        Args:
+            dim (int): Dimension of the grid
+
+        Returns:
+            np.ndarray: The local mass matrix.
+        """
 
         lagrange2 = pg.Lagrange2()
-        alphas_nodes = np.eye(dim + 1)
+        # We first need the barycentric coordinates lambda_i for each i
+        expnts_nodes = np.eye(dim + 1)
 
-        e_nodes = lagrange2.get_local_edge_nodes(dim)
-        alphas_edges = np.zeros((dim + 1, e_nodes.shape[0]))
-        for ind, edge in enumerate(e_nodes):
-            alphas_edges[edge, ind] = 1
+        # For each edge (i, j) also consider the products \lambda_i \lambda_j
+        # by setting the appropriate exponents to one
+        edge_nodes = lagrange2.get_local_edge_nodes(dim)
+        expnts_edges = np.zeros((dim + 1, edge_nodes.shape[0]))
+        for ind, edge in enumerate(edge_nodes):
+            expnts_edges[edge, ind] = 1
 
-        alphas = np.hstack((alphas_nodes, alphas_edges))
-        M = lagrange2.assemble_barycentric_mass(alphas)
+        expnts = np.hstack((expnts_nodes, expnts_edges))
+        M = lagrange2.assemble_barycentric_mass(expnts)
 
         return np.kron(M, np.eye(3))
 
     def reorder_faces(
-        self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, c: int
+        self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int
     ) -> tuple[np.ndarray]:
+        """
+        Reorders the local nodes, faces, and corresponding cell-face orientations
+
+        Args:
+            cell_faces (sps.csc_array): cell_face connectivity of the grid
+            opposite_nodes (sps.csc_array): opposite nodes for each face
+            cell (int): cell index
+
+        Returns:
+            np.ndarray: The reordered local node indices
+            np.ndarray: The reordered local face indices
+            np.ndarray: The reordered cell-face orientation signs
+        """
+
         # For the current cell retrieve its faces
-        loc = slice(cell_faces.indptr[c], cell_faces.indptr[c + 1])
+        loc = slice(cell_faces.indptr[cell], cell_faces.indptr[cell + 1])
         faces_loc = cell_faces.indices[loc]
         signs_loc = cell_faces.data[loc]
         opposites_loc = opposite_nodes.data[loc]
 
-        # Sort the nodes
+        # Sort the nodes in ascending order
         nodes_loc = np.sort(opposites_loc)
 
         # Reorder the faces so that
-        # face_0 is (0, 1) and opposite node 2
-        # face_1 is (0, 2) and opposite node 1
-        # face_2 is (1, 2) and opposite node 0
-        # I.e. the order of the faces needs to be reversed
+        # - face_0 is (0, 1) and opposite node 2
+        # - face_1 is (0, 2) and opposite node 1
+        # - face_2 is (1, 2) and opposite node 0
+        # I.e. the faces are reordered so that
+        # the opposite node indices are descending
         sorter = np.argsort(opposites_loc)[::-1]
         faces_loc = faces_loc[sorter]
         signs_loc = signs_loc[sorter]
@@ -952,18 +981,34 @@ class RT1(pg.Discretization):
         return nodes_loc, faces_loc, signs_loc
 
     def eval_basis_functions(
-        self, sd: pg.Grid, nodes_loc: np.ndarray, volume: float, signs_loc: np.ndarray
+        self, sd: pg.Grid, nodes_loc: np.ndarray, signs_loc: np.ndarray, volume: float
     ) -> np.ndarray:
+        """
+        Evaluates the basis functions at the nodes and edges of a cell.
+
+        Args:
+            sd (pg.Grid): the grid
+            nodes_loc (np.ndarray): nodes of the cell
+            signs_loc (np.ndarray): cell-face orientation signs
+            volume (float): cell volume
+
+        Returns:
+            np.ndarray: An array Psi in which [i, 3j : 3(j + 1)] contains
+                the values of basis function phi_i at evaluation point j
+        """
 
         dim = sd.dim
 
-        opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
-        loc_node = np.repeat(np.arange(dim + 1), dim)
+        # We assign each basis function to a node opposite a face (opp_node)
+        # and the node at which the dof is located (loc_node)
+        opp_nodes = np.tile(np.arange(dim + 1), dim)[::-1]
+        loc_nodes = np.repeat(np.arange(dim + 1), dim)
         signs = np.tile(signs_loc, dim)
 
+        # Compute the tangent in physical space by taking local indices
         tangent = lambda i, j: sd.nodes[:, nodes_loc[j]] - sd.nodes[:, nodes_loc[i]]
 
-        # helper functions
+        # Helper functions psi_k as outlined in the notes in docs/RT1.md
         edge_nodes = pg.Lagrange2().get_local_edge_nodes(dim)
         n_edges = edge_nodes.shape[0]
 
@@ -974,31 +1019,46 @@ class RT1(pg.Discretization):
             psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j)
             psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i)
 
-        psi = np.hstack((psi_nodes, psi_edges))
+        psi_k = np.hstack((psi_nodes, psi_edges))
 
         # Preallocation
         Psi = np.zeros((dim * (dim + 2), 3 * (dim + 1 + n_edges)))
 
-        # Include the basis functions of the face-dofs
-        for dof, (k, j) in enumerate(zip(loc_node, opp_node)):
-            Psi[dof, 3 * k : 3 * (k + 1)] = tangent(j, k)
-            Psi[dof] -= psi[j] - psi[k]
+        # Evaluate the basis functions of the face-dofs
+        for dof, (i, j) in enumerate(zip(loc_nodes, opp_nodes)):
+            Psi[dof, 3 * i : 3 * (i + 1)] = tangent(j, i)
+            Psi[dof] -= psi_k[j] - psi_k[i]
             Psi[dof] *= signs[dof]
 
-        # Include the basis functions of the cell-dofs
-        Psi[-dim:] = psi[:dim]
+        # Evaluate the basis functions of the cell-dofs
+        Psi[-dim:] = psi_k[:dim]
 
         return Psi / (dim * volume)
 
-    def eval_basis_at_center(
+    def eval_basis_functions_at_center(
         self, sd: pg.Grid, nodes_loc: np.ndarray, volume: float
     ) -> np.ndarray:
+        """
+        Evaluates the basis functions at the center of a cell.
+
+        Args:
+            sd (pg.Grid): the grid
+            nodes_loc (np.ndarray): nodes of the cell
+            volume (float): cell volume
+
+        Returns:
+            np.ndarray: A (3 x dim) array with the values of the
+                cell-based basis functions at the cell center.
+        """
+        # Preallocation
         basis = np.empty((3, sd.dim))
 
+        # As outlined in docs/RT1, the only nonzero basis function
+        # at the center are the cell-based ones, given by
+        # phi_k = sum_i lambda_k lambda_i tau_ki
         for ind in np.arange(sd.dim):
             basis[:, ind] = np.sum(
-                sd.nodes[:, nodes_loc]
-                - sd.nodes[:, np.repeat(nodes_loc[ind], sd.dim + 1)],
+                sd.nodes[:, nodes_loc] - sd.nodes[:, nodes_loc[ind]][:, None],
                 axis=1,
             ) / ((sd.dim + 1) ** 2)
 
@@ -1030,9 +1090,10 @@ class RT1(pg.Discretization):
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             nodes_loc = np.sort(opposite_nodes.data[loc])
 
-            P = self.eval_basis_at_center(sd, nodes_loc, sd.cell_volumes[c])
+            P = self.eval_basis_functions_at_center(sd, nodes_loc, sd.cell_volumes[c])
 
             cell_dofs = sd.num_faces * sd.dim + sd.num_cells * np.arange(sd.dim) + c
+
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + P.size)
             rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, sd.dim)
@@ -1061,7 +1122,7 @@ class RT1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        # Local indices related to dof
+        # Precompute the local divergence matrix
         loc_div = self.compute_local_div_matrix(sd.dim)
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -1070,17 +1131,20 @@ class RT1(pg.Discretization):
                 sd.cell_faces, opposite_nodes, c
             )
 
+            # Change the sign of the face-dofs according to the cell-face orientation
             signs = np.ones(loc_div.shape[1])
             signs[: -sd.dim] = np.tile(signs_loc, sd.dim)
 
             div = loc_div * signs / (sd.dim * sd.cell_volumes[c])
 
+            # Indices of the local degrees of freedom
             loc_face = np.hstack([faces_loc] * sd.dim)
             loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
             loc_cell = sd.dim * sd.num_faces + np.arange(sd.dim) * sd.num_cells + c
             loc_ind = np.hstack((loc_face, loc_cell))
             loc_ind = np.tile(loc_ind, sd.dim + 1)
 
+            # Indices of the range degrees of freedom
             pwlinear_ind = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
             pwlinear_ind = np.repeat(pwlinear_ind, div.shape[1])
 
@@ -1095,18 +1159,30 @@ class RT1(pg.Discretization):
         return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
 
     def compute_local_div_matrix(self, dim: int) -> np.ndarray:
+        """
+        Assembles the local divergence matrix using local node and face ordering
+
+        Args:
+            dim (int): dimension of the grid
+
+        Returns:
+            np.ndarray: The local divergence matrix
+        """
         opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
         loc_node = np.repeat(np.arange(dim + 1), dim)
 
+        # The face basis function phi_i^j has divergence
+        # 1 + (dim + 1) (lambda_i - lambda_j)
         face_div = np.ones((dim + 1, dim * (dim + 1)))
         face_div[loc_node, np.arange(loc_node.size)] += dim + 1
         face_div[opp_node, np.arange(loc_node.size)] -= dim + 1
 
+        # The cell basis function phi_k has divergence
+        # (dim + 1) lambda_k - 1
         cell_div = (dim + 1) * np.eye(dim + 1, dim)
         cell_div -= 1
 
-        loc_div = np.hstack((face_div, cell_div))
-        return loc_div
+        return np.hstack((face_div, cell_div))
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -1123,21 +1199,26 @@ class RT1(pg.Discretization):
             np.ndarray: The values of the degrees of freedom.
         """
 
-        bdm1 = pg.BDM1()
-        interp_faces = bdm1.interpolate(sd, func)
+        # The face dofs are determined as in BDM1
+        interp_faces = pg.BDM1().interpolate(sd, func)
+
+        # The cell dofs are determined by solving (d x d) linear systems
         interp_cells = np.zeros(sd.dim * sd.num_cells)
         cell_nodes = sd.cell_nodes()
 
         for c in np.arange(sd.num_cells):
-            nodes_loc = cell_nodes.indices[
-                cell_nodes.indptr[c] : cell_nodes.indptr[c + 1]
-            ]
-            basis_at_center = self.eval_basis_at_center(
-                sd, nodes_loc, sd.cell_volumes[c]
-            )[: sd.dim, :]
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+            nodes_loc = cell_nodes.indices[loc]
 
+            basis_at_center = self.eval_basis_functions_at_center(
+                sd, nodes_loc, sd.cell_volumes[c]
+            )
+            func_at_center = func(sd.cell_centers[:, c])
+
+            # Compute the coefficients c_i such
+            # that sum_i c_i phi_i = f at the cell center
             coefficients = np.linalg.solve(
-                basis_at_center, func(sd.cell_centers[:, c])[: sd.dim]
+                basis_at_center[: sd.dim, :], func_at_center[: sd.dim]
             )
 
             interp_cells[sd.num_cells * np.arange(sd.dim) + c] = coefficients
