@@ -207,3 +207,14 @@ $$
     (d + 1) (\lambda_j - \lambda_i)
 \end{align}
 $$
+
+In turn, we have the proper generalization from the 2D case:
+
+$$
+\begin{align}
+    \nabla \cdot \phi_i^j 
+    &= \pm \frac{1}{d |\Delta|}\left( 1 - (d + 1) (\lambda_j - \lambda_i) \right) \\
+    \nabla \cdot \phi_k
+    &= \frac{1}{d |\Delta|}\left((d + 1) \lambda_k - 1 \right)
+\end{align}
+$$
