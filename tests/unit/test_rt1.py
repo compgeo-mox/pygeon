@@ -8,6 +8,14 @@ import pygeon as pg
 
 class RT1Test(unittest.TestCase):
 
+    def test_linear_distribution_cart_1D(self):
+        N, dim = 5, 1
+        sd = pp.CartGrid([N] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        self.linear_distribution_test(sd)
+
     def test_linear_distribution_struct_2D(self):
         N, dim = 5, 2
         sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
