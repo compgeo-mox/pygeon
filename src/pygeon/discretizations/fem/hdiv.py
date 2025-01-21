@@ -830,7 +830,52 @@ class BDM1(pg.Discretization):
 
 
 class RT1(pg.Discretization):
-    """TODO: docstring"""
+    """
+    RT1 Discretization class for H(div) finite element method.
+
+    This class implements the Raviart-Thomas elements of order 1 (RT1) for
+    discretizing vector fields in H(div) space. It provides methods for
+    assembling mass matrices, differential matrices, evaluating basis functions,
+    and interpolating functions onto the finite element space.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom for the given grid.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+            Assembles the mass matrix for the given grid and optional physical parameters.
+
+        local_inner_product(dim: int) -> np.ndarray:
+            Assembles the local inner product matrix based on the Lagrange2 element.
+
+        reorder_faces(cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int) ->
+            tuple[np.ndarray]:
+            Reorders the local nodes, faces, and corresponding cell-face orientations.
+
+        eval_basis_functions(sd: pg.Grid, nodes_loc: np.ndarray, signs_loc: np.ndarray, volume:
+            float) -> np.ndarray:
+
+        eval_basis_functions_at_center(sd: pg.Grid, nodes_loc: np.ndarray, volume: float) ->
+            np.ndarray:
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+            Evaluates the finite element solution at the cell centers of the given grid.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+            Assembles the matrix corresponding to the differential operator (divergence).
+
+        compute_local_div_matrix(dim: int) -> np.ndarray:
+            Assembles the local divergence matrix using local node and face ordering.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
+            np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition term (n dot q, func)_Gamma.
+
+        get_range_discr_class(dim: int) -> pg.Discretization:
+    """
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -925,7 +970,6 @@ class RT1(pg.Discretization):
         Returns:
             np.ndarray: The local mass matrix.
         """
-
         lagrange2 = pg.Lagrange2()
         # We first need the barycentric coordinates lambda_i for each i
         expnts_nodes = np.eye(dim + 1)
@@ -958,7 +1002,6 @@ class RT1(pg.Discretization):
             np.ndarray: The reordered local face indices
             np.ndarray: The reordered cell-face orientation signs
         """
-
         # For the current cell retrieve its faces
         loc = slice(cell_faces.indptr[cell], cell_faces.indptr[cell + 1])
         faces_loc = cell_faces.indices[loc]
@@ -996,7 +1039,6 @@ class RT1(pg.Discretization):
             np.ndarray: An array Psi in which [i, 3j : 3(j + 1)] contains
                 the values of basis function phi_i at evaluation point j
         """
-
         dim = sd.dim
 
         # We assign each basis function to a node opposite a face (opp_node)
@@ -1074,7 +1116,6 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_matrix: The finite element solution evaluated at the cell centers.
         """
-
         # Allocate the data to store matrix P entries
         size = 3 * sd.dim * sd.num_cells
         rows_I = np.empty(size, dtype=int)
