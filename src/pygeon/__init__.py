@@ -1,5 +1,7 @@
 """ isort:skip_file """
 
+from pygeon.utils.common_constants import *
+
 from pygeon.filters.importer import graph_from_file
 import pygeon.geometry.transformation as transformation
 from pygeon.filters.exporter import Exporter
@@ -19,7 +21,7 @@ from pygeon.discretizations.vec_discretization import VecDiscretization
 
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
 from pygeon.discretizations.fem.hdiv import RT0, BDM1
-from pygeon.discretizations.fem.h1 import Lagrange1
+from pygeon.discretizations.fem.h1 import Lagrange1, Lagrange2
 from pygeon.discretizations.fem.l2 import PwConstants, PwLinears
 from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0
 from pygeon.discretizations.fem.vec_h1 import VecLagrange1
@@ -44,7 +46,7 @@ from pygeon.numerics.innerproducts import (
 from pygeon.numerics.stiffness import cell_stiff, face_stiff, ridge_stiff, peak_stiff
 from pygeon.numerics.restrictions import remove_tip_dofs
 from pygeon.numerics.linear_system import LinearSystem
-from pygeon.numerics.projections import eval_at_cell_centers, proj_faces_to_cells
+from pygeon.numerics.projections import eval_at_cell_centers
 from pygeon.numerics.spanningtree import (
     SpanningTree,
     SpanningWeightedTrees,

@@ -1,6 +1,6 @@
 """ This module contains functions for creating projection operators. """
 
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 import scipy.sparse as sps
@@ -36,42 +36,6 @@ def eval_at_cell_centers(
     bmat_sd = np.empty(
         shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
     )
-
-    # Local mass matrices
-    for nn_sd, sd in enumerate(mdg.subdomains()):
-        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
-
-    pg.bmat.replace_nones_with_zeros(bmat_sd)
-    return bmat_sd if as_bmat else sps.bmat(bmat_sd, format="csc")
-
-
-def proj_faces_to_cells(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_matrix, sps.bmat]:
-    """
-    Create an operator that evaluates a solution defined on the faces in the cell centers.
-
-    Parameters:
-        mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
-        discr (pg.Discretization, optional): The discretization used for the evaluation.
-            If not provided, a standard discretization is used. Default is None.
-        kwargs (dict): Optional parameters.
-            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default is False.
-
-    Returns:
-        sps.spmatrix or sps.bmat: The operator matrix. If `as_bmat` is True, the matrix
-            is returned as sparse sub-blocks, otherwise it is returned as a block matrix
-            in CSC format.
-    """
-    as_bmat = kwargs.get("as_bmat", False)
-
-    bmat_sd = np.empty(
-        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
-    )
-
-    if discr is None:
-        discr = pg.RT0("unit")
 
     # Local mass matrices
     for nn_sd, sd in enumerate(mdg.subdomains()):
