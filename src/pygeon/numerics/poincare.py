@@ -29,18 +29,17 @@ class Poincare:
         Args:
             mdg (pg.MixedDimensionalGrid): a (mixed-dimensional) grid
         """
+
         self.mdg = mdg
         self.dim = mdg.dim_max()
         self.top_sd = mdg.subdomains(dim=self.dim)[0]
         self.define_bar_spaces()
 
-        if mdg.num_subdomains() > 1:
-            raise NotImplementedError
-
     def define_bar_spaces(self) -> None:
         """
         Flag the mesh entities that will be used to generate the Poincaré operators
         """
+
         # Preallocation
         self.bar_spaces = [None] * (self.dim + 1)
 
