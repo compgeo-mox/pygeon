@@ -1,8 +1,9 @@
 """ Module for poincare operators. """
 
+from typing import Callable, Optional
+
 import numpy as np
 import scipy.sparse as sps
-from typing import Callable, Optional
 
 import pygeon as pg
 from pygeon.numerics.differentials import exterior_derivative as diff
