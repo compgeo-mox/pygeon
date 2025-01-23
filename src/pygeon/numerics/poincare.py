@@ -172,7 +172,7 @@ class Poincare:
             f (np.ndarray): the function to be decomposed
 
         Returns:
-            tuple(np.ndarray): the decomposition of f as (dp(f), pd(f))
+            tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
         """
         n_minus_k = self.dim - k
 
@@ -193,11 +193,26 @@ class Poincare:
     def solve_subproblem(
         self,
         k: int,
-        Stiff: sps.csc_array,
-        rhs: np.ndarray,
+        A: sps.sparray,
+        b: np.ndarray,
         solver: Optional[Callable] = sps.linalg.spsolve,
     ) -> np.ndarray:
-        LS = pg.LinearSystem(Stiff, rhs)
+        """
+        Solve a linear system on the subspace of
+        differential forms identified by the Poincare object.
+
+        Args:
+            k (int): order of the k-form
+            A (sps.sparray): the system, usually a stiffness matrix
+            b (np.ndarray): the right-hand side vector
+            solver (Optional[Callable]): The solver function to use. Defaults to
+                sps.linalg.spsolve.
+
+        Returns:
+            np.ndarray: the solution
+        """
+
+        LS = pg.LinearSystem(A, b)
         LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
 
         return LS.solve(solver=solver)
