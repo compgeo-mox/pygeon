@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy.sparse as sps
+from typing import Callable, Optional
 
 import pygeon as pg
 from pygeon.numerics.differentials import exterior_derivative as diff
@@ -187,3 +188,15 @@ class Poincare:
             dpf = diff(self.mdg, n_minus_k + 1) @ pf
 
         return pdf, dpf
+
+    def solve_subproblem(
+        self,
+        k: int,
+        Stiff: sps.csc_array,
+        rhs: np.ndarray,
+        solver: Optional[Callable] = sps.linalg.spsolve,
+    ) -> np.ndarray:
+        LS = pg.LinearSystem(Stiff, rhs)
+        LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
+
+        return LS.solve(solver=solver)
