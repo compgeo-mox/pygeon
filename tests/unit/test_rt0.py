@@ -89,5 +89,4 @@ class RT0Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    RT0Test().test_mass_matrix()
-    # unittest.main()
+    unittest.main()

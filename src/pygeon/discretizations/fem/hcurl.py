@@ -81,7 +81,6 @@ class Nedelec0(pg.Discretization):
         idx = 0
 
         M = pg.BDM1.local_inner_product(sd.dim)
-        M = pg.BDM1.local_inner_product(sd.dim)
 
         cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
 
