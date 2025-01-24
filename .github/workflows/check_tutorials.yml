@@ -1,6 +1,6 @@
 # Adapted from PorePy
 # Run unit, integration, and functional tests.
-name: Pytest
+name: Check tutorials
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events for the main and develop branches
@@ -28,8 +28,8 @@ jobs:
     # https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#specifying-a-python-version
     strategy:
       matrix:
-        # Only check the latest version of
-        python-version:  ["3.12"]
+        # Only run check the latest supported version of Python
+        python-version:  ["3.13"]
       # Complete all versions in matrix even if one fails.
       fail-fast: false
 
