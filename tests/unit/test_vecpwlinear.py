@@ -78,7 +78,9 @@ class VecPwLinearsTest(unittest.TestCase):
 
         discr = pg.VecPwLinears("P1")
 
-        self.assertRaises(NotImplementedError, discr.assemble_diff_matrix, sd)
+        B = discr.assemble_diff_matrix(sd)
+
+        self.assertTrue(B.nnz == 0)
 
     def test_assemble_stiff_matrix(self):
         dim = 2
@@ -96,8 +98,11 @@ class VecPwLinearsTest(unittest.TestCase):
 
         discr = pg.VecPwLinears("P1")
 
-        func = lambda x: np.sin(x)  # Example function
-        self.assertRaises(NotImplementedError, discr.interpolate, sd, func)
+        interp = discr.interpolate(sd, lambda x: x)
+        P = discr.eval_at_cell_centers(sd)
+        known = sd.cell_centers[:dim].ravel()
+
+        self.assertTrue(np.allclose(P @ interp, known))
 
     def test_eval_at_cell_centers(self):
         dim = 2
@@ -155,12 +160,11 @@ class VecPwLinearsTest(unittest.TestCase):
         sd.compute_geometry()
 
         discr = pg.VecPwLinears("P1")
-        # fmt: off
-        num_sol = np.empty(0)
-        # fmt: on
-        ana_sol = lambda x: np.sin(x)
+        ana_sol = lambda x: x
+        num_sol = discr.interpolate(sd, ana_sol)
 
-        self.assertRaises(NotImplementedError, discr.error_l2, sd, num_sol, ana_sol)
+        error = discr.error_l2(sd, num_sol, ana_sol)
+        self.assertTrue(np.isclose(error, 0))
 
 
 if __name__ == "__main__":

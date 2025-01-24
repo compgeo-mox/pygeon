@@ -12,35 +12,24 @@ class PwLinearsTest(unittest.TestCase):
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
-        assert discr.ndof(sd) == sd.num_cells * (dim + 1)
+        discr = pg.PwLinears()
+        assert discr.ndof(sd) == 24
 
     def test_assemble_mass_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
         M = discr.assemble_mass_matrix(sd)
 
         # fmt: off
-        M_known_data = np.array(
-        [0.02083333, 0.01041667, 0.01041667, 0.01041667, 0.02083333,
-        0.01041667, 0.01041667, 0.01041667, 0.02083333, 0.02083333,
-        0.01041667, 0.01041667, 0.01041667, 0.02083333, 0.01041667,
-        0.01041667, 0.01041667, 0.02083333, 0.02083333, 0.01041667,
-        0.01041667, 0.01041667, 0.02083333, 0.01041667, 0.01041667,
-        0.01041667, 0.02083333, 0.02083333, 0.01041667, 0.01041667,
-        0.01041667, 0.02083333, 0.01041667, 0.01041667, 0.01041667,
-        0.02083333, 0.02083333, 0.01041667, 0.01041667, 0.01041667,
-        0.02083333, 0.01041667, 0.01041667, 0.01041667, 0.02083333,
-        0.02083333, 0.01041667, 0.01041667, 0.01041667, 0.02083333,
-        0.01041667, 0.01041667, 0.01041667, 0.02083333, 0.02083333,
-        0.01041667, 0.01041667, 0.01041667, 0.02083333, 0.01041667,
-        0.01041667, 0.01041667, 0.02083333, 0.02083333, 0.01041667,
-        0.01041667, 0.01041667, 0.02083333, 0.01041667, 0.01041667,
-        0.01041667, 0.02083333]
-        )
+        M_known_data = np.array([
+            2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1,
+            2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1,
+            2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1,
+            1, 2, 1, 1, 1, 2]) / 96
+        
 
         M_known_indices = np.array(
         [ 0,  1,  2,  0,  1,  2,  0,  1,  2,  3,  4,  5,  3,  4,  5,  3,  4,
@@ -65,18 +54,12 @@ class PwLinearsTest(unittest.TestCase):
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
         M = discr.assemble_lumped_matrix(sd)
 
         # fmt: off
-        M_known_data = np.array(
-        [0.04166667, 0.04166667, 0.04166667, 0.04166667, 0.04166667,
-        0.04166667, 0.04166667, 0.04166667, 0.04166667, 0.04166667,
-        0.04166667, 0.04166667, 0.04166667, 0.04166667, 0.04166667,
-        0.04166667, 0.04166667, 0.04166667, 0.04166667, 0.04166667,
-        0.04166667, 0.04166667, 0.04166667, 0.04166667]
-        )
+        M_known_data = np.full(discr.ndof(sd), 1/24)
 
         M_known_indices = np.array(
         [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
@@ -98,44 +81,40 @@ class PwLinearsTest(unittest.TestCase):
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
-        self.assertRaises(
-            NotImplementedError,
-            discr.assemble_diff_matrix,
-            sd,
-        )
+        B = discr.assemble_diff_matrix(sd)
+        self.assertTrue(B.nnz == 0)
 
     def test_assemble_stiff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
-        self.assertRaises(
-            NotImplementedError,
-            discr.assemble_diff_matrix,
-            sd,
-        )
+        stiff = discr.assemble_stiff_matrix(sd)
+        self.assertTrue(stiff.nnz == 0)
 
     def test_interpolate(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
-        self.assertRaises(
-            NotImplementedError, discr.interpolate, sd, lambda x: np.sin(x)
-        )
+        interp = discr.interpolate(sd, lambda x: x[0])
+        P = discr.eval_at_cell_centers(sd)
+        known = sd.cell_centers[0]
+
+        self.assertTrue(np.allclose(P @ interp, known))
 
     def test_eval_at_cell_centers(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
         known_func = np.ones(discr.ndof(sd))
 
@@ -148,20 +127,20 @@ class PwLinearsTest(unittest.TestCase):
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
-        func = lambda x: np.sin(x[0])  # Example function
+        func = lambda x: np.sin(x[0])
+        b_faces = np.array([0, 1, 3])
 
-        b_faces = np.array([0, 1, 3])  # Example boundary faces
-
-        self.assertRaises(NotImplementedError, discr.assemble_nat_bc, sd, func, b_faces)
+        b = discr.assemble_nat_bc(sd, func, b_faces)
+        self.assertTrue(np.all(b == 0))
 
     def test_get_range_discr_class(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
         sd.compute_geometry()
 
-        discr = pg.PwLinears("P1b")
+        discr = pg.PwLinears()
 
         self.assertRaises(
             NotImplementedError,

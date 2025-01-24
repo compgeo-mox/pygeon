@@ -372,14 +372,28 @@ class PwLinears(pg.Discretization):
         Returns:
             sps.csc_matrix: The differential matrix.
         """
-        raise NotImplementedError
+        return sps.csc_matrix((0, self.ndof(sd)))
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_matrix:
+        """
+        Assembles the stiffness matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+            data (Optional[dict]): Additional data for the assembly process.
+
+        Returns:
+            sps.csc_matrix: The assembled stiffness matrix.
+        """
+        return sps.csc_matrix((self.ndof(sd), self.ndof(sd)))
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
         """
-        Assembles the natural boundary condition term
-        (Tr q, p)_Gamma
+        Assembles the natural boundary condition vector, equal to zero.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -389,7 +403,7 @@ class PwLinears(pg.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        raise NotImplementedError
+        return np.zeros(self.ndof(sd))
 
     def get_range_discr_class(self, dim: int) -> object:
         """
@@ -402,7 +416,7 @@ class PwLinears(pg.Discretization):
             pg.Discretization: The discretization class containing the range of the
                 differential
         """
-        raise NotImplementedError
+        raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
         """
@@ -434,4 +448,14 @@ class PwLinears(pg.Discretization):
         Returns:
             np.ndarray: the values of the degrees of freedom
         """
-        raise NotImplementedError
+
+        cell_nodes = sd.cell_nodes()
+        vals = np.zeros((sd.num_cells, sd.dim + 1))
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+            nodes_loc = cell_nodes.indices[loc]
+
+            vals[c, :] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+
+        return vals.ravel()
