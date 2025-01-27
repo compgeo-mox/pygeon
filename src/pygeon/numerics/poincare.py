@@ -14,7 +14,8 @@ class Poincare:
     """
     Class for generating Poincaré operators p
     that satisfy pd + dp = I
-    with d the exterior derivative
+    with d the exterior derivative, following
+    the construction from https://arxiv.org/abs/2410.08830
 
     Attributes:
         mdg (pg.MixedDimensionalGrid): The (mixed-dimensional) grid.
@@ -119,39 +120,47 @@ class Poincare:
 
         return flagged_nodes
 
-    def apply(self, k: int, f: np.ndarray) -> np.ndarray:
+    def apply(
+        self, k: int, f: np.ndarray, solver: Optional[Callable] = sps.linalg.spsolve
+    ) -> np.ndarray:
         """
         Apply the Poincare operator
 
         Args:
-            k (int): order of the differential form
-            f (np.ndarray): the differential form
+            k (int): order of the differential k-form that is input
+            f (np.ndarray): the input differential k-form
+                as an array of the degrees of freedom
+            solver (Optional[Callable]): The solver function to use.
+                Defaults to sps.linalg.spsolve
 
         Returns:
-            np.ndarray: the image of the Poincaré operator under f
+            np.ndarray: the image of f under the Poincaré operator, i.e. p(f)
         """
         # Nodes to the constants
         if k == 0:
             return np.full_like(f, np.mean(f))
 
         # For k > 0, we simply apply the operator
-        pf = self._apply_op(k, f)
+        pf = self._apply_op(k, f, solver)
 
-        # For edges to nodes, we subtract the mean
+        # For the edge-to-node map, we subtract the mean
         if k == 1:
-            return pf - np.mean(pf)
-        else:  # Otherwise, we return pf
-            return pf
+            pf -= np.mean(pf)
 
-    def _apply_op(self, k: int, f: np.ndarray) -> np.ndarray:
+        return pf
+
+    def _apply_op(self, k: int, f: np.ndarray, solver: Callable) -> np.ndarray:
         """
         Apply the permitted Poincaré operator for k-forms
 
         Args:
             k (int): order of the form
+            f (np.ndarray): the input differential k-form
+                as an array of the degrees of freedom
+            solver (Callable): The solver function to use.
 
         Returns:
-            np.ndarray: the image of the Poincaré operator
+            np.ndarray: the image of f under the Poincaré operator, i.e. p(f)
         """
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
@@ -161,7 +170,7 @@ class Poincare:
 
         pi_0_d_bar = R_0 @ _diff @ R_bar.T
 
-        return R_bar.T @ sps.linalg.spsolve(pi_0_d_bar, R_0 @ f)
+        return R_bar.T @ solver(pi_0_d_bar, R_0 @ f)
 
     def decompose(self, k: int, f: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
