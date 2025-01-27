@@ -153,7 +153,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         self, cond: Optional[Callable[[pg.Grid], bool]] = None
     ) -> int:
         """
-        Compute the total number of peaks (nodes) in the mixed-dimensional grid.
+        Compute the total number of peaks in the mixed-dimensional grid.
 
         A function can be passed to filter subdomains and/or interfaces.
 
@@ -165,7 +165,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
-        return np.sum([sd.num_nodes for sd in self.subdomains() if cond(sd)], dtype=int)
+        return np.sum([sd.num_peaks for sd in self.subdomains() if cond(sd)], dtype=int)
 
     def tag_leafs(self) -> None:
         """
