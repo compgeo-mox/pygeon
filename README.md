@@ -29,5 +29,8 @@ Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 ## Getting started
 See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).
 
+## Papers
+For a list of papers that use PyGeoN see [papers](https://github.com/compgeo-mox/.github/blob/main/profile/papers.md).
+
 ## License
 See [license](./LICENSE.md).
