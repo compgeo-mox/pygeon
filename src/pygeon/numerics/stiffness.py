@@ -19,7 +19,7 @@ def cell_stiff(mdg, discr=None, **kwargs):
         sps.csc_matrix, num_cells x num_cells
     """
 
-    return sps.csc_matrix((mdg.num_subdomain_cells(), mdg.num_subdomain_cells()))
+    return stiff_matrix(mdg, 0, discr, **kwargs)
 
 
 def face_stiff(mdg, discr=None, **kwargs):
@@ -85,6 +85,10 @@ def stiff_matrix(mdg, n_minus_k, discr, **kwargs):
     Returns:
         sps.csc_matrix, num_dofs x num_dofs
     """
+
+    if n_minus_k == 0:
+        return sps.csc_matrix((mdg.num_subdomain_cells(), mdg.num_subdomain_cells()))
+
     diff = pg.numerics.differentials.exterior_derivative(mdg, n_minus_k)
     mass_plus_1 = pg.numerics.innerproducts.mass_matrix(
         mdg, n_minus_k - 1, discr, **kwargs
