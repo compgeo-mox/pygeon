@@ -1304,7 +1304,8 @@ class RT1(pg.Discretization):
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_matrix:
         """
-        Assembles the lumped matrix for the given grid.
+        Assembles the lumped matrix for the given grid,
+        using the integration rule from Egger & Radu (2020)
 
         Args:
             sd (pg.Grid): The grid object.
