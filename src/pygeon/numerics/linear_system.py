@@ -13,19 +13,19 @@ class LinearSystem:
     and reduces the system appropriately before solving.
 
     Attributes:
-        A (sps.spmatrix, n x n): The left-hand side matrix
+        A (sps.sparray, n x n): The left-hand side matrix
         b (np.array-like): The right-hand side vector
         is_dof (np.array, bool): Determines whether an entry is a degree of freedom.
             If False then it will be overwritten by an essential bc.
         ess_vals (np.array, (n, )): The values of the essential bcs.
     """
 
-    def __init__(self, A: sps.spmatrix, b: Optional[np.ndarray] = None) -> None:
+    def __init__(self, A: sps.sparray, b: Optional[np.ndarray] = None) -> None:
         """
         Initialize a LinearSystem object.
 
         Args:
-            A (sps.spmatrix): The coefficient matrix of the linear system.
+            A (sps.sparray): The coefficient matrix of the linear system.
             b (np.ndarray, optional): The right-hand side vector of the linear system.
                 Defaults to None.
 
@@ -68,7 +68,7 @@ class LinearSystem:
         self.is_dof[is_ess_dof] = False
         self.ess_vals[is_ess_dof] += ess_vals[is_ess_dof]
 
-    def reduce_system(self) -> Union[sps.spmatrix, np.ndarray, sps.csc_matrix]:
+    def reduce_system(self) -> Union[sps.csc_array, np.ndarray, sps.csc_array]:
         """
         Reduces the linear system by applying a restriction operator and returning
         the reduced system.
@@ -100,7 +100,7 @@ class LinearSystem:
 
         return sol
 
-    def repeat_ess_vals(self) -> Union[np.ndarray, sps.csr_matrix]:
+    def repeat_ess_vals(self) -> Union[np.ndarray, sps.csr_array]:
         """
         Repeat the essential values of the linear system.
 
@@ -108,17 +108,17 @@ class LinearSystem:
         Otherwise, it calculates the sum of the essential values for each column of `b`.
 
         Returns:
-            numpy.ndarray or scipy.sparse.csr_matrix: The repeated essential values.
+            numpy.ndarray or scipy.sparse.csr_array: The repeated essential values.
         """
         if self.b.ndim == 1:
             return self.ess_vals
         else:
-            return sps.csr_matrix(self.ess_vals).T @ sps.csc_matrix(
+            return sps.csr_array(self.ess_vals).T @ sps.csc_array(
                 np.ones(self.b.shape[1])
             )
 
 
-def create_restriction(keep_dof: np.ndarray) -> sps.csc_matrix:
+def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
     """
     Helper function to create the restriction mapping
 
@@ -127,7 +127,7 @@ def create_restriction(keep_dof: np.ndarray) -> sps.csc_matrix:
             to keep. True for the dofs of the system, False for the overwritten values.
 
     Returns:
-        sps.csc_matrix: The restriction mapping matrix.
+        sps.csc_array: The restriction mapping matrix.
     """
-    R = sps.diags(keep_dof, dtype=int).tocsr()
+    R = sps.diags_array(keep_dof, dtype=int, format="csr")
     return R[R.indices, :].tocsc()

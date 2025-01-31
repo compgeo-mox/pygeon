@@ -250,7 +250,7 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(diff.indices, diff_known.indices))
         self.assertTrue(np.allclose(diff.indptr, diff_known.indptr))
 
-        pen_known = sps.csc_matrix(pen.shape)
+        pen_known = sps.csc_array(pen.shape)
 
         stiff_known = symgrad_symgrad_known + div_div_known + pen_known
         self.make_canonical(stiff_known)

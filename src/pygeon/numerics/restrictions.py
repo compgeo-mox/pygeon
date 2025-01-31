@@ -10,7 +10,7 @@ import pygeon as pg
 
 def zero_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> Union[sps.spmatrix, sps.bmat]:
+) -> Union[sps.sparray, sps.bmat]:
     """
     Compute the operator that maps the tip degrees of freedom to zero.
 
@@ -23,25 +23,25 @@ def zero_tip_dofs(
                 sub-blocks. Default False.
 
     Returns:
-        sps.csc_matrix or sps.bmat: The operator that maps the tip degrees of freedom to zero.
+        sps.csc_array or sps.bmat: The operator that maps the tip degrees of freedom to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
     if n_minus_k == 0:
-        return sps.diags(np.ones(mdg.num_subdomain_cells()), dtype=int)
+        return sps.diags_array(np.ones(mdg.num_subdomain_cells()), dtype=int)
 
     s = "tip_" + get_codim_str(n_minus_k)
 
     # Pre-allocation of the block-matrix
     is_tip_dof = np.empty(
-        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.sparray
     )
     for sd in mdg.subdomains():
         if sd.dim >= n_minus_k:
             # Get indice (node_numbers) in grid_bucket
             node_nr = mdg.subdomains().index(sd)
             # Add the sparse matrix
-            is_tip_dof[node_nr, node_nr] = sps.diags(
+            is_tip_dof[node_nr, node_nr] = sps.diags_array(
                 np.logical_not(sd.tags[s]), dtype=int
             )
 
@@ -51,7 +51,7 @@ def zero_tip_dofs(
 
 def remove_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csr_matrix:
+) -> sps.csr_array:
     """
     Compute the operator that removes the tip degrees of freedom.
 
@@ -65,7 +65,7 @@ def remove_tip_dofs(
             differential form.
 
     Returns:
-        sps.csr_matrix: The operator that removes the tip degrees of freedom.
+        sps.csr_array: The operator that removes the tip degrees of freedom.
     """
     R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()
     return R[R.indices, :]

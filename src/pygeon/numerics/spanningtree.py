@@ -15,11 +15,11 @@ class SpanningTree:
     Useful to rapidly compute a flux field that balances a mass source.
 
     Attributes:
-        system (sps.csc_matrix): The matrix used in the solve,
+        system (sps.csc_array): The matrix used in the solve,
             which is triangular up to row/column permutations.
-        expand (sps.csc_matrix): Expansion matrix from tree to global ordering.
+        expand (sps.csc_array): Expansion matrix from tree to global ordering.
 
-        div (sps.csc_matrix): the divergence operator on the associated mdg.
+        div (sps.csc_array): the divergence operator on the associated mdg.
         starting_cells (np.ndarray): the first cells of the spanning tree.
         starting_faces (np.ndarray): the first faces of the spanning tree.
         tree (sps.csc_array): The incidence matrix of the spanning tree.
@@ -353,7 +353,7 @@ class SpanningTree:
 
             # Add connections from the roots to the starting faces
             num_bdry = len(self.starting_faces)
-            bdry_graph = sps.diags(
+            bdry_graph = sps.diags_array(
                 np.ones(num_bdry),
                 num_bdry,
                 shape=(2 * num_bdry, 2 * num_bdry),
@@ -409,17 +409,17 @@ class SpanningTreeElasticity(SpanningTree):
     Represents a class for computing the spanning tree for the elastic problem.
 
     Attributes:
-        expand (sps.csc_matrix): The expanded matrix for spanning tree computation.
-        system (sps.csc_matrix): The computed system matrix.
+        expand (sps.csc_array): The expanded matrix for spanning tree computation.
+        system (sps.csc_array): The computed system matrix.
 
     Methods:
         setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
             Set up the system for the spanning tree algorithm.
 
-        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
             Compute the expanded matrix for spanning tree computation.
 
-        compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+        compute_system(self, sd: pg.Grid) -> sps.csc_array:
             Computes the system matrix for the given grid.
     """
 
@@ -444,7 +444,7 @@ class SpanningTreeElasticity(SpanningTree):
         self.system = self.compute_system(sd)
         self.system_splu = sps.linalg.splu(self.system)
 
-    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
         """
         Compute the expanded matrix for spanning tree computation.
 
@@ -453,7 +453,7 @@ class SpanningTreeElasticity(SpanningTree):
             flagged_faces (np.ndarray): Array of flagged faces.
 
         Returns:
-            sps.csc_matrix: The expanded matrix for spanning tree computation.
+            sps.csc_array: The expanded matrix for spanning tree computation.
         """
         key = "tree"
         bdm1 = pg.BDM1(key)
@@ -546,7 +546,7 @@ class SpanningTreeElasticity(SpanningTree):
 
         return P @ sps.block_diag([expand] * dofs_per_face, format="csc")
 
-    def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+    def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
         Computes the system matrix for the given grid.
 
@@ -554,7 +554,7 @@ class SpanningTreeElasticity(SpanningTree):
             sd (pg.Grid): The grid object representing the domain.
 
         Returns:
-            sps.csc_matrix: The computed system matrix.
+            sps.csc_array: The computed system matrix.
         """
         # first we assemble the B matrix
         key = "tree"
@@ -583,21 +583,21 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
     Represents a class for computing the spanning tree for the Cosserat problem.
 
     Attributes:
-        expand (sps.csc_matrix): The expanded matrix for spanning tree computation.
-        system (sps.csc_matrix): The computed system matrix.
+        expand (sps.csc_array): The expanded matrix for spanning tree computation.
+        system (sps.csc_array): The computed system matrix.
 
     Methods:
         setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
             Set up the system for the spanning tree algorithm.
 
-        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
             Compute the expanded matrix for spanning tree computation.
 
-        compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+        compute_system(self, sd: pg.Grid) -> sps.csc_array:
             Computes the system matrix for the given grid.
     """
 
-    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
         """
         Compute the expanded matrix for spanning tree computation.
 
@@ -606,7 +606,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
             flagged_faces (np.ndarray): Array of flagged faces.
 
         Returns:
-            sps.csc_matrix: The expanded matrix for spanning tree computation.
+            sps.csc_array: The expanded matrix for spanning tree computation.
         """
         dim_sig_omega = sd.dim * (sd.dim + 1) // 2
 
@@ -614,7 +614,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
 
         return sps.block_diag([expand] * dim_sig_omega, format="csc")
 
-    def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+    def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
         Computes the system matrix for the given grid.
 
@@ -622,7 +622,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
             sd (pg.Grid): The grid object representing the domain.
 
         Returns:
-            sps.csc_matrix: The computed system matrix.
+            sps.csc_array: The computed system matrix.
         """
         assert sd.dim == 3, "Only implemented the 3D Raviart-Thomas version."
 

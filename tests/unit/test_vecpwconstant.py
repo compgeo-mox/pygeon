@@ -75,7 +75,7 @@ class VecPwConstantsTest(unittest.TestCase):
 
         discr = pg.VecPwConstants("P0")
         D = discr.assemble_diff_matrix(sd).todense()
-        D_known = sps.csc_matrix((0, discr.ndof(sd))).todense()
+        D_known = sps.csc_array((0, discr.ndof(sd))).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 

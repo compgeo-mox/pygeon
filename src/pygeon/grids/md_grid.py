@@ -192,7 +192,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             if intf.dim >= 1:
                 sd_up, sd_down = self.interface_to_subdomain_pair(intf)
                 sd_up.tags["leaf_ridges"] += (
-                    abs(intf.face_ridges) * sd_down.tags["leaf_faces"]
+                    abs(intf.face_ridges) @ sd_down.tags["leaf_faces"]
                 ).astype("bool")
 
         for intf in self.interfaces():
@@ -200,5 +200,5 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             if intf.dim >= 2:
                 sd_up, sd_down = self.interface_to_subdomain_pair(intf)
                 sd_up.tags["leaf_peaks"] += (
-                    abs(intf.ridge_peaks) * sd_down.tags["leaf_ridges"]
+                    abs(intf.ridge_peaks) @ sd_down.tags["leaf_ridges"]
                 ).astype("bool")

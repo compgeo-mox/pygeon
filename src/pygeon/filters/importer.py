@@ -22,7 +22,7 @@ def graph_from_file(**kwargs):
     shape = np.flip(shape)
 
     # create the adjacency matrix representation of a graph
-    frac_to_intersect = sps.coo_matrix(
+    frac_to_intersect = sps.coo_array(
         (np.ones(frac.size), (frac, intersect)), shape=shape
     )
     adj = sps.bmat([[None, frac_to_intersect], [frac_to_intersect.T, None]])

@@ -75,7 +75,7 @@ class PwConstantsTest(unittest.TestCase):
 
         discr = pg.PwConstants("P0")
         D = discr.assemble_diff_matrix(sd).todense()
-        D_known = sps.csc_matrix((0, discr.ndof(sd))).todense()
+        D_known = sps.csc_array((0, discr.ndof(sd))).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 
@@ -86,7 +86,7 @@ class PwConstantsTest(unittest.TestCase):
 
         discr = pg.PwConstants("P0")
         D = discr.assemble_stiff_matrix(sd).todense()
-        D_known = sps.csc_matrix((discr.ndof(sd), discr.ndof(sd))).todense()
+        D_known = sps.csc_array((discr.ndof(sd), discr.ndof(sd))).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 

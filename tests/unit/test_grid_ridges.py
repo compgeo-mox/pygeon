@@ -109,7 +109,7 @@ class GridRidgesTest(unittest.TestCase):
             indices = np.array([0, 1, 10, 11, 2, 3])
             indptr = np.array([0, 2, 4, 6])
 
-            return sps.csc_matrix((data, indices, indptr), (16, 3))
+            return sps.csc_array((data, indices, indptr), (16, 3))
 
         mdg = setup_problem()
         pg.convert_from_pp(mdg)
@@ -140,14 +140,14 @@ class GridRidgesTest(unittest.TestCase):
             )
             indptr = np.array([0, 2, 4, 6, 8, 10, 12, 14, 16])
 
-            return sps.csc_matrix((data, indices, indptr), (98, 8))
+            return sps.csc_array((data, indices, indptr), (98, 8))
 
         def known_ridge_peaks():
             data = np.array([1, -1, 1, -1, 1, -1, 1, -1, 1, -1])
             indices = np.array([0, 1, 2, 3, 4, 5, 6, 7, 26, 27])
             indptr = np.array([0, 2, 4, 6, 8, 10])
 
-            return sps.csc_matrix((data, indices, indptr), (28, 5))
+            return sps.csc_array((data, indices, indptr), (28, 5))
 
         mdg = setup_problem()
         pg.convert_from_pp(mdg)
@@ -236,7 +236,7 @@ class GridRidgesTest(unittest.TestCase):
         )
         indptr = np.array([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
 
-        return sps.csc_matrix((data, indices, indptr))
+        return sps.csc_array((data, indices, indptr))
 
     def known_fr_2d_tris(self):
         data = np.array(
@@ -315,7 +315,7 @@ class GridRidgesTest(unittest.TestCase):
             [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]
         )
 
-        return sps.csc_matrix((data, indices, indptr))
+        return sps.csc_array((data, indices, indptr))
 
     def known_rp_3d_cart(self):
         data = np.array(
@@ -602,7 +602,7 @@ class GridRidgesTest(unittest.TestCase):
             ]
         )
 
-        return sps.csc_matrix((data, indices, indptr))
+        return sps.csc_array((data, indices, indptr))
 
     def known_fr_3d_cart(self):
         data = np.array(
@@ -942,7 +942,7 @@ class GridRidgesTest(unittest.TestCase):
                 144,
             ]
         )
-        return sps.csc_matrix((data, indices, indptr))
+        return sps.csc_array((data, indices, indptr))
 
     def known_rp_3d_tet(self):
         data = np.array(
@@ -1032,7 +1032,7 @@ class GridRidgesTest(unittest.TestCase):
         indptr = np.array(
             [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38]
         )
-        return sps.csc_matrix((data, indices, indptr))
+        return sps.csc_array((data, indices, indptr))
 
     def known_fr_3d_tet(self):
         data = np.array(
@@ -1154,7 +1154,7 @@ class GridRidgesTest(unittest.TestCase):
         indptr = np.array(
             [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54]
         )
-        return sps.csc_matrix((data, indices, indptr))
+        return sps.csc_array((data, indices, indptr))
 
 
 if __name__ == "__main__":

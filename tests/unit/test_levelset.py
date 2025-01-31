@@ -23,8 +23,8 @@ class LevelsetGridTest(unittest.TestCase):
 
     def test_merge_connectivities(self):
         indices = np.arange(1, 5)[::-1]
-        old_con = sps.csc_matrix((np.ones(4), indices, [0, 1, 4]))
-        new_con = sps.hstack((sps.csc_matrix(old_con.shape), old_con))
+        old_con = sps.csc_array((np.ones(4), indices, [0, 1, 4]))
+        new_con = sps.hstack((sps.csc_array(old_con.shape), old_con))
         con = remesh.merge_connectivities(old_con, new_con)
 
         self.assertTrue(np.all(con.indices == np.tile(indices, 2)))

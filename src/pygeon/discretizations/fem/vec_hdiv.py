@@ -24,19 +24,19 @@ class VecBDM1(pg.VecDiscretization):
         ndof(sd: pp.Grid) -> int:
             Return the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix for the given grid.
 
-        assemble_trace_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_trace_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the trace matrix for the vector BDM1.
 
-        assemble_asym_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_asym_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the asymmetric matrix for the vector BDM1.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the finite element solution at the cell centers of the given grid.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
@@ -85,7 +85,7 @@ class VecBDM1(pg.VecDiscretization):
         """
         super().__init__(keyword, pg.BDM1)
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1, which is given by
         (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
@@ -96,7 +96,7 @@ class VecBDM1(pg.VecDiscretization):
             data (dict): Data for the assembly.
 
         Returns:
-            sps.csc_matrix: The mass matrix obtained from the discretization.
+            sps.csc_array: The mass matrix obtained from the discretization.
         """
         # Extract the data
         mu = data[pp.PARAMETERS][self.keyword]["mu"]
@@ -129,7 +129,7 @@ class VecBDM1(pg.VecDiscretization):
         # Compose all the parts and return them
         return D - B.T @ M @ B
 
-    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat inner
         product, which is given by (A sigma, tau) where
@@ -142,7 +142,7 @@ class VecBDM1(pg.VecDiscretization):
             data (dict): Data for the assembly.
 
         Returns:
-            sps.csc_matrix: The mass matrix obtained from the discretization.
+            sps.csc_array: The mass matrix obtained from the discretization.
         """
         M = self.assemble_mass_matrix(sd, data)
 
@@ -169,7 +169,7 @@ class VecBDM1(pg.VecDiscretization):
 
         return M + asym.T @ R_mass @ asym
 
-    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles and returns the trace matrix for the vector BDM1.
 
@@ -177,7 +177,7 @@ class VecBDM1(pg.VecDiscretization):
             sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_matrix: The trace matrix obtained from the discretization.
+            sps.csc_array: The trace matrix obtained from the discretization.
         """
         # overestimate the size
         size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
@@ -222,9 +222,9 @@ class VecBDM1(pg.VecDiscretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_matrix:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
@@ -241,7 +241,7 @@ class VecBDM1(pg.VecDiscretization):
                 constant (default), otherwise the mapping is on the piece-wise linears.
 
         Returns:
-            sps.csc_matrix: The asymmetric matrix obtained from the discretization.
+            sps.csc_array: The asymmetric matrix obtained from the discretization.
         """
 
         # overestimate the size
@@ -259,12 +259,12 @@ class VecBDM1(pg.VecDiscretization):
             ind_list = np.arange(3)
             shift = ind_list
             rot_space = pg.VecPwLinears(self.keyword)
-            scaling = sps.diags(np.tile(sd.cell_volumes, 3))
+            scaling = sps.diags_array(np.tile(sd.cell_volumes, 3))
         elif sd.dim == 2:
             ind_list = [2]
             shift = [0, 0, 0]
             rot_space = pg.PwLinears(self.keyword)
-            scaling = sps.diags(sd.cell_volumes)
+            scaling = sps.diags_array(sd.cell_volumes)
         else:
             raise ValueError("The grid should be either two or three-dimensional")
 
@@ -312,7 +312,7 @@ class VecBDM1(pg.VecDiscretization):
                 idx += cols.size
 
         # Construct the global matrices
-        asym = sps.csc_matrix((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+        asym = sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
         # Return the operator that maps to the piece-wise constant
         if as_pwconstant:
@@ -322,7 +322,7 @@ class VecBDM1(pg.VecDiscretization):
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
@@ -331,7 +331,7 @@ class VecBDM1(pg.VecDiscretization):
             data (Optional[dict]): Optional data dictionary.
 
         Returns:
-            sps.csc_matrix: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped matrix.
         """
         # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_lumped_matrix(sd)
@@ -352,9 +352,7 @@ class VecBDM1(pg.VecDiscretization):
         # Compose all the parts and return them
         return (D - coeff * B.T @ M @ B) / (2 * mu)
 
-    def assemble_lumped_matrix_cosserat(
-        self, sd: pg.Grid, data: dict
-    ) -> sps.csc_matrix:
+    def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assembles the lumped matrix with cosserat terms for the given grid.
 
@@ -363,9 +361,8 @@ class VecBDM1(pg.VecDiscretization):
             data (Optional[dict]): Optional data dictionary.
 
         Returns:
-            sps.csc_matrix: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped matrix.
         """
-
         M = self.assemble_lumped_matrix(sd, data)
 
         # Extract the data
@@ -391,7 +388,7 @@ class VecBDM1(pg.VecDiscretization):
 
         return M + asym.T @ R_mass @ asym
 
-    def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+    def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
 
@@ -399,12 +396,12 @@ class VecBDM1(pg.VecDiscretization):
             sd (pg.Grid): The grid object representing the computational domain.
 
         Returns:
-            sps.csc_matrix: The projection matrix to the RT0 space.
+            sps.csc_array: The projection matrix to the RT0 space.
         """
         proj = self.scalar_discr.proj_to_RT0(sd)
         return sps.block_diag([proj] * sd.dim, format="csc")
 
-    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the RT0 finite element space onto the faces of the given grid.
 
@@ -412,7 +409,7 @@ class VecBDM1(pg.VecDiscretization):
             sd (pg.Grid): The grid on which the projection is performed.
 
         Returns:
-            sps.csc_matrix: The projection matrix.
+            sps.csc_array: The projection matrix.
         """
         proj = self.scalar_discr.proj_from_RT0(sd)
         return sps.block_diag([proj] * sd.dim, format="csc")
@@ -467,7 +464,7 @@ class VecRT0(pg.VecDiscretization):
         """
         super().__init__(keyword, pg.RT0)
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector RT0, which is given by
         (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
@@ -478,7 +475,7 @@ class VecRT0(pg.VecDiscretization):
             data (dict): Data for the assembly.
 
         Returns:
-            sps.csc_matrix: The mass matrix obtained from the discretization.
+            sps.csc_array: The mass matrix obtained from the discretization.
         """
         # Assemble the block diagonal mass matrix for the base discretization class,
         # with unitary data. The data are handled afterwards
@@ -500,7 +497,7 @@ class VecRT0(pg.VecDiscretization):
         # Compose all the parts and return them
         return (D - coeff * B.T @ M @ B) / (2 * mu)
 
-    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat inner
         product, which is given by (A sigma, tau) where
@@ -513,11 +510,10 @@ class VecRT0(pg.VecDiscretization):
             data (dict): Data for the assembly.
 
         Returns:
-            sps.csc_matrix: The mass matrix obtained from the discretization.
+            sps.csc_array: The mass matrix obtained from the discretization.
 
         TODO: Consider using inheritance from VecBDM1.assemble_mass_matrix_cosserat
         """
-
         M = self.assemble_mass_matrix(sd, data)
 
         # Extract the data
@@ -543,7 +539,7 @@ class VecRT0(pg.VecDiscretization):
 
         return M + asym.T @ R_mass @ asym
 
-    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles and returns the trace matrix for the vector BDM1.
 
@@ -551,13 +547,13 @@ class VecRT0(pg.VecDiscretization):
             sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_matrix: The trace matrix obtained from the discretization.
+            sps.csc_array: The trace matrix obtained from the discretization.
         """
         vec_bdm1 = VecBDM1(self.keyword)
         proj = vec_bdm1.proj_from_RT0(sd)
         return vec_bdm1.assemble_trace_matrix(sd) @ proj
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_matrix:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
@@ -572,7 +568,7 @@ class VecRT0(pg.VecDiscretization):
             sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_matrix: The asymmetric matrix obtained from the discretization.
+            sps.csc_array: The asymmetric matrix obtained from the discretization.
         """
         vec_bdm1 = VecBDM1(self.keyword)
         proj = vec_bdm1.proj_from_RT0(sd)

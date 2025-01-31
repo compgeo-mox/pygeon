@@ -11,12 +11,12 @@ class BlockMatrixTest(unittest.TestCase):
         Creates a single block matrix for testing
         """
 
-        M = np.empty(shape=(3, 3), dtype=sps.spmatrix)
+        M = np.empty(shape=(3, 3), dtype=sps.sparray)
 
         # Fill matrix with matrices of different sizes
         for i in np.arange(M.shape[0]):
             for j in np.arange(M.shape[1]):
-                M[i, j] = (i + 2 * j) * sps.eye(i + 1, j + 1, format="csc")
+                M[i, j] = (i + 2 * j) * sps.eye_array(i + 1, j + 1, format="csc")
 
         # Put nones on the diagonal
         M[[0, 1, 2], [0, 1, 2]] = None
@@ -29,7 +29,7 @@ class BlockMatrixTest(unittest.TestCase):
         with a row of Nones.
         """
 
-        M = np.empty(shape=(4, 3), dtype=sps.spmatrix)
+        M = np.empty(shape=(4, 3), dtype=sps.sparray)
         M[np.ix_([0, 1, 2], [0, 1, 2])] = self.create_block_mat()
 
         row, col = pg.bmat.find_row_col_lengths(M)
@@ -102,4 +102,5 @@ class BlockMatrixTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    BlockMatrixTest().test_mat_multiplication()
     unittest.main()

@@ -63,7 +63,7 @@ class Discretization(abc.ABC):
     @abc.abstractmethod
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
@@ -72,12 +72,12 @@ class Discretization(abc.ABC):
             data (dict, optional): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The mass matrix.
+            sps.csc_array: The mass matrix.
         """
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
@@ -86,13 +86,13 @@ class Discretization(abc.ABC):
             data (dict, optional): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The lumped mass matrix.
+            sps.csc_array: The lumped mass matrix.
         """
         diag_mass = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
-        return sps.diags(np.asarray(diag_mass).flatten()).tocsc()
+        return sps.diags_array(np.asarray(diag_mass).flatten(), format="csc")
 
     @abc.abstractmethod
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -100,12 +100,12 @@ class Discretization(abc.ABC):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the stiffness matrix.
 
@@ -121,7 +121,7 @@ class Discretization(abc.ABC):
             data (dict, optional): Optional data dictionary. Defaults to None.
 
         Returns:
-            sps.csc_matrix: The stiffness matrix.
+            sps.csc_array: The stiffness matrix.
         """
         B = self.assemble_diff_matrix(sd)
 

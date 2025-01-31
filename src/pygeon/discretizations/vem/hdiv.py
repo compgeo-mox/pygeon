@@ -25,19 +25,19 @@ class VRT0(pg.RT0):
         ndof(sd: pg.Grid) -> int:
             Returns the number of faces.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the lumped mass matrix.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a function onto the finite element space.
 
-        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the matrix.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -64,7 +64,7 @@ class VRT0(pg.RT0):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
@@ -73,7 +73,7 @@ class VRT0(pg.RT0):
             data (Optional[dict]): Optional dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The mass matrix.
+            sps.csc_array: The mass matrix.
         """
         # create unitary data, unitary permeability, in case not present
         data = self.create_unitary_data(sd, data)
@@ -85,7 +85,7 @@ class VRT0(pg.RT0):
         M = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
         return M.tocsc()
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the solution at the cell centers.
 
@@ -93,7 +93,7 @@ class VRT0(pg.RT0):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
         data = self.create_unitary_data(sd, None)
 
@@ -121,19 +121,19 @@ class VBDM1(pg.BDM1):
         ndof(sd: pg.Grid) -> int:
             Returns the number of faces time the dimension.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the lumped mass matrix.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a function onto the finite element space.
 
-        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the matrix.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -146,7 +146,7 @@ class VBDM1(pg.BDM1):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Computes the mass matrix for the Virtual Element Method (VEM).
 
@@ -155,7 +155,7 @@ class VBDM1(pg.BDM1):
             data (Optional[dict]): Optional data dictionary.
 
         Returns:
-            sps.csc_matrix: The assembled mass matrix.
+            sps.csc_array: The assembled mass matrix.
 
         Notes:
             The mass matrix is computed using the VEM approach.
@@ -211,9 +211,9 @@ class VBDM1(pg.BDM1):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+        return sps.csc_array((data_V, (rows_I, cols_J)))
 
-    def proj_to_VRT0(self, sd: pg.Grid) -> sps.csc_matrix:
+    def proj_to_VRT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the degrees of freedom to the space VRT0.
 
@@ -221,12 +221,12 @@ class VBDM1(pg.BDM1):
             sd (pg.Grid): The grid on which to project the degrees of freedom.
 
         Returns:
-            sps.csc_matrix: The projection matrix.
+            sps.csc_array: The projection matrix.
         """
         dof = self.get_dof_enumeration(sd).tocoo()
-        return sps.csc_matrix((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
+        return sps.csc_array((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
 
-    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_matrix:
+    def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the RT0 finite element space onto the H(div) finite element space.
 
@@ -234,7 +234,7 @@ class VBDM1(pg.BDM1):
             sd (pg.Grid): The grid on which the projection is performed.
 
         Returns:
-            sps.csc_matrix: The projection matrix.
+            sps.csc_array: The projection matrix.
 
         Raises:
             NotImplementedError: This method is not implemented and should be
@@ -242,7 +242,7 @@ class VBDM1(pg.BDM1):
         """
         raise NotImplementedError
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator for the H(div) space.
 
@@ -250,7 +250,7 @@ class VBDM1(pg.BDM1):
             sd (pg.Grid): The grid or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
         mvem = pg.VRT0(self.keyword)
         VRT0_diff = mvem.assemble_diff_matrix(sd)
@@ -258,7 +258,7 @@ class VBDM1(pg.BDM1):
         proj_to_vrt0 = self.proj_to_VRT0(sd)
         return VRT0_diff @ proj_to_vrt0
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Evaluate the function at the cell centers of the given grid.
 
@@ -266,7 +266,7 @@ class VBDM1(pg.BDM1):
             sd (pg.Grid): The grid on which to evaluate the function.
 
         Returns:
-            sps.csc_matrix: The evaluated function values at the cell centers.
+            sps.csc_array: The evaluated function values at the cell centers.
 
         Raises:
             NotImplementedError: This method is not implemented and should be
@@ -343,7 +343,7 @@ class VBDM1(pg.BDM1):
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
 
@@ -352,7 +352,7 @@ class VBDM1(pg.BDM1):
             data (Optional[dict]): Optional data required for the assembly.
 
         Returns:
-            sps.csc_matrix: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped matrix.
 
         Raises:
             NotImplementedError: This method is not implemented and should be

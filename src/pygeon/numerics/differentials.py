@@ -1,5 +1,6 @@
 """ This module contains functions for computing the differential operators. """
 
+from typing import Union
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -15,7 +16,9 @@ Acknowledgements:
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def div(grid, **kwargs):
+def div(
+    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+) -> sps.csr_array:
     """
     Compute the divergence.
 
@@ -26,12 +29,14 @@ def div(grid, **kwargs):
                 Default False.
 
     Returns:
-        sps.csr_matrix. The divergence operator.
+        sps.csr_array. The divergence operator.
     """
     return exterior_derivative(grid, 1, **kwargs)
 
 
-def curl(grid, **kwargs):
+def curl(
+    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+) -> sps.csr_array:
     """
     Compute the curl.
 
@@ -42,12 +47,14 @@ def curl(grid, **kwargs):
                 Default False.
 
     Returns:
-        sps.csr_matrix. The curl operator.
+        sps.csr_array. The curl operator.
     """
     return exterior_derivative(grid, 2, **kwargs)
 
 
-def grad(grid, **kwargs):
+def grad(
+    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+) -> sps.csr_array:
     """
     Compute the gradient.
 
@@ -58,7 +65,7 @@ def grad(grid, **kwargs):
                 Default False.
 
     Returns:
-        sps.csr_matrix. The gradient operator.
+        sps.csr_array. The gradient operator.
     """
     return exterior_derivative(grid, 3, **kwargs)
 
@@ -66,7 +73,11 @@ def grad(grid, **kwargs):
 # --------------------------- MD exterior derivative --------------------------- #
 
 
-def exterior_derivative(grid, n_minus_k, **kwargs):
+def exterior_derivative(
+    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
+    n_minus_k: int,
+    **kwargs
+) -> sps.csr_array:
     """
     Compute the (mixed-dimensional) exterior derivative for the differential forms of
     order n - k.
@@ -77,7 +88,7 @@ def exterior_derivative(grid, n_minus_k, **kwargs):
             differential form.
 
     Returns:
-        sps.csr_matrix. The differential operator.
+        sps.csr_array. The differential operator.
     """
 
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
@@ -92,7 +103,11 @@ def exterior_derivative(grid, n_minus_k, **kwargs):
         )
 
 
-def _g_exterior_derivative(grid, n_minus_k, **kwargs):
+def _g_exterior_derivative(
+    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
+    n_minus_k: int,
+    **kwargs
+) -> sps.csr_array:
     """
     Compute the exterior derivative on a grid.
 
@@ -102,11 +117,11 @@ def _g_exterior_derivative(grid, n_minus_k, **kwargs):
             differential form.
 
     Returns:
-        sps.csr_matrix. The differential operator.
+        sps.csr_array. The differential operator.
     """
 
     if n_minus_k == 0:
-        return sps.csr_matrix((0, grid.num_cells))
+        return sps.csr_array((0, grid.num_cells))
     elif n_minus_k == 1:
         return grid.cell_faces.T
     elif n_minus_k == 2:
@@ -114,13 +129,15 @@ def _g_exterior_derivative(grid, n_minus_k, **kwargs):
     elif n_minus_k == 3:
         return grid.ridge_peaks.T
     elif n_minus_k == 4:
-        return sps.csr_matrix((grid.num_peaks, 0))
+        return sps.csr_array((grid.num_peaks, 0))
     else:
         Warning("(n - k) is not between 0 and 4")
-        return sps.csr_matrix((0, 0))
+        return sps.csr_array((0, 0))
 
 
-def _mdg_exterior_derivative(mdg, n_minus_k, **kwargs):
+def _mdg_exterior_derivative(
+    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
+) -> sps.csc_array:
     """
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
@@ -136,7 +153,7 @@ def _mdg_exterior_derivative(mdg, n_minus_k, **kwargs):
 
     # Pre-allocation of the block-matrix
     bmat = np.empty(
-        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.sparray
     )
 
     # Compute local differential operator

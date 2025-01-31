@@ -141,7 +141,7 @@ class VoronoiGrid(pg.Grid):
 
     def grid_topology(
         self, vor: scipy.spatial.Voronoi, nodes: np.ndarray
-    ) -> Union[sps.csc_matrix, sps.csc_matrix]:
+    ) -> Union[sps.csc_array, sps.csc_array]:
         """
         Computes the grid topology for a given Voronoi diagram.
 
@@ -150,7 +150,7 @@ class VoronoiGrid(pg.Grid):
             nodes (np.ndarray): The array of node coordinates.
 
         Returns:
-            Tuple[sps.csc_matrix, sps.csc_matrix]: A tuple containing the face-node
+            Tuple[sps.csc_array, sps.csc_array]: A tuple containing the face-node
             connectivity matrix and the cell-face connectivity matrix.
         """
         # Derive face-node connectivity
@@ -158,7 +158,7 @@ class VoronoiGrid(pg.Grid):
         indices = np.hstack(internal_faces)
         indptr = 2 * np.arange(len(internal_faces) + 1)
         data = np.ones(2 * len(internal_faces), dtype=int)
-        face_nodes = sps.csc_matrix((data, indices, indptr), dtype=int)
+        face_nodes = sps.csc_array((data, indices, indptr), dtype=int)
 
         # Compute cell-face connectivity
 
@@ -175,7 +175,7 @@ class VoronoiGrid(pg.Grid):
         # Construct a matrix with ones on the nodes for each region face
         face_finder_indices = np.vstack((start_node, end_node)).ravel("F")
         face_finder_indptr = 2 * np.arange(start_node.size + 1)
-        face_finder = sps.csc_matrix(
+        face_finder = sps.csc_array(
             (np.ones_like(face_finder_indices), face_finder_indices, face_finder_indptr)
         )
 
@@ -191,6 +191,6 @@ class VoronoiGrid(pg.Grid):
             cf_data.size == cf_indices.size
         ), "Try increasing the number of interior points"
 
-        cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr), dtype=int)
+        cell_faces = sps.csc_array((cf_data, cf_indices, cf_indptr), dtype=int)
 
         return face_nodes, cell_faces

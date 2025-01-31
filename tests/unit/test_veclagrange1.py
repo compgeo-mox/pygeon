@@ -168,7 +168,7 @@ class VecLagrange1Test(unittest.TestCase):
         vec_p1 = pg.VecLagrange1("vlagrange1")
         B = vec_p1.assemble_symgrad_matrix(sd).todense()
 
-        B_known = sps.csc_matrix((1, 1)).todense()
+        B_known = sps.csc_array((1, 1)).todense()
         self.assertTrue(np.allclose(B, B_known))
 
     def test_symgrad_2d(self):
@@ -262,7 +262,7 @@ class VecLagrange1Test(unittest.TestCase):
              -1, -1,  1,  1,  1, -1, -1, -1,  1,  1,  1, -1, -1, -1, -1, -1, -1,
               1,  1,  1,  1,  1,  1]) / 6
         # fmt: on
-        B_known = sps.csc_matrix((B_data_known, B_indices_known, B_indptr_known))
+        B_known = sps.csc_array((B_data_known, B_indices_known, B_indptr_known))
         self.assertTrue(np.allclose(sps.find(B), sps.find(B_known)))
 
         fun_x = lambda x: np.array([0, -x[2], x[1]])

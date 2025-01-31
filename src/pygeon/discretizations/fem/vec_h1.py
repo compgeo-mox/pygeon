@@ -61,20 +61,20 @@ class VecLagrange1(pg.VecDiscretization):
         ndof(sd: pg.Grid) -> int:
             Returns the number of degrees of freedom associated with the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles and returns the mass matrix for the lowest order Lagrange element.
 
-        assemble_div_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_div_matrix(sd: pg.Grid) -> sps.csc_array:
             Returns the divergence matrix operator for the lowest order vector Lagrange
             element.
 
         local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
             Computes the local divergence matrix for P1.
 
-        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Returns the div-div matrix operator for the lowest order vector Lagrange element.
 
-        assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_array:
             Returns the symmetric gradient matrix operator for the lowest order vector Lagrange
             element.
 
@@ -83,11 +83,11 @@ class VecLagrange1(pg.VecDiscretization):
             Computes the local symmetric gradient matrix for P1.
 
         assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_matrix:
+            -> sps.csc_array:
             Returns the symgrad-symgrad matrix operator for the lowest order vector Lagrange
             element.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
@@ -107,7 +107,7 @@ class VecLagrange1(pg.VecDiscretization):
         """
         super().__init__(keyword, pg.Lagrange1)
 
-    def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the div matrix operator for the lowest order
         vector Lagrange element
@@ -116,11 +116,11 @@ class VecLagrange1(pg.VecDiscretization):
             sd (pg.Grid): The grid object.
 
         Returns:
-            sps.csc_matrix: The div matrix obtained from the discretization.
+            sps.csc_array: The div matrix obtained from the discretization.
         """
         # If a 0-d grid is given then we return a zero matrix
         if sd.dim == 0:
-            return sps.csc_matrix((1, 1))
+            return sps.csc_array((1, 1))
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
@@ -160,7 +160,7 @@ class VecLagrange1(pg.VecDiscretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def local_div(self, c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
         """
@@ -182,7 +182,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_div_div_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Returns the div-div matrix operator for the lowest order
         vector Lagrange element. The matrix is multiplied by the Lame' parameter lambda.
@@ -193,7 +193,7 @@ class VecLagrange1(pg.VecDiscretization):
                 Defaults to None.
 
         Returns:
-            matrix: sparse (sd.num_nodes, sd.num_nodes)
+            csc_array: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
         if data is None:
@@ -209,7 +209,7 @@ class VecLagrange1(pg.VecDiscretization):
 
         return div.T @ (labda * mass) @ div
 
-    def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the symmetric gradient matrix operator for the
         lowest order vector Lagrange element
@@ -218,7 +218,7 @@ class VecLagrange1(pg.VecDiscretization):
             sd (pg.Grid): The grid object representing the domain.
 
         Returns:
-            sps.csc_matrix: The sparse symmetric gradient matrix operator.
+            sps.csc_array: The sparse symmetric gradient matrix operator.
 
         Raises:
             None
@@ -235,7 +235,7 @@ class VecLagrange1(pg.VecDiscretization):
         """
         # If a 0-d grid is given then we return a zero matrix
         if sd.dim == 0:
-            return sps.csc_matrix((1, 1))
+            return sps.csc_array((1, 1))
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
@@ -287,7 +287,7 @@ class VecLagrange1(pg.VecDiscretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def local_symgrad(
         self, c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray
@@ -311,7 +311,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_symgrad_symgrad_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
         vector Lagrange element. The matrix is multiplied by twice the Lame' parameter mu.
@@ -321,7 +321,7 @@ class VecLagrange1(pg.VecDiscretization):
             data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to None.
 
         Returns:
-            sps.csc_matrix: Sparse symgrad-symgrad matrix of shape
+            sps.csc_array: Sparse symgrad-symgrad matrix of shape
                 (sd.num_nodes, sd.num_nodes).
                 The matrix obtained from the discretization.
         """
@@ -340,7 +340,7 @@ class VecLagrange1(pg.VecDiscretization):
 
         return symgrad.T @ tensor_mass @ symgrad
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -348,7 +348,7 @@ class VecLagrange1(pg.VecDiscretization):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -357,7 +357,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the global stiffness matrix for the finite element method.
 
@@ -366,7 +366,7 @@ class VecLagrange1(pg.VecDiscretization):
             data (Optional[dict]): Additional data required for the assembly process.
 
         Returns:
-            sps.csc_matrix: The assembled global stiffness matrix.
+            sps.csc_array: The assembled global stiffness matrix.
         """
         # compute the two parts of the global stiffness matrix
         sym_sym = self.assemble_symgrad_symgrad_matrix(sd, data)

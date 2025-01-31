@@ -16,12 +16,12 @@ class Lagrange1Test(unittest.TestCase):
         discr = pg.Lagrange1()
 
         D = discr.assemble_diff_matrix(sd).todense()
-        D_known = sps.csc_matrix((0, 1)).todense()
+        D_known = sps.csc_array((0, 1)).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 
         P = discr.eval_at_cell_centers(sd).todense()
-        P_known = sps.csc_matrix((1, 0)).todense()
+        P_known = sps.csc_array((1, 0)).todense()
 
         self.assertTrue(np.allclose(P, P_known))
 
