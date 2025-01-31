@@ -222,7 +222,7 @@ class VLagrange1(pg.Lagrange1):
 
         M = np.ones((2, 2)) + np.eye(2)
 
-        for face in sd.cell_faces[:, cell].indices:
+        for face in sd.cell_faces[:, [cell]].indices:
             sub_volume = (
                 np.dot(
                     sd.face_centers[:, face] - sd.cell_centers[:, cell],
@@ -232,7 +232,7 @@ class VLagrange1(pg.Lagrange1):
             )
 
             vals = (
-                sd.nodes[:2, sd.face_nodes[:, face].indices]
+                sd.nodes[:2, sd.face_nodes[:, [face]].indices]
                 - sd.cell_centers[:2, [cell] * 2]
             ) / diam
 
