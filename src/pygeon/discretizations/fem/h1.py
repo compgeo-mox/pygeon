@@ -776,7 +776,7 @@ class Lagrange2(pg.Discretization):
         diff_nodes_0.data[edge_nodes.data == -1] = -3
         diff_nodes_0.data[edge_nodes.data == 1] = -1
 
-        diff_0 = sps.hstack((diff_nodes_0, 4 * sps.eye(num_edges)))
+        diff_0 = sps.hstack((diff_nodes_0, 4 * sps.eye_array(num_edges)))
 
         # End of the edge
         # The nodal function associated with the start has derivative 1 here.
@@ -787,7 +787,7 @@ class Lagrange2(pg.Discretization):
 
         # Rescale due to design choices in Nedelec1
         diff_1 = second_dof_scaling * sps.hstack(
-            (diff_nodes_1, -4 * sps.eye(num_edges))
+            (diff_nodes_1, -4 * sps.eye_array(num_edges))
         )
 
         # Combine
@@ -808,7 +808,7 @@ class Lagrange2(pg.Discretization):
         eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
 
         if sd.dim == 1:
-            eval_edges = sps.eye(sd.num_cells)
+            eval_edges = sps.eye_array(sd.num_cells)
         elif sd.dim == 2:
             eval_edges = np.abs(sd.cell_faces).T
         elif sd.dim == 3:

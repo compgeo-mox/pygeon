@@ -618,7 +618,7 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
         """
-        return sps.hstack([sps.eye(sd.num_faces)] * sd.dim, format="csc") / sd.dim
+        return sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim, format="csc") / sd.dim
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -630,7 +630,7 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        return sps.vstack([sps.eye(sd.num_faces)] * sd.dim, format="csc")
+        return sps.vstack([sps.eye_array(sd.num_faces)] * sd.dim, format="csc")
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
