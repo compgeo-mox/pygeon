@@ -72,15 +72,29 @@ def unit_grid(
     Create a unit square or cube grid with a given mesh size.
 
     Parameters:
-        dim (int): The dimension of the grid. Must be 2 or 3.
+        dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
         kwargs: Additional options. The following options are available:
             - mesh_size_min (float): The minimum mesh size. Default is the same as mesh_size.
             - as_mdg (bool): If True, return the grid as a mixed-dimensional grid.
+            - structured (bool): If True, create a structured grid.
 
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid.
     """
+    if dim == 1 or kwargs.get("structured", False):
+        num = np.array([1 / mesh_size] * dim, dtype=int)
+        if dim == 1:
+            sd = pp.CartGrid(num, [1])
+        elif dim == 2:
+            sd = pp.StructuredTriangleGrid(num, [1] * dim)
+        else:
+            sd = pp.StructuredTetrahedralGrid(num, [1] * dim)
+        pg.convert_from_pp(sd)
+
+        if kwargs.get("as_mdg", True):
+            return pp.meshing.subdomains_to_mdg([[sd]])
+        return sd
 
     bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
     if dim == 3:
