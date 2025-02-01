@@ -266,7 +266,7 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled lumped mass matrix.
         """
-        volumes = sd.cell_nodes() * sd.cell_volumes / (sd.dim + 1)
+        volumes = sd.cell_nodes() @ sd.cell_volumes / (sd.dim + 1)
         return sps.diags_array(volumes, format="csc")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:

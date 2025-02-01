@@ -709,7 +709,7 @@ class BDM1(pg.Discretization):
 
         for face in np.arange(sd.num_faces):
             func_loc = np.array(
-                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, face].indices]
+                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, [face]].indices]
             ).T
             vals_loc = sd.face_normals[:, face] @ func_loc
             vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc

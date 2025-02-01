@@ -173,11 +173,11 @@ class VBDM1(pg.BDM1):
         dof = self.get_dof_enumeration(sd)
         disc_VL1 = pg.VLagrange1(pg.UNITARY_DATA)
 
-        tangents = sd.nodes * sd.face_ridges
+        tangents = sd.nodes @ sd.face_ridges
         cell_diams = sd.cell_diameters(cell_nodes)
 
         for cell, diam in enumerate(cell_diams):
-            faces_loc = sd.cell_faces[:, cell].indices
+            faces_loc = sd.cell_faces[:, [cell]].indices
 
             # Obtain local indices of dofs, ordered by associated node number
             local_dof = dof[:, faces_loc].tocsr().tocoo()
@@ -319,7 +319,7 @@ class VBDM1(pg.BDM1):
         vals = np.zeros(self.ndof(sd))
         for face in b_faces:
             sign = np.sum(sd.cell_faces.tocsr()[face, :])
-            nodes_loc = sd.face_nodes[:, face].indices
+            nodes_loc = sd.face_nodes[:, [face]].indices
             loc_vals = np.array([func(sd.nodes[:, node]) for node in nodes_loc])
             dof_loc = dof[nodes_loc, face].data
 
