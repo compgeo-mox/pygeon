@@ -1,7 +1,7 @@
 """ Conversion from porepy to pygeon. """
 
 from typing import Union
-
+import scipy.sparse as sps
 import porepy as pp
 
 import pygeon as pg
@@ -36,6 +36,11 @@ def convert_from_pp(
         obj.initialize_data()
     else:
         raise TypeError
+
+    if isinstance(obj, pg.Grid):
+        # NOTE: it can be removed once PorePy also migrates to csc_array
+        obj.face_nodes = sps.csc_array(obj.face_nodes)
+        obj.cell_faces = sps.csc_array(obj.cell_faces)
 
 
 def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> None:
