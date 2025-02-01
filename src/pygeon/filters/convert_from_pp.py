@@ -1,10 +1,10 @@
 """ Conversion from porepy to pygeon. """
 
 from typing import Union
-import scipy.sparse as sps
-import porepy as pp
 
+import porepy as pp
 import pygeon as pg
+import scipy.sparse as sps
 
 
 def convert_from_pp(
