@@ -1,11 +1,11 @@
 """ This module contains functions for computing the differential operators. """
 
 from typing import Union
+
 import numpy as np
 import porepy as pp
-import scipy.sparse as sps
-
 import pygeon as pg
+import scipy.sparse as sps
 
 """
 Acknowledgements:

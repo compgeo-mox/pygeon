@@ -1,9 +1,9 @@
 """ This module contains functions for computing the stiffness operators. """
 
 from typing import Union
-import scipy.sparse as sps
 
 import pygeon as pg
+import scipy.sparse as sps
 
 # ---------------------------------- Aliases ---------------------------------- #
 
