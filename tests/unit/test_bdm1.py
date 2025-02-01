@@ -133,7 +133,7 @@ class BDM1Test(unittest.TestCase):
             div = cell_mass @ discr_bdm1.assemble_diff_matrix(sd)
 
             # assemble the saddle point problem
-            spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
+            spp = sps.block_array([[face_mass, -div.T], [div, None]], format="csc")
 
             b_faces = sd.tags["domain_boundary_faces"]
 

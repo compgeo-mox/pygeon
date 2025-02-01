@@ -636,7 +636,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         div = M @ vec_rt0.assemble_diff_matrix(sd)
         asym = M @ vec_rt0.assemble_asym_matrix(sd)
 
-        B = sps.bmat([[-div, None], [-asym, -div]], format="csc")
+        B = sps.block_array([[-div, None], [-asym, -div]], format="csc")
 
         # create the solution operator
         return B @ self.expand

@@ -353,7 +353,7 @@ class VecLagrange1(pg.VecDiscretization):
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
 
-        return sps.bmat([[symgrad], [div]], format="csc")
+        return sps.block_array([[symgrad], [div]], format="csc")
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None

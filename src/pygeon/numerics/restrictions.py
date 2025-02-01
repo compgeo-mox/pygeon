@@ -10,7 +10,7 @@ import pygeon as pg
 
 def zero_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> Union[sps.sparray, sps.bmat]:
+) -> Union[sps.csc_array, sps.block_array]:
     """
     Compute the operator that maps the tip degrees of freedom to zero.
 
@@ -23,7 +23,8 @@ def zero_tip_dofs(
                 sub-blocks. Default False.
 
     Returns:
-        sps.csc_array or sps.bmat: The operator that maps the tip degrees of freedom to zero.
+        sps.csc_array or sps.block_array: The operator that maps the tip degrees of freedom
+            to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -34,7 +35,7 @@ def zero_tip_dofs(
 
     # Pre-allocation of the block-matrix
     is_tip_dof = np.empty(
-        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.sparray
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.csc_array
     )
     for sd in mdg.subdomains():
         if sd.dim >= n_minus_k:
@@ -46,7 +47,7 @@ def zero_tip_dofs(
             )
 
     pg.bmat.replace_nones_with_zeros(is_tip_dof)
-    return is_tip_dof if as_bmat else sps.bmat(is_tip_dof)
+    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof, format="csc")
 
 
 def remove_tip_dofs(

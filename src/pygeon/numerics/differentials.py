@@ -175,5 +175,5 @@ def _mdg_exterior_derivative(
     # remove the tips
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
-    bmat = bmat if as_bmat else sps.bmat(bmat, format="csc")
+    bmat = bmat if as_bmat else sps.block_array(bmat, format="csc")
     return bmat @ is_tip_dof
