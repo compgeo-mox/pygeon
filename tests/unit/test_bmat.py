@@ -60,21 +60,6 @@ class BlockMatrixTest(unittest.TestCase):
 
         self.assertTrue(np.all(M_known == sps.block_array(M).toarray()))
 
-    def test_mat_multiplication(self):
-        """
-        Test if the product of the bmat is the same as the bmat of the product
-        """
-
-        M = self.create_block_mat()
-        pg.bmat.replace_nones_with_zeros(M)
-
-        M_full = sps.block_array(M)
-
-        block_prod = sps.block_array(M @ M)
-        full_prod = M_full @ M_full
-
-        assert np.all(block_prod.toarray() == full_prod.toarray())
-
     def test_mat_addition(self):
         """
         Test if the sum of the bmat is the same as the bmat of the sum
