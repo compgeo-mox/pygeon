@@ -44,6 +44,7 @@ class LevelsetGridTest(unittest.TestCase):
 
     def test_structtrianglegrid(self):
         sd = pp.StructuredTriangleGrid([2] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
 
         sd = pg.levelset_remesh(sd, self.line_at_y80)
         self.assertEqual(sd.num_cells, 12)
@@ -59,6 +60,7 @@ class LevelsetGridTest(unittest.TestCase):
 
     def test_cartgrid(self):
         sd = pp.CartGrid([2] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
 
         sd = pg.levelset_remesh(sd, self.line_at_y80)
         self.assertEqual(sd.num_cells, 6)

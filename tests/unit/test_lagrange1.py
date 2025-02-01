@@ -12,6 +12,7 @@ import pygeon as pg
 class Lagrange1Test(unittest.TestCase):
     def test_0d(self):
         sd = pp.PointGrid([1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
         discr = pg.Lagrange1()
 
@@ -32,6 +33,7 @@ class Lagrange1Test(unittest.TestCase):
     def test_1d(self):
         dim = 1
         sd = pp.CartGrid(3, dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.Lagrange1()

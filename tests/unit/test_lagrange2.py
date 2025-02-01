@@ -174,5 +174,4 @@ class Lagrange2Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    Lagrange2Test().test_laplacian_3d()
     unittest.main()
