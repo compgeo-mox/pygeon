@@ -2,7 +2,7 @@
 
 from itertools import combinations
 
-import networkx as nx
+import networkx as nx  # type: ignore
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps

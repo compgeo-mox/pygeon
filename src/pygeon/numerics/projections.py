@@ -10,7 +10,7 @@ import pygeon as pg
 
 def eval_at_cell_centers(
     mdg: pg.MixedDimensionalGrid, discr: pg.Discretization, **kwargs
-) -> Union[sps.csc_array, sps.block_array]:
+) -> Union[sps.csc_array, np.ndarray]:
     """
     Create an operator that evaluates a solution in the cell centers.
 
@@ -35,7 +35,7 @@ def eval_at_cell_centers(
     as_bmat = kwargs.get("as_bmat", False)
 
     bmat_sd = np.empty(
-        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.sparray
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.csc_array
     )
 
     # Local mass matrices

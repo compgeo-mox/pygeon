@@ -63,7 +63,7 @@ class MortarGrid(pp.MortarGrid):
         """
         super(MortarGrid, self).__init__(*args, **kwargs)
 
-    def compute_geometry(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
+    def compute_geometry(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:  # type: ignore
         """
         Computes the geometry of the MortarGrid.
 

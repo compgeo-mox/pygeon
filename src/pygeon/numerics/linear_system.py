@@ -1,6 +1,6 @@
 """ Module for the LinearSystem class. """
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -13,19 +13,19 @@ class LinearSystem:
     and reduces the system appropriately before solving.
 
     Attributes:
-        A (sps.sparray, n x n): The left-hand side matrix
+        A (sps.csc_array, n x n): The left-hand side matrix
         b (np.array-like): The right-hand side vector
         is_dof (np.array, bool): Determines whether an entry is a degree of freedom.
             If False then it will be overwritten by an essential bc.
         ess_vals (np.array, (n, )): The values of the essential bcs.
     """
 
-    def __init__(self, A: sps.sparray, b: Optional[np.ndarray] = None) -> None:
+    def __init__(self, A: sps.csc_array, b: Optional[np.ndarray] = None) -> None:
         """
         Initialize a LinearSystem object.
 
         Args:
-            A (sps.sparray): The coefficient matrix of the linear system.
+            A (sps.csc_array): The coefficient matrix of the linear system.
             b (np.ndarray, optional): The right-hand side vector of the linear system.
                 Defaults to None.
 
@@ -68,7 +68,7 @@ class LinearSystem:
         self.is_dof[is_ess_dof] = False
         self.ess_vals[is_ess_dof] += ess_vals[is_ess_dof]
 
-    def reduce_system(self) -> Union[sps.csc_array, np.ndarray, sps.csc_array]:
+    def reduce_system(self) -> Tuple[sps.csc_array, np.ndarray, sps.csc_array]:
         """
         Reduces the linear system by applying a restriction operator and returning
         the reduced system.
@@ -83,12 +83,12 @@ class LinearSystem:
 
         return A_0, b_0, R_0
 
-    def solve(self, solver: Optional[Callable] = sps.linalg.spsolve) -> np.ndarray:
+    def solve(self, solver: Callable = sps.linalg.spsolve) -> np.ndarray:
         """
         Solve the linear system of equations.
 
         Args:
-            solver (Optional[Callable]): The solver function to use. Defaults to
+            solver (Callable): The solver function to use. Defaults to
                 sps.linalg.spsolve.
 
         Returns:

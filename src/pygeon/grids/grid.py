@@ -72,6 +72,8 @@ class Grid(pp.Grid):
             None
         """
         super(Grid, self).__init__(*args, **kwargs)
+        self.face_nodes: sps.csc_array
+        self.cell_faces: sps.csc_array
 
     def compute_geometry(self) -> None:
         """
@@ -352,7 +354,7 @@ class Grid(pp.Grid):
             case 3:
                 edge_nodes = self.ridge_peaks
 
-        self.edge_tangents = sps.csc_array(self.nodes @ edge_nodes)
+        self.edge_tangents = self.nodes @ edge_nodes
         self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
 
     def compute_mesh_size(self) -> None:
@@ -369,4 +371,4 @@ class Grid(pp.Grid):
         if self.dim == 0:
             self.mesh_size = 0.0
         else:
-            self.mesh_size = np.mean(self.edge_lengths)
+            self.mesh_size = float(np.mean(self.edge_lengths))

@@ -54,7 +54,7 @@ class SpanningTree:
     def __init__(
         self,
         mdg: pg.MixedDimensionalGrid,
-        starting_faces: Optional[Union[str, np.ndarray, int]] = "first_bdry",
+        starting_faces: Union[str, np.ndarray, int] = "first_bdry",
     ) -> None:
         """
         Initializes a SpanningTree object.
@@ -144,7 +144,7 @@ class SpanningTree:
                 )
 
         # Boolean arrays
-        if starting_faces.dtype == bool:
+        if isinstance(starting_faces, np.ndarray) and starting_faces.dtype == bool:
             return np.where(starting_faces)[0]
 
         # Index arrays and scalars
@@ -285,7 +285,7 @@ class SpanningTree:
             start_color (str): Color of the "starting" cells, next to the boundary
         """
         import matplotlib.pyplot as plt
-        import networkx as nx
+        import networkx as nx  # type: ignore
 
         assert mdg.dim_max() == 2
         sd_top = mdg.subdomains()[0]
@@ -424,7 +424,7 @@ class SpanningTreeElasticity(SpanningTree):
     """
 
     def setup_system(
-        self, mdg: Union[pg.MixedDimensionalGrid, pg.Grid], flagged_faces: np.ndarray
+        self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
     ) -> None:
         """
         Set up the system for the spanning tree algorithm.
@@ -671,7 +671,7 @@ class SpanningWeightedTrees:
     def __init__(
         self,
         mdg: pg.MixedDimensionalGrid,
-        spt: object,
+        spt: SpanningTree,
         weights: np.ndarray,
         starting_faces: Optional[np.ndarray] = None,
     ) -> None:

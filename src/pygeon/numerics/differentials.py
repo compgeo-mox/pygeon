@@ -22,7 +22,7 @@ def div(
     """
     Compute the divergence.
 
-    Parameters:
+    Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
             as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
@@ -40,7 +40,7 @@ def curl(
     """
     Compute the curl.
 
-    Parameters:
+    Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
             as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
@@ -58,7 +58,7 @@ def grad(
     """
     Compute the gradient.
 
-    Parameters:
+    Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         kwargs: Optional parameters
             as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
@@ -82,7 +82,7 @@ def exterior_derivative(
     Compute the (mixed-dimensional) exterior derivative for the differential forms of
     order n - k.
 
-    Parameters:
+    Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the ambient dimension and the order of the
             differential form.
@@ -111,7 +111,7 @@ def _g_exterior_derivative(
     """
     Compute the exterior derivative on a grid.
 
-    Parameters:
+    Args:
         grid (pp.Grid or pp.MortarGrid): The grid.
         n_minus_k (int): The difference between the ambient dimension and the order of the
             differential form.
@@ -137,17 +137,19 @@ def _g_exterior_derivative(
 
 def _mdg_exterior_derivative(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csc_array:
+) -> sps.csr_array:
     """
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
-    Parameters:
+    Args:
         grid (pp.MixedDimensionalGrid): The grid bucket.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
         kwargs: Optional parameters
             as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
                 Default False.
+    Return:
+        sps.csr_array: the differential operator.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -176,4 +178,4 @@ def _mdg_exterior_derivative(
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
     bmat = bmat if as_bmat else sps.block_array(bmat, format="csc")
-    return bmat @ is_tip_dof
+    return (bmat @ is_tip_dof).tocsr()

@@ -1,4 +1,4 @@
-import networkx as nx
+import networkx as nx  # type: ignore
 import numpy as np
 import scipy.sparse as sps
 
