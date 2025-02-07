@@ -459,3 +459,109 @@ class PwLinears(pg.Discretization):
             vals[c, :] = [func(x) for x in sd.nodes[:, nodes_loc].T]
 
         return vals.ravel()
+
+    class PwQuadratic(pg.Discretization):
+        def ndof(self, sd: pg.Grid) -> int:
+            return sd.num_cells * self.ndof_per_cell(sd)
+
+        def ndof_per_cell(self, sd: pg.Grid) -> int:
+            return (sd.dim + 1) * (sd.dim + 2) / 2
+
+        def assemble_mass_matrix(self, sd, data=None):
+            # Data allocation
+            size = np.square(self.ndof_per_cell(sd)) * sd.num_cells
+            rows_I = np.empty(size, dtype=int)
+            cols_J = np.empty(size, dtype=int)
+            data_IJ = np.empty(size)
+            idx = 0
+
+            lagrange2 = pg.Lagrange2(self.keyword)
+            local_mass = lagrange2.assemble_local_mass(sd.dim)
+
+            weight = np.ones(sd.num_cells)
+            if data is None:
+                weight = (
+                    data.get(pp.PARAMETERS, {})
+                    .get(self.keyword, {})
+                    .get("weight", weight)
+                )
+
+            for c in np.arange(sd.num_cells):
+                # Compute the mass local matrix
+                A = local_mass * sd.cell_volumes[c] * weight[c]
+
+                dof_loc = sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
+                cols = np.tile(dof_loc, (dof_loc.size, 1))
+                loc_idx = slice(idx, idx + cols.size)
+
+                rows_I[loc_idx] = cols.T.ravel()
+                cols_J[loc_idx] = cols.ravel()
+                data_IJ[loc_idx] = A.ravel()
+                idx += cols.size
+
+            # Construct the global matrix
+            return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the matrix corresponding to the differential operator.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_array: The differential matrix.
+        """
+        return sps.csc_array((0, self.ndof(sd)))
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the stiffness matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+            data (Optional[dict]): Additional data for the assembly process.
+
+        Returns:
+            sps.csc_array: The assembled stiffness matrix.
+        """
+        return sps.csc_array((self.ndof(sd), self.ndof(sd)))
+
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
+        """
+        Assembles the natural boundary condition vector, equal to zero.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            func (Callable): The function representing the natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
+        """
+        return np.zeros(self.ndof(sd))
+
+    def get_range_discr_class(self, dim: int) -> object:
+        """
+        Returns the discretization class that contains the range of the differential
+
+        Args:
+            dim (int): The dimension of the range
+
+        Returns:
+            pg.Discretization: The discretization class containing the range of the
+                differential
+        """
+        raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
+        raise NotImplementedError("Not implemented")
+
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        raise NotImplementedError("Not implemented")
