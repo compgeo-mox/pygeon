@@ -589,3 +589,66 @@ class VecRT0(pg.VecDiscretization):
             pg.Discretization: The range discretization class.
         """
         return pg.VecPwConstants
+
+
+class VecRT1(pg.VecDiscretization):
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        super().__init__(keyword, pg.RT1)
+
+    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        # Extract the data
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+
+        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(mu, np.ScalarType):
+            mu = np.full(sd.num_cells, mu)
+
+        # Save 1/(2mu) as a tensor so that it can be read by BDM1
+        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
+        data_for_BDM = pp.initialize_data(
+            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
+        )
+
+        # Save the coefficient for the trace contribution
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        # Assemble the block diagonal mass matrix for the base discretization class
+        D = super().assemble_mass_matrix(sd, data_for_BDM)
+
+        # TODO TRACE
+        B = self.assemble_trace_matrix(sd)
+
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+
+        # overestimate the size
+        size = sd.dim * sd.num_cells  # TOFIX
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            nodes_loc = np.sort(opposite_nodes.data[loc])
+
+            P = self.eval_basis_functions_at_center(sd, nodes_loc, sd.cell_volumes[c])
+
+            pass
+
+    def get_range_discr_class(self, dim: int) -> object:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
+        return pg.VecPwLinear
