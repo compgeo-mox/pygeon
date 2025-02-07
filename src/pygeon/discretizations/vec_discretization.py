@@ -42,7 +42,9 @@ class VecDiscretization(pg.Discretization):
     """
 
     def __init__(
-        self, keyword: str = pg.UNITARY_DATA, scalar_discr: pg.Discretization = None
+        self,
+        keyword: str = pg.UNITARY_DATA,
+        scalar_discr: Optional[type[pg.Discretization]] = None,
     ) -> None:
         """
         Initialize the vector discretization class.
@@ -56,7 +58,10 @@ class VecDiscretization(pg.Discretization):
         """
         super().__init__(keyword)
         # a local discr class for performing some of the computations
-        self.scalar_discr = scalar_discr(keyword)
+        if scalar_discr is not None:
+            self.scalar_discr = scalar_discr(keyword)
+        else:
+            raise ValueError("A scalar discretization object must be provided.")
 
     def ndof(self, sd: pg.Grid) -> int:
         """

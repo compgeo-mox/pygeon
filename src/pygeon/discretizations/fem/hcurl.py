@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H(curl) space. """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -217,7 +217,7 @@ class Nedelec0(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -508,7 +508,7 @@ class Nedelec1(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

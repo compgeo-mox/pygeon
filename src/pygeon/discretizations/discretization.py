@@ -1,7 +1,8 @@
 """ Module for the discretization class. """
 
+from __future__ import annotations
 import abc
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -88,7 +89,7 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        diag_mass = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
+        diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
         return sps.diags_array(np.asarray(diag_mass).flatten(), format="csc")
 
     @abc.abstractmethod
@@ -146,7 +147,7 @@ class Discretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
 
@@ -154,7 +155,7 @@ class Discretization(abc.ABC):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            np.ndarray: The evaluation matrix.
+             sps.csc_array: The evaluation matrix.
         """
 
     def source_term(
@@ -191,7 +192,7 @@ class Discretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -208,9 +209,9 @@ class Discretization(abc.ABC):
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "standard",
-        data: dict = None,
+        relative: bool = True,
+        etype: str = "standard",
+        data: Optional[dict] = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.

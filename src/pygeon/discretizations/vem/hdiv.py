@@ -163,7 +163,7 @@ class VBDM1(pg.BDM1):
         """
         # Allocate the data to store matrix entries
         cell_nodes = sd.cell_nodes()
-        size = int(np.sum(np.square(2 * np.sum(cell_nodes, 0))))
+        size = int(np.sum(np.square(2 * (cell_nodes).sum(axis=0))))
 
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -318,7 +318,7 @@ class VBDM1(pg.BDM1):
         dof = self.get_dof_enumeration(sd)
         vals = np.zeros(self.ndof(sd))
         for face in b_faces:
-            sign = np.sum(sd.cell_faces.tocsr()[face, :])
+            sign = sd.cell_faces.tocsr()[face, :].sum()
             nodes_loc = sd.face_nodes[:, [face]].indices
             loc_vals = np.array([func(sd.nodes[:, node]) for node in nodes_loc])
             dof_loc = dof[nodes_loc, face].data

@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H(div) space. """
 
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 import porepy as pp
@@ -83,9 +83,12 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             None
         """
+        self.scalar_discr: pg.BDM1
         super().__init__(keyword, pg.BDM1)
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1, which is given by
         (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
@@ -98,6 +101,9 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
+        if data is None:
+            raise ValueError("Data must be provided for the assembly")
+
         # Extract the data
         mu = data[pp.PARAMETERS][self.keyword]["mu"]
         lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
@@ -158,6 +164,7 @@ class VecBDM1(pg.VecDiscretization):
 
         data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
 
+        R_space: pg.Discretization
         if sd.dim == 2:
             R_space = pg.PwLinears(self.keyword)
         elif sd.dim == 3:
@@ -255,14 +262,15 @@ class VecBDM1(pg.VecDiscretization):
         negate_col = [2, 0, 1]
         zeroed_col = [0, 1, 2]
 
+        rot_space: pg.Discretization
         if sd.dim == 3:
             ind_list = np.arange(3)
             shift = ind_list
             rot_space = pg.VecPwLinears(self.keyword)
             scaling = sps.diags_array(np.tile(sd.cell_volumes, 3))
         elif sd.dim == 2:
-            ind_list = [2]
-            shift = [0, 0, 0]
+            ind_list = np.array([2])
+            shift = np.array([0, 0, 0])
             rot_space = pg.PwLinears(self.keyword)
             scaling = sps.diags_array(sd.cell_volumes)
         else:
@@ -333,6 +341,9 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
+        if data is None:
+            raise ValueError("Data must be provided for the assembly")
+
         # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_lumped_matrix(sd)
 
@@ -377,6 +388,7 @@ class VecBDM1(pg.VecDiscretization):
 
         data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
 
+        R_space: pg.Discretization
         if sd.dim == 2:
             R_space = pg.PwLinears(self.keyword)
         elif sd.dim == 3:
@@ -414,7 +426,7 @@ class VecBDM1(pg.VecDiscretization):
         proj = self.scalar_discr.proj_from_RT0(sd)
         return sps.block_diag([proj] * sd.dim, format="csc")
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -462,9 +474,12 @@ class VecRT0(pg.VecDiscretization):
         Returns:
             None
         """
+        self.scalar_discr: pg.RT0
         super().__init__(keyword, pg.RT0)
 
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector RT0, which is given by
         (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
@@ -477,6 +492,9 @@ class VecRT0(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
+        if data is None:
+            raise ValueError("Data must be provided for the assembly")
+
         # Assemble the block diagonal mass matrix for the base discretization class,
         # with unitary data. The data are handled afterwards
         D = super().assemble_mass_matrix(sd)
@@ -528,6 +546,7 @@ class VecRT0(pg.VecDiscretization):
 
         data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
 
+        R_space: pg.Discretization
         if sd.dim == 2:
             R_space = pg.PwLinears(self.keyword)
         elif sd.dim == 3:
@@ -574,7 +593,7 @@ class VecRT0(pg.VecDiscretization):
         proj = vec_bdm1.proj_from_RT0(sd)
         return vec_bdm1.assemble_asym_matrix(sd, as_pwconstant) @ proj
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

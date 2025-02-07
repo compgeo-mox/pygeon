@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H1 space. """
 
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 import porepy as pp
@@ -91,6 +91,7 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             None
         """
+        self.scalar_discr: pg.VLagrange1
         super().__init__(keyword, pg.VLagrange1)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
@@ -413,7 +414,7 @@ class VecVLagrange1(pg.VecDiscretization):
         # return the global stiffness matrix
         return sym_sym + div_div + dofi_dofi
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential.
 

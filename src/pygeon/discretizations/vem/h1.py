@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H1 space. """
 
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -328,7 +328,7 @@ class VLagrange1(pg.Lagrange1):
 
         return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

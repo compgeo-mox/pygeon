@@ -1,6 +1,6 @@
 """ Grid class for the pygeon package. """
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import porepy as pp
@@ -271,7 +271,7 @@ class Grid(pp.Grid):
 
     def compute_subvolumes(
         self, return_subsimplices: Optional[bool] = False
-    ) -> sps.csc_array:
+    ) -> Union[tuple[sps.csc_array, sps.csc_array], sps.csc_array]:
         """
         Compute the subvolumes of the grid.
 
@@ -283,25 +283,23 @@ class Grid(pp.Grid):
             sps.csc_array: The computed subvolumes with each entry [node, cell] describing
                     the signed measure of the associated sub-volume
         """
-        sub_simplices = self.cell_faces.copy().astype(float)
+        sub_simplices = sps.csc_array(self.cell_faces.copy().astype(float))
 
         faces, cells, orient = sps.find(self.cell_faces)
 
         normals = self.face_normals[:, faces] * orient
         rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
 
-        sub_simplices[faces, cells] = np.sum(normals * rays, 0) / self.dim
+        sub_simplices[faces, cells] = np.sum(normals * rays, axis=0) / self.dim
 
-        nodes_per_face = np.array(np.sum(self.face_nodes, 0)).flatten()
+        nodes_per_face = np.array(self.face_nodes.sum(axis=0)).flatten()
         div_by_nodes_per_face = sps.diags_array(1.0 / nodes_per_face)
 
+        subv: sps.csc_array = self.face_nodes @ div_by_nodes_per_face @ sub_simplices
         if return_subsimplices:
-            return (
-                self.face_nodes @ div_by_nodes_per_face @ sub_simplices,
-                sub_simplices,
-            )
+            return subv, sub_simplices
         else:
-            return self.face_nodes @ div_by_nodes_per_face @ sub_simplices
+            return subv
 
     def compute_opposite_nodes(self, recompute=False) -> sps.csc_array:
         """
@@ -354,7 +352,7 @@ class Grid(pp.Grid):
             case 3:
                 edge_nodes = self.ridge_peaks
 
-        self.edge_tangents = self.nodes @ edge_nodes
+        self.edge_tangents = sps.csc_array(self.nodes @ edge_nodes)
         self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
 
     def compute_mesh_size(self) -> None:
@@ -369,6 +367,6 @@ class Grid(pp.Grid):
             None
         """
         if self.dim == 0:
-            self.mesh_size = 0
+            self.mesh_size = 0.0
         else:
             self.mesh_size = np.mean(self.edge_lengths)

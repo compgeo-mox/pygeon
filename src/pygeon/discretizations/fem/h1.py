@@ -1,7 +1,7 @@
 """ Module for the discretizations of the H1 space. """
 
 from math import factorial
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import porepy as pp
@@ -141,10 +141,14 @@ class Lagrange1(pg.Discretization):
             sps.csc_array: The assembled stiffness matrix.
         """
         # Get dictionary for parameter storage
-        try:
-            K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
-        except Exception:
-            K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        if data is not None:
+            K = (
+                data.get(pp.PARAMETERS, {})
+                .get(self.keyword, {})
+                .get("second_order_tensor", K)
+            )
+        else:
             data = {"is_tangential": True}
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
@@ -211,7 +215,7 @@ class Lagrange1(pg.Discretization):
         elif sd.dim == 2:
             return sd.face_ridges.T.tocsc()
         elif sd.dim == 1:
-            return sd.cell_faces.T.tocsc()
+            return sps.csc_array(sd.cell_faces.T)
         elif sd.dim == 0:
             return sps.csc_array((0, 1))
         else:
@@ -280,7 +284,7 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The matrix representing the projection at the cell centers.
         """
-        eval = sd.cell_nodes()
+        eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
 
         return (eval @ num_nodes).T.tocsc()
@@ -331,7 +335,7 @@ class Lagrange1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the appropriate range discretization class based on the dimension.
 
@@ -441,11 +445,11 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The mass matrix.
         """
-
-        try:
-            weight = data[pp.PARAMETERS][self.keyword]["weight"]
-        except Exception:
-            weight = np.ones(sd.num_cells)
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
 
         # Data allocation
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
@@ -675,11 +679,13 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The stiffness matrix.
         """
-
-        try:
-            K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
-        except Exception:
-            K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        if data is not None:
+            K = (
+                data.get(pp.PARAMETERS, {})
+                .get(self.keyword, {})
+                .get("second_order_tensor", K)
+            )
 
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -833,7 +839,7 @@ class Lagrange2(pg.Discretization):
             np.ndarray: An array containing the interpolated values at each node of the grid.
         """
         if sd.dim == 0:
-            edge_coords = []
+            edge_coords = np.empty(0)
         elif sd.dim == 1:
             edge_coords = sd.cell_centers
         elif sd.dim == 2:
@@ -911,7 +917,7 @@ class Lagrange2(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the appropriate range discretization class based on the dimension.
 

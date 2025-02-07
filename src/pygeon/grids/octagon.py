@@ -17,7 +17,7 @@ class OctagonGrid(pg.Grid):
     def __init__(
         self,
         nx: np.ndarray,
-        physdims: Optional[Union[dict, np.ndarray]] = {},
+        physdims: Optional[Union[dict, np.ndarray]] = None,
         name: Optional[str] = "Octagon grid",
     ) -> None:
         """
@@ -29,6 +29,9 @@ class OctagonGrid(pg.Grid):
                 as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax"
             name (str): Name of grid.
         """
+        if physdims is None:
+            physdims = np.array([1.0, 1.0])
+
         # Define the nodes as a 3 x num_nodes array
         nodes = self.compute_nodes(nx, physdims)
 

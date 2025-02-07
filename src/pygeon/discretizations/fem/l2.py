@@ -1,6 +1,6 @@
 """ Module for the discretizations of the L2 space. """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import porepy as pp
@@ -176,7 +176,7 @@ class PwConstants(pg.Discretization):
         """
         return np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class for the range of the differential.
 
@@ -196,8 +196,9 @@ class PwConstants(pg.Discretization):
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "specific",
+        relative: bool = True,
+        etype: str = "specific",
+        data: Optional[dict] = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
@@ -319,10 +320,11 @@ class PwLinears(pg.Discretization):
         lagrange1 = pg.Lagrange1(self.keyword)
         local_mass = lagrange1.local_mass(sd.dim)
 
-        try:
-            weight = data[pp.PARAMETERS][self.keyword]["weight"]
-        except Exception:
-            weight = np.ones(sd.num_cells)
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
 
         for c in np.arange(sd.num_cells):
             # Compute the mass local matrix
@@ -354,10 +356,11 @@ class PwLinears(pg.Discretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        try:
-            weight = data[pp.PARAMETERS][self.keyword]["weight"]
-        except Exception:
-            weight = np.ones(sd.num_cells)
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
 
         diag = np.repeat(weight * sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
         return sps.diags_array(diag, format="csc")
@@ -405,7 +408,7 @@ class PwLinears(pg.Discretization):
         """
         return np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 

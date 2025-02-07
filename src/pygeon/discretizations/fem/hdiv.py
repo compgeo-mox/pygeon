@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H(div) space. """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Type, Tuple
 
 import numpy as np
 import porepy as pp
@@ -317,7 +317,7 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The differential matrix.
         """
-        return sd.cell_faces.T.tocsc()
+        return sps.csc_array(sd.cell_faces.T)
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -361,13 +361,13 @@ class RT0(pg.Discretization):
         vals = np.zeros(self.ndof(sd))
 
         for dof in b_faces:
-            vals[dof] = func(sd.face_centers[:, dof]) * np.sum(
-                sd.cell_faces.tocsr()[dof, :]
+            vals[dof] = (
+                func(sd.face_centers[:, dof]) * sd.cell_faces.tocsr()[dof, :].sum()
             )
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -384,8 +384,9 @@ class RT0(pg.Discretization):
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "specific",
+        relative: bool = True,
+        etype: str = "specific",
+        data: Optional[dict] = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
@@ -503,10 +504,13 @@ class BDM1(pg.Discretization):
 
         M = self.local_inner_product(sd.dim)
 
-        try:
-            inv_K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
-        except Exception:
-            inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        if data is not None:
+            inv_K = (
+                data.get(pp.PARAMETERS, {})
+                .get(self.keyword, {})
+                .get("second_order_tensor", inv_K)
+            )
 
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -756,7 +760,7 @@ class BDM1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -789,10 +793,13 @@ class BDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        try:
-            inv_K = data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
-        except Exception:
-            inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
+        if data is not None:
+            inv_K = (
+                data.get(pp.PARAMETERS, {})
+                .get(self.keyword, {})
+                .get("second_order_tensor", inv_K)
+            )
 
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -988,7 +995,7 @@ class RT1(pg.Discretization):
 
     def reorder_faces(
         self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int
-    ) -> tuple[np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Reorders the local nodes, faces, and corresponding cell-face orientations
 
@@ -1288,7 +1295,7 @@ class RT1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
