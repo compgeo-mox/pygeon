@@ -229,6 +229,10 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((3 * sd.num_faces, sd.num_faces))
+
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         c_centers, f_normals, f_centers, R, dim, node_coords = pp.map_geometry.map_grid(
