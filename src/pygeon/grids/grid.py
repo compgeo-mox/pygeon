@@ -216,7 +216,7 @@ class Grid(pp.Grid):
             # Define ridges between each pair of nodes
             # assuming ordering in face_nodes is done
             # according to right-hand rule
-            ridges[:, fr_indptr[face] : fr_indptr[face + 1]] = np.row_stack(
+            ridges[:, fr_indptr[face] : fr_indptr[face + 1]] = np.vstack(
                 (loc, np.roll(loc, -1))
             )
 
