@@ -30,7 +30,7 @@ def graph_from_file(**kwargs):
     )
 
     # creates a new graph from an adjacency matrix given as a SciPy sparse matrix
-    graph = nx.from_scipy_sparse_matrix(adj)
+    graph = nx.from_scipy_sparse_array(adj)
 
     # set the attribute dim
     max_dim = kwargs.get("max_dim", 2)
