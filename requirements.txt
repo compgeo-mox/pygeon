@@ -1,2 +1,3 @@
 black
+pytest
 porepy @ git+https://github.com/pmgbergen/porepy.git@develop
