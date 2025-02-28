@@ -1,1 +1,6 @@
+black==23.3
+flake8==6.0.0
+isort==5.12.0
+pytest
+pytest-cov
 porepy @ git+https://github.com/pmgbergen/porepy.git@develop
