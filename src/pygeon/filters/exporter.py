@@ -1,5 +1,5 @@
-import gmsh
-import meshio
+import gmsh  # type: ignore
+import meshio  # type: ignore
 import numpy as np
 
 import pygeon as pg

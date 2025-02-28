@@ -37,7 +37,7 @@ class SpanningTreeTest(unittest.TestCase):
         """
         div = pg.cell_mass(mdg) @ pg.div(mdg)
         face_mass = pg.face_mass(mdg)
-        system = sps.bmat([[face_mass, -div.T], [div, None]], "csc")
+        system = sps.block_array([[face_mass, -div.T], [div, None]], format="csc")
 
         f = np.ones(div.shape[0])
         rhs = np.hstack([np.zeros(div.shape[1]), f])
@@ -265,7 +265,7 @@ class SpanningTreeCosseratTest(unittest.TestCase):
         div = M @ vec_rt0.assemble_diff_matrix(sd)
         asym = M @ vec_rt0.assemble_asym_matrix(sd)
 
-        return sps.bmat([[-div, None], [-asym, -div]])
+        return sps.block_array([[-div, None], [-asym, -div]], format="csc")
 
     def test_elasticity_struct_tet_grid(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3)

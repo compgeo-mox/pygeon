@@ -12,6 +12,7 @@ import pygeon as pg
 class VecLagrange1Test(unittest.TestCase):
     def test_mass_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -46,6 +47,7 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_mass_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -108,6 +110,7 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_div_0d(self):
         sd = pp.PointGrid([1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -127,6 +130,7 @@ class VecLagrange1Test(unittest.TestCase):
             None
         """
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -163,12 +167,13 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_symgrad_0d(self):
         sd = pp.PointGrid([1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
         B = vec_p1.assemble_symgrad_matrix(sd).todense()
 
-        B_known = sps.csc_matrix((1, 1)).todense()
+        B_known = sps.csc_array((1, 1)).todense()
         self.assertTrue(np.allclose(B, B_known))
 
     def test_symgrad_2d(self):
@@ -182,6 +187,7 @@ class VecLagrange1Test(unittest.TestCase):
             None
         """
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -242,6 +248,7 @@ class VecLagrange1Test(unittest.TestCase):
             None
         """
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -262,7 +269,7 @@ class VecLagrange1Test(unittest.TestCase):
              -1, -1,  1,  1,  1, -1, -1, -1,  1,  1,  1, -1, -1, -1, -1, -1, -1,
               1,  1,  1,  1,  1,  1]) / 6
         # fmt: on
-        B_known = sps.csc_matrix((B_data_known, B_indices_known, B_indptr_known))
+        B_known = sps.csc_array((B_data_known, B_indices_known, B_indptr_known))
         self.assertTrue(np.allclose(sps.find(B), sps.find(B_known)))
 
         fun_x = lambda x: np.array([0, -x[2], x[1]])
@@ -281,6 +288,7 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_diff_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -314,6 +322,7 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_diff_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -405,6 +414,7 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_eval_2d(self):
         sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")
@@ -435,6 +445,7 @@ class VecLagrange1Test(unittest.TestCase):
 
     def test_eval_3d(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         vec_p1 = pg.VecLagrange1("vlagrange1")

@@ -23,8 +23,8 @@ class LevelsetGridTest(unittest.TestCase):
 
     def test_merge_connectivities(self):
         indices = np.arange(1, 5)[::-1]
-        old_con = sps.csc_matrix((np.ones(4), indices, [0, 1, 4]))
-        new_con = sps.hstack((sps.csc_matrix(old_con.shape), old_con))
+        old_con = sps.csc_array((np.ones(4), indices, [0, 1, 4]))
+        new_con = sps.hstack((sps.csc_array(old_con.shape), old_con))
         con = remesh.merge_connectivities(old_con, new_con)
 
         self.assertTrue(np.all(con.indices == np.tile(indices, 2)))
@@ -44,6 +44,7 @@ class LevelsetGridTest(unittest.TestCase):
 
     def test_structtrianglegrid(self):
         sd = pp.StructuredTriangleGrid([2] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
 
         sd = pg.levelset_remesh(sd, self.line_at_y80)
         self.assertEqual(sd.num_cells, 12)
@@ -59,6 +60,7 @@ class LevelsetGridTest(unittest.TestCase):
 
     def test_cartgrid(self):
         sd = pp.CartGrid([2] * 2, [1] * 2)
+        pg.convert_from_pp(sd)
 
         sd = pg.levelset_remesh(sd, self.line_at_y80)
         self.assertEqual(sd.num_cells, 6)

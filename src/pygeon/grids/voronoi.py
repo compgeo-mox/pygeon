@@ -1,6 +1,6 @@
 """ Module for the Voronoi grid generation. """
 
-from typing import Union
+from typing import Tuple
 
 import numpy as np
 import porepy as pp
@@ -43,10 +43,10 @@ class VoronoiGrid(pg.Grid):
         # extend the edges that are at infinity, strategy taken from the plot of scipy
         map_vrt = {}
         center = vor.points.mean(axis=0)
-        for idx, (pt_idx, simplex) in enumerate(
+        for idx, (pt_idx, simplex_idx) in enumerate(
             zip(vor.ridge_points, vor.ridge_vertices)
         ):
-            simplex = np.asarray(simplex)
+            simplex = np.asarray(simplex_idx)
             if not np.all(simplex >= 0):
                 # finite end Voronoi vertex
                 i = simplex[simplex >= 0][0]
@@ -74,8 +74,8 @@ class VoronoiGrid(pg.Grid):
                 map_vrt[i] = vor.vertices.shape[0] - 1
 
         # remove the infinite vertices and construct the regions that are open
-        for idx, reg in enumerate(vor.regions):
-            reg = np.array(reg)
+        for idx, reg_idx in enumerate(vor.regions):
+            reg = np.array(reg_idx)
             mask = reg < 0
             # consider only the regions that are open
             if np.any(mask):
@@ -98,7 +98,7 @@ class VoronoiGrid(pg.Grid):
 
         # Generate a PyGeoN grid
         name = kwargs.get("name", "VoronoiGrid")
-        sd = pg.Grid(2, nodes, face_nodes, cell_faces, name).copy()
+        sd = pg.Grid(2, nodes, face_nodes, cell_faces, name)
 
         # Add the bounding box with the levelset remesh function
         sd = pg.levelset_remesh(sd, lambda pt: pt[0])
@@ -116,10 +116,13 @@ class VoronoiGrid(pg.Grid):
                 sd.cell_centers[1] < 1,
             )
         )
-        [_, sd], _, _ = pp.partition.partition_grid(sd, ind.astype(int))
+        # NOTE to be compliant with PorePy
+        sd.face_nodes = sps.csc_matrix(sd.face_nodes)
+        sd.cell_faces = sps.csc_matrix(sd.cell_faces)
+        [_, sd_part], _, _ = pp.partition.partition_grid(sd, ind.astype(int))
 
         # Initialize the PyGeoN grid with the cut Voronoi grid
-        super().__init__(2, sd.nodes, sd.face_nodes, sd.cell_faces, name)
+        super().__init__(2, sd_part.nodes, sd_part.face_nodes, sd_part.cell_faces, name)
 
     def generate_internal_pts(self, num_pts: int, **kwargs) -> np.ndarray:
         """
@@ -141,7 +144,7 @@ class VoronoiGrid(pg.Grid):
 
     def grid_topology(
         self, vor: scipy.spatial.Voronoi, nodes: np.ndarray
-    ) -> Union[sps.csc_matrix, sps.csc_matrix]:
+    ) -> Tuple[sps.csc_array, sps.csc_array]:
         """
         Computes the grid topology for a given Voronoi diagram.
 
@@ -150,7 +153,7 @@ class VoronoiGrid(pg.Grid):
             nodes (np.ndarray): The array of node coordinates.
 
         Returns:
-            Tuple[sps.csc_matrix, sps.csc_matrix]: A tuple containing the face-node
+            Tuple[sps.csc_array, sps.csc_array]: A tuple containing the face-node
             connectivity matrix and the cell-face connectivity matrix.
         """
         # Derive face-node connectivity
@@ -158,7 +161,7 @@ class VoronoiGrid(pg.Grid):
         indices = np.hstack(internal_faces)
         indptr = 2 * np.arange(len(internal_faces) + 1)
         data = np.ones(2 * len(internal_faces), dtype=int)
-        face_nodes = sps.csc_matrix((data, indices, indptr), dtype=int)
+        face_nodes = sps.csc_array((data, indices, indptr), dtype=int)
 
         # Compute cell-face connectivity
 
@@ -175,7 +178,7 @@ class VoronoiGrid(pg.Grid):
         # Construct a matrix with ones on the nodes for each region face
         face_finder_indices = np.vstack((start_node, end_node)).ravel("F")
         face_finder_indptr = 2 * np.arange(start_node.size + 1)
-        face_finder = sps.csc_matrix(
+        face_finder = sps.csc_array(
             (np.ones_like(face_finder_indices), face_finder_indices, face_finder_indptr)
         )
 
@@ -191,6 +194,6 @@ class VoronoiGrid(pg.Grid):
             cf_data.size == cf_indices.size
         ), "Try increasing the number of interior points"
 
-        cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr), dtype=int)
+        cell_faces = sps.csc_array((cf_data, cf_indices, cf_indptr), dtype=int)
 
         return face_nodes, cell_faces

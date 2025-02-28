@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import scipy.sparse as sps
 import porepy as pp
 
 import pygeon as pg
@@ -51,9 +52,8 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
+        self.assertTrue((np.abs(M_known - M) > 1e-13).nnz == 0)
 
         M = pg.ridge_stiff(mdg)
 
@@ -74,9 +74,8 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
+        self.assertTrue((np.abs(M_known - M) > 1e-13).nnz == 0)
 
         M = pg.peak_stiff(mdg)
 
@@ -246,14 +245,10 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
+        self.assertTrue((np.abs(M_known - M) > 1e-13).nnz == 0)
 
         M = pg.ridge_stiff(mdg)
-        mask = np.abs(M.data) < 1e-10
-        M.data[mask] = 0
-        M.eliminate_zeros()
 
         # fmt: off
         M_known_data = np.array(
@@ -494,9 +489,8 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
+        self.assertTrue((np.abs(M_known - M) > 1e-8).nnz == 0)
 
         M = pg.peak_stiff(mdg)
 
@@ -572,10 +566,8 @@ class StiffnessUnitTest(unittest.TestCase):
         219, 223]
         )
         # fmt: on
-
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
+        self.assertTrue((np.abs(M_known - M) > 1e-8).nnz == 0)
 
 
 if __name__ == "__main__":

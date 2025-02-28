@@ -243,14 +243,14 @@ class VecVLagrange1_test(unittest.TestCase):
 
         self.assertTrue(np.allclose(pen.data, 0))
 
-        diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
+        diff_known = sps.block_array([[symgrad_known], [div_known]], format="csc")
         self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))
         self.assertTrue(np.allclose(diff.indices, diff_known.indices))
         self.assertTrue(np.allclose(diff.indptr, diff_known.indptr))
 
-        pen_known = sps.csc_matrix(pen.shape)
+        pen_known = sps.csc_array(pen.shape)
 
         stiff_known = symgrad_symgrad_known + div_div_known + pen_known
         self.make_canonical(stiff_known)
@@ -951,7 +951,7 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(pen.indices, pen_known.indices))
         self.assertTrue(np.allclose(pen.indptr, pen_known.indptr))
 
-        diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
+        diff_known = sps.block_array([[symgrad_known], [div_known]], format="csc")
         self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))

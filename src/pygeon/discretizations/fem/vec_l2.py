@@ -1,6 +1,6 @@
 """ Module for the discretizations of the vector L2 space. """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 
@@ -34,9 +34,10 @@ class VecPwConstants(pg.VecDiscretization):
         Returns:
             None
         """
+        self.scalar_discr: pg.PwConstants
         super().__init__(keyword, pg.PwConstants)
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class for the range of the differential.
 
@@ -70,8 +71,9 @@ class VecPwConstants(pg.VecDiscretization):
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "specific",
+        relative: bool = True,
+        etype: str = "specific",
+        data: Optional[dict] = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
@@ -98,7 +100,7 @@ class VecPwConstants(pg.VecDiscretization):
             err2_dim = self.scalar_discr.error_l2(
                 sd, num_sol_dim, ana_sol_dim, relative, etype
             )
-            err2 += err2_dim**2
+            err2 += np.square(err2_dim)
         return np.sqrt(err2)
 
 
@@ -126,9 +128,10 @@ class VecPwLinears(pg.VecDiscretization):
         Returns:
             None
         """
+        self.scalar_discr: pg.PwLinears
         super().__init__(keyword, pg.PwLinears)
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class for the range of the differential.
 

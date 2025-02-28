@@ -10,6 +10,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_ndof(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -18,6 +19,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_mass_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -29,7 +31,7 @@ class PwLinearsTest(unittest.TestCase):
             2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1,
             2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1,
             1, 2, 1, 1, 1, 2]) / 96
-        
+
 
         M_known_indices = np.array(
         [ 0,  1,  2,  0,  1,  2,  0,  1,  2,  3,  4,  5,  3,  4,  5,  3,  4,
@@ -52,6 +54,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_lumped_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -79,6 +82,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_diff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -89,6 +93,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_stiff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -99,6 +104,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_interpolate(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -112,6 +118,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_eval_at_cell_centers(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -125,6 +132,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_nat_bc(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -138,6 +146,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_get_range_discr_class(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()

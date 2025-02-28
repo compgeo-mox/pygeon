@@ -1,5 +1,6 @@
 """ Module contains a unit test for the Einstein grid class.
 """
+
 import unittest
 
 import numpy as np
@@ -28,7 +29,7 @@ class EinSteinGridTest(unittest.TestCase):
         cf_data = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1])
 
         # check the cell_faces
-        cf_known = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
+        cf_known = sps.csc_array((cf_data, cf_indices, cf_indptr))
         self.assertTrue(np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
 
         # face_ridges known data
@@ -42,7 +43,7 @@ class EinSteinGridTest(unittest.TestCase):
         # fmt: on
 
         # check the face_ridges
-        fr_known = sps.csc_matrix((fr_data, fr_indices, fr_indptr))
+        fr_known = sps.csc_array((fr_data, fr_indices, fr_indptr))
         self.assertTrue(np.allclose(sps.find(sd.face_ridges), sps.find(fr_known)))
 
         # check the cell_volumes
@@ -69,7 +70,7 @@ class EinSteinGridTest(unittest.TestCase):
         # fmt: off
 
         # check the cell_faces
-        cf_known = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
+        cf_known = sps.csc_array((cf_data, cf_indices, cf_indptr))
         self.assertTrue(np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
 
         # face_ridges known data
@@ -93,7 +94,7 @@ class EinSteinGridTest(unittest.TestCase):
         # fmt: on
 
         # check the face_ridges
-        fr_known = sps.csc_matrix((fr_data, fr_indices, fr_indptr))
+        fr_known = sps.csc_array((fr_data, fr_indices, fr_indptr))
         self.assertTrue(np.allclose(sps.find(sd.face_ridges), sps.find(fr_known)))
 
         # check the cell_volumes
@@ -166,7 +167,7 @@ class EinSteinGridTest(unittest.TestCase):
         # fmt: off
 
         # check the cell_faces
-        cf_known = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
+        cf_known = sps.csc_array((cf_data, cf_indices, cf_indptr))
         self.assertTrue(np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
 
         # face_ridges known data
@@ -261,7 +262,7 @@ class EinSteinGridTest(unittest.TestCase):
         # fmt: on
 
         # check the face_ridges
-        fr_known = sps.csc_matrix((fr_data, fr_indices, fr_indptr))
+        fr_known = sps.csc_array((fr_data, fr_indices, fr_indptr))
         self.assertTrue(np.allclose(sps.find(sd.face_ridges), sps.find(fr_known)))
 
         # check the cell_volumes

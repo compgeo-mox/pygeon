@@ -23,10 +23,10 @@ def replace_nones_with_zeros(mat: np.ndarray) -> None:
     # Otherwise, we retrieve the row and column lengths for the shapes
     row_lengths, col_lengths = find_row_col_lengths(mat)
 
-    # We then replace each None with a coo_matrix
+    # We then replace each None with a csc_array
     for (i, j), block in np.ndenumerate(mat):
         if block is None:
-            mat[i, j] = sps.csc_matrix((row_lengths[i], col_lengths[j]))
+            mat[i, j] = sps.csc_array((row_lengths[i], col_lengths[j]))
 
 
 def find_row_col_lengths(mat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

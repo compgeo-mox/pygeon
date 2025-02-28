@@ -10,6 +10,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_ndof(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -18,6 +19,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_assemble_mass_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -44,6 +46,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_assemble_lumped_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -71,28 +74,31 @@ class PwConstantsTest(unittest.TestCase):
     def test_assemble_diff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
         D = discr.assemble_diff_matrix(sd).todense()
-        D_known = sps.csc_matrix((0, discr.ndof(sd))).todense()
+        D_known = sps.csc_array((0, discr.ndof(sd))).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 
     def test_assemble_stiff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
         D = discr.assemble_stiff_matrix(sd).todense()
-        D_known = sps.csc_matrix((discr.ndof(sd), discr.ndof(sd))).todense()
+        D_known = sps.csc_array((discr.ndof(sd), discr.ndof(sd))).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 
     def test_interpolate(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -118,6 +124,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_eval_at_cell_centers(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -144,6 +151,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_assemble_nat_bc(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -160,6 +168,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_get_range_discr_class(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -173,6 +182,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_error_l2(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")
@@ -188,6 +198,7 @@ class PwConstantsTest(unittest.TestCase):
     def test_source(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwConstants("P0")

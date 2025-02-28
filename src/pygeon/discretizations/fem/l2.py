@@ -1,6 +1,6 @@
 """ Module for the discretizations of the L2 space. """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import porepy as pp
@@ -21,22 +21,22 @@ class PwConstants(pg.Discretization):
         ndof(sd: pg.Grid) -> int:
             Returns the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Computes the mass matrix for piecewise constants.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Computes the lumped mass matrix, which coincides with the mass matrix for P0.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the stiffness matrix for the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> sps.csc_matrix:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> sps.csc_array:
             Interpolates a function onto the finite element space.
 
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix that evaluates a function at the cell centers of a grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -70,7 +70,7 @@ class PwConstants(pg.Discretization):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Computes the mass matrix for piecewise constants
 
@@ -79,13 +79,13 @@ class PwConstants(pg.Discretization):
             data (Optional[dict]): Dictionary with possible scaling.
 
         Returns:
-            sps.csc_matrix: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
+            sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
-        return sps.diags(1 / sd.cell_volumes).tocsc()
+        return sps.diags_array(1 / sd.cell_volumes, format="csc")
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Computes the lumped mass matrix, which coincides with the mass matrix for P0.
 
@@ -94,11 +94,11 @@ class PwConstants(pg.Discretization):
             data (Optional[dict]): Additional data for the assembly process.
 
         Returns:
-            sps.csc_matrix: The assembled lumped mass matrix.
+            sps.csc_array: The assembled lumped mass matrix.
         """
         return self.assemble_mass_matrix(sd, data)
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -109,14 +109,14 @@ class PwConstants(pg.Discretization):
             sd (pg.Grid): The grid object or its subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
 
         """
-        return sps.csc_matrix((0, self.ndof(sd)))
+        return sps.csc_array((0, self.ndof(sd)))
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
 
@@ -125,13 +125,13 @@ class PwConstants(pg.Discretization):
             data (Optional[dict]): Additional data for the assembly process.
 
         Returns:
-            sps.csc_matrix: The assembled stiffness matrix.
+            sps.csc_array: The assembled stiffness matrix.
         """
-        return sps.csc_matrix((self.ndof(sd), self.ndof(sd)))
+        return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> sps.csc_matrix:
+    ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
 
@@ -141,13 +141,13 @@ class PwConstants(pg.Discretization):
                 function values at coordinates.
 
         Returns:
-            sps.csc_matrix: The values of the degrees of freedom.
+            np.ndarray: The values of the degrees of freedom.
         """
         return np.array(
             [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
         )
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix that evaluates a function at the cell centers of a grid.
 
@@ -155,9 +155,9 @@ class PwConstants(pg.Discretization):
             sd (pg.Grid): The grid or a subclass.
 
         Returns:
-            sps.csc_matrix: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
-        return sps.diags(1 / sd.cell_volumes).tocsc()
+        return sps.diags_array(1 / sd.cell_volumes, format="csc")
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -176,7 +176,7 @@ class PwConstants(pg.Discretization):
         """
         return np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class for the range of the differential.
 
@@ -196,8 +196,9 @@ class PwConstants(pg.Discretization):
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "specific",
+        relative: bool = True,
+        etype: str = "specific",
+        data: Optional[dict] = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a function.
@@ -260,10 +261,10 @@ class PwLinears(pg.Discretization):
         ndof(sd: pg.Grid) -> int:
             Returns the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Computes the mass matrix for piecewise linears.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -298,7 +299,7 @@ class PwLinears(pg.Discretization):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Computes the mass matrix for piecewise linears
 
@@ -307,7 +308,7 @@ class PwLinears(pg.Discretization):
             data (Optional[dict]): Dictionary with possible scaling.
 
         Returns:
-            sps.csc_matrix: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
+            sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
         # Data allocation
         size = np.square(sd.dim + 1) * sd.num_cells
@@ -319,10 +320,11 @@ class PwLinears(pg.Discretization):
         lagrange1 = pg.Lagrange1(self.keyword)
         local_mass = lagrange1.local_mass(sd.dim)
 
-        try:
-            weight = data[pp.PARAMETERS][self.keyword]["weight"]
-        except Exception:
-            weight = np.ones(sd.num_cells)
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
 
         for c in np.arange(sd.num_cells):
             # Compute the mass local matrix
@@ -339,11 +341,11 @@ class PwLinears(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrix
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
@@ -352,17 +354,18 @@ class PwLinears(pg.Discretization):
             data (Optional[dict]): Optional data dictionary.
 
         Returns:
-            sps.csc_matrix: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped matrix.
         """
-        try:
-            weight = data[pp.PARAMETERS][self.keyword]["weight"]
-        except Exception:
-            weight = np.ones(sd.num_cells)
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
 
         diag = np.repeat(weight * sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
-        return sps.diags(diag, format="csc")
+        return sps.diags_array(diag, format="csc")
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -370,13 +373,13 @@ class PwLinears(pg.Discretization):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
-        return sps.csc_matrix((0, self.ndof(sd)))
+        return sps.csc_array((0, self.ndof(sd)))
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
 
@@ -385,9 +388,9 @@ class PwLinears(pg.Discretization):
             data (Optional[dict]): Additional data for the assembly process.
 
         Returns:
-            sps.csc_matrix: The assembled stiffness matrix.
+            sps.csc_array: The assembled stiffness matrix.
         """
-        return sps.csc_matrix((self.ndof(sd), self.ndof(sd)))
+        return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -405,7 +408,7 @@ class PwLinears(pg.Discretization):
         """
         return np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -418,7 +421,7 @@ class PwLinears(pg.Discretization):
         """
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
 
@@ -426,14 +429,14 @@ class PwLinears(pg.Discretization):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            np.ndarray: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
 
         rows = np.repeat(np.arange(sd.num_cells), sd.dim + 1)
         cols = np.arange(self.ndof(sd))
         data = np.ones(self.ndof(sd)) / (sd.dim + 1)
 
-        return sps.csc_matrix((data, (rows, cols)))
+        return sps.csc_array((data, (rows, cols)))
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

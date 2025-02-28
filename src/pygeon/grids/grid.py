@@ -1,6 +1,6 @@
 """ Grid class for the pygeon package. """
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import porepy as pp
@@ -21,8 +21,8 @@ class Grid(pp.Grid):
     Attributes:
         num_peaks (int): Number of peaks in the grid.
         num_ridges (int): Number of ridges in the grid.
-        face_ridges (scipy.sparse.csc_matrix): Connectivity between each face and ridge.
-        ridge_peaks (scipy.sparse.csc_matrix): Connectivity between each ridge and peak.
+        face_ridges (scipy.sparse.csc_array): Connectivity between each face and ridge.
+        ridge_peaks (scipy.sparse.csc_array): Connectivity between each ridge and peak.
         tags (dict): Tags for entities in the grid.
         edge_lengths (numpy.ndarray): The lengths of the one-dimensional edges.
         mesh_size (float): The typical mesh size.
@@ -72,6 +72,8 @@ class Grid(pp.Grid):
             None
         """
         super(Grid, self).__init__(*args, **kwargs)
+        self.face_nodes: sps.csc_array
+        self.cell_faces: sps.csc_array
 
     def compute_geometry(self) -> None:
         """
@@ -143,8 +145,8 @@ class Grid(pp.Grid):
         """
         self.num_peaks = 0
         self.num_ridges = 0
-        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
-        self.face_ridges = sps.csc_matrix((self.num_ridges, self.num_faces), dtype=int)
+        self.ridge_peaks = sps.csc_array((self.num_peaks, self.num_ridges), dtype=int)
+        self.face_ridges = sps.csc_array((self.num_ridges, self.num_faces), dtype=int)
 
     def _compute_ridges_2d(self) -> None:
         """
@@ -163,7 +165,7 @@ class Grid(pp.Grid):
         """
         self.num_peaks = 0
         self.num_ridges = self.num_nodes
-        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
+        self.ridge_peaks = sps.csc_array((self.num_peaks, self.num_ridges), dtype=int)
 
         # We compute the face tangential by mapping the face normal to a reference grid
         # in the xy-plane, rotating locally, and mapping back.
@@ -180,7 +182,7 @@ class Grid(pp.Grid):
 
         orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-        self.face_ridges = face_ridges @ sps.diags(orients)
+        self.face_ridges = face_ridges @ sps.diags_array(orients)
 
     def _compute_ridges_3d(self) -> None:
         """
@@ -214,7 +216,7 @@ class Grid(pp.Grid):
             # Define ridges between each pair of nodes
             # assuming ordering in face_nodes is done
             # according to right-hand rule
-            ridges[:, fr_indptr[face] : fr_indptr[face + 1]] = np.row_stack(
+            ridges[:, fr_indptr[face] : fr_indptr[face + 1]] = np.vstack(
                 (loc, np.roll(loc, -1))
             )
 
@@ -232,13 +234,13 @@ class Grid(pp.Grid):
         indptr = np.arange(0, ridges.size + 1, 2)
         ind = np.ravel(ridges, order="F")
         data = -((-1) ** np.arange(ridges.size))
-        self.ridge_peaks = sps.csc_matrix((data, ind, indptr), dtype=int)
+        self.ridge_peaks = sps.csc_array((data, ind, indptr), dtype=int)
 
         # Generate face_ridges such that
         # face_ridges(i, j) = +/- 1:
         # face j has ridge i with same/opposite orientation
         # with the orientation defined according to the right-hand rule
-        self.face_ridges = sps.csc_matrix((orientations, indices, fr_indptr), dtype=int)
+        self.face_ridges = sps.csc_array((orientations, indices, fr_indptr), dtype=int)
 
     def tag_ridges(self) -> None:
         """
@@ -262,16 +264,16 @@ class Grid(pp.Grid):
         fr_bool = self.face_ridges.astype("bool")
 
         if self.dim == 2:
-            self.tags["tip_ridges"] = fr_bool * self.tags["tip_faces"]
+            self.tags["tip_ridges"] = fr_bool @ self.tags["tip_faces"]
         else:
             self.tags["tip_ridges"] = np.zeros(self.num_ridges, dtype=bool)
 
-        bd_ridges = fr_bool * self.tags["domain_boundary_faces"]
+        bd_ridges = fr_bool @ self.tags["domain_boundary_faces"]
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
     def compute_subvolumes(
         self, return_subsimplices: Optional[bool] = False
-    ) -> sps.csc_matrix:
+    ) -> Union[tuple[sps.csc_array, sps.csc_array], sps.csc_array]:
         """
         Compute the subvolumes of the grid.
 
@@ -280,30 +282,28 @@ class Grid(pp.Grid):
                                                     Defaults to False.
 
         Returns:
-            sps.csc_matrix: The computed subvolumes with each entry [node, cell] describing
+            sps.csc_array: The computed subvolumes with each entry [node, cell] describing
                     the signed measure of the associated sub-volume
         """
-        sub_simplices = self.cell_faces.copy().astype(float)
+        sub_simplices = sps.csc_array(self.cell_faces.copy().astype(float))
 
         faces, cells, orient = sps.find(self.cell_faces)
 
         normals = self.face_normals[:, faces] * orient
         rays = self.face_centers[:, faces] - self.cell_centers[:, cells]
 
-        sub_simplices[faces, cells] = np.sum(normals * rays, 0) / self.dim
+        sub_simplices[faces, cells] = np.sum(normals * rays, axis=0) / self.dim
 
-        nodes_per_face = np.array(np.sum(self.face_nodes, 0)).flatten()
-        div_by_nodes_per_face = sps.diags(1.0 / nodes_per_face)
+        nodes_per_face = np.array(self.face_nodes.sum(axis=0)).flatten()
+        div_by_nodes_per_face = sps.diags_array(1.0 / nodes_per_face)
 
+        subv: sps.csc_array = self.face_nodes @ div_by_nodes_per_face @ sub_simplices
         if return_subsimplices:
-            return (
-                self.face_nodes @ div_by_nodes_per_face @ sub_simplices,
-                sub_simplices,
-            )
+            return subv, sub_simplices
         else:
-            return self.face_nodes @ div_by_nodes_per_face @ sub_simplices
+            return subv
 
-    def compute_opposite_nodes(self, recompute=False) -> sps.csc_matrix:
+    def compute_opposite_nodes(self, recompute=False) -> sps.csc_array:
         """
         Computes a matrix containing the index of the opposite node
         for every (face, cell) pair. Sets it as an attribute for later use.
@@ -313,7 +313,7 @@ class Grid(pp.Grid):
                                         Defaults to False.
 
         Returns:
-            sps.csc_matrix: the index k of the opposite node is in the entry (face, cell)
+            sps.csc_array: the index k of the opposite node is in the entry (face, cell)
         """
         if recompute or not hasattr(self, "opposite_nodes"):
             cell_nodes = self.cell_nodes()
@@ -327,7 +327,7 @@ class Grid(pp.Grid):
 
             opposites = cell_nodes[:, cells] - self.face_nodes[:, faces].astype(bool)
 
-            self.opposite_nodes = sps.csc_matrix((opposites.indices, (faces, cells)))
+            self.opposite_nodes = sps.csc_array((opposites.indices, (faces, cells)))
 
         return self.opposite_nodes
 
@@ -369,6 +369,6 @@ class Grid(pp.Grid):
             None
         """
         if self.dim == 0:
-            self.mesh_size = 0
+            self.mesh_size = 0.0
         else:
-            self.mesh_size = np.mean(self.edge_lengths)
+            self.mesh_size = float(np.mean(self.edge_lengths))

@@ -1,6 +1,6 @@
 """ Module for the discretizations of the H(curl) space. """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -20,16 +20,16 @@ class Nedelec0(pg.Discretization):
         ndof(sd: pg.Grid) -> int:
             Returns the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Computes the mass matrix for a lowest-order Nedelec discretization.
 
-        local_inner_product(dim: int) -> sps.csc_matrix:
+        local_inner_product(dim: int) -> sps.csc_array:
             Compute the local inner product matrix for the given dimension.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the differential matrix for the given grid.
 
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the function at the cell centers of the given grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -60,7 +60,7 @@ class Nedelec0(pg.Discretization):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
 
@@ -70,7 +70,7 @@ class Nedelec0(pg.Discretization):
                 for required contents.
 
         Returns:
-            sps.csc_matrix: Matrix obtained from the discretization.
+            sps.csc_array: Matrix obtained from the discretization.
         """
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
@@ -82,7 +82,7 @@ class Nedelec0(pg.Discretization):
 
         M = pg.BDM1.local_inner_product(sd.dim)
 
-        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
@@ -104,7 +104,7 @@ class Nedelec0(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def eval_basis_at_node(self, sd: pg.Grid, ridges_loc: np.ndarray) -> np.ndarray:
         """
@@ -147,7 +147,7 @@ class Nedelec0(pg.Discretization):
 
         return Psi
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the differential matrix for the given grid.
 
@@ -155,11 +155,11 @@ class Nedelec0(pg.Discretization):
             sd (pg.Grid): The grid for which the differential matrix is assembled.
 
         Returns:
-            sps.csc_matrix: The assembled differential matrix.
+            sps.csc_array: The assembled differential matrix.
         """
         return sd.face_ridges.T.tocsc()
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Evaluate the function at the cell centers of the given grid.
 
@@ -167,7 +167,7 @@ class Nedelec0(pg.Discretization):
             sd (pg.Grid): The grid object representing the discretization.
 
         Returns:
-            sps.csc_matrix: The evaluated function values at the cell centers.
+            sps.csc_array: The evaluated function values at the cell centers.
         """
         # Allocation
         size = 6 * 3 * sd.num_cells
@@ -176,7 +176,7 @@ class Nedelec0(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its ridges and
@@ -199,7 +199,7 @@ class Nedelec0(pg.Discretization):
             idx += Psi_at_centre.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -217,7 +217,7 @@ class Nedelec0(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -242,8 +242,8 @@ class Nedelec0(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values on the grid.
         """
-        tangents = sd.nodes * sd.ridge_peaks
-        midpoints = sd.nodes * np.abs(sd.ridge_peaks) / 2
+        tangents = sd.nodes @ sd.ridge_peaks
+        midpoints = sd.nodes @ np.abs(sd.ridge_peaks) / 2
         vals = [
             np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
         ]
@@ -262,22 +262,22 @@ class Nedelec1(pg.Discretization):
         ndof(sd: pg.Grid) -> int:
             Return the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix for the given grid and data.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the lumped matrix for the given grid and data.
 
-        proj_to_Ne0(sd: pg.Grid) -> sps.csc_matrix:
+        proj_to_Ne0(sd: pg.Grid) -> sps.csc_array:
             Project the solution to the Nedelec of the first kind.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the differential matrix for the H(curl) finite element space.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates the given function `func` over the specified grid `sd`.
 
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the basis functions at the cell centers and construct the global matrices.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -304,7 +304,7 @@ class Nedelec1(pg.Discretization):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the mass matrix for the given grid and data.
 
@@ -313,13 +313,13 @@ class Nedelec1(pg.Discretization):
             data (dict, optional): Additional data required for the assembly process.
 
         Returns:
-            sps.csc_matrix: The assembled mass matrix.
+            sps.csc_array: The assembled mass matrix.
         """
         raise NotImplementedError
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
 
@@ -328,7 +328,7 @@ class Nedelec1(pg.Discretization):
             data (dict, optional): Additional data. Defaults to None.
 
         Returns:
-            sps.csc_matrix: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped matrix.
         """
         # Allocation
         size = 9 * 4 * sd.num_cells
@@ -337,7 +337,7 @@ class Nedelec1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
         ridge_peaks = sd.ridge_peaks
 
         for c in np.arange(sd.num_cells):
@@ -378,9 +378,9 @@ class Nedelec1(pg.Discretization):
                 idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-    def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_matrix:
+    def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the solution to the Nedelec of the first kind.
 
@@ -388,11 +388,14 @@ class Nedelec1(pg.Discretization):
             sd (pg.Grid): The grid object representing the discretization.
 
         Returns:
-            sps.csc_matrix: The projection matrix to the Nedelec of the first kind.
+            sps.csc_array: The projection matrix to the Nedelec of the first kind.
         """
-        return sps.hstack([sps.eye(sd.num_ridges), -sps.eye(sd.num_ridges)]) / 2
+        return (
+            sps.hstack([sps.eye_array(sd.num_ridges), -sps.eye_array(sd.num_ridges)])
+            / 2
+        )
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the differential matrix for the H(curl) finite element space.
 
@@ -400,7 +403,7 @@ class Nedelec1(pg.Discretization):
             sd (pg.Grid): The grid on which the finite element space is defined.
 
         Returns:
-            sps.csc_matrix: The assembled differential matrix.
+            sps.csc_array: The assembled differential matrix.
         """
         n0 = pg.Nedelec0(self.keyword)
         Ne0_diff = n0.assemble_diff_matrix(sd)
@@ -422,7 +425,7 @@ class Nedelec1(pg.Discretization):
             np.ndarray: The interpolated values.
 
         """
-        tangents = sd.nodes * sd.ridge_peaks
+        tangents = sd.nodes @ sd.ridge_peaks
 
         vals = np.zeros(self.ndof(sd))
         for r in np.arange(sd.num_ridges):
@@ -436,7 +439,7 @@ class Nedelec1(pg.Discretization):
 
         return vals
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Evaluate the basis functions at the cell centers and construct the global matrices.
 
@@ -444,7 +447,7 @@ class Nedelec1(pg.Discretization):
             sd (pg.Grid): The grid object representing the mesh.
 
         Returns:
-            sps.csc_matrix: The global matrices constructed from the basis functions
+            sps.csc_array: The global matrices constructed from the basis functions
                 evaluated at the cell centers.
         """
         # Allocate the data to store matrix entries, that's the most efficient
@@ -455,7 +458,7 @@ class Nedelec1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        cell_ridges = sd.face_ridges.astype(bool) * sd.cell_faces.astype(bool)
+        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
         ridge_peaks = sd.ridge_peaks
 
         for c in np.arange(sd.num_cells):
@@ -486,7 +489,7 @@ class Nedelec1(pg.Discretization):
             idx += Ne_basis.size
 
         # Construct the global matrices
-        return sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -505,7 +508,7 @@ class Nedelec1(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
