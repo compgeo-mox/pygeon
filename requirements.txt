@@ -1,3 +1,4 @@
 black
 pytest
+pytest-cov
 porepy @ git+https://github.com/pmgbergen/porepy.git@develop
