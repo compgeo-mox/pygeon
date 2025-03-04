@@ -1,5 +1,7 @@
 """ This module contains functions for computing the stiffness operators. """
 
+from typing import Optional, Union
+
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -7,37 +9,45 @@ import pygeon as pg
 # ---------------------------------- Aliases ---------------------------------- #
 
 
-def cell_stiff(mdg, discr=None, **kwargs):
+def cell_stiff(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> sps.csc_array:
     """
     Compute the stiffness matrix for the piecewise constants on a (MD-)grid
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+        discr (pp discretization object): The discretization object.
 
     Returns:
-        sps.csc_matrix, num_cells x num_cells
+        sps.csc_array, num_cells x num_cells
     """
 
     return stiff_matrix(mdg, 0, discr, **kwargs)
 
 
-def face_stiff(mdg, discr=None, **kwargs):
+def face_stiff(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the faces of a (MD-)grid
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid).
         discr (pp.RT0 or pp.MVEM).
 
     Returns:
-        sps.csc_matrix, num_faces x num_faces
+        sps.csc_array, num_faces x num_faces
     """
 
     return stiff_matrix(mdg, 1, discr, **kwargs)
 
 
-def ridge_stiff(mdg, discr=None, **kwargs):
+def ridge_stiff(
+    mdg: Union[pg.Grid, pg.MixedDimensionalGrid],
+    discr: Optional[pg.Discretization] = None,
+    **kwargs
+) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the ridges of a (MD-)grid
 
@@ -46,13 +56,15 @@ def ridge_stiff(mdg, discr=None, **kwargs):
         discr (pp discretization object).
 
     Returns:
-        sps.csc_matrix, num_ridges x num_ridges
+        sps.csc_array, num_ridges x num_ridges
     """
 
     return stiff_matrix(mdg, 2, discr, **kwargs)
 
 
-def peak_stiff(mdg, discr=None, **kwargs):
+def peak_stiff(
+    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the peaks of a (MD-)grid
 
@@ -61,7 +73,7 @@ def peak_stiff(mdg, discr=None, **kwargs):
         discr (pp discretization object).
 
     Returns:
-        sps.csc_matrix, num_peaks x num_peaks
+        sps.csc_array, num_peaks x num_peaks
     """
 
     return stiff_matrix(mdg, 3, discr, **kwargs)
@@ -70,7 +82,12 @@ def peak_stiff(mdg, discr=None, **kwargs):
 # ---------------------------------- General ---------------------------------- #
 
 
-def stiff_matrix(mdg, n_minus_k, discr, **kwargs):
+def stiff_matrix(
+    mdg: pg.MixedDimensionalGrid,
+    n_minus_k: int,
+    discr: Union[pg.Discretization, None],
+    **kwargs
+) -> sps.csc_array:
     """
     Compute the stiffness matrix on a mixed-dimensional grid
 
@@ -83,11 +100,11 @@ def stiff_matrix(mdg, n_minus_k, discr, **kwargs):
         local_matrix (function): function that generates the local mass matrix on a grid
 
     Returns:
-        sps.csc_matrix, num_dofs x num_dofs
+        sps.csc_array, num_dofs x num_dofs
     """
 
     if n_minus_k == 0:
-        return sps.csc_matrix((mdg.num_subdomain_cells(), mdg.num_subdomain_cells()))
+        return sps.csc_array((mdg.num_subdomain_cells(), mdg.num_subdomain_cells()))
 
     diff = pg.numerics.differentials.exterior_derivative(mdg, n_minus_k)
     mass_plus_1 = pg.numerics.innerproducts.mass_matrix(

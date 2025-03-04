@@ -60,7 +60,7 @@ class EinSteinGrid(pg.Grid):
         for key, p in self.poly.items():
             self.poly[key] = np.insert(p, 3, 0.5 * (p[:, 2] + p[:, 3]), axis=1)
 
-    def build_connectivity(self) -> tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
+    def build_connectivity(self) -> tuple[np.ndarray, sps.csc_array, sps.csc_array]:
         """
         Build the connectivity of the grid.
 
@@ -68,13 +68,13 @@ class EinSteinGrid(pg.Grid):
             None
 
         Returns:
-            Tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
+            Tuple[np.ndarray, sps.csc_array, sps.csc_array]:
             A tuple containing the following:
                 - coords (np.ndarray):
                     The rescaled points of the polygons in the unit square.
-                - cell_faces (sps.csc_matrix):
+                - cell_faces (sps.csc_array):
                     The sparse matrix representing the cell-face relations.
-                - face_nodes (sps.csc_matrix):
+                - face_nodes (sps.csc_array):
                     The sparse matrix representing the face-nodes relations.
         """
         # rescale the points of the polygons to be in the unit square
@@ -112,8 +112,8 @@ class EinSteinGrid(pg.Grid):
         fn_data = np.ones_like(fn_indices)
 
         # build the sparse matrices
-        cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
-        face_nodes = sps.csc_matrix((fn_data, fn_indices, fn_indptr))
+        cell_faces = sps.csc_array((cf_data, cf_indices, cf_indptr))
+        face_nodes = sps.csc_array((fn_data, fn_indices, fn_indptr))
 
         return coords, cell_faces, face_nodes
 

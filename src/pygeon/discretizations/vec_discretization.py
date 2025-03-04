@@ -20,19 +20,19 @@ class VecDiscretization(pg.Discretization):
         ndof(sd: pg.Grid) -> int:
             Returns the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles and returns the mass matrix for the lowest order Lagrange element.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
             Interpolates a function onto the finite element space.
 
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the finite element solution at the cell centers of the given grid.
 
         assemble_nat_bc(
@@ -42,7 +42,9 @@ class VecDiscretization(pg.Discretization):
     """
 
     def __init__(
-        self, keyword: str = pg.UNITARY_DATA, scalar_discr: pg.Discretization = None
+        self,
+        keyword: str = pg.UNITARY_DATA,
+        scalar_discr: Optional[type[pg.Discretization]] = None,
     ) -> None:
         """
         Initialize the vector discretization class.
@@ -56,7 +58,10 @@ class VecDiscretization(pg.Discretization):
         """
         super().__init__(keyword)
         # a local discr class for performing some of the computations
-        self.scalar_discr = scalar_discr(keyword)
+        if scalar_discr is not None:
+            self.scalar_discr = scalar_discr(keyword)
+        else:
+            raise ValueError("A scalar discretization object must be provided.")
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -74,7 +79,7 @@ class VecDiscretization(pg.Discretization):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for the lowest order Lagrange element.
 
@@ -83,12 +88,12 @@ class VecDiscretization(pg.Discretization):
             data (Optional[dict]): Optional data for the assembly.
 
         Returns:
-            sps.csc_matrix: The mass matrix obtained from the discretization.
+            sps.csc_array: The mass matrix obtained from the discretization.
         """
         mass = self.scalar_discr.assemble_mass_matrix(sd, data)
         return sps.block_diag([mass] * sd.dim, format="csc")
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -96,14 +101,14 @@ class VecDiscretization(pg.Discretization):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
         diff = self.scalar_discr.assemble_diff_matrix(sd)
         return sps.block_diag([diff] * sd.dim, format="csc")
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
@@ -112,7 +117,7 @@ class VecDiscretization(pg.Discretization):
             data (dict, optional): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The lumped mass matrix.
+            sps.csc_array: The lumped mass matrix.
         """
         lumped_mass = self.scalar_discr.assemble_lumped_matrix(sd, data)
         return sps.block_diag([lumped_mass] * sd.dim, format="csc")
@@ -136,7 +141,7 @@ class VecDiscretization(pg.Discretization):
         ]
         return np.hstack(interp)
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_matrix:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Evaluate the finite element solution at the cell centers of the given grid.
 
@@ -144,7 +149,7 @@ class VecDiscretization(pg.Discretization):
             sd (pg.Grid): The grid on which to evaluate the solution.
 
         Returns:
-            sps.csc_matrix: The finite element solution evaluated at the cell centers.
+            sps.csc_array: The finite element solution evaluated at the cell centers.
         """
         P = self.scalar_discr.eval_at_cell_centers(sd)
         return sps.block_diag([P] * sd.dim, format="csc")

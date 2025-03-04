@@ -1078,4 +1078,5 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    DifferentialsMDGUnitTest().test_2d_simplicial_1_fracture()
     unittest.main()

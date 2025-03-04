@@ -2,7 +2,7 @@
 
 from itertools import combinations
 
-import networkx as nx
+import networkx as nx  # type: ignore
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -25,7 +25,7 @@ class Graph(pp.Grid):
         self.dim = dim
         self.nodes = np.vstack([c for _, c in self.graph.nodes(data="centre")]).T
 
-        self.cell_faces = sps.csc_matrix(
+        self.cell_faces = sps.csc_array(
             nx.incidence_matrix(self.graph, oriented=True).T
         )
 
@@ -96,7 +96,7 @@ class Graph(pp.Grid):
         """
         self.num_ridges = 0
         self.num_peaks = 0
-        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
+        self.ridge_peaks = sps.csc_array((self.num_peaks, self.num_ridges), dtype=int)
 
         return
 
@@ -128,12 +128,12 @@ class Graph(pp.Grid):
                 ind += 1
 
         self.num_ridges = len(cb)
-        self.face_ridges = sps.csc_matrix(
+        self.face_ridges = sps.csc_array(
             (data_IJ, (rows_I, cols_J)), shape=(self.num_ridges, self.num_faces)
         )
 
         self.num_peaks = 0
-        self.ridge_peaks = sps.csc_matrix((self.num_peaks, self.num_ridges), dtype=int)
+        self.ridge_peaks = sps.csc_array((self.num_peaks, self.num_ridges), dtype=int)
 
     def tag_tips(self):
         """

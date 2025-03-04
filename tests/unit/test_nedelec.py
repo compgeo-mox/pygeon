@@ -272,7 +272,7 @@ class NedelecTest(unittest.TestCase):
 
         for discr in [pg.Nedelec0(), pg.Nedelec1()]:
             interp_r = discr.interpolate(sd, r_constant)
-            eval_r = discr.eval_at_cell_centers(sd) * interp_r
+            eval_r = discr.eval_at_cell_centers(sd) @ interp_r
             eval_r = np.reshape(eval_r, (3, -1), order="F")
 
             known_r = np.array([r_constant(x) for x in sd.cell_centers.T]).T

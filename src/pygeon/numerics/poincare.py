@@ -1,6 +1,6 @@
 """ Module for poincare operators. """
 
-from typing import Callable, Optional
+from typing import Callable, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -44,7 +44,7 @@ class Poincare:
         """
 
         # Preallocation
-        self.bar_spaces = [None] * (self.dim + 1)
+        self.bar_spaces = np.array([None] * (self.dim + 1))
 
         # Cells
         self.bar_spaces[self.dim] = np.zeros(self.mdg.num_subdomain_cells(), dtype=bool)
@@ -82,9 +82,8 @@ class Poincare:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        edge_finder = sps.csc_array(
-            (vals, (rows, cols)), shape=(grad.shape[1], tree.nnz)
-        )
+        shape = (grad.shape[1], tree.nnz)
+        edge_finder = sps.csc_array((vals, (rows, cols)), shape=shape)
         edge_finder = np.abs(grad) @ edge_finder
         I, _, V = sps.find(edge_finder)
         tree_edges = I[V == 2]
@@ -105,7 +104,7 @@ class Poincare:
         center = np.mean(self.top_sd.nodes, axis=1, keepdims=True)
         dists = np.linalg.norm(self.top_sd.nodes - center, axis=0)
 
-        return np.argmin(dists)
+        return int(np.argmin(dists))
 
     def flag_nodes(self) -> np.ndarray:
         """
@@ -121,7 +120,7 @@ class Poincare:
         return flagged_nodes
 
     def apply(
-        self, k: int, f: np.ndarray, solver: Optional[Callable] = sps.linalg.spsolve
+        self, k: int, f: np.ndarray, solver: Callable = sps.linalg.spsolve
     ) -> np.ndarray:
         """
         Apply the Poincare operator
@@ -172,7 +171,7 @@ class Poincare:
 
         return R_bar.T @ solver(pi_0_d_bar, R_0 @ f)
 
-    def decompose(self, k: int, f: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def decompose(self, k: int, f: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Use the Poincaré operators to decompose f = pd(f) + dp(f)
 
@@ -202,9 +201,9 @@ class Poincare:
     def solve_subproblem(
         self,
         k: int,
-        A: sps.sparray,
+        A: sps.csc_array,
         b: np.ndarray,
-        solver: Optional[Callable] = sps.linalg.spsolve,
+        solver: Callable = sps.linalg.spsolve,
     ) -> np.ndarray:
         """
         Solve a linear system on the subspace of
@@ -212,9 +211,9 @@ class Poincare:
 
         Args:
             k (int): order of the k-form
-            A (sps.sparray): the system, usually a stiffness matrix
+            A (sps.csc_array): the system, usually a stiffness matrix
             b (np.ndarray): the right-hand side vector
-            solver (Optional[Callable]): The solver function to use. Defaults to
+            solver (Callable): The solver function to use. Defaults to
                 sps.linalg.spsolve.
 
         Returns:

@@ -12,16 +12,17 @@ import pygeon as pg
 class Lagrange1Test(unittest.TestCase):
     def test_0d(self):
         sd = pp.PointGrid([1] * 3)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
         discr = pg.Lagrange1()
 
         D = discr.assemble_diff_matrix(sd).todense()
-        D_known = sps.csc_matrix((0, 1)).todense()
+        D_known = sps.csc_array((0, 1)).todense()
 
         self.assertTrue(np.allclose(D, D_known))
 
         P = discr.eval_at_cell_centers(sd).todense()
-        P_known = sps.csc_matrix((1, 0)).todense()
+        P_known = sps.csc_array((1, 0)).todense()
 
         self.assertTrue(np.allclose(P, P_known))
 
@@ -32,6 +33,7 @@ class Lagrange1Test(unittest.TestCase):
     def test_1d(self):
         dim = 1
         sd = pp.CartGrid(3, dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.Lagrange1()
