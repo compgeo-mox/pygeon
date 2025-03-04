@@ -69,7 +69,7 @@ jobs:
         pip install -U pip
         # Install requirements, using eager updates to avoid stalled dependencies due to caching
         # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        pip install --upgrade --upgrade-strategy eager -r requirements.txt
+        pip install --upgrade --upgrade-strategy eager --force-reinstall -r requirements.txt
 
     - name: Install jupyter
       run: |
