@@ -6,8 +6,9 @@ import abc
 from typing import Callable, Optional, Type
 
 import numpy as np
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 class Discretization(abc.ABC):

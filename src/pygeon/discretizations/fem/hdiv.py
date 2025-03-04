@@ -4,8 +4,9 @@ from typing import Callable, Optional, Tuple, Type
 
 import numpy as np
 import porepy as pp
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 class RT0(pg.Discretization):

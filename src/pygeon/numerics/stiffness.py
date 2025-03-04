@@ -2,8 +2,9 @@
 
 from typing import Optional, Union
 
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 # ---------------------------------- Aliases ---------------------------------- #
 

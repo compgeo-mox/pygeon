@@ -3,8 +3,9 @@
 from typing import Union
 
 import porepy as pp
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 def convert_from_pp(
