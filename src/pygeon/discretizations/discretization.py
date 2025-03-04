@@ -1,13 +1,13 @@
 """ Module for the discretization class. """
 
 from __future__ import annotations
+
 import abc
 from typing import Callable, Optional, Type
 
 import numpy as np
-import scipy.sparse as sps
-
 import pygeon as pg
+import scipy.sparse as sps
 
 
 class Discretization(abc.ABC):

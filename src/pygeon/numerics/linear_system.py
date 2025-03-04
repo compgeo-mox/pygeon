@@ -1,6 +1,6 @@
 """ Module for the LinearSystem class. """
 
-from typing import Callable, Optional, Union, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import scipy.sparse as sps
