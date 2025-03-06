@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H1 space. """
+"""Module for the discretizations of the H1 space."""
 
 from math import factorial
 from typing import Callable, Optional, Type
@@ -272,6 +272,41 @@ class Lagrange1(pg.Discretization):
         """
         volumes = sd.cell_nodes() @ sd.cell_volumes / (sd.dim + 1)
         return sps.diags_array(volumes, format="csc")
+
+    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a Lagrangian function to a piecewise linear
+        function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        rows_I = np.arange(sd.num_cells * (sd.dim + 1))
+        cols_J = sd.cell_nodes().indices
+        data_IJ = np.ones_like(rows_I, dtype=float)
+
+        # Construct the global matrix
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a Lagrangian function to a piecewise constant
+        function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        node_cells = sd.cell_nodes().T.astype(float)
+        node_cells *= sd.cell_volumes[:, np.newaxis] / (sd.dim + 1)
+
+        # Return the global matrix
+        return node_cells.tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
