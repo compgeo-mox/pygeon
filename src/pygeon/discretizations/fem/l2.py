@@ -1,4 +1,4 @@
-""" Module for the discretizations of the L2 space. """
+"""Module for the discretizations of the L2 space."""
 
 from typing import Callable, Optional, Type
 
@@ -146,6 +146,23 @@ class PwConstants(pg.Discretization):
         return np.array(
             [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
         )
+
+    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the P0 discretization to the P1 discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+        size = (sd.dim + 1) * sd.num_cells
+        row_I = np.arange(size)
+        col_J = np.repeat(np.arange(sd.num_cells), sd.dim + 1)
+        data_IJ = np.repeat(1 / sd.cell_volumes, sd.dim + 1)
+
+        return sps.csc_array((data_IJ, (row_I, col_J)))
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -431,7 +448,6 @@ class PwLinears(pg.Discretization):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-
         rows = np.repeat(np.arange(sd.num_cells), sd.dim + 1)
         cols = np.arange(self.ndof(sd))
         data = np.ones(self.ndof(sd)) / (sd.dim + 1)
@@ -451,7 +467,6 @@ class PwLinears(pg.Discretization):
         Returns:
             np.ndarray: the values of the degrees of freedom
         """
-
         cell_nodes = sd.cell_nodes()
         vals = np.zeros((sd.num_cells, sd.dim + 1))
 
@@ -462,3 +477,190 @@ class PwLinears(pg.Discretization):
             vals[c, :] = [func(x) for x in sd.nodes[:, nodes_loc].T]
 
         return vals.ravel()
+
+
+class PwQuadratics(pg.Discretization):
+
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            int: The number of degrees of freedom.
+
+        """
+        return sd.num_cells * self.ndof_per_cell(sd)
+
+    def ndof_per_cell(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom per cell.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            int: The number of degrees of freedom per cell.
+        """
+        return (sd.dim + 1) * (sd.dim + 2) // 2
+
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Computes the mass matrix for piecewise quadratics.
+
+        Args:
+            sd (pg.Grid): The grid on which to assemble the matrix.
+            data (Optional[dict]): Dictionary with possible scaling.
+
+        Returns:
+            sps.csc_array: Sparse csc matrix of shape (ndof, ndof).
+        """
+        # Data allocation
+        ndof_per_cell = self.ndof_per_cell(sd)
+        size = np.square(ndof_per_cell) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        lagrange2 = pg.Lagrange2(self.keyword)
+        local_mass = lagrange2.assemble_local_mass(sd.dim)
+
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
+
+        for c in np.arange(sd.num_cells):
+            # Compute the mass local matrix
+            A = local_mass * sd.cell_volumes[c] * weight[c]
+
+            # Save values for mass local matrix in the global structure
+            dof_loc = np.arange(ndof_per_cell) * sd.num_cells + c
+            cols = np.tile(dof_loc, (dof_loc.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrix
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the matrix corresponding to the differential operator.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_array: The differential matrix.
+        """
+        return sps.csc_array((0, self.ndof(sd)))
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the stiffness matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+            data (Optional[dict]): Additional data for the assembly process.
+
+        Returns:
+            sps.csc_array: The assembled stiffness matrix.
+        """
+        return sps.csc_array((self.ndof(sd), self.ndof(sd)))
+
+    def assemble_nat_bc(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+    ) -> np.ndarray:
+        """
+        Assembles the natural boundary condition vector, equal to zero.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            func (Callable): The function representing the natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition term.
+        """
+        return np.zeros(self.ndof(sd))
+
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the discretization class that contains the range of the differential
+
+        Args:
+            dim (int): The dimension of the range
+
+        Returns:
+            pg.Discretization: The discretization class containing the range of the
+                differential
+        """
+        raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the matrix for evaluating the discretization at the cell centers.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_array: The evaluation matrix.
+        """
+        val_at_cc = 1 / (sd.dim + 1)
+        eval_nodes = val_at_cc * (2 * val_at_cc - 1) * sps.eye_array(sd.num_cells)
+        eval_nodes = sps.hstack([eval_nodes] * (sd.dim + 1))
+
+        num_edges_per_cells = sd.dim * (sd.dim + 1) // 2
+        eval_edges = 4 * val_at_cc * val_at_cc * sps.eye_array(sd.num_cells)
+        eval_edges = sps.hstack([eval_edges] * num_edges_per_cells)
+
+        return sps.hstack((eval_nodes, eval_edges), format="csc")
+
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        """
+        Interpolates a function onto the finite element space
+
+        Args:
+            sd (pg.Grid): grid, or a subclass.
+            func (Callable): a function that returns the function values at degrees of
+                freedom
+
+        Returns:
+            np.ndarray: the values of the degrees of freedom
+        """
+        lagrange2 = pg.Lagrange2(self.keyword)
+        edge_nodes = lagrange2.get_local_edge_nodes(sd.dim)
+
+        cell_nodes = sd.cell_nodes()
+        vals = np.zeros((sd.num_cells, self.ndof_per_cell(sd)))
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+            nodes_loc = cell_nodes.indices[loc]
+
+            vals[c, : sd.dim + 1] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+
+            edge_nodes_loc = nodes_loc[edge_nodes]
+            edge_mid_pt = (
+                sd.nodes[:, edge_nodes_loc[:, 0]] + sd.nodes[:, edge_nodes_loc[:, 1]]
+            )
+            edge_mid_pt /= 2
+
+            vals[c, sd.dim + 1 :] = [func(x) for x in edge_mid_pt.T]
+
+        return vals.ravel(order="F")

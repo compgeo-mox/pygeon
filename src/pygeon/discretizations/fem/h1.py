@@ -308,6 +308,29 @@ class Lagrange1(pg.Discretization):
         # Return the global matrix
         return node_cells.tocsc()
 
+    def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a linear Lagrangian function to a second order
+        Lagrange function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        if sd.dim == 1:
+            edge_nodes = sd.cell_faces
+        elif sd.dim == 2:
+            edge_nodes = sd.face_ridges
+        elif sd.dim == 3:
+            edge_nodes = sd.ridge_peaks
+
+        edge_nodes = np.abs(edge_nodes) / 2
+
+        ndof = self.ndof(sd)
+        return sps.vstack((sps.eye_array(ndof), edge_nodes.T), format="csc")
+
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for evaluating a Lagrangian function at the
@@ -319,6 +342,8 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The matrix representing the projection at the cell centers.
         """
+        if sd.dim == 0:
+            return sps.csc_array((1, 0))
         eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
 
