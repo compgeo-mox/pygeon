@@ -35,7 +35,8 @@ class PieceWise(pg.Discretization):
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
             np.ndarray) -> np.ndarray:
-            Assembles and returns the natural boundary condition vector, which is equal to zero.
+            Assembles and returns the natural boundary condition vector, which is equal to
+            zero.
 
         get_range_discr_class(dim: int) -> Type[pg.Discretization]:
             Returns the discretization class for the range of the differential.
