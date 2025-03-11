@@ -480,6 +480,39 @@ class PwLinears(pg.Discretization):
 
 
 class PwQuadratics(pg.Discretization):
+    """
+    PwQuadratics is a class that represents piecewise quadratic finite element discretizations.
+
+    Methods:
+        ndof(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom associated with the method.
+
+        ndof_per_cell(sd: pg.Grid) -> int:
+            Returns the number of degrees of freedom per cell.
+
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+            Computes the mass matrix for piecewise quadratics.
+
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
+            Assembles the matrix corresponding to the differential operator.
+
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+            Assembles the stiffness matrix for the given grid.
+
+        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
+            np.ndarray) -> np.ndarray:
+            Assembles the natural boundary condition vector, equal to zero.
+
+        get_range_discr_class(dim: int) -> Type[pg.Discretization]:
+            Returns the discretization class that contains the range of the differential.
+
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
+            Assembles the matrix for evaluating the discretization at the cell centers.
+
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+            Interpolates a function onto the finite element space.
+    """
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -489,7 +522,6 @@ class PwQuadratics(pg.Discretization):
 
         Returns:
             int: The number of degrees of freedom.
-
         """
         return sd.num_cells * self.ndof_per_cell(sd)
 
@@ -646,7 +678,7 @@ class PwQuadratics(pg.Discretization):
         edge_nodes = lagrange2.get_local_edge_nodes(sd.dim)
 
         cell_nodes = sd.cell_nodes()
-        vals = np.zeros((sd.num_cells, self.ndof_per_cell(sd)))
+        vals = np.empty((sd.num_cells, self.ndof_per_cell(sd)))
 
         for c in np.arange(sd.num_cells):
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
