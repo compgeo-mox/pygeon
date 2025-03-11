@@ -480,7 +480,6 @@ class PwLinears(pg.Discretization):
 
 
 class PwQuadratics(pg.Discretization):
-
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
