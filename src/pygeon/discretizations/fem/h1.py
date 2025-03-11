@@ -896,10 +896,12 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
+        opposite_nodes = sd.compute_opposite_nodes()
+
         # Data allocation for the nodes mapping
         rows_I = np.arange(sd.num_cells * (sd.dim + 1))
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
-        cols_J = sd.cell_nodes().indices
+        cols_J = opposite_nodes.data
         data_IJ = np.ones_like(rows_I, dtype=float)
         proj_nodes = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
@@ -907,11 +909,10 @@ class Lagrange2(pg.Discretization):
         n_edges = self.num_edges_per_cell(sd.dim)
         size = n_edges * sd.num_cells
         rows_I = np.arange(size)
+        rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.ones(size)
         idx = 0
-
-        opposite_nodes = sd.compute_opposite_nodes()
 
         for c in np.arange(sd.num_cells):
             loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])

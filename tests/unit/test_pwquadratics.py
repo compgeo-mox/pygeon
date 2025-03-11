@@ -118,11 +118,10 @@ class PwQuadraticsTest(unittest.TestCase):
         source = discr.source_term(sd, func)
 
         source_known = np.zeros(discr.ndof(sd))
-        source_known[: sd.num_nodes] = 1 / 12
+        source_known[(sd.dim + 1) * sd.num_cells :] = 1 / 12
 
         self.assertTrue(np.allclose(source, source_known))
 
 
 if __name__ == "__main__":
-    PwQuadraticsTest().test_assemble_mass_matrix()
-    # unittest.main()
+    unittest.main()
