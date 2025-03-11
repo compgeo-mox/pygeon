@@ -17,16 +17,17 @@ class PwQuadraticsTest(unittest.TestCase):
 
     def test_assemble_mass_matrix(self):
         dim = 2
-        sd = pg.reference_element(dim)
+        sd = pg.unit_grid(dim, 0.5, as_mdg=False)
         sd.compute_geometry()
 
         discr = pg.PwQuadratics()
         M = discr.assemble_mass_matrix(sd)
 
         discr_l2 = pg.Lagrange2()
+        proj = discr_l2.proj_to_pwQuadratics(sd)
         M_l2 = discr_l2.assemble_mass_matrix(sd)
 
-        self.assertTrue(np.allclose((M - M_l2).data, 0))
+        self.assertTrue(np.allclose((proj.T @ M @ proj - M_l2).data, 0))
 
     def test_assemble_diff_matrix(self):
         dim = 2
@@ -66,55 +67,39 @@ class PwQuadraticsTest(unittest.TestCase):
 
     def test_eval_at_cell_centers(self):
         dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
         sd.compute_geometry()
 
-        discr = pg.PwQuadratics("P0")
+        discr = pg.PwQuadratics()
         P = discr.eval_at_cell_centers(sd)
 
-        # fmt: off
-        P_known_data = np.array(
-        [8., 8., 8., 8., 8., 8., 8., 8.]
-        )
+        func = lambda x: (x[0] + x[1]) ** 2  # Example function
+        true_vals = [func(x) for x in sd.cell_centers.T]
 
-        P_known_indices = np.array(
-        [0, 1, 2, 3, 4, 5, 6, 7]
-        )
+        interp = discr.interpolate(sd, func)
 
-        P_known_indptr = np.array(
-        [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        )
-        # fmt: on
-
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        self.assertTrue(np.allclose(P @ interp, true_vals))
 
     def test_assemble_nat_bc(self):
         dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
         sd.compute_geometry()
 
-        discr = pg.PwQuadratics("P0")
+        discr = pg.PwQuadratics()
 
         func = lambda x: np.sin(x[0])  # Example function
 
         b_faces = np.array([0, 1, 3])  # Example boundary faces
         vals = discr.assemble_nat_bc(sd, func, b_faces)
 
-        vals_known = np.zeros(sd.num_cells)
-
-        self.assertTrue(np.allclose(vals, vals_known))
+        self.assertTrue(np.allclose(vals, 0))
 
     def test_get_range_discr_class(self):
         dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
         sd.compute_geometry()
 
-        discr = pg.PwQuadratics("P0")
+        discr = pg.PwQuadratics()
 
         self.assertRaises(
             NotImplementedError,
@@ -122,53 +107,21 @@ class PwQuadraticsTest(unittest.TestCase):
             dim,
         )
 
-    def test_error_l2(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics("P0")
-        num_sol = np.array([0.5, 0.3, 0.7, 0.9, 0.1, 0, 0.2, 1])
-
-        ana_sol = lambda x: np.sin(x[0])
-
-        err = discr.error_l2(sd, num_sol, ana_sol)
-        err_known = 7.798438721533104
-
-        self.assertTrue(np.allclose(err, err_known))
-
     def test_source(self):
         dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
         sd.compute_geometry()
 
-        discr = pg.PwQuadratics("P0")
+        discr = pg.PwQuadratics()
 
         func = lambda _: 2
         source = discr.source_term(sd, func)
 
-        self.assertTrue(np.allclose(source, 2))
+        source_known = np.zeros(discr.ndof(sd))
+        source_known[: sd.num_nodes] = 1 / 12
 
-    def test_proj_to_pwlinears(self):
-
-        for dim in [1, 2, 3]:
-            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
-            sd.compute_geometry()
-
-            p0 = pg.PwQuadratics()
-            proj_p0 = p0.proj_to_pwLinears(sd)
-            mass_p0 = p0.assemble_mass_matrix(sd)
-
-            p1 = pg.PwLinears()
-            mass_p1 = p1.assemble_mass_matrix(sd)
-
-            diff = proj_p0.T @ mass_p1 @ proj_p0 - mass_p0
-
-            self.assertTrue(np.allclose(diff.data, 0.0))
+        self.assertTrue(np.allclose(source, source_known))
 
 
 if __name__ == "__main__":
-    PwQuadraticsTest().test_interpolate()
-    # unittest.main()
+    unittest.main()

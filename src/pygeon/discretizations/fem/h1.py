@@ -885,6 +885,36 @@ class Lagrange2(pg.Discretization):
 
         return sps.hstack((eval_nodes, eval_edges), format="csc")
 
+    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        rows_I = np.arange(sd.num_cells * (sd.dim + 1))
+        rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
+        cols_J = sd.cell_nodes().indices
+        data_IJ = np.ones_like(rows_I, dtype=float)
+        proj_nodes = sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+        # Data allocation for the edges
+        n_edges = self.num_edges_per_cell(sd.dim)
+        size = n_edges * sd.num_cells
+        rows_I = np.arange(size)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.ones(size)
+        idx = 0
+
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
+            faces = opposite_nodes.indices[loc]
+            edges = self.get_edge_dof_indices(sd, c, faces)
+
+            loc_ind = slice(idx, idx + n_edges)
+            cols_J[loc_ind] = edges
+            idx += n_edges
+
+        proj_edges = sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+        return sps.block_diag((proj_nodes, proj_edges), format="csc")
+
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
