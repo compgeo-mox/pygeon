@@ -886,13 +886,24 @@ class Lagrange2(pg.Discretization):
         return sps.hstack((eval_nodes, eval_edges), format="csc")
 
     def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a quadratic Lagrangian function to a piecewise
+        quadratic function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        # Data allocation for the nodes mapping
         rows_I = np.arange(sd.num_cells * (sd.dim + 1))
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
         cols_J = sd.cell_nodes().indices
         data_IJ = np.ones_like(rows_I, dtype=float)
         proj_nodes = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-        # Data allocation for the edges
+        # Data allocation for the edges mapping
         n_edges = self.num_edges_per_cell(sd.dim)
         size = n_edges * sd.num_cells
         rows_I = np.arange(size)
@@ -908,7 +919,7 @@ class Lagrange2(pg.Discretization):
             edges = self.get_edge_dof_indices(sd, c, faces)
 
             loc_ind = slice(idx, idx + n_edges)
-            cols_J[loc_ind] = edges
+            cols_J[loc_ind] = edges - sd.num_nodes
             idx += n_edges
 
         proj_edges = sps.csc_array((data_IJ, (rows_I, cols_J)))

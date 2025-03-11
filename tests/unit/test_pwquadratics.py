@@ -17,7 +17,7 @@ class PwQuadraticsTest(unittest.TestCase):
 
     def test_assemble_mass_matrix(self):
         dim = 2
-        sd = pg.unit_grid(dim, 0.5, as_mdg=False)
+        sd = pg.unit_grid(dim, 1, as_mdg=False)
         sd.compute_geometry()
 
         discr = pg.PwQuadratics()
@@ -124,4 +124,5 @@ class PwQuadraticsTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    PwQuadraticsTest().test_assemble_mass_matrix()
+    # unittest.main()
