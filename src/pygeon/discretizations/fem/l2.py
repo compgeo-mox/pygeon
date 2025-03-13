@@ -10,18 +10,17 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class PieceWise(pg.Discretization):
+class PieceWisePolynomial(pg.Discretization):
     """
-    PieceWise is a subclass of pg.Discretization that represents an abstract piecewise
-    discretization.
+    PieceWisePolynomial is a subclass of pg.Discretization that represents
+    an abstract elementwise polynomial discretization.
 
     Attributes:
         keyword (str): The keyword for the discretization.
 
     Methods:
         ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated with the method, which is the
-            number of cells in the grid.
+            Returns the number of degrees of freedom associated with the method.
 
         ndof_per_cell(sd: pg.Grid) -> int:
             Abstract method that returns the number of degrees of freedom per cell.
@@ -124,16 +123,13 @@ class PieceWise(pg.Discretization):
         Args:
             dim (int): The dimension of the range space.
 
-        Returns:
-            pg.Discretization: The discretization class for the range of the differential.
-
         Raises:
-            NotImplementedError: If there is no zero discretization available in PyGeoN.
+            NotImplementedError: There is no zero discretization available in PyGeoN.
         """
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
 
-class PwConstants(PieceWise):
+class PwConstants(PieceWisePolynomial):
     """
     Discretization class for the piecewise constants.
     NB! Each degree of freedom is the integral over the cell.
@@ -313,7 +309,7 @@ class PwConstants(PieceWise):
         return np.sqrt(err / (sd.dim + 1))
 
 
-class PwLinears(PieceWise):
+class PwLinears(PieceWisePolynomial):
     """
     Discretization class for piecewise linear finite element method.
 
@@ -456,7 +452,7 @@ class PwLinears(PieceWise):
         return vals.ravel()
 
 
-class PwQuadratics(PieceWise):
+class PwQuadratics(PieceWisePolynomial):
     """
     PwQuadratics is a class that represents piecewise quadratic finite element discretizations.
 
