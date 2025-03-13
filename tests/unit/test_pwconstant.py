@@ -208,6 +208,23 @@ class PwConstantsTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(source, 2))
 
+    def test_proj_to_pwlinears(self):
+
+        for dim in [1, 2, 3]:
+            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
+            sd.compute_geometry()
+
+            p0 = pg.PwConstants()
+            proj_p0 = p0.proj_to_pwLinears(sd)
+            mass_p0 = p0.assemble_mass_matrix(sd)
+
+            p1 = pg.PwLinears()
+            mass_p1 = p1.assemble_mass_matrix(sd)
+
+            diff = proj_p0.T @ mass_p1 @ proj_p0 - mass_p0
+
+            self.assertTrue(np.allclose(diff.data, 0.0))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -308,6 +308,29 @@ class Lagrange1(pg.Discretization):
         # Return the global matrix
         return node_cells.tocsc()
 
+    def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a linear Lagrangian function to a second order
+        Lagrange function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        if sd.dim == 1:
+            edge_nodes = sd.cell_faces
+        elif sd.dim == 2:
+            edge_nodes = sd.face_ridges
+        elif sd.dim == 3:
+            edge_nodes = sd.ridge_peaks
+
+        edge_nodes = np.abs(edge_nodes) / 2
+
+        ndof = self.ndof(sd)
+        return sps.vstack((sps.eye_array(ndof), edge_nodes.T), format="csc")
+
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for evaluating a Lagrangian function at the
@@ -319,6 +342,8 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The matrix representing the projection at the cell centers.
         """
+        if sd.dim == 0:
+            return sps.csc_array((1, 0))
         eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
 
@@ -859,6 +884,48 @@ class Lagrange2(pg.Discretization):
         eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
 
         return sps.hstack((eval_nodes, eval_edges), format="csc")
+
+    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a quadratic Lagrangian function to a piecewise
+        quadratic function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        # Data allocation for the nodes mapping
+        rows_I = np.arange(sd.num_cells * (sd.dim + 1))
+        rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
+        cols_J = opposite_nodes.data
+        data_IJ = np.ones_like(rows_I, dtype=float)
+        proj_nodes = sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+        # Data allocation for the edges mapping
+        n_edges = self.num_edges_per_cell(sd.dim)
+        size = n_edges * sd.num_cells
+        rows_I = np.arange(size)
+        rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.ones(size)
+        idx = 0
+
+        for c in np.arange(sd.num_cells):
+            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
+            faces = opposite_nodes.indices[loc]
+            edges = self.get_edge_dof_indices(sd, c, faces)
+
+            loc_ind = slice(idx, idx + n_edges)
+            cols_J[loc_ind] = edges - sd.num_nodes
+            idx += n_edges
+
+        proj_edges = sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+        return sps.block_diag((proj_nodes, proj_edges), format="csc")
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

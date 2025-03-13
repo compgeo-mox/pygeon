@@ -1,4 +1,4 @@
-""" isort:skip_file """
+"""isort:skip_file"""
 
 from pygeon.utils.common_constants import *
 
@@ -14,7 +14,12 @@ from pygeon.grids.octagon import OctagonGrid
 from pygeon.grids.voronoi import VoronoiGrid
 from pygeon.grids.einstein import EinSteinGrid
 from pygeon.grids.levelset_remesh import levelset_remesh
-from pygeon.grids.create_grid import grid_from_domain, grid_from_boundary_pts, unit_grid
+from pygeon.grids.create_grid import (
+    grid_from_domain,
+    grid_from_boundary_pts,
+    unit_grid,
+    reference_element,
+)
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.vec_discretization import VecDiscretization
@@ -22,7 +27,7 @@ from pygeon.discretizations.vec_discretization import VecDiscretization
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
 from pygeon.discretizations.fem.hdiv import RT0, BDM1, RT1
 from pygeon.discretizations.fem.h1 import Lagrange1, Lagrange2
-from pygeon.discretizations.fem.l2 import PwConstants, PwLinears
+from pygeon.discretizations.fem.l2 import PwConstants, PwLinears, PwQuadratics
 from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0
 from pygeon.discretizations.fem.vec_h1 import VecLagrange1
 from pygeon.discretizations.fem.vec_l2 import VecPwConstants, VecPwLinears

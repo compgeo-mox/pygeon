@@ -478,6 +478,23 @@ class Lagrange1Test(unittest.TestCase):
 
             self.assertTrue(np.isclose(diff, 0.0))
 
+    def test_proj_to_lagrange2(self):
+
+        for dim in [1, 2, 3]:
+            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
+            sd.compute_geometry()
+
+            l1 = pg.Lagrange1()
+            proj_l1 = l1.proj_to_lagrange2(sd)
+            mass_l1 = l1.assemble_mass_matrix(sd)
+
+            l2 = pg.Lagrange2()
+            mass_l2 = l2.assemble_mass_matrix(sd)
+
+            diff = proj_l1.T @ mass_l2 @ proj_l1 - mass_l1
+
+            self.assertTrue(np.allclose(diff.data, 0.0))
+
 
 if __name__ == "__main__":
     unittest.main()
