@@ -7,9 +7,9 @@ import numpy as np
 import pygeon as pg
 
 
-class VecPieceWise(pg.VecDiscretization):
+class VecPieceWisePolynomial(pg.VecDiscretization):
     """
-    A class representing an abstract vector discretization.
+    A class representing an abstract vector piecewise polynomial discretization.
 
     Attributes:
         keyword (str): The keyword for the vector discretization class.
@@ -55,7 +55,7 @@ class VecPieceWise(pg.VecDiscretization):
         return np.zeros(self.ndof(sd))
 
 
-class VecPwConstants(VecPieceWise):
+class VecPwConstants(VecPieceWisePolynomial):
     """
     A class representing the discretization using vector piecewise constant functions.
 
@@ -121,7 +121,7 @@ class VecPwConstants(VecPieceWise):
         return np.sqrt(err2)
 
 
-class VecPwLinears(VecPieceWise):
+class VecPwLinears(VecPieceWisePolynomial):
     """
     A class representing the discretization using vector piecewise linear functions.
 
