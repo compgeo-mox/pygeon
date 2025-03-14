@@ -1,5 +1,4 @@
-""" Module contains a unit test for the Lagrangean P2 discretization.
-"""
+"""Module contains a unit test for the Lagrangean P2 discretization."""
 
 import unittest
 import numpy as np
@@ -61,7 +60,6 @@ class Lagrange2Test(unittest.TestCase):
         self.solve_laplacian(sd)
 
     def solve_laplacian(self, sd):
-
         sd.compute_geometry()
         discr = pg.Lagrange2()
         A = discr.assemble_stiff_matrix(sd, None)
@@ -137,7 +135,6 @@ class Lagrange2Test(unittest.TestCase):
         self.solve_mixed_bcs(sd)
 
     def solve_mixed_bcs(self, sd):
-
         sd.compute_geometry()
         discr = pg.Lagrange2()
         A = discr.assemble_stiff_matrix(sd, None)

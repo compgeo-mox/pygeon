@@ -1,5 +1,4 @@
-""" Module contains Differential MDG unit tests.
-"""
+"""Module contains Differential MDG unit tests."""
 
 import unittest
 

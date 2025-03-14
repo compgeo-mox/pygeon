@@ -1,5 +1,4 @@
-""" Module contains a unit test for the Einstein grid class.
-"""
+"""Module contains a unit test for the Einstein grid class."""
 
 import unittest
 

@@ -6,7 +6,6 @@ import pygeon as pg
 
 
 class VecBDM1Test(unittest.TestCase):
-
     def test_1d(self):
         sd = pp.CartGrid([1])
         pg.convert_from_pp(sd)

@@ -1,6 +1,7 @@
 """
 Module contains a unit test for the standard grid computation.
 """
+
 import unittest
 import numpy as np
 

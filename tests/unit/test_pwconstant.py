@@ -209,7 +209,6 @@ class PwConstantsTest(unittest.TestCase):
         self.assertTrue(np.allclose(source, 2))
 
     def test_proj_to_pwlinears(self):
-
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()

@@ -1,5 +1,4 @@
-""" Module contains a unit test for the error computation.
-"""
+"""Module contains a unit test for the error computation."""
 
 import unittest
 

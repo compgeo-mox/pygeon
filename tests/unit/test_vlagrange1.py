@@ -1,5 +1,4 @@
-""" Module contains virtual Lagrangean tests.
-"""
+"""Module contains virtual Lagrangean tests."""
 
 import unittest
 import numpy as np
