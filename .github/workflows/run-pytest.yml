@@ -71,7 +71,6 @@ jobs:
     - name: Install PyGeoN
       run: |
         pip install .
-        pip install porepy -U
         pip freeze
 
     - name: unit tests
