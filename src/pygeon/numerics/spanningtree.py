@@ -1,4 +1,4 @@
-""" Module for spanning tree computation. """
+"""Module for spanning tree computation."""
 
 from typing import Optional, Union
 

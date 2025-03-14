@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H(curl) space. """
+"""Module for the discretizations of the H(curl) space."""
 
 from typing import Callable, Optional, Type
 

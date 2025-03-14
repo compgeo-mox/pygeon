@@ -1,4 +1,4 @@
-""" This module contains the Graph class. """
+"""This module contains the Graph class."""
 
 from itertools import combinations
 

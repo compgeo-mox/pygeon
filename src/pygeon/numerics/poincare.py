@@ -1,4 +1,4 @@
-""" Module for poincare operators. """
+"""Module for poincare operators."""
 
 from typing import Callable, Tuple
 

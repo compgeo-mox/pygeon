@@ -1,4 +1,4 @@
-""" This module contains the MortarGrid class. """
+"""This module contains the MortarGrid class."""
 
 from typing import Tuple
 

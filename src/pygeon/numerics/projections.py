@@ -1,4 +1,4 @@
-""" This module contains functions for creating projection operators. """
+"""This module contains functions for creating projection operators."""
 
 from typing import Union
 

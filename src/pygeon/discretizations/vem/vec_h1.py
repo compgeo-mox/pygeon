@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H1 space. """
+"""Module for the discretizations of the H1 space."""
 
 from typing import Optional, Type
 

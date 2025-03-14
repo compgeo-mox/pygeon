@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H(div) space. """
+"""Module for the discretizations of the H(div) space."""
 
 from typing import Optional, Type
 

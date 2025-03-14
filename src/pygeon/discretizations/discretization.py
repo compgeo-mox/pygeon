@@ -1,4 +1,4 @@
-""" Module for the discretization class. """
+"""Module for the discretization class."""
 
 from __future__ import annotations
 

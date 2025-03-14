@@ -1,4 +1,4 @@
-""" Conversion from porepy to pygeon. """
+"""Conversion from porepy to pygeon."""
 
 from typing import Union
 
@@ -9,7 +9,7 @@ import pygeon as pg
 
 
 def convert_from_pp(
-    obj: Union[pg.Graph, pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid]
+    obj: Union[pg.Graph, pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid],
 ) -> None:
     """
     Convert an object from the PorePy library to the PyGeoN  library.

@@ -1,4 +1,4 @@
-""" This module contains functions for computing the stiffness operators. """
+"""This module contains functions for computing the stiffness operators."""
 
 from typing import Optional, Union
 
@@ -46,7 +46,7 @@ def face_stiff(
 def ridge_stiff(
     mdg: Union[pg.Grid, pg.MixedDimensionalGrid],
     discr: Optional[pg.Discretization] = None,
-    **kwargs
+    **kwargs,
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the ridges of a (MD-)grid
@@ -86,7 +86,7 @@ def stiff_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
     discr: Union[pg.Discretization, None],
-    **kwargs
+    **kwargs,
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix on a mixed-dimensional grid

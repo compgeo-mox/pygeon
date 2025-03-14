@@ -1,4 +1,4 @@
-""" Module for the LinearSystem class. """
+"""Module for the LinearSystem class."""
 
 from typing import Callable, Optional, Tuple, Union
 

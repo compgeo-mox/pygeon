@@ -1,4 +1,4 @@
-""" This module contains functions for computing the differential operators. """
+"""This module contains functions for computing the differential operators."""
 
 from typing import Union
 
@@ -77,7 +77,7 @@ def grad(
 def exterior_derivative(
     grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
     n_minus_k: int,
-    **kwargs
+    **kwargs,
 ) -> sps.csr_array:
     """
     Compute the (mixed-dimensional) exterior derivative for the differential forms of
@@ -107,7 +107,7 @@ def exterior_derivative(
 def _g_exterior_derivative(
     grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
     n_minus_k: int,
-    **kwargs
+    **kwargs,
 ) -> sps.csr_array:
     """
     Compute the exterior derivative on a grid.
