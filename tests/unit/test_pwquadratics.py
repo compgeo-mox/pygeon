@@ -3,7 +3,6 @@ import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
-import porepy as pp
 
 
 class PwQuadraticsTest(unittest.TestCase):
