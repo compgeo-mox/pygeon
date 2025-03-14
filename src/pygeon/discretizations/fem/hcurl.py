@@ -393,7 +393,7 @@ class Nedelec1(pg.Discretization):
         return (
             sps.hstack([sps.eye_array(sd.num_ridges), -sps.eye_array(sd.num_ridges)])
             / 2
-        )
+        ).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """

@@ -271,7 +271,7 @@ class Lagrange1(pg.Discretization):
             sps.csc_array: The assembled lumped mass matrix.
         """
         volumes = sd.cell_nodes() @ sd.cell_volumes / (sd.dim + 1)
-        return sps.diags_array(volumes, format="csc")
+        return sps.diags_array(volumes).tocsc()
 
     def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -306,7 +306,7 @@ class Lagrange1(pg.Discretization):
         node_cells *= sd.cell_volumes[:, np.newaxis] / (sd.dim + 1)
 
         # Return the global matrix
-        return node_cells.tocsc()
+        return sps.csc_array(node_cells)
 
     def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -326,10 +326,10 @@ class Lagrange1(pg.Discretization):
         elif sd.dim == 3:
             edge_nodes = sd.ridge_peaks
 
-        edge_nodes = np.abs(edge_nodes) / 2
+        edge_nodes = abs(edge_nodes) / 2
 
         ndof = self.ndof(sd)
-        return sps.vstack((sps.eye_array(ndof), edge_nodes.T), format="csc")
+        return sps.vstack((sps.eye_array(ndof), edge_nodes.T)).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -803,22 +803,22 @@ class Lagrange2(pg.Discretization):
 
             # Because of the numbering of the pw linears, the
             # first dof of Lagrange2 maps to the first two dofs of PwLinears
-            diff_nodes = diff_nodes.tocsr()[
+            diff_nodes_reordered = diff_nodes.tocsr()[
                 np.repeat(np.arange(diff_nodes.shape[0]), 2), :
             ]
             # The derivative of the nodal basis functions is equal to 3
             # on one side of the element and -1 on the other
-            diff_nodes.data[0::4] *= 3
-            diff_nodes.data[1::4] *= -1
-            diff_nodes.data[2::4] *= -1
-            diff_nodes.data[3::4] *= 3
+            diff_nodes_reordered.data[0::4] *= 3
+            diff_nodes_reordered.data[1::4] *= -1
+            diff_nodes_reordered.data[2::4] *= -1
+            diff_nodes_reordered.data[3::4] *= 3
 
             # The derivative of the edge (cell) basis functions are 4 and -4
             diff_edges = sps.block_diag(
                 [np.array([[4], [-4]]) / vol for vol in sd.cell_volumes]
             )
 
-            return sps.hstack((diff_nodes, diff_edges), format="csc")
+            return sps.hstack((diff_nodes_reordered, diff_edges)).tocsc()
 
         # The 2D and 3D cases can be handled in a general way
         elif sd.dim == 2:
@@ -857,7 +857,7 @@ class Lagrange2(pg.Discretization):
         )
 
         # Combine
-        return sps.vstack((diff_0, diff_1), format="csc")
+        return sps.vstack((diff_0, diff_1)).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -874,16 +874,16 @@ class Lagrange2(pg.Discretization):
         eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
 
         if sd.dim == 1:
-            eval_edges = sps.eye_array(sd.num_cells)
+            eval_edges = sps.eye_array(sd.num_cells).tocsc()
         elif sd.dim == 2:
-            eval_edges = np.abs(sd.cell_faces).T
+            eval_edges = abs(sd.cell_faces).T
         elif sd.dim == 3:
-            eval_edges = np.abs(sd.cell_faces).T @ np.abs(sd.face_ridges).T
+            eval_edges = abs(sd.cell_faces).T @ abs(sd.face_ridges).T
             eval_edges.data[:] = 1
 
         eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
 
-        return sps.hstack((eval_nodes, eval_edges), format="csc")
+        return sps.hstack((eval_nodes, eval_edges)).tocsc()
 
     def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -925,7 +925,7 @@ class Lagrange2(pg.Discretization):
 
         proj_edges = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-        return sps.block_diag((proj_nodes, proj_edges), format="csc")
+        return sps.block_diag((proj_nodes, proj_edges)).tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -947,7 +947,7 @@ class Lagrange2(pg.Discretization):
         elif sd.dim == 2:
             edge_coords = sd.face_centers
         elif sd.dim == 3:
-            edge_coords = sd.nodes @ np.abs(sd.ridge_peaks) / 2
+            edge_coords = sd.nodes @ abs(sd.ridge_peaks) / 2
 
         coords = np.hstack((sd.nodes, edge_coords))
 

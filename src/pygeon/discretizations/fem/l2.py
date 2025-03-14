@@ -186,7 +186,7 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
-        return sps.diags_array(1 / sd.cell_volumes, format="csc")
+        return sps.diags_array(1 / sd.cell_volumes).tocsc()
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -248,7 +248,7 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        return sps.diags_array(1 / sd.cell_volumes, format="csc")
+        return sps.diags_array(1 / sd.cell_volumes).tocsc()
 
     def error_l2(
         self,
@@ -409,7 +409,7 @@ class PwLinears(PieceWisePolynomial):
             )
 
         diag = np.repeat(weight * sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
-        return sps.diags_array(diag, format="csc")
+        return sps.diags_array(diag).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -544,13 +544,13 @@ class PwQuadratics(PieceWisePolynomial):
         """
         val_at_cc = 1 / (sd.dim + 1)
         eval_nodes = val_at_cc * (2 * val_at_cc - 1) * sps.eye_array(sd.num_cells)
-        eval_nodes = sps.hstack([eval_nodes] * (sd.dim + 1))
+        eval_nodes_stacked = sps.hstack([eval_nodes] * (sd.dim + 1))
 
         num_edges_per_cells = sd.dim * (sd.dim + 1) // 2
         eval_edges = 4 * val_at_cc * val_at_cc * sps.eye_array(sd.num_cells)
-        eval_edges = sps.hstack([eval_edges] * num_edges_per_cells)
+        eval_edges_stacked = sps.hstack([eval_edges] * num_edges_per_cells)
 
-        return sps.hstack((eval_nodes, eval_edges), format="csc")
+        return sps.hstack((eval_nodes_stacked, eval_edges_stacked)).tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
