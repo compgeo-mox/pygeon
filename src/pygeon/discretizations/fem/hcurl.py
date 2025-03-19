@@ -243,7 +243,7 @@ class Nedelec0(pg.Discretization):
             np.ndarray: The interpolated values on the grid.
         """
         tangents = sd.nodes @ sd.ridge_peaks
-        midpoints = sd.nodes @ np.abs(sd.ridge_peaks) / 2
+        midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
         vals = [
             np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
         ]

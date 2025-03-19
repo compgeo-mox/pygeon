@@ -102,7 +102,7 @@ class Graph(pp.Grid):
 
         cb = nx.cycle_basis(self.graph)
 
-        incidence = np.abs(self.cell_faces.T)
+        incidence = abs(self.cell_faces.T)
 
         n = np.concatenate(cb).size if len(cb) else 0
         rows_I = np.zeros(n, dtype=int)

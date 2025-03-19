@@ -717,7 +717,7 @@ class Lagrange2(pg.Discretization):
             edges = faces[::-1]
         elif sd.dim == 3:
             # We first find the edges adjacent to the local faces
-            cell_edges = np.abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
+            cell_edges = abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
             edge_inds = np.where(cell_edges)[0]
 
             # Experimentally, we always find the following numbering

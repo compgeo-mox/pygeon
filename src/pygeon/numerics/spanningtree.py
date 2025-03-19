@@ -212,7 +212,7 @@ class SpanningTree:
         face_finder = sps.csc_array(
             (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
         )
-        face_finder = np.abs(self.div.T) @ face_finder
+        face_finder = abs(self.div.T) @ face_finder
         face, tree_edge_ind, nr_common_cells = sps.find(face_finder)
 
         # Polytopal grids may have multiple faces between a pair of cells.

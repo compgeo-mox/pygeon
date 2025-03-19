@@ -149,9 +149,9 @@ class Lagrange2Test(unittest.TestCase):
         if sd.dim == 1:
             bdry_edges = np.zeros(sd.num_cells, dtype=bool)
         elif sd.dim == 2:
-            bdry_edges = bdry_nodes @ np.abs(sd.face_ridges) > 1
+            bdry_edges = bdry_nodes @ abs(sd.face_ridges) > 1
         elif sd.dim == 3:
-            bdry_edges = bdry_nodes @ np.abs(sd.ridge_peaks) > 1
+            bdry_edges = bdry_nodes @ abs(sd.ridge_peaks) > 1
         ess_bc = np.hstack((bdry_nodes, bdry_edges), dtype=bool)
 
         ess_vals = np.zeros_like(ess_bc, dtype=float)

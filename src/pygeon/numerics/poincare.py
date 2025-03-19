@@ -84,7 +84,7 @@ class Poincare:
         shape = (grad.shape[1], tree.nnz)
         edge_finder = sps.csc_array((vals, (rows, cols)), shape=shape)
 
-        edge_finder = np.abs(grad) @ edge_finder
+        edge_finder = abs(grad) @ edge_finder
         edge, _, nr_common_nodes = sps.find(edge_finder)
         tree_edges = edge[nr_common_nodes == 2]
 
