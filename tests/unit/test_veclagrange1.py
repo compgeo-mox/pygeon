@@ -509,7 +509,7 @@ class VecLagrange1Test(unittest.TestCase):
             p0 = pg.VecPwConstants()
             mass_p0 = p0.assemble_mass_matrix(sd)
 
-            field = np.ones(sd.num_nodes*sd.dim)
+            field = np.ones(sd.num_nodes * sd.dim)
             field_p0 = proj_l1 @ field
 
             diff = field @ mass_l1 @ field - field_p0 @ mass_p0 @ field_p0
