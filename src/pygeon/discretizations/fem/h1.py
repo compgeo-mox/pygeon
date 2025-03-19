@@ -285,6 +285,7 @@ class Lagrange1(pg.Discretization):
             sps.csc_array: The matrix representing the projection.
         """
         rows_I = np.arange(sd.num_cells * (sd.dim + 1))
+        rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
         cols_J = sd.cell_nodes().indices
         data_IJ = np.ones_like(rows_I, dtype=float)
 
@@ -799,26 +800,23 @@ class Lagrange2(pg.Discretization):
             return sps.csc_array((0, 1))
         elif sd.dim == 1:
             # In 1D, the gradient of the nodal functions scales as 1/h
-            diff_nodes = sd.cell_faces.T / sd.cell_volumes[:, None]
+            diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()
+            diff_nodes_1 = diff_nodes_0.copy()
 
-            # Because of the numbering of the pw linears, the
-            # first dof of Lagrange2 maps to the first two dofs of PwLinears
-            diff_nodes_reordered = diff_nodes.tocsr()[
-                np.repeat(np.arange(diff_nodes.shape[0]), 2), :
-            ]
             # The derivative of the nodal basis functions is equal to 3
             # on one side of the element and -1 on the other
-            diff_nodes_reordered.data[0::4] *= 3
-            diff_nodes_reordered.data[1::4] *= -1
-            diff_nodes_reordered.data[2::4] *= -1
-            diff_nodes_reordered.data[3::4] *= 3
+            diff_nodes_0.data[0::2] *= 3
+            diff_nodes_0.data[1::2] *= -1
+            diff_nodes_1.data[0::2] *= -1
+            diff_nodes_1.data[1::2] *= 3
+
+            diff_nodes = sps.vstack((diff_nodes_0, diff_nodes_1))
 
             # The derivative of the edge (cell) basis functions are 4 and -4
-            diff_edges = sps.block_diag(
-                [np.array([[4], [-4]]) / vol for vol in sd.cell_volumes]
-            )
+            diff_edges_0 = sps.diags_array(4 / sd.cell_volumes)
+            diff_edges = sps.vstack((diff_edges_0, -diff_edges_0))
 
-            return sps.hstack((diff_nodes_reordered, diff_edges)).tocsc()
+            return sps.hstack((diff_nodes, diff_edges)).tocsc()
 
         # The 2D and 3D cases can be handled in a general way
         elif sd.dim == 2:
