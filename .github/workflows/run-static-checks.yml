@@ -73,7 +73,7 @@ jobs:
 
         # Install requirements, using eager updates to avoid stalled dependencies due to caching
         # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        pip install --upgrade --upgrade-strategy eager --force-reinstall -e .[development,testing]
+        pip install --upgrade --upgrade-strategy eager --force-reinstall -e .
         pip freeze
 
     # Run the various checks
