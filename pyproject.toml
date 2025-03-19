@@ -24,35 +24,7 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 dependencies = [
-    "deepdiff",
-    "future",
-    "gmsh",
-    "matplotlib < 3.11",
-    "meshio",
-    "networkx",
-    "numba",
-    "numpy < 2.2",
-    "scipy",
-    "seaborn",
-    "shapely",
-    "six",
-    "sympy",
-    "typing_extensions",
-]
-
-[project.optional-dependencies]
-development = [
-    "isort",
-    "ruff",
-    "mypy",
-    "mypy-extensions",
-    "traitlets"
-]
-testing = [
-    "nbconvert",
-    "pytest >= 4.6",
-    "pytest-cov",
-    "pytest-runner"
+    "porepy @ git+https://github.com/pmgbergen/porepy.git@develop"
 ]
 
 # Information for the build system.
