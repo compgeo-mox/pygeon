@@ -1,4 +1,4 @@
-"""Set-up file for PorePy for installations usins ``pip install .``"""
+"""Set-up file for PyGeoN for installations using ``pip install .``"""
 
 from setuptools import setup
 
