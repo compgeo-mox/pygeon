@@ -231,12 +231,8 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        size = (sd.dim + 1) * sd.num_cells
-        row_I = np.arange(size)
-        col_J = np.repeat(np.arange(sd.num_cells), sd.dim + 1)
-        data_IJ = np.repeat(1 / sd.cell_volumes, sd.dim + 1)
 
-        return sps.csc_array((data_IJ, (row_I, col_J)))
+        return sps.vstack([self.eval_at_cell_centers(sd)] * (sd.dim + 1))
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -377,8 +373,8 @@ class PwLinears(PieceWisePolynomial):
             A = local_mass * sd.cell_volumes[c] * weight[c]
 
             # Save values for mass local matrix in the global structure
-            nodes_loc = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
+            dofs_loc = sd.num_cells * np.arange(sd.dim + 1) + c
+            cols = np.tile(dofs_loc, (dofs_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
 
             rows_I[loc_idx] = cols.T.ravel()
@@ -408,7 +404,7 @@ class PwLinears(PieceWisePolynomial):
                 data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
             )
 
-        diag = np.repeat(weight * sd.cell_volumes, sd.dim + 1) / (sd.dim + 1)
+        diag = np.tile(weight * sd.cell_volumes / (sd.dim + 1), sd.dim + 1)
         return sps.diags_array(diag).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
@@ -421,11 +417,9 @@ class PwLinears(PieceWisePolynomial):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        rows = np.repeat(np.arange(sd.num_cells), sd.dim + 1)
-        cols = np.arange(self.ndof(sd))
-        data = np.ones(self.ndof(sd)) / (sd.dim + 1)
+        eye = sps.eye_array(sd.num_cells) / (sd.dim + 1)
 
-        return sps.csc_array((data, (rows, cols)))
+        return sps.hstack([eye] * (sd.dim + 1)).tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -449,7 +443,7 @@ class PwLinears(PieceWisePolynomial):
 
             vals[c, :] = [func(x) for x in sd.nodes[:, nodes_loc].T]
 
-        return vals.ravel()
+        return vals.ravel(order="F")
 
 
 class PwQuadratics(PieceWisePolynomial):

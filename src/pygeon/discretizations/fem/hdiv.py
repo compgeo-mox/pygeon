@@ -1197,7 +1197,7 @@ class RT1(pg.Discretization):
             loc_ind = np.tile(loc_ind, sd.dim + 1)
 
             # Indices of the range degrees of freedom
-            pwlinear_ind = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
+            pwlinear_ind = sd.num_cells * np.arange(sd.dim + 1) + c
             pwlinear_ind = np.repeat(pwlinear_ind, div.shape[1])
 
             # Save values of the local matrix in the global structure
