@@ -1,4 +1,4 @@
-""" Module for the Voronoi grid generation. """
+"""Module for the Voronoi grid generation."""
 
 from typing import Tuple
 
@@ -33,9 +33,9 @@ class VoronoiGrid(pg.Grid):
         if vrt is None:
             vrt = self.generate_internal_pts(num_pts, **kwargs)
         else:
-            assert (
-                np.amin(vrt) >= 0 and np.amax(vrt) <= 1
-            ), "Points must be in the unit square"
+            assert np.amin(vrt) >= 0 and np.amax(vrt) <= 1, (
+                "Points must be in the unit square"
+            )
 
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(vrt[:2, :].T)
@@ -190,9 +190,9 @@ class VoronoiGrid(pg.Grid):
         cf_indices = FaFi.indices[FaFi.data == 2]
         cf_indptr = np.hstack((0, np.cumsum([len(r) for r in regions])))
 
-        assert (
-            cf_data.size == cf_indices.size
-        ), "Try increasing the number of interior points"
+        assert cf_data.size == cf_indices.size, (
+            "Try increasing the number of interior points"
+        )
 
         cell_faces = sps.csc_array((cf_data, cf_indices, cf_indptr), dtype=int)
 

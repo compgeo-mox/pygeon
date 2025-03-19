@@ -6,7 +6,6 @@ import pygeon as pg
 
 
 class RT0Test(unittest.TestCase):
-
     def test_0d(self):
         sd = pp.PointGrid(np.zeros(3))
 

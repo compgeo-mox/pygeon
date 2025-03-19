@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H(div) space. """
+"""Module for the discretizations of the H(div) space."""
 
 from typing import Callable, Optional
 
@@ -224,7 +224,7 @@ class VBDM1(pg.BDM1):
             sps.csc_array: The projection matrix.
         """
         dof = self.get_dof_enumeration(sd).tocoo()
-        return sps.csc_array((np.ones(self.ndof(sd)), (dof.col, dof.data))) / 2
+        return sps.csc_array((np.ones(self.ndof(sd)) / 2, (dof.col, dof.data)))
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -327,7 +327,7 @@ class VBDM1(pg.BDM1):
 
         return vals
 
-    def get_dof_enumeration(self, sd: pg.Grid) -> np.ndarray:
+    def get_dof_enumeration(self, sd: pg.Grid) -> sps.csc_array:
         """
         Get the degree of freedom enumeration for a given grid.
 
@@ -335,7 +335,7 @@ class VBDM1(pg.BDM1):
             sd (pg.Grid): The grid for which to compute the degree of freedom enumeration.
 
         Returns:
-            np.ndarray: The degree of freedom enumeration array.
+            sps.csc_array: The degree of freedom enumeration.
         """
         dof = sd.face_nodes.copy()
         dof.data = np.arange(sd.face_nodes.nnz)

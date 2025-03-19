@@ -1,4 +1,4 @@
-""" Module for the octagon grid. """
+"""Module for the octagon grid."""
 
 from typing import Optional, Union
 

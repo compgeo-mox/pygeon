@@ -1,5 +1,4 @@
-""" Module contains sub volume tests.
-"""
+"""Module contains sub volume tests."""
 
 import unittest
 import numpy as np

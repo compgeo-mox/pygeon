@@ -1,5 +1,5 @@
 # Adapted from PorePy
-# Run static tests for code quality: Isort, black, flake8, mypy.
+# Run static tests for code quality: Isort, ruff (formatting and linting), mypy.
 
 name: Static tests
 
@@ -35,10 +35,10 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it.
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Python ${{ matrix.python-version}}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         # Version range or exact version of a Python version to use, using SemVer's version range syntax.
         python-version: ${{ matrix.python-version}}
@@ -48,16 +48,16 @@ jobs:
     # Cache pip dependencies
     # Source: https://github.com/actions/cache/blob/main/examples.md#python---pip
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache
       with:
         # Cache the full python environment, this is more efficient than just caching pip
         # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
         path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}-${{ hashFiles('**/requirements.txt', '**/requirements-dev.txt') }}
+        key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
     - name: Cache mypy
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-mypy
       with:
         path: mypy-cache-${{ matrix.python-version}}
@@ -67,24 +67,23 @@ jobs:
     - name: Install requirements
       run: |
         pip install -U pip
-        # Install requirements, using eager updates to avoid stalled dependencies due to caching
-        # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        pip install --upgrade --upgrade-strategy eager --force-reinstall -r requirements.txt
+        pip install toml
+        pip install --no-build-isolation --no-deps -r <(python -c "import toml; print('\n'.join(toml.load('pyproject.toml')['project']['dependencies']))")
+        pip install --no-build-isolation --no-deps -r <(python -c "import toml; print('\n'.join(toml.load('pyproject.toml')['project']['optional-dependencies']['development']))")
+        pip freeze
 
-    # Run black, isort, flake8, and mypy.
-    # Note that since these are static checks, we have not installed PyGeoN, nor its
-    # dependencies (except the development ones).
-    - name: black
+    # Run the various checks
+    - name: Ruff linting
       if: ${{ always() }}
-      run: black --check src
+      run: ruff check src tests
+
+    - name: Ruff formatting
+      if: ${{always()}}
+      run: ruff format --check src tests
 
     - name: isort
       if: ${{always()}}
       run: isort --check src
-
-    - name: flake8
-      if: ${{ always() }}
-      run: flake8 src
 
     #- name: mypy
     #  if: ${{ always() }}

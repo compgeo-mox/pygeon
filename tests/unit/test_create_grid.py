@@ -1,6 +1,7 @@
 """
 Module contains a unit test for the standard grid computation.
 """
+
 import unittest
 import numpy as np
 
@@ -127,7 +128,7 @@ class StandardGridTest(unittest.TestCase):
         boundary = [side_1, side_2, side_3, side_4, side_5]
         self.check_grid(sd, 2, boundary)
 
-    def test_unit_cube(self):
+    def test_unit_cube2(self):
         mesh_size = 0.5
         sd = pg.unit_grid(3, mesh_size, as_mdg=False)
 

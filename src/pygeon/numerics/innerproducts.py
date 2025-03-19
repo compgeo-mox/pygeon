@@ -1,4 +1,4 @@
-""" This module contains functions for computing the inner-products operators. """
+"""This module contains functions for computing the inner-products operators."""
 
 from typing import Callable, Optional, Union
 
@@ -101,7 +101,7 @@ def _sd_mass_matrix(
     n_minus_k: int,
     discr: Optional[pg.Discretization] = None,
     data: Optional[dict] = None,
-    **kwargs
+    **kwargs,
 ) -> sps.csc_array:
     """
     Compute the mass matrix on a single grid
@@ -149,7 +149,7 @@ def mass_matrix(
     n_minus_k: int,
     discr: Optional[pg.Discretization] = None,
     local_matrix: Callable = local_matrix,
-    **kwargs
+    **kwargs,
 ) -> Union[np.ndarray, sps.csc_array]:
     """
     Compute the mass matrix on a mixed-dimensional grid
@@ -284,7 +284,7 @@ def lumped_mass_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
     discr: Optional[pg.Discretization] = None,
-    **kwargs
+    **kwargs,
 ) -> Union[sps.csc_array, np.ndarray]:
     """
     Compute the mass-lumped mass matrix on a mixed-dimensional grid
@@ -309,7 +309,7 @@ def _sd_lumped_mass(
     n_minus_k: int,
     discr: Optional[pg.Discretization] = None,
     data: Optional[dict] = None,
-    **kwargs
+    **kwargs,
 ) -> sps.csc_array:
     """
     Compute the mass-lumped mass matrix on a single grid.

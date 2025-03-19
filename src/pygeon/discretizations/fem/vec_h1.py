@@ -1,4 +1,4 @@
-""" Module for the discretizations of the vector H1 space. """
+"""Module for the discretizations of the vector H1 space."""
 
 from typing import Optional, Type
 
@@ -354,7 +354,7 @@ class VecLagrange1(pg.VecDiscretization):
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
 
-        return sps.block_array([[symgrad], [div]], format="csc")
+        return sps.block_array([[symgrad], [div]]).tocsc()
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None

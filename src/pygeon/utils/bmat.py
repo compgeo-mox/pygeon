@@ -1,4 +1,4 @@
-""" Block matrix utilities. """
+"""Block matrix utilities."""
 
 import numpy as np
 import scipy.sparse as sps

@@ -1,4 +1,4 @@
-""" Module for the vector discretization class. """
+"""Module for the vector discretization class."""
 
 from typing import Callable, Optional
 

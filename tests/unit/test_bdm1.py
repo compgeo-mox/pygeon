@@ -1,5 +1,4 @@
-""" Module contains BDM1 tests.
-"""
+"""Module contains BDM1 tests."""
 
 import unittest
 

@@ -1,5 +1,4 @@
-""" Module contains Nedelec unit tests.
-"""
+"""Module contains Nedelec unit tests."""
 
 import unittest
 

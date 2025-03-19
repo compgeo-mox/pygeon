@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H1 space. """
+"""Module for the discretizations of the H1 space."""
 
 from typing import Optional, Type
 
@@ -349,7 +349,7 @@ class VecVLagrange1(pg.VecDiscretization):
             idx += cols.size
 
         scalar_pen = sps.csc_array((data_V, (rows_I, cols_J)))
-        return sps.block_diag([scalar_pen] * sd.dim, format="csc")
+        return sps.block_diag([scalar_pen] * sd.dim).tocsc()
 
     def assemble_loc_penalisation_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
@@ -389,7 +389,7 @@ class VecVLagrange1(pg.VecDiscretization):
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
 
-        return sps.block_array([[symgrad], [div]], format="csc")
+        return sps.block_array([[symgrad], [div]]).tocsc()
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None

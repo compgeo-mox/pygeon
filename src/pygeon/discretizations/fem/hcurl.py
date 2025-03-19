@@ -1,4 +1,4 @@
-""" Module for the discretizations of the H(curl) space. """
+"""Module for the discretizations of the H(curl) space."""
 
 from typing import Callable, Optional, Type
 
@@ -243,7 +243,7 @@ class Nedelec0(pg.Discretization):
             np.ndarray: The interpolated values on the grid.
         """
         tangents = sd.nodes @ sd.ridge_peaks
-        midpoints = sd.nodes @ np.abs(sd.ridge_peaks) / 2
+        midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
         vals = [
             np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
         ]
@@ -393,7 +393,7 @@ class Nedelec1(pg.Discretization):
         return (
             sps.hstack([sps.eye_array(sd.num_ridges), -sps.eye_array(sd.num_ridges)])
             / 2
-        )
+        ).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """

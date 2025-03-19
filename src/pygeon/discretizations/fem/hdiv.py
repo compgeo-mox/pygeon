@@ -1,6 +1,6 @@
-""" Module for the discretizations of the H(div) space. """
+"""Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Optional, Tuple, Type
+from typing import Callable, Optional, Tuple, Type, Union
 
 import numpy as np
 import porepy as pp
@@ -308,7 +308,7 @@ class RT0(pg.Discretization):
             norm_dist = np.linalg.norm(dist)
             h_perp[face] += h_perp_loc / norm_dist if norm_dist else 0
 
-        return sps.diags_array(h_perp / sd.face_areas, format="csc")
+        return sps.diags_array(h_perp / sd.face_areas).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -552,7 +552,7 @@ class BDM1(pg.Discretization):
         opposites: np.ndarray,
         faces_loc: np.ndarray,
         return_node_ind: bool = False,
-    ) -> np.ndarray:
+    ) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         """
         Compute the local basis function for the BDM1 finite element space.
 
@@ -626,7 +626,7 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
         """
-        return sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim, format="csc") / sd.dim
+        return sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim).tocsc() / sd.dim
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -638,7 +638,7 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        return sps.vstack([sps.eye_array(sd.num_faces)] * sd.dim, format="csc")
+        return sps.vstack([sps.eye_array(sd.num_faces)] * sd.dim).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """

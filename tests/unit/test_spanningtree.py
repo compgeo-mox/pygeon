@@ -1,5 +1,4 @@
-""" Module contains Spanning Tree tests.
-"""
+"""Module contains Spanning Tree tests."""
 
 import unittest
 import numpy as np
@@ -11,7 +10,6 @@ import pygeon as pg
 
 class SpanningTreeTest(unittest.TestCase):
     def sptr(self, mdg):
-
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
         bottom = np.isclose(sd.face_centers[1, :], sd.face_centers[1, :].min())
 

@@ -1,4 +1,4 @@
-""" This module contains functions for computing transformation matrices. """
+"""This module contains functions for computing transformation matrices."""
 
 import numpy as np
 

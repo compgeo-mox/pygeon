@@ -1,5 +1,4 @@
-""" Module contains a dummy unit test that always passes.
-"""
+"""Module contains a dummy unit test that always passes."""
 
 import unittest
 import numpy as np

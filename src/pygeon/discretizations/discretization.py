@@ -1,4 +1,4 @@
-""" Module for the discretization class. """
+"""Module for the discretization class."""
 
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ class Discretization(abc.ABC):
             sps.csc_array: The lumped mass matrix.
         """
         diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
-        return sps.diags_array(np.asarray(diag_mass).flatten(), format="csc")
+        return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
 
     @abc.abstractmethod
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:

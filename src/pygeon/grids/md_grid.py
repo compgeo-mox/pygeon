@@ -1,4 +1,4 @@
-""" Module for the MixedDimensionalGrid class. """
+"""Module for the MixedDimensionalGrid class."""
 
 from typing import Callable, Optional
 

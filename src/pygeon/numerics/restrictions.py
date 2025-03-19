@@ -1,4 +1,4 @@
-""" This module contains functions that compute restriction operators. """
+"""This module contains functions that compute restriction operators."""
 
 from typing import Union
 

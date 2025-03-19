@@ -200,7 +200,7 @@ def intersect_cells(
     Returns:
         np.ndarray[Any, bool]: An array indicating which cells are cut.
     """
-    cell_finder = cut_faces @ np.abs(sd.cell_faces)
+    cell_finder = cut_faces @ abs(sd.cell_faces)
 
     if np.any(cell_finder > 2):
         raise NotImplementedError("A cell has more than two cut faces.")

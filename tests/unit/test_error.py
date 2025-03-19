@@ -1,11 +1,9 @@
-""" Module contains a unit test for the error computation.
-"""
+"""Module contains a unit test for the error computation."""
 
 import unittest
 
 import numpy as np
 import porepy as pp
-import scipy.sparse as sps
 
 import pygeon as pg
 

@@ -1,4 +1,4 @@
-""" Grid class for the pygeon package. """
+"""Grid class for the pygeon package."""
 
 from typing import Optional, Union
 

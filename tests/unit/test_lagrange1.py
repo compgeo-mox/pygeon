@@ -442,7 +442,6 @@ class Lagrange1Test(unittest.TestCase):
         self.assertTrue(discr.get_range_discr_class(dim) is pg.Nedelec0)
 
     def test_proj_to_pwlinear(self):
-
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()
@@ -459,7 +458,6 @@ class Lagrange1Test(unittest.TestCase):
             self.assertTrue(np.allclose(diff.data, 0.0))
 
     def test_proj_to_pwconstant(self):
-
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()
@@ -479,7 +477,6 @@ class Lagrange1Test(unittest.TestCase):
             self.assertTrue(np.isclose(diff, 0.0))
 
     def test_proj_to_lagrange2(self):
-
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()

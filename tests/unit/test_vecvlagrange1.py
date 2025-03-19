@@ -1,5 +1,4 @@
-""" Module contains vector virtual Lagrangean tests.
-"""
+"""Module contains vector virtual Lagrangean tests."""
 
 import unittest
 import numpy as np
@@ -24,12 +23,12 @@ class VecVLagrange1_test(unittest.TestCase):
         symgrad_symgrad = discr.assemble_symgrad_symgrad_matrix(sd)
 
         pen = discr.assemble_penalisation_matrix(sd)
-        pen.data[np.abs(pen.data) < 1e-10] = 0
+        pen.data[abs(pen.data) < 1e-10] = 0
 
         diff = discr.assemble_diff_matrix(sd)
 
         stiff = discr.assemble_stiff_matrix(sd)
-        stiff.data[np.abs(stiff.data) < 1e-10] = 0
+        stiff.data[abs(stiff.data) < 1e-10] = 0
 
         for X in [div, symgrad, div_div, pen, symgrad_symgrad, diff, stiff]:
             self.make_canonical(X)
