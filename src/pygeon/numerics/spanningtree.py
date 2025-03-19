@@ -213,10 +213,12 @@ class SpanningTree:
             (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
         )
         face_finder = np.abs(self.div.T) @ face_finder
-        I, J, V = sps.find(face_finder)
+        face, tree_edge_ind, nr_common_cells = sps.find(face_finder)
 
-        _, index = np.unique(J[V == 2], return_index=True)
-        tree_faces = I[V == 2][index]
+        # Polytopal grids may have multiple faces between a pair of cells.
+        # We associate the tree edge with the face that has the lowest index.
+        _, index = np.unique(tree_edge_ind[nr_common_cells == 2], return_index=True)
+        tree_faces = face[nr_common_cells == 2][index]
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
