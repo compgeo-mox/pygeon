@@ -14,6 +14,9 @@ PyGeoN requires Python >= 3.12
 Since for many functionalities PyGeoN depends on [PorePy](https://github.com/pmgbergen/porepy), we assume that the latter is accessible in your PYTHONPATH.
 To install PyGeoN
 ```bash
+git clone git@github.com:compgeo-mox/pygeon.git # or https or gh
+cd pygeon
+
 pip install -e .[development,testing]
 ```
 avoid the `-e` if you do not want the editable version.
