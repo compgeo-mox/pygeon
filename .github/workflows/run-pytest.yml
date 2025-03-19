@@ -61,16 +61,12 @@ jobs:
         sudo apt-get install libglu1-mesa libgeos-dev libffi-dev
         export LD_LIBRARY_PATH=/usr/local/lib64/:$LD_LIBRARY_PATH
 
-    - name: Install requirements
+    - name: Install requirements and PyGeoN
       run: |
         pip install -U pip
         # Install requirements, using eager updates to avoid stalled dependencies due to caching
         # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        pip install --upgrade --upgrade-strategy eager --force-reinstall -r requirements.txt
-
-    - name: Install PyGeoN
-      run: |
-        pip install .
+        pip install --upgrade --upgrade-strategy eager --force-reinstall -e .[development,testing]
         pip freeze
 
     - name: unit tests

@@ -70,11 +70,11 @@ jobs:
         pip install toml
         pip install --no-build-isolation --no-deps -r <(python -c "import toml; print('\n'.join(toml.load('pyproject.toml')['project']['dependencies']))")
         pip install --no-build-isolation --no-deps -r <(python -c "import toml; print('\n'.join(toml.load('pyproject.toml')['project']['optional-dependencies']['development']))")
-        pip freeze
 
         # Install requirements, using eager updates to avoid stalled dependencies due to caching
         # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        pip install --upgrade --upgrade-strategy eager --force-reinstall -r requirements.txt
+        pip install --upgrade --upgrade-strategy eager --force-reinstall -e .[development,testing]
+        pip freeze
 
     # Run the various checks
     - name: Ruff linting
