@@ -3,7 +3,7 @@
 from typing import Callable, Optional, Type
 
 import numpy as np
-
+import scipy.sparse as sps
 import pygeon as pg
 
 
@@ -82,6 +82,19 @@ class VecPwConstants(VecPieceWisePolynomial):
         """
         self.scalar_discr: pg.PwConstants
         super().__init__(keyword, pg.PwConstants)
+
+    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Returns the projection matrix to the vector piecewise linear space.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+        proj = self.scalar_discr.proj_to_pwLinears(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
 
     def error_l2(
         self,
