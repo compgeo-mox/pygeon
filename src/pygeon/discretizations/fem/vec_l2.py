@@ -4,6 +4,7 @@ from typing import Callable, Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
+
 import pygeon as pg
 
 
