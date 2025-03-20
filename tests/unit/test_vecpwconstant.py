@@ -199,6 +199,22 @@ class VecPwConstantsTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(err, err_known))
 
+    def test_proj_to_pwlinears(self):
+        for dim in [1, 2, 3]:
+            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
+            sd.compute_geometry()
+
+            vec_p0 = pg.VecPwConstants()
+            proj_p0 = vec_p0.proj_to_pwLinears(sd)
+            mass_p0 = vec_p0.assemble_mass_matrix(sd)
+
+            vec_p1 = pg.VecPwLinears()
+            mass_p1 = vec_p1.assemble_mass_matrix(sd)
+
+            diff = proj_p0.T @ mass_p1 @ proj_p0 - mass_p0
+
+            self.assertTrue(np.allclose(diff.data, 0.0))
+
 
 if __name__ == "__main__":
     unittest.main()
