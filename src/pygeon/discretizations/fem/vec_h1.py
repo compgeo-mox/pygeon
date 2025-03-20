@@ -437,3 +437,31 @@ class VecLagrange1(pg.VecDiscretization):
         idx = np.arange(np.square(sd.dim)).reshape((sd.dim, -1), order="F")
 
         return sigma[idx].T
+
+    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a vector Lagrangian function to a piecewise
+        vector linear function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.scalar_discr.proj_to_pwLinears(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
+
+    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a vector Lagrangian function to a piecewise
+        vector constant function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.scalar_discr.proj_to_pwConstants(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
