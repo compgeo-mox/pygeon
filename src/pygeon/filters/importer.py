@@ -26,8 +26,8 @@ def graph_from_file(**kwargs):
         (np.ones(frac.size), (frac, intersect)), shape=shape
     )
     adj = sps.block_array(
-        [[None, frac_to_intersect], [frac_to_intersect.T, None]], format="csc"
-    )
+        [[None, frac_to_intersect], [frac_to_intersect.T, None]]
+    ).tocsc()
 
     # creates a new graph from an adjacency matrix given as a SciPy sparse matrix
     graph = nx.from_scipy_sparse_array(adj)

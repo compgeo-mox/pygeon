@@ -210,7 +210,7 @@ def mass_matrix(
     # create the full block matrix
     bmat = bmat_sd + bmat_mg
 
-    return bmat if as_bmat else sps.block_array(bmat, format="csc")
+    return bmat if as_bmat else sps.block_array(bmat).tocsc()
 
 
 # ---------------------------------- Lumped ---------------------------------- #

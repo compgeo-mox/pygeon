@@ -91,7 +91,6 @@ def exterior_derivative(
     Returns:
         sps.csr_array. The differential operator.
     """
-
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
         return _g_exterior_derivative(grid, n_minus_k, **kwargs)
 
@@ -120,7 +119,6 @@ def _g_exterior_derivative(
     Returns:
         sps.csr_array. The differential operator.
     """
-
     if n_minus_k == 0:
         derivative = sps.csc_array((0, grid.num_cells))
     elif n_minus_k == 1:
