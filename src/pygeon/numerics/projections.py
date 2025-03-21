@@ -43,4 +43,4 @@ def eval_at_cell_centers(
         bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
-    return bmat_sd if as_bmat else sps.block_array(bmat_sd, format="csc")
+    return bmat_sd if as_bmat else sps.block_array(bmat_sd).tocsc()

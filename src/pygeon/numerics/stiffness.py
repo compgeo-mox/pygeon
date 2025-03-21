@@ -44,7 +44,7 @@ def face_stiff(
 
 
 def ridge_stiff(
-    mdg: Union[pg.Grid, pg.MixedDimensionalGrid],
+    mdg: pg.MixedDimensionalGrid,
     discr: Optional[pg.Discretization] = None,
     **kwargs,
 ) -> sps.csc_array:

@@ -113,9 +113,10 @@ class LinearSystem:
         if self.b.ndim == 1:
             return self.ess_vals
         else:
-            return sps.csr_array(self.ess_vals).T @ sps.csc_array(
+            vals = sps.csr_array(self.ess_vals).T @ sps.csc_array(
                 np.ones(self.b.shape[1])
             )
+            return vals.tocsr()
 
 
 def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
@@ -129,5 +130,5 @@ def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
     Returns:
         sps.csc_array: The restriction mapping matrix.
     """
-    R = sps.diags_array(keep_dof, dtype=int, format="csr")
+    R = sps.diags_array(keep_dof, dtype=int).tocsr()
     return R[R.indices, :].tocsc()

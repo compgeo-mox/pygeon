@@ -105,7 +105,7 @@ def exterior_derivative(
 
 
 def _g_exterior_derivative(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
+    grid: Union[pg.Grid, pg.MortarGrid],
     n_minus_k: int,
     **kwargs,
 ) -> sps.csr_array:
@@ -122,19 +122,19 @@ def _g_exterior_derivative(
     """
 
     if n_minus_k == 0:
-        return sps.csr_array((0, grid.num_cells))
+        derivative = sps.csc_array((0, grid.num_cells))
     elif n_minus_k == 1:
-        return grid.cell_faces.T
+        derivative = grid.cell_faces.T
     elif n_minus_k == 2:
-        return grid.face_ridges.T
+        derivative = grid.face_ridges.T
     elif n_minus_k == 3:
-        return grid.ridge_peaks.T
+        derivative = grid.ridge_peaks.T
     elif n_minus_k == 4:
-        return sps.csr_array((grid.num_peaks, 0))
+        derivative = sps.csc_array((grid.num_peaks, 0))
     else:
         Warning("(n - k) is not between 0 and 4")
-        return sps.csr_array((0, 0))
-
+        derivative = sps.csc_array((0, 0))
+    return derivative.tocsr()
 
 def _mdg_exterior_derivative(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
@@ -178,5 +178,5 @@ def _mdg_exterior_derivative(
     # remove the tips
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
-    bmat = bmat if as_bmat else sps.block_array(bmat, format="csc")
+    bmat = bmat if as_bmat else sps.block_array(bmat).tocsc()
     return (bmat @ is_tip_dof).tocsr()
