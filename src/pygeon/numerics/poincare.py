@@ -174,7 +174,7 @@ class Poincare:
             f (np.ndarray): the function to be decomposed
 
         Returns:
-            tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
+            Tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
         """
         n_minus_k = self.dim - k
 

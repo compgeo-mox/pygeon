@@ -190,15 +190,15 @@ class MortarGrid(pp.MortarGrid):
 
         # Ensure that double indices are mapped to +-1
         # This step ensures that the jump maps to zero at tips.
-        face_ridges = sps.csc_array(face_ridges, dtype=int)
-        ridge_peaks = sps.csc_array(ridge_peaks, dtype=int)
+        face_ridges_sparse = sps.csc_array(face_ridges, dtype=int)
+        ridge_peaks_sparse = sps.csc_array(ridge_peaks, dtype=int)
 
-        face_ridges.data = np.sign(face_ridges.data)
-        ridge_peaks.data = np.sign(ridge_peaks.data)
+        face_ridges_sparse.data = np.sign(face_ridges_sparse.data)
+        ridge_peaks_sparse.data = np.sign(ridge_peaks_sparse.data)
 
         # Set face_ridges and ridge_peaks as properties of the mortar grid
-        self.face_ridges = face_ridges
-        self.ridge_peaks = ridge_peaks
+        self.face_ridges = face_ridges_sparse
+        self.ridge_peaks = ridge_peaks_sparse
 
     def assign_signed_mortar_to_primary(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
         """

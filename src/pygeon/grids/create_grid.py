@@ -86,20 +86,20 @@ def unit_grid(
     if dim == 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)
         if dim == 1:
-            sd = pp.CartGrid(num, [1])
+            sd = pp.CartGrid(num, np.ones(1))
         elif dim == 2:
-            sd = pp.StructuredTriangleGrid(num, [1] * dim)
+            sd = pp.StructuredTriangleGrid(num, np.ones(dim))
         else:
-            sd = pp.StructuredTetrahedralGrid(num, [1] * dim)
+            sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))
         pg.convert_from_pp(sd)
 
         if kwargs.get("as_mdg", True):
             return pp.meshing.subdomains_to_mdg([[sd]])
         return sd
 
-    bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
+    bbox = {"xmin": 0., "xmax": 1., "ymin": 0., "ymax": 1.}
     if dim == 3:
-        bbox.update({"zmin": 0, "zmax": 1})
+        bbox.update({"zmin": 0., "zmax": 1.})
 
     domain = pp.Domain(bounding_box=bbox)
     return grid_from_domain(domain, mesh_size, **kwargs)
@@ -140,3 +140,5 @@ def reference_element(dim: int) -> pg.Grid:
         cell_faces = sps.csc_array(np.ones((4, 1)))
 
         return pg.Grid(3, nodes, face_nodes, cell_faces, "reference_tetrahedron")
+    else:
+        raise ValueError("Dimension must be 1, 2, or 3.")
