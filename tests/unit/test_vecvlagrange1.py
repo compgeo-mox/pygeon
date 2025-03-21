@@ -242,7 +242,7 @@ class VecVLagrange1_test(unittest.TestCase):
 
         self.assertTrue(np.allclose(pen.data, 0))
 
-        diff_known = sps.block_array([[symgrad_known], [div_known]], format="csc")
+        diff_known = sps.block_array([[symgrad_known], [div_known]]).tocsc()
         self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))
@@ -950,7 +950,7 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(pen.indices, pen_known.indices))
         self.assertTrue(np.allclose(pen.indptr, pen_known.indptr))
 
-        diff_known = sps.block_array([[symgrad_known], [div_known]], format="csc")
+        diff_known = sps.block_array([[symgrad_known], [div_known]]).tocsc()
         self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))

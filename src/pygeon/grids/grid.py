@@ -1,6 +1,6 @@
 """Grid class for the pygeon package."""
 
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 import numpy as np
 import porepy as pp
@@ -273,7 +273,7 @@ class Grid(pp.Grid):
 
     def compute_subvolumes(
         self, return_subsimplices: Optional[bool] = False
-    ) -> Union[tuple[sps.csc_array, sps.csc_array], sps.csc_array]:
+    ) -> Union[Tuple[sps.csc_array, sps.csc_array], sps.csc_array]:
         """
         Compute the subvolumes of the grid.
 

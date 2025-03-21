@@ -337,7 +337,7 @@ class VecLagrange1(pg.VecDiscretization):
 
         symgrad = self.assemble_symgrad_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
-        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim), format="csc")
+        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim)).tocsc()
 
         return symgrad.T @ tensor_mass @ symgrad
 

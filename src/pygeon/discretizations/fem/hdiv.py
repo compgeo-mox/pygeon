@@ -860,7 +860,7 @@ class RT1(pg.Discretization):
             Assembles the local inner product matrix based on the Lagrange2 element.
 
         reorder_faces(cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int) ->
-            tuple[np.ndarray]:
+            Tuple[np.ndarray]:
             Reorders the local nodes, faces, and corresponding cell-face orientations.
 
         eval_basis_functions(sd: pg.Grid, nodes_loc: np.ndarray, signs_loc: np.ndarray, volume:

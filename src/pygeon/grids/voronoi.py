@@ -116,9 +116,6 @@ class VoronoiGrid(pg.Grid):
                 sd.cell_centers[1] < 1,
             )
         )
-        # NOTE to be compliant with PorePy
-        sd.face_nodes = sps.csc_matrix(sd.face_nodes)
-        sd.cell_faces = sps.csc_matrix(sd.cell_faces)
         [_, sd_part], _, _ = pp.partition.partition_grid(sd, ind.astype(int))
 
         # Initialize the PyGeoN grid with the cut Voronoi grid

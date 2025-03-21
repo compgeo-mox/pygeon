@@ -170,7 +170,7 @@ class SpanningTree:
             self.div[:, self.starting_faces], axis=0
         )
 
-        self.div = sps.vstack([self.div, outside_cell], format="csc")
+        self.div = sps.vstack([self.div, outside_cell]).tocsc()
 
     def remove_outside_cell(self) -> None:
         """
@@ -209,10 +209,9 @@ class SpanningTree:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        face_finder = sps.csc_array(
+        face_finder = abs(self.div.T) @ sps.csc_array(
             (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
         )
-        face_finder = abs(self.div.T) @ face_finder
         face, tree_edge_ind, nr_common_cells = sps.find(face_finder)
 
         # Polytopal grids may have multiple faces between a pair of cells.
@@ -539,14 +538,14 @@ class SpanningTreeElasticity(SpanningTree):
 
         # combine all the P
         P_div = sps.block_diag([P_div] * sd.dim)
-        P = sps.hstack((P_div, P_asym), format="csc")
+        P = sps.hstack((P_div, P_asym)).tocsc()
 
         # restriction to the flagged faces and restrict P to them
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
         # 3 dof in 2D, 6 dof in 3D
         dofs_per_face = sd.dim * (sd.dim + 1) // 2
 
-        return P @ sps.block_diag([expand] * dofs_per_face, format="csc")
+        return P @ sps.block_diag([expand] * dofs_per_face).tocsc()
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -614,7 +613,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
 
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
 
-        return sps.block_diag([expand] * dim_sig_omega, format="csc")
+        return sps.block_diag([expand] * dim_sig_omega).tocsc()
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -638,7 +637,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         div = M @ vec_rt0.assemble_diff_matrix(sd)
         asym = M @ vec_rt0.assemble_asym_matrix(sd)
 
-        B = sps.block_array([[-div, None], [-asym, -div]], format="csc")
+        B = sps.block_array([[-div, None], [-asym, -div]]).tocsc()
 
         # create the solution operator
         return B @ self.expand
