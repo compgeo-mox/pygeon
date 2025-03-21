@@ -112,10 +112,10 @@ class EinSteinGrid(pg.Grid):
         fn_data = np.ones_like(fn_indices)
 
         # build the sparse matrices
-        cell_faces = sps.csc_array((cf_data, cf_indices, cf_indptr))
-        face_nodes = sps.csc_array((fn_data, fn_indices, fn_indptr))
+        cell_faces_sparse = sps.csc_array((cf_data, cf_indices, cf_indptr))
+        face_nodes_sparse = sps.csc_array((fn_data, fn_indices, fn_indptr))
 
-        return coords, cell_faces, face_nodes
+        return coords, cell_faces_sparse, face_nodes_sparse
 
     def rescale(self) -> np.ndarray:
         """
