@@ -1,6 +1,6 @@
 """Grid class for the pygeon package."""
 
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import porepy as pp

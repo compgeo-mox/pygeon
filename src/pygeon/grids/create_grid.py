@@ -97,9 +97,9 @@ def unit_grid(
             return pp.meshing.subdomains_to_mdg([[sd]])
         return sd
 
-    bbox = {"xmin": 0., "xmax": 1., "ymin": 0., "ymax": 1.}
+    bbox = {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0}
     if dim == 3:
-        bbox.update({"zmin": 0., "zmax": 1.})
+        bbox.update({"zmin": 0.0, "zmax": 1.0})
 
     domain = pp.Domain(bounding_box=bbox)
     return grid_from_domain(domain, mesh_size, **kwargs)

@@ -134,6 +134,7 @@ def _g_exterior_derivative(
         derivative = sps.csc_array((0, 0))
     return derivative.tocsr()
 
+
 def _mdg_exterior_derivative(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
 ) -> sps.csr_array:
