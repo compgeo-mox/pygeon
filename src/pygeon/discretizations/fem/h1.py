@@ -622,7 +622,9 @@ class Lagrange2(pg.Discretization):
         dim = len(alphas) - 1
         fac_alph = [factorial(a_i) for a_i in alphas]
 
-        return factorial(dim) * np.prod(fac_alph) / factorial(dim + np.sum(alphas))
+        return float(
+            factorial(dim) * np.prod(fac_alph) / factorial(dim + np.sum(alphas))
+        )
 
     def num_edges_per_cell(self, dim: int) -> int:
         """

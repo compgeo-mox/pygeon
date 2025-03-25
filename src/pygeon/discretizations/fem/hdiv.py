@@ -65,13 +65,17 @@ class RT0(pg.Discretization):
         """
         return sd.num_faces
 
-    def create_unitary_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
+    @staticmethod
+    def create_unitary_data(
+        keyword: str, sd: pg.Grid, data: Optional[dict] = None
+    ) -> dict:
         """
         Updates data such that it has all the necessary components for pp.RT0, if the
         second order tensor is not present, it is set to the identity. It represents
         the inverse of the diffusion tensor (permeability for porous media).
 
         Args:
+            keyword (str): The keyword for the discretization.
             sd (pg.Grid): Grid object or a subclass.
             data (dict): Dictionary object or None.
 
@@ -80,20 +84,20 @@ class RT0(pg.Discretization):
         """
         if data is None:
             data = {
-                pp.PARAMETERS: {self.keyword: {}},
-                pp.DISCRETIZATION_MATRICES: {self.keyword: {}},
+                pp.PARAMETERS: {keyword: {}},
+                pp.DISCRETIZATION_MATRICES: {keyword: {}},
             }
 
         try:
-            data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
+            data[pp.PARAMETERS][keyword]["second_order_tensor"]
         except KeyError:
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data[pp.PARAMETERS].update({self.keyword: {"second_order_tensor": perm}})
+            data[pp.PARAMETERS].update({keyword: {"second_order_tensor": perm}})
 
         try:
-            data[pp.DISCRETIZATION_MATRICES][self.keyword]
+            data[pp.DISCRETIZATION_MATRICES][keyword]
         except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {self.keyword: {}}})
+            data.update({pp.DISCRETIZATION_MATRICES: {keyword: {}}})
 
         return data
 
@@ -117,7 +121,7 @@ class RT0(pg.Discretization):
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
         # create unitary data, unitary permeability, in case not present
-        data = self.create_unitary_data(sd, data)
+        data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -294,7 +298,7 @@ class RT0(pg.Discretization):
             sps.csc_array: The lumped mass matrix.
         """
         if data is None:
-            data = self.create_unitary_data(sd, data)
+            data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -626,7 +630,8 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
         """
-        return sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim).tocsc() / sd.dim
+        proj = sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim) / sd.dim
+        return proj.tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -920,7 +925,7 @@ class RT1(pg.Discretization):
             return sps.csc_array((0, 0))
 
         # create unitary data, unitary permeability, in case not present
-        data = RT0.create_unitary_data(self, sd, data)
+        data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]

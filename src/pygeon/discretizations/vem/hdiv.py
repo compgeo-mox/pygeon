@@ -76,7 +76,7 @@ class VRT0(pg.RT0):
             sps.csc_array: The mass matrix.
         """
         # create unitary data, unitary permeability, in case not present
-        data = self.create_unitary_data(sd, data)
+        data = VRT0.create_unitary_data(self.keyword, sd, data)
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
@@ -95,7 +95,7 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        data = self.create_unitary_data(sd, None)
+        data = VRT0.create_unitary_data(self.keyword, sd, None)
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)
@@ -177,7 +177,8 @@ class VBDM1(pg.BDM1):
         cell_diams = sd.cell_diameters(cell_nodes)
 
         for cell, diam in enumerate(cell_diams):
-            faces_loc = sd.cell_faces[:, [cell]].indices
+            cell_col = np.array([cell])
+            faces_loc = sd.cell_faces[:, cell_col].indices
 
             # Obtain local indices of dofs, ordered by associated node number
             local_dof = dof[:, faces_loc].tocsr().tocoo()

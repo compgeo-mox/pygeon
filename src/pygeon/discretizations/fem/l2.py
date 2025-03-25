@@ -231,8 +231,7 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: The projection matrix.
         """
-
-        return sps.vstack([self.eval_at_cell_centers(sd)] * (sd.dim + 1))
+        return sps.vstack([self.eval_at_cell_centers(sd)] * (sd.dim + 1)).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -417,9 +416,8 @@ class PwLinears(PieceWisePolynomial):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        eye = sps.eye_array(sd.num_cells) / (sd.dim + 1)
-
-        return sps.hstack([eye] * (sd.dim + 1)).tocsc()
+        matr = sps.hstack([sps.eye_array(sd.num_cells)] * (sd.dim + 1)) / (sd.dim + 1)
+        return matr.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
