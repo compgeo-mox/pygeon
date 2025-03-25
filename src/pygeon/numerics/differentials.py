@@ -19,7 +19,7 @@ Acknowledgements:
 
 def div(
     grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the divergence.
 
@@ -30,14 +30,14 @@ def div(
                 Default False.
 
     Returns:
-        sps.csr_array. The divergence operator.
+        sps.csc_array. The divergence operator.
     """
     return exterior_derivative(grid, 1, **kwargs)
 
 
 def curl(
     grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the curl.
 
@@ -48,14 +48,14 @@ def curl(
                 Default False.
 
     Returns:
-        sps.csr_array. The curl operator.
+        sps.csc_array. The curl operator.
     """
     return exterior_derivative(grid, 2, **kwargs)
 
 
 def grad(
     grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the gradient.
 
@@ -66,7 +66,7 @@ def grad(
                 Default False.
 
     Returns:
-        sps.csr_array. The gradient operator.
+        sps.csc_array. The gradient operator.
     """
     return exterior_derivative(grid, 3, **kwargs)
 
@@ -78,7 +78,7 @@ def exterior_derivative(
     grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
     n_minus_k: int,
     **kwargs,
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the (mixed-dimensional) exterior derivative for the differential forms of
     order n - k.
@@ -89,7 +89,7 @@ def exterior_derivative(
             differential form.
 
     Returns:
-        sps.csr_array. The differential operator.
+        sps.csc_array. The differential operator.
     """
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
         return _g_exterior_derivative(grid, n_minus_k, **kwargs)
@@ -107,7 +107,7 @@ def _g_exterior_derivative(
     grid: Union[pg.Grid, pg.MortarGrid],
     n_minus_k: int,
     **kwargs,
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the exterior derivative on a grid.
 
@@ -117,7 +117,7 @@ def _g_exterior_derivative(
             differential form.
 
     Returns:
-        sps.csr_array. The differential operator.
+        sps.csc_array. The differential operator.
     """
     if n_minus_k == 0:
         derivative = sps.csc_array((0, grid.num_cells))
@@ -132,12 +132,12 @@ def _g_exterior_derivative(
     else:
         Warning("(n - k) is not between 0 and 4")
         derivative = sps.csc_array((0, 0))
-    return derivative.tocsr()
+    return derivative
 
 
 def _mdg_exterior_derivative(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
@@ -149,7 +149,7 @@ def _mdg_exterior_derivative(
             as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
                 Default False.
     Return:
-        sps.csr_array: the differential operator.
+        sps.csc_array: the differential operator.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -178,4 +178,4 @@ def _mdg_exterior_derivative(
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
     bmat = bmat if as_bmat else sps.block_array(bmat).tocsc()
-    return (bmat @ is_tip_dof).tocsr()
+    return bmat @ is_tip_dof

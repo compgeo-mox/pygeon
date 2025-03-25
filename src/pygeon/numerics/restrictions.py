@@ -52,7 +52,7 @@ def zero_tip_dofs(
 
 def remove_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the operator that removes the tip degrees of freedom.
 
@@ -66,10 +66,10 @@ def remove_tip_dofs(
             differential form.
 
     Returns:
-        sps.csr_array: The operator that removes the tip degrees of freedom.
+        sps.csc_array: The operator that removes the tip degrees of freedom.
     """
     R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()
-    return R[R.indices, :]
+    return R[R.indices, :].tocsc()
 
 
 def get_codim_str(n_minus_k: int) -> str:
