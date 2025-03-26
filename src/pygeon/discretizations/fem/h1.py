@@ -807,10 +807,10 @@ class Lagrange2(pg.Discretization):
 
             # The derivative of the nodal basis functions is equal to 3
             # on one side of the element and -1 on the other
-            diff_nodes_0.data[0::2] *= 3
-            diff_nodes_0.data[1::2] *= -1
-            diff_nodes_1.data[0::2] *= -1
-            diff_nodes_1.data[1::2] *= 3
+            diff_nodes_0.data[0::2] = 3 * diff_nodes_0.data[0::2]
+            diff_nodes_0.data[1::2] = -diff_nodes_0.data[1::2]
+            diff_nodes_1.data[0::2] = -diff_nodes_1.data[0::2]
+            diff_nodes_1.data[1::2] = 3 * diff_nodes_1.data[1::2]
 
             diff_nodes = sps.vstack((diff_nodes_0, diff_nodes_1))
 
