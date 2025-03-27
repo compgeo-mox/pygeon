@@ -218,7 +218,8 @@ class VecBDM1(pg.VecDiscretization):
             cols = np.tile(cols, (sd.dim + 1, 1)).T
             cols = cols[Psi_i, Psi_j]
 
-            nodes_loc = np.arange((sd.dim + 1) * c, (sd.dim + 1) * (c + 1))
+            nodes_loc = sd.num_cells * np.arange(sd.dim + 1) + c
+
             rows = np.repeat(nodes_loc, 3)[Psi_j]
 
             # Save values of the local matrix in the global structure
@@ -310,6 +311,7 @@ class VecBDM1(pg.VecDiscretization):
                 cols = cols[Psi_i, Psi_j]
 
                 nodes_loc = sd.num_cells * np.arange(sd.dim + 1) + c
+
                 rows = np.repeat(nodes_loc, 3)[Psi_j]
 
                 # Save values of the local matrix in the global structure
