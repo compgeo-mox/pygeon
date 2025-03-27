@@ -162,8 +162,7 @@ class ElasticityTestPrimal(unittest.TestCase):
 
 class ElasticityTestMixed(unittest.TestCase):
     def run_elasticity_2d(self, u_boundary, N):
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(2, 1 / N, as_mdg=False)
         sd.compute_geometry()
 
         key = "elasticity"
@@ -238,8 +237,7 @@ class ElasticityTestMixed(unittest.TestCase):
         self.assertTrue(np.allclose(cell_r, 0))
 
     def run_elasticity_3d(self, u_boundary, N):
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(3, 1 / N, as_mdg=False)
         sd.compute_geometry()
 
         key = "elasticity"
