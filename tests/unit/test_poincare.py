@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import porepy as pp
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 @pytest.fixture(params=[(dim, is_md) for is_md in [False, True] for dim in [2, 3]])

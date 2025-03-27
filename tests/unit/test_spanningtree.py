@@ -5,7 +5,7 @@ import numpy as np
 import porepy as pp
 import scipy.sparse as sps
 
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 class SpanningTreeTest(unittest.TestCase):

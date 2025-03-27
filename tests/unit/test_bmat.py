@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 import scipy.sparse as sps
 
 
@@ -89,5 +89,4 @@ class BlockMatrixTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    BlockMatrixTest().test_mat_multiplication()
     unittest.main()

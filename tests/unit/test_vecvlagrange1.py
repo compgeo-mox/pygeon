@@ -5,7 +5,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 class VecVLagrange1_test(unittest.TestCase):
@@ -36,9 +36,9 @@ class VecVLagrange1_test(unittest.TestCase):
         return M, div, symgrad, div_div, symgrad_symgrad, pen, diff, stiff, discr
 
     def make_canonical(self, A: sps.sparray):
-        A.sum_duplicates()
-        A.eliminate_zeros()
-        A.sort_indices()
+        A.sum_duplicates()  # type: ignore[attr-defined]
+        A.eliminate_zeros()  # type: ignore[attr-defined]
+        A.sort_indices()  # type: ignore[attr-defined]
 
     def assemble_known(self, data, indices, indptr, shape=None):
         A = sps.csc_array((data, indices, indptr), shape=shape)

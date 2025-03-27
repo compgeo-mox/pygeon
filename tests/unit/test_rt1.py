@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 class RT1Test(unittest.TestCase):

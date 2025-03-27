@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 import porepy as pp
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 class RT0Test(unittest.TestCase):
