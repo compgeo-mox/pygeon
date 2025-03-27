@@ -34,9 +34,9 @@ def grid_from_domain(
 
     pg.convert_from_pp(mdg)
     if as_mdg:
-        return mdg
+        return mdg  # type: ignore[return-value]
     else:
-        return mdg.subdomains(dim=mdg.dim_max())[0]
+        return mdg.subdomains(dim=mdg.dim_max())[0]  # type: ignore[return-value]
 
 
 def grid_from_boundary_pts(
@@ -88,14 +88,14 @@ def unit_grid(
         if dim == 1:
             sd = pp.CartGrid(num, np.ones(1))
         elif dim == 2:
-            sd = pp.StructuredTriangleGrid(num, np.ones(dim))
+            sd = pp.StructuredTriangleGrid(num, np.ones(dim))  # type: ignore[assignment]
         else:
-            sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))
+            sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))  # type: ignore[assignment]
         pg.convert_from_pp(sd)
 
         if kwargs.get("as_mdg", True):
-            return pp.meshing.subdomains_to_mdg([[sd]])
-        return sd
+            return pp.meshing.subdomains_to_mdg([[sd]])  # type: ignore[return-value]
+        return sd  # type: ignore[return-value]
 
     bbox = {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0}
     if dim == 3:
@@ -118,7 +118,7 @@ def reference_element(dim: int) -> pg.Grid:
     if dim == 1:
         sd = unit_grid(1, 1, as_mdg=False)
         sd.name = "reference_segment"
-        return sd
+        return sd  # type: ignore[return-value]
     elif dim == 2:
         nodes = np.eye(3, k=1)
 

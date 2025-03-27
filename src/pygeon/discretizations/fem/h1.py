@@ -327,7 +327,7 @@ class Lagrange1(pg.Discretization):
         elif sd.dim == 3:
             edge_nodes = sd.ridge_peaks
 
-        edge_nodes = abs(edge_nodes) / 2
+        edge_nodes = abs(edge_nodes) / 2  # type: ignore[assignment]
 
         ndof = self.ndof(sd)
         return sps.vstack((sps.eye_array(ndof), edge_nodes.T)).tocsc()
@@ -838,22 +838,22 @@ class Lagrange2(pg.Discretization):
         # Start of the edge
         # The nodal function associated with the start has derivative -3 here.
         # The other nodal function has derivative -1.
-        diff_nodes_0 = edge_nodes.copy().T
-        diff_nodes_0.data[edge_nodes.data == -1] = -3
-        diff_nodes_0.data[edge_nodes.data == 1] = -1
+        diff_nodes_0_csc = edge_nodes.copy().T
+        diff_nodes_0_csc.data[edge_nodes.data == -1] = -3
+        diff_nodes_0_csc.data[edge_nodes.data == 1] = -1
 
-        diff_0 = sps.hstack((diff_nodes_0, 4 * sps.eye_array(num_edges)))
+        diff_0 = sps.hstack((diff_nodes_0_csc, 4 * sps.eye_array(num_edges)))
 
         # End of the edge
         # The nodal function associated with the start has derivative 1 here.
         # The other nodal function has derivative 3.
-        diff_nodes_1 = edge_nodes.copy().T
-        diff_nodes_1.data[edge_nodes.data == 1] = 3
-        diff_nodes_1.data[edge_nodes.data == -1] = 1
+        diff_nodes_1_csc = edge_nodes.copy().T
+        diff_nodes_1_csc.data[edge_nodes.data == 1] = 3
+        diff_nodes_1_csc.data[edge_nodes.data == -1] = 1
 
         # Rescale due to design choices in Nedelec1
         diff_1 = second_dof_scaling * sps.hstack(
-            (diff_nodes_1, -4 * sps.eye_array(num_edges))
+            (diff_nodes_1_csc, -4 * sps.eye_array(num_edges))
         )
 
         # Combine
@@ -883,7 +883,7 @@ class Lagrange2(pg.Discretization):
 
         eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
 
-        return sps.hstack((eval_nodes, eval_edges)).tocsc()
+        return sps.hstack((eval_nodes, eval_edges)).tocsc()  # type: ignore[arg-type]
 
     def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -972,7 +972,7 @@ class Lagrange2(pg.Discretization):
         # In 1D, we reuse the code from P1
         if sd.dim == 1:
             # NOTE we pass self so that ndof() is taken from P2, not P1
-            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces)
+            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces) # type: ignore[arg-type]
 
         # 2D and 3D
         if b_faces.dtype == "bool":

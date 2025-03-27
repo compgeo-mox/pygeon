@@ -47,7 +47,7 @@ def zero_tip_dofs(
             )
 
     pg.bmat.replace_nones_with_zeros(is_tip_dof)
-    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof).tocsc()
+    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof).tocsc()  # type: ignore[call-overload]
 
 
 def remove_tip_dofs(
@@ -68,7 +68,7 @@ def remove_tip_dofs(
     Returns:
         sps.csc_array: The operator that removes the tip degrees of freedom.
     """
-    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()
+    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()  # type: ignore[union-attr]
     return R[R.indices, :].tocsc()
 
 

@@ -72,8 +72,8 @@ class Grid(pp.Grid):
             None
         """
         super(Grid, self).__init__(*args, **kwargs)
-        self.face_nodes: sps.csc_array
-        self.cell_faces: sps.csc_array
+        self.face_nodes: sps.csc_array  # type: ignore[assignment]
+        self.cell_faces: sps.csc_array  # type: ignore[assignment]
 
     def compute_geometry(self) -> None:
         """

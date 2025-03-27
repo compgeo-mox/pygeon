@@ -124,11 +124,11 @@ def _g_exterior_derivative(
     elif n_minus_k == 1:
         derivative = grid.cell_faces.T
     elif n_minus_k == 2:
-        derivative = grid.face_ridges.T
+        derivative = grid.face_ridges.T  # type: ignore[has-type]
     elif n_minus_k == 3:
-        derivative = grid.ridge_peaks.T
+        derivative = grid.ridge_peaks.T  # type: ignore[has-type]
     elif n_minus_k == 4:
-        derivative = sps.csc_array((grid.num_peaks, 0))
+        derivative = sps.csc_array((grid.num_peaks, 0))  # type: ignore[type-var, union-attr]
     else:
         Warning("(n - k) is not between 0 and 4")
         derivative = sps.csc_array((0, 0))
@@ -160,7 +160,7 @@ def _mdg_exterior_derivative(
 
     # Compute local differential operator
     for idx, sd in enumerate(mdg.subdomains()):
-        bmat[idx, idx] = exterior_derivative(sd, n_minus_k)
+        bmat[idx, idx] = exterior_derivative(sd, n_minus_k)  # type: ignore[arg-type]
 
     # Compute mixed-dimensional jump operator
     for intf in mdg.interfaces():
@@ -171,11 +171,14 @@ def _mdg_exterior_derivative(
             node_nrs = [mdg.subdomains().index(sd) for sd in pair]
 
             # Place the jump term in the block-matrix
-            bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)
+            bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)  # type: ignore[arg-type]
 
     pg.bmat.replace_nones_with_zeros(bmat)
     # remove the tips
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
-    bmat = bmat if as_bmat else sps.block_array(bmat).tocsc()
-    return bmat @ is_tip_dof
+    if not as_bmat:
+        bmat_matrix = sps.block_array(bmat)  # type: ignore[call-overload]
+        return bmat_matrix @ is_tip_dof
+    else:
+        return bmat @ is_tip_dof

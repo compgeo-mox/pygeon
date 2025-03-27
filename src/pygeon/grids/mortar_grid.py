@@ -214,7 +214,7 @@ class MortarGrid(pp.MortarGrid):
                 The matrix has dimensions num_primary_faces x num_mortar_cells.
         """
         sd_up = sd_pair[0]
-        cells, faces, _ = sps.find(self.primary_to_mortar_int())
+        cells, faces, _ = sps.find(self.primary_to_mortar_int())  # type: ignore[arg-type]
         cf_csr = sd_up.cell_faces.tocsr()
         signs = [cf_csr[face, :].data[0] for face in faces]
 
@@ -239,5 +239,5 @@ class MortarGrid(pp.MortarGrid):
             None
         """
         self.cell_faces = (
-            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()
+            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()  # type: ignore[operator]
         )

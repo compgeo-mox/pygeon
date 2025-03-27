@@ -40,7 +40,7 @@ def eval_at_cell_centers(
 
     # Local mass matrices
     for nn_sd, sd in enumerate(mdg.subdomains()):
-        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
+        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)  # type: ignore[arg-type]
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
-    return bmat_sd if as_bmat else sps.block_array(bmat_sd).tocsc()
+    return bmat_sd if as_bmat else sps.block_array(bmat_sd).tocsc()  # type: ignore[call-overload]

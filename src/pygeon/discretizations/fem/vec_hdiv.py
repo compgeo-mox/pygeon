@@ -207,7 +207,7 @@ class VecBDM1(pg.VecDiscretization):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -291,7 +291,7 @@ class VecBDM1(pg.VecDiscretization):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
 
             for ind in ind_list:
                 Psi_v_copy = Psi_v.copy()

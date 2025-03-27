@@ -199,9 +199,9 @@ def mass_matrix(
             kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
 
             bmat_mg[nn_sd, nn_sd] += (
-                intf.signed_mortar_to_primary
+                intf.signed_mortar_to_primary  # type: ignore[attr-defined]
                 @ sps.diags_array(1.0 / intf.cell_volumes / kn)
-                @ intf.signed_mortar_to_primary.T
+                @ intf.signed_mortar_to_primary.T  # type: ignore[attr-defined]
             )
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
