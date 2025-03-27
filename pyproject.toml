@@ -42,7 +42,11 @@ python_files = "tests/*.py"
 addopts = "--cov=src/pygeon --cov-report term-missing -p no:warnings"
 
 # Static analysis.
+[tool.ruff]
+line-length = 88
+
 [tool.ruff.lint]
+select = ["E501"]
 ignore = [
     "E731",  # do not assign a lambda expression, use a def
     "E266",  # too many leading '#' for block comment
