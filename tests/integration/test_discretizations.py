@@ -78,7 +78,8 @@ class PwConstantsTest(unittest.TestCase):
 
     def test_pwconstants_assemble_nat_bc(self):
         """
-        Test the assembly of the natural boundary conditions for the piecewise constants.
+        Test the assembly of the natural boundary conditions for the piecewise
+        constants.
         """
         for dim in np.arange(1, 4):
             sd = self.create_cart_grid(dim, 2)

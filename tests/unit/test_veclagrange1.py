@@ -122,8 +122,9 @@ class VecLagrange1Test(unittest.TestCase):
         """
         Test the div operator in 2D using VecLagrange1.
 
-        This method tests the computation of the divergence matrix, interpolation of a function,
-        and the assembly of the divergence-divergence matrix using VecLagrange1.
+        This method tests the computation of the divergence matrix, interpolation of a
+        function, and the assembly of the divergence-divergence matrix using
+        VecLagrange1.
 
         Returns:
             None

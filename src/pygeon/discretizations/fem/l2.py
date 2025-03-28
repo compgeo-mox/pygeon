@@ -262,7 +262,8 @@ class PwConstants(PieceWisePolynomial):
         data: Optional[dict] = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.

@@ -6,7 +6,8 @@ import porepy as pp
 import pygeon as pg  # type: ignore[import-untyped]
 
 """
-Module contains a unit tests to validate the opposite_node computations on simplicial grids.
+Module contains a unit tests to validate the opposite_node computations on simplicial 
+grids.
 """
 
 
