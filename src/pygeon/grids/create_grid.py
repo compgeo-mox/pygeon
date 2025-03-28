@@ -76,7 +76,8 @@ def unit_grid(
         dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
         kwargs: Additional options. The following options are available:
-            - mesh_size_min (float): The minimum mesh size. Default is the same as mesh_size.
+            - mesh_size_min (float): The minimum mesh size. Default is the same as
+                mesh_size.
             - as_mdg (bool): If True, return the grid as a mixed-dimensional grid.
             - structured (bool): If True, create a structured grid.
 

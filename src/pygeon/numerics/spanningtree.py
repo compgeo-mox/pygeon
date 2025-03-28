@@ -47,8 +47,10 @@ class SpanningTree:
         solve_transpose(rhs: np.ndarray) -> np.ndarray:
             Post-process the pressure by performing a transposed solve.
 
-        visualize_2d(mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None) -> None:
-            Create a graphical illustration of the spanning tree superimposed on the grid.
+        visualize_2d(mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None)
+            -> None:
+            Create a graphical illustration of the spanning tree superimposed on the
+            grid.
     """
 
     def __init__(
@@ -184,7 +186,8 @@ class SpanningTree:
         Construct a spanning tree of the elements.
 
         Returns:
-            sps.csc_array: The computed spanning tree as a compressed sparse column matrix.
+            sps.csc_array: The computed spanning tree as a compressed sparse column
+                matrix.
         """
         incidence = self.div @ self.div.T
 
@@ -414,7 +417,8 @@ class SpanningTreeElasticity(SpanningTree):
         system (sps.csc_array): The computed system matrix.
 
     Methods:
-        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray)
+            -> None:
             Set up the system for the spanning tree algorithm.
 
         compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
@@ -588,7 +592,8 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         system (sps.csc_array): The computed system matrix.
 
     Methods:
-        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray)
+            -> None:
             Set up the system for the spanning tree algorithm.
 
         compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
@@ -681,10 +686,10 @@ class SpanningWeightedTrees:
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
             spt (object): The spanning tree object to use.
-            weights (np.ndarray): The weights to impose for each spanning tree, they need to
-                sum to 1.
-            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified
-                equi-distributed boundary faces are selected.
+            weights (np.ndarray): The weights to impose for each spanning tree, they
+                need to sum to 1.
+            starting_faces (Optional[np.ndarray]): The set of starting faces, if not
+                specified equi-distributed boundary faces are selected.
         """
         if starting_faces is None:
             num = np.asarray(weights).size

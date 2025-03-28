@@ -3,11 +3,12 @@ import numpy as np
 
 def argsort_ccw_convex(pts: np.ndarray) -> np.ndarray:
     """
-    Sorts the given points in counterclockwise order based on their angles with respect to the
-    centroid.
+    Sorts the given points in counterclockwise order based on their angles with respect
+    to the centroid.
 
     Args:
-        pts (np.ndarray): Array of points with shape (N, 2), where N is the number of points.
+        pts (np.ndarray): Array of points with shape (N, 2), where N is the number of
+            points.
 
     Returns:
         np.ndarray: Array of indices that represents the sorted order of the points in

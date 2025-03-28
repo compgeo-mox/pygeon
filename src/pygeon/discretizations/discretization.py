@@ -111,8 +111,9 @@ class Discretization(abc.ABC):
         """
         Assembles the stiffness matrix.
 
-        This method takes a grid object `sd` and an optional data dictionary `data` as input.
-        It first calls the `assemble_diff_matrix` method to obtain the differential matrix `B`.
+        This method takes a grid object `sd` and an optional data dictionary `data` as
+        input. It first calls the `assemble_diff_matrix` method to obtain the
+        differential matrix `B`.
         Then, it creates an instance of the range discretization class using the `dim`
         attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
         discretization class to obtain the mass matrix `A`.
@@ -215,13 +216,15 @@ class Discretization(abc.ABC):
         data: Optional[dict] = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable): Function that represents the analytical solution.
-            relative (bool, optional): Compute the relative error or not. Defaults to True.
+            relative (bool, optional): Compute the relative error or not. Defaults to
+                True.
             etype (str, optional): Type of error computed. For "standard", the current
                 implementation. Defaults to "standard".
 

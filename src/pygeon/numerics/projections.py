@@ -26,10 +26,10 @@ def eval_at_cell_centers(
                 sub-blocks. Default is False.
 
     Returns:
-        sps.csc_array or sps.block_array: The operator that evaluates the solution in the cell
-        centers. If `as_bmat` is True, the operator is returned as sparse sub-blocks in
-        `sps.csc_array` format. Otherwise, the operator is returned as a block matrix in
-        `sps.block_array` format.
+        sps.csc_array or sps.block_array: The operator that evaluates the solution in
+        the cell centers. If `as_bmat` is True, the operator is returned as sparse
+        sub-blocks in `sps.csc_array` format. Otherwise, the operator is returned as a
+        block matrix in `sps.block_array` format.
 
     """
     as_bmat = kwargs.get("as_bmat", False)

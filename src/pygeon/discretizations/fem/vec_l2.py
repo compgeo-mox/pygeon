@@ -34,7 +34,8 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The discretization class for the range of the differential.
+            pg.Discretization: The discretization class for the range of the
+            differential.
         """
         return self.scalar_discr.get_range_discr_class(dim)
 
@@ -65,9 +66,11 @@ class VecPwConstants(VecPieceWisePolynomial):
         scalar_discr (pg.Discretization): The scalar discretization class.
 
     Methods:
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray],
-            relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
-            Returns the l2 error computed against an analytical solution given as a function.
+        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray],
+            np.ndarray], relative: Optional[bool] = True, etype:
+            Optional[str] = "specific") -> float:
+            Returns the l2 error computed against an analytical solution given as a
+            function.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -107,7 +110,8 @@ class VecPwConstants(VecPieceWisePolynomial):
         data: Optional[dict] = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -116,7 +120,8 @@ class VecPwConstants(VecPieceWisePolynomial):
                 analytical solution.
             relative (Optional[bool], optional): Compute the relative error or not.
                 Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to "specific".
+            etype (Optional[str], optional): Type of error computed. Defaults to
+                "specific".
 
         Returns:
             float: The computed error.

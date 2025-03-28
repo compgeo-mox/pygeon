@@ -40,14 +40,16 @@ class Lagrange1(pg.Discretization):
         local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
             Calculates the local gradients of the finite element basis functions.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped mass matrix for the finite element method.
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Constructs the matrix for evaluating a Lagrangian function at the cell centers of
-            the given grid.
+            Constructs the matrix for evaluating a Lagrangian function at the cell
+            centers of the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a given function over the nodes of a grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -121,7 +123,8 @@ class Lagrange1(pg.Discretization):
             dim (int): Dimension of the matrix.
 
         Returns:
-            np.ndarray: Local mass matrix of shape (num_nodes_of_cell, num_nodes_of_cell).
+            np.ndarray: Local mass matrix of shape (num_nodes_of_cell,
+                num_nodes_of_cell).
         """
 
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
@@ -135,7 +138,8 @@ class Lagrange1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the matrix.
+            data (dict): A dictionary containing the necessary data for assembling the
+                matrix.
 
         Returns:
             sps.csc_array: The assembled stiffness matrix.
@@ -294,8 +298,8 @@ class Lagrange1(pg.Discretization):
 
     def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Construct the matrix for projecting a Lagrangian function to a piecewise constant
-        function.
+        Construct the matrix for projecting a Lagrangian function to a piecewise
+        constant function.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -311,8 +315,8 @@ class Lagrange1(pg.Discretization):
 
     def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Construct the matrix for projecting a linear Lagrangian function to a second order
-        Lagrange function.
+        Construct the matrix for projecting a linear Lagrangian function to a second
+        order Lagrange function.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -361,7 +365,8 @@ class Lagrange1(pg.Discretization):
             func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
 
         Returns:
-            np.ndarray: An array containing the interpolated values at each node of the grid.
+            np.ndarray: An array containing the interpolated values at each node of the
+                grid.
         """
         return np.array([func(x) for x in sd.nodes.T])
 
@@ -431,14 +436,15 @@ class Lagrange2(pg.Discretization):
             Returns the mass matrix for the second order Lagrange element.
 
         assemble_local_mass(dim: int) -> np.ndarray:
-            Computes the local mass matrix of the basis functions on a d-simplex with measure
-            1.
+            Computes the local mass matrix of the basis functions on a d-simplex with
+            measure 1.
 
         assemble_barycentric_mass(expnts: np.ndarray) -> np.ndarray:
             Compute the inner products of all monomials up to degree 2.
 
         integrate_monomial(alphas: np.ndarray) -> float:
-            Exact integration of products of monomials based on Vermolen and Segal (2018).
+            Exact integration of products of monomials based on Vermolen and Segal
+            (2018).
 
         num_edges_per_cell(dim: int) -> int:
 
@@ -449,23 +455,25 @@ class Lagrange2(pg.Discretization):
             Evaluates the gradients of the basis functions at the nodes.
 
         get_edge_dof_indices(sd, cell, faces) -> np.ndarray:
-            Finds the indices for the edge degrees of freedom that correspond to the local
-            numbering of the edges.
+            Finds the indices for the edge degrees of freedom that correspond to the
+            local numbering of the edges.
 
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Construct the matrix for evaluating a P2 function at the cell centers of the given
-            grid.
+            Construct the matrix for evaluating a P2 function at the cell centers of
+            the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
             np.ndarray) -> np.ndarray:
-            Assembles the 'natural' boundary condition (func, u)_Gamma with u a test function
-            in Lagrange2.
+            Assembles the 'natural' boundary condition (func, u)_Gamma with u a test
+            function in Lagrange2.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
     """
@@ -737,7 +745,8 @@ class Lagrange2(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the matrix.
+            data (dict): A dictionary containing the necessary data for assembling the
+                matrix.
 
         Returns:
             sps.csc_array: The stiffness matrix.
@@ -887,8 +896,8 @@ class Lagrange2(pg.Discretization):
 
     def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Construct the matrix for projecting a quadratic Lagrangian function to a piecewise
-        quadratic function.
+        Construct the matrix for projecting a quadratic Lagrangian function to a
+        piecewise quadratic function.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -938,7 +947,8 @@ class Lagrange2(pg.Discretization):
             func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
 
         Returns:
-            np.ndarray: An array containing the interpolated values at each node of the grid.
+            np.ndarray: An array containing the interpolated values at each node of the
+                grid.
         """
         if sd.dim == 0:
             edge_coords = np.empty(0)
@@ -972,7 +982,7 @@ class Lagrange2(pg.Discretization):
         # In 1D, we reuse the code from P1
         if sd.dim == 1:
             # NOTE we pass self so that ndof() is taken from P2, not P1
-            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces) # type: ignore[arg-type]
+            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces)  # type: ignore[arg-type]
 
         # 2D and 3D
         if b_faces.dtype == "bool":

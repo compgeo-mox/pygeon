@@ -24,10 +24,10 @@ class MortarGrid(pp.MortarGrid):
     Attributes:
         cell_faces (scipy.sparse.csc_array): The connectivity between cells of the
             secondary grid and faces of the primary grid.
-        face_ridges (scipy.sparse.csc_array): The connectivities between high-dimensional
-            ridges and low-dimensional faces in the mortar grid.
-        ridge_peaks (scipy.sparse.csc_array): The connectivities between high-dimensional
-            peaks and low-dimensional ridges in the mortar grid.
+        face_ridges (scipy.sparse.csc_array): The connectivities between
+            high-dimensional ridges and low-dimensional faces in the mortar grid.
+        ridge_peaks (scipy.sparse.csc_array): The connectivities between
+            high-dimensional peaks and low-dimensional ridges in the mortar grid.
         signed_mortar_to_primary (scipy.sparse.csc_array): The mapping from mortar cells
             to the faces of the primary grid that respects orientation.
 
@@ -152,7 +152,8 @@ class MortarGrid(pp.MortarGrid):
                 peaks_up = peaks_up[match_coordinates(ridge_xyz, peak_xyz)]
 
             # Take care of orientations
-            # NOTE:this computation is done here so that we have access to the normal vector
+            # NOTE:this computation is done here so that we have access to the normal
+            # vector
 
             # Find the normal vector oriented outward wrt the higher-dim grid
             is_outward = sd_up.cell_faces.tocsr()[face_up, :].data[0]

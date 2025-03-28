@@ -132,7 +132,8 @@ class EinSteinGrid(pg.Grid):
 
     def poly_adder(self, input_str: str, transform: np.ndarray) -> None:
         """
-        Recursive function to build all the polygons based on the transformation matrices.
+        Recursive function to build all the polygons based on the transformation
+        matrices.
 
         Args:
             input_str (str): The input string representing the current tag.
@@ -159,7 +160,8 @@ class EinSteinGrid(pg.Grid):
 
         Returns:
             Tuple[dict, dict, tuple]: A tuple containing three elements:
-                - poly_dict: A dictionary mapping polygon IDs to their corresponding polygons.
+                - poly_dict: A dictionary mapping polygon IDs to their corresponding
+                    polygons.
                 - trans_dict: A dictionary mapping transformation IDs to a
                     list of transformations.
                 - use_info: A tuple containing the ID and transformation matrix of

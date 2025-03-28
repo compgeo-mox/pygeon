@@ -162,8 +162,8 @@ def mass_matrix(
         data (dict): the data object associated to the grid.
         local_matrix (function): function that generates the local mass matrix on a grid
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default False.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs
@@ -236,7 +236,8 @@ def lumped_face_mass(
     mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
 ) -> Union[sps.csc_array, np.ndarray]:
     """
-    Compute the lumped mass matrix for discretization defined on the faces of a (MD-)grid
+    Compute the lumped mass matrix for discretization defined on the faces of a
+    (MD-)grid
 
     Args:
         mdg (pp.MixedDimensionalGrid).
@@ -252,7 +253,8 @@ def lumped_ridge_mass(
     mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
 ) -> Union[sps.csc_array, np.ndarray]:
     """
-    Compute the lumped mass matrix for discretization defined on the ridges of a (MD-)grid
+    Compute the lumped mass matrix for discretization defined on the ridges of a
+    (MD-)grid
 
     Args:
         mdg (pp.MixedDimensionalGrid).
@@ -268,7 +270,8 @@ def lumped_peak_mass(
     mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
 ) -> Union[sps.csc_array, np.ndarray]:
     """
-    Compute the lumped mass matrix for discretization defined on the peaks of a (MD-)grid
+    Compute the lumped mass matrix for discretization defined on the peaks of a
+    (MD-)grid
 
     Args:
         mdg (pp.MixedDimensionalGrid).
@@ -295,8 +298,8 @@ def lumped_mass_matrix(
             the differential.
         discr (pp discretization object).
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default False.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs

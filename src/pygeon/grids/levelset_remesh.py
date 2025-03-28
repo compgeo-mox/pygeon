@@ -128,7 +128,8 @@ def create_splitting_map(
 
     Args:
         cut_entities (np.ndarray): Boolean array indicating which entities are cut
-        offset (int, optional): Offset value for the rows of the mapping matrix. Defaults to 0.
+        offset (int, optional): Offset value for the rows of the mapping matrix.
+        Defaults to 0.
 
     Returns:
         sps.csc_array: Mapping matrix of size n_new x n_old

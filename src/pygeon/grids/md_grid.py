@@ -33,8 +33,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             Compute the total number of ridges in the mixed-dimensional grid.
 
         tag_leafs():
-            Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid
-            in a grid bucket.
+            Tag the mesh entities that correspond to a mesh entity of a
+            lower-dimensional grid in a grid bucket.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -81,7 +81,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
 
         This method initializes the data for each subdomain and interface
         in the multi-dimensional grid.
-        It sets the parameters and discretization matrices for each subdomain and interface.
+        It sets the parameters and discretization matrices for each subdomain and
+        interface.
 
         Args:
             None
