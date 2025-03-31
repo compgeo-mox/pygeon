@@ -856,13 +856,13 @@ class Lagrange2(pg.Discretization):
         # End of the edge
         # The nodal function associated with the start has derivative 1 here.
         # The other nodal function has derivative 3.
-        diff_nodes_1_csc = edge_nodes.copy().T
-        diff_nodes_1_csc.data[edge_nodes.data == 1] = 3
-        diff_nodes_1_csc.data[edge_nodes.data == -1] = 1
+        diff_nodes_1_csr = edge_nodes.copy().T
+        diff_nodes_1_csr.data[edge_nodes.data == 1] = 3
+        diff_nodes_1_csr.data[edge_nodes.data == -1] = 1
 
         # Rescale due to design choices in Nedelec1
         diff_1 = second_dof_scaling * sps.hstack(
-            (diff_nodes_1_csc, -4 * sps.eye_array(num_edges))
+            (diff_nodes_1_csr, -4 * sps.eye_array(num_edges))
         )
 
         # Combine
