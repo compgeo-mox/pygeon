@@ -54,3 +54,8 @@ ignore = [
 exclude = [
     "src/pygeon/__init__.py",
 ]
+
+# MyPy
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["import-untyped"]
