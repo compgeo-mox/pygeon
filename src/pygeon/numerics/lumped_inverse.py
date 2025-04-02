@@ -1,10 +1,7 @@
 import numpy as np
+import scipy.linalg
 import scipy.sparse as sps
 import scipy.sparse.csgraph as csgraph
-from typing import Union
-
-
-import pygeon as pg
 
 
 def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
@@ -98,7 +95,11 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
 
         # Create a submatrix for the connected component
         sub_M = M_lil[np.ix_(rows, rows)].toarray()
-        sol[np.ix_(rows, cols)] = np.linalg.solve(sub_M, sub_B[:, cols].toarray())
+
+        # Solve the dense system and distribute to the solution matrix
+        sol[np.ix_(rows, cols)] = scipy.linalg.solve(
+            sub_M, sub_B[:, cols].toarray(), assume_a="pos"
+        )
 
     # Convert the inverse matrix back to CSC format
     return sol.tocsc()
