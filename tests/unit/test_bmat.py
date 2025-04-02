@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 import scipy.sparse as sps
 
 

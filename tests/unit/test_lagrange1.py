@@ -5,7 +5,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 
 
 class Lagrange1Test(unittest.TestCase):
