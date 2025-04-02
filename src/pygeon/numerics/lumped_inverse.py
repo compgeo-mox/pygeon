@@ -91,14 +91,14 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
         rows = np.where(labels == patch)[0]
 
         sub_B = B_lil[rows, :]
-        cols = np.nonzero(sub_B, axis=1)[0]
+        cols = np.unique(np.nonzero(sub_B)[1])
 
         if not np.any(cols):
             continue
 
         # Create a submatrix for the connected component
         sub_M = M_lil[np.ix_(rows, rows)].toarray()
-        sol[np.ix_[rows, cols]] = np.linalg.solve(sub_M, sub_B[:, cols])
+        sol[np.ix_(rows, cols)] += np.linalg.solve(sub_M, sub_B[:, cols].toarray())
 
     # Convert the inverse matrix back to CSC format
     return sol.tocsc()
