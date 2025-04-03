@@ -104,8 +104,8 @@ class LinearSystem:
         """
         Repeat the essential values of the linear system.
 
-        If the input vector `b` has dimension 1, the method returns the essential values as is.
-        Otherwise, it repeats the essential values for each column of `b`.
+        If the input vector `b` has dimension 1, the method returns the essential values
+        as is. Otherwise, it repeats the essential values for each column of `b`.
 
         Returns:
             numpy.ndarray or scipy.sparse.csc_array: The repeated essential values.
