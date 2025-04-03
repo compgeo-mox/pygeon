@@ -105,19 +105,18 @@ class LinearSystem:
         Repeat the essential values of the linear system.
 
         If the input vector `b` has dimension 1, the method returns the essential values
-        as is. Otherwise, it calculates the sum of the essential values for each column
-        of `b`.
+        as is. Otherwise, it repeats the essential values for each column of `b`.
 
         Returns:
             numpy.ndarray or scipy.sparse.csc_array: The repeated essential values.
         """
         if self.b.ndim == 1:
             return self.ess_vals
+        elif not np.any(self.ess_vals):
+            return sps.csc_array(self.b.shape)
         else:
-            vals = sps.csr_array(self.ess_vals).T @ sps.csc_array(
-                np.ones(self.b.shape[1])
-            )
-            return vals.tocsc()
+            ess_vals = sps.csr_array(np.atleast_2d(self.ess_vals))
+            return sps.vstack([ess_vals] * self.b.shape[1]).T
 
 
 def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
