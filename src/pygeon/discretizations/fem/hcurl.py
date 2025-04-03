@@ -34,12 +34,14 @@ class Nedelec0(pg.Discretization):
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
             b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition matrix for the given grid and function.
+            Assembles the natural boundary condition matrix for the given grid and
+            function.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a given function onto the grid using the hcurl discretization.
     """
 
@@ -265,7 +267,8 @@ class Nedelec1(pg.Discretization):
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix for the given grid and data.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped matrix for the given grid and data.
 
         proj_to_Ne0(sd: pg.Grid) -> sps.csc_array:
@@ -274,16 +277,18 @@ class Nedelec1(pg.Discretization):
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the differential matrix for the H(curl) finite element space.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates the given function `func` over the specified grid `sd`.
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the basis functions at the cell centers and construct the global matrices.
+            Evaluate the basis functions at the cell centers and construct the global
+            matrices.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
             b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition for the given grid, function, and boundary
-            faces.
+            Assembles the natural boundary condition for the given grid, function, and
+            boundary faces.
 
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.
@@ -441,7 +446,8 @@ class Nedelec1(pg.Discretization):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Evaluate the basis functions at the cell centers and construct the global matrices.
+        Evaluate the basis functions at the cell centers and construct the global
+        matrices.
 
         Args:
             sd (pg.Grid): The grid object representing the mesh.

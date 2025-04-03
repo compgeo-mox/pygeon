@@ -24,10 +24,10 @@ class MortarGrid(pp.MortarGrid):
     Attributes:
         cell_faces (scipy.sparse.csc_array): The connectivity between cells of the
             secondary grid and faces of the primary grid.
-        face_ridges (scipy.sparse.csc_array): The connectivities between high-dimensional
-            ridges and low-dimensional faces in the mortar grid.
-        ridge_peaks (scipy.sparse.csc_array): The connectivities between high-dimensional
-            peaks and low-dimensional ridges in the mortar grid.
+        face_ridges (scipy.sparse.csc_array): The connectivities between
+            high-dimensional ridges and low-dimensional faces in the mortar grid.
+        ridge_peaks (scipy.sparse.csc_array): The connectivities between
+            high-dimensional peaks and low-dimensional ridges in the mortar grid.
         signed_mortar_to_primary (scipy.sparse.csc_array): The mapping from mortar cells
             to the faces of the primary grid that respects orientation.
 
@@ -152,7 +152,8 @@ class MortarGrid(pp.MortarGrid):
                 peaks_up = peaks_up[match_coordinates(ridge_xyz, peak_xyz)]
 
             # Take care of orientations
-            # NOTE:this computation is done here so that we have access to the normal vector
+            # NOTE:this computation is done here so that we have access to the normal
+            # vector
 
             # Find the normal vector oriented outward wrt the higher-dim grid
             is_outward = sd_up.cell_faces.tocsr()[face_up, :].data[0]
@@ -190,15 +191,15 @@ class MortarGrid(pp.MortarGrid):
 
         # Ensure that double indices are mapped to +-1
         # This step ensures that the jump maps to zero at tips.
-        face_ridges = sps.csc_array(face_ridges, dtype=int)
-        ridge_peaks = sps.csc_array(ridge_peaks, dtype=int)
+        face_ridges_csc = sps.csc_array(face_ridges, dtype=int)
+        ridge_peaks_csc = sps.csc_array(ridge_peaks, dtype=int)
 
-        face_ridges.data = np.sign(face_ridges.data)
-        ridge_peaks.data = np.sign(ridge_peaks.data)
+        face_ridges_csc.data = np.sign(face_ridges_csc.data)
+        ridge_peaks_csc.data = np.sign(ridge_peaks_csc.data)
 
         # Set face_ridges and ridge_peaks as properties of the mortar grid
-        self.face_ridges = face_ridges
-        self.ridge_peaks = ridge_peaks
+        self.face_ridges = face_ridges_csc
+        self.ridge_peaks = ridge_peaks_csc
 
     def assign_signed_mortar_to_primary(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
         """
@@ -214,7 +215,7 @@ class MortarGrid(pp.MortarGrid):
                 The matrix has dimensions num_primary_faces x num_mortar_cells.
         """
         sd_up = sd_pair[0]
-        cells, faces, _ = sps.find(self.primary_to_mortar_int())
+        cells, faces, _ = sps.find(self.primary_to_mortar_int())  # type: ignore[arg-type]
         cf_csr = sd_up.cell_faces.tocsr()
         signs = [cf_csr[face, :].data[0] for face in faces]
 
@@ -239,5 +240,5 @@ class MortarGrid(pp.MortarGrid):
             None
         """
         self.cell_faces = (
-            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()
+            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()  # type: ignore[operator]
         )

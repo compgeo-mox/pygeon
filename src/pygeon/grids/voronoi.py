@@ -18,13 +18,14 @@ class VoronoiGrid(pg.Grid):
         Initialize a VoronoiGrid object.
 
         Args:
-            num_pts (int, optional): The number of internal seed points. Defaults to None.
+            num_pts (int, optional): The number of internal seed points. Defaults to
+                None.
             pts (ndarray, optional): The internal seed points, to be in the unit square.
                 Defaults to None.
-            **kwargs: Additional keyword arguments, like the seed for the random number and
-                a parameter to fit the grid to a bounding box in case the standard value does
-                not work as expected. The former with key "seed" and the latter with key
-                "factor".
+            **kwargs: Additional keyword arguments, like the seed for the random number
+                and a parameter to fit the grid to a bounding box in case the standard
+                value does not work as expected. The former with key "seed" and the
+                latter with key "factor".
 
         Returns:
             None
@@ -116,9 +117,6 @@ class VoronoiGrid(pg.Grid):
                 sd.cell_centers[1] < 1,
             )
         )
-        # NOTE to be compliant with PorePy
-        sd.face_nodes = sps.csc_matrix(sd.face_nodes)
-        sd.cell_faces = sps.csc_matrix(sd.cell_faces)
         [_, sd_part], _, _ = pp.partition.partition_grid(sd, ind.astype(int))
 
         # Initialize the PyGeoN grid with the cut Voronoi grid

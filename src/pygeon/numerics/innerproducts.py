@@ -162,8 +162,8 @@ def mass_matrix(
         data (dict): the data object associated to the grid.
         local_matrix (function): function that generates the local mass matrix on a grid
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default False.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs
@@ -199,9 +199,9 @@ def mass_matrix(
             kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
 
             bmat_mg[nn_sd, nn_sd] += (
-                intf.signed_mortar_to_primary
+                intf.signed_mortar_to_primary  # type: ignore[attr-defined]
                 @ sps.diags_array(1.0 / intf.cell_volumes / kn)
-                @ intf.signed_mortar_to_primary.T
+                @ intf.signed_mortar_to_primary.T  # type: ignore[attr-defined]
             )
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
@@ -210,7 +210,7 @@ def mass_matrix(
     # create the full block matrix
     bmat = bmat_sd + bmat_mg
 
-    return bmat if as_bmat else sps.block_array(bmat, format="csc")
+    return bmat if as_bmat else sps.block_array(bmat).tocsc()
 
 
 # ---------------------------------- Lumped ---------------------------------- #
@@ -236,7 +236,8 @@ def lumped_face_mass(
     mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
 ) -> Union[sps.csc_array, np.ndarray]:
     """
-    Compute the lumped mass matrix for discretization defined on the faces of a (MD-)grid
+    Compute the lumped mass matrix for discretization defined on the faces of a
+    (MD-)grid
 
     Args:
         mdg (pp.MixedDimensionalGrid).
@@ -252,7 +253,8 @@ def lumped_ridge_mass(
     mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
 ) -> Union[sps.csc_array, np.ndarray]:
     """
-    Compute the lumped mass matrix for discretization defined on the ridges of a (MD-)grid
+    Compute the lumped mass matrix for discretization defined on the ridges of a
+    (MD-)grid
 
     Args:
         mdg (pp.MixedDimensionalGrid).
@@ -268,7 +270,8 @@ def lumped_peak_mass(
     mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
 ) -> Union[sps.csc_array, np.ndarray]:
     """
-    Compute the lumped mass matrix for discretization defined on the peaks of a (MD-)grid
+    Compute the lumped mass matrix for discretization defined on the peaks of a
+    (MD-)grid
 
     Args:
         mdg (pp.MixedDimensionalGrid).
@@ -295,8 +298,8 @@ def lumped_mass_matrix(
             the differential.
         discr (pp discretization object).
         kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse sub-blocks.
-                Default False.
+            as_bmat: In case of mixed-dimensional, return the matrix as sparse
+                sub-blocks. Default False.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs

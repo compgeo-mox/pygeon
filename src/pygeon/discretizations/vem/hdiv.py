@@ -28,13 +28,15 @@ class VRT0(pg.RT0):
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped mass matrix.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space.
 
         eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
@@ -59,7 +61,8 @@ class VRT0(pg.RT0):
             None
         """
         pg.RT0.__init__(self, keyword)
-        # Set the reference configuration from PorePy from which we take some functionalities
+        # Set the reference configuration from PorePy from which we take some
+        # functionalities
         self.ref_discr = pp.MVEM
 
     def assemble_mass_matrix(
@@ -70,13 +73,14 @@ class VRT0(pg.RT0):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
+            data (Optional[dict]): Optional dictionary with physical parameters for
+                scaling.
 
         Returns:
             sps.csc_array: The mass matrix.
         """
         # create unitary data, unitary permeability, in case not present
-        data = self.create_unitary_data(sd, data)
+        data = VRT0.create_unitary_data(self.keyword, sd, data)
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
@@ -95,7 +99,7 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        data = self.create_unitary_data(sd, None)
+        data = VRT0.create_unitary_data(self.keyword, sd, None)
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)
@@ -106,8 +110,8 @@ class VRT0(pg.RT0):
 
 class VBDM1(pg.BDM1):
     """
-    Virtual Element Method (VEM) based on the BDM1 (Brezzi-Douglas-Marini) discretization
-    for the H(div) space.
+    Virtual Element Method (VEM) based on the BDM1 (Brezzi-Douglas-Marini)
+    discretization for the H(div) space.
 
     This class implements the VEM discretization for the H(div) space.
     It provides methods for assembling the mass matrix, projecting to VRT0 space,
@@ -124,13 +128,15 @@ class VBDM1(pg.BDM1):
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped mass matrix.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space.
 
         eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
@@ -177,7 +183,8 @@ class VBDM1(pg.BDM1):
         cell_diams = sd.cell_diameters(cell_nodes)
 
         for cell, diam in enumerate(cell_diams):
-            faces_loc = sd.cell_faces[:, [cell]].indices
+            cell_col = np.array([cell])
+            faces_loc = sd.cell_faces[:, cell_col].indices
 
             # Obtain local indices of dofs, ordered by associated node number
             local_dof = dof[:, faces_loc].tocsr().tocoo()
@@ -244,7 +251,8 @@ class VBDM1(pg.BDM1):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix corresponding to the differential operator for the H(div) space.
+        Assembles the matrix corresponding to the differential operator for the H(div)
+        space.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -332,7 +340,8 @@ class VBDM1(pg.BDM1):
         Get the degree of freedom enumeration for a given grid.
 
         Args:
-            sd (pg.Grid): The grid for which to compute the degree of freedom enumeration.
+            sd (pg.Grid): The grid for which to compute the degree of freedom
+                enumeration.
 
         Returns:
             sps.csc_array: The degree of freedom enumeration.

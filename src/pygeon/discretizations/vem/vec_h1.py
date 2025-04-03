@@ -15,9 +15,9 @@ class VecVLagrange1(pg.VecDiscretization):
     Vector Lagrange virtual element discretization for H1 space in 2d.
 
     This class represents a virtual element discretization for the H1 space using
-    vector virtual Lagrange elements. It provides methods for assembling various matrices
-    and operators, such as the mass matrix, divergence matrix, symmetric gradient
-    matrix, and more.
+    vector virtual Lagrange elements. It provides methods for assembling various
+    matrices and operators, such as the mass matrix, divergence matrix, symmetric
+    gradient matrix, and more.
 
     Convention for the ordering is first all the x then all the y.
 
@@ -40,8 +40,8 @@ class VecVLagrange1(pg.VecDiscretization):
         keyword (str): The keyword for the H1 class.
 
     Attributes:
-        scalar_discr (pg.VLagrange1): A local virtual Lagrange1 class for performing some of
-            the computations.
+        scalar_discr (pg.VLagrange1): A local virtual Lagrange1 class for performing
+            some of the computations.
 
     Methods:
         ndof(sd: pg.Grid) -> int:
@@ -57,12 +57,14 @@ class VecVLagrange1(pg.VecDiscretization):
         local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
             Computes the local divergence matrix for P1.
 
-        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Returns the div-div matrix operator for the lowest order vector Lagrange element.
+        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
+            Returns the div-div matrix operator for the lowest order vector Lagrange
+            element.
 
         assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the symmetric gradient matrix operator for the lowest order vector Lagrange
-            element.
+            Returns the symmetric gradient matrix operator for the lowest order vector
+            Lagrange element.
 
         local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray)
             -> np.ndarray:
@@ -70,13 +72,14 @@ class VecVLagrange1(pg.VecDiscretization):
 
         assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
             -> sps.csc_array:
-            Returns the symgrad-symgrad matrix operator for the lowest order vector Lagrange
-            element.
+            Returns the symgrad-symgrad matrix operator for the lowest order vector
+            Lagrange element.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space.
     """
 
@@ -282,11 +285,13 @@ class VecVLagrange1(pg.VecDiscretization):
     ) -> sps.csc_array:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter mu.
+        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter
+        mu.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to None.
+            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to
+                None.
 
         Returns:
             sps.csc_array: Sparse symgrad-symgrad matrix of shape
@@ -306,7 +311,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         symgrad = self.assemble_symgrad_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
-        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim), format="csc")
+        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim)).tocsc()
 
         return symgrad.T @ tensor_mass @ symgrad
 
@@ -445,8 +450,8 @@ class VecVLagrange1(pg.VecDiscretization):
         Args:
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
-            data (dict): Data for the computation including the Lame parameters accessed with
-                the keys "lambda" and "mu". Both float and np.ndarray are accepted.
+            data (dict): Data for the computation including the Lame parameters accessed
+                with the keys "lambda" and "mu". Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.

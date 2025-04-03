@@ -189,7 +189,8 @@ class Graph(pp.Grid):
         to_remove = []
         # loop over all the nodes
         for node, data in self.graph.nodes(data=True):
-            # select the nodes with dimension dim, remove them and redistribute the edges
+            # select the nodes with dimension dim, remove them and redistribute the
+            # edges
             if data["dim"] == dim:
                 # add the current node to the list of nodes that need to be removed
                 to_remove.append(node)
@@ -210,8 +211,8 @@ class Graph(pp.Grid):
         )
 
     def all_paths(self, start, end, cutoff=None):
-        """Compute all the shortest and not shortest paths from the start to the end graph
-        nodes."""
+        """Compute all the shortest and not shortest paths from the start to the end
+        graph nodes."""
 
         sp = self.shortest_paths(start, end)
         nsp = self.not_shortest_paths(start, end, sp, cutoff)
@@ -225,7 +226,8 @@ class Graph(pp.Grid):
 
     def not_shortest_paths(self, start, end, sp=None, cutoff=None):
         """Compute all the not shortest paths between two graph nodes.
-        It is possible to set a cutoff to make the computation faster leaving out long paths.
+        It is possible to set a cutoff to make the computation faster leaving out long
+        paths.
         """
 
         # compute all the shortest paths if are not given
@@ -245,8 +247,8 @@ class Graph(pp.Grid):
         return nsp[to_keep]
 
     def all_backbone(self, sp, nsp, cond=None):
-        """Compute the primary (from the shortest paths) and secondary (from the not shortest
-        paths) backbones
+        """Compute the primary (from the shortest paths) and secondary (from the not
+        shortest paths) backbones
         """
 
         pb = self.primary_backbone(sp, cond)
@@ -298,7 +300,8 @@ class Graph(pp.Grid):
         )
         # collect all the edges
         data = np.array([sort(e) for e in self.graph.edges])
-        # remap the values, we assume that are continuously divided into two separate sets
+        # remap the values, we assume that are continuously divided into two separate
+        # sets
         data -= np.amin(data, axis=0)
         # save to file
         np.savetxt(file_name, data, fmt="%i")

@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import porepy as pp
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 class ElasticityTestPrimal(unittest.TestCase):
@@ -44,9 +44,10 @@ class ElasticityTestPrimal(unittest.TestCase):
         """
         Test case for 2D rigid body motion.
 
-        This test case verifies the correctness of the solution for 2D rigid body motion.
-        It sets up the problem, applies essential boundary conditions, solves the linear system,
-        and checks if the computed solution matches the expected solution.
+        This test case verifies the correctness of the solution for 2D rigid body
+        motion. It sets up the problem, applies essential boundary conditions, solves
+        the linear system, and checks if the computed solution matches the expected
+        solution.
 
         Returns:
             None
@@ -71,8 +72,9 @@ class ElasticityTestPrimal(unittest.TestCase):
         """
         Test case for simulating rigid body motion in 3D.
 
-        This test sets up a linear system and solves it to simulate rigid body motion in 3D.
-        It verifies that the computed solution matches the expected solution within a tolerance.
+        This test sets up a linear system and solves it to simulate rigid body motion
+        in 3D. It verifies that the computed solution matches the expected solution
+        within a tolerance.
 
         Returns:
             None
@@ -135,8 +137,8 @@ class ElasticityTestPrimal(unittest.TestCase):
         """
         Test case for simulating a 3D footing using elasticity.
 
-        This test sets up a 3D problem with a footing and solves it using elasticity equations.
-        It verifies that the solution has a non-positive z component.
+        This test sets up a 3D problem with a footing and solves it using elasticity
+        equations. It verifies that the solution has a non-positive z component.
 
         Returns:
             None

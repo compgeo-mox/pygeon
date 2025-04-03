@@ -44,7 +44,7 @@ def face_stiff(
 
 
 def ridge_stiff(
-    mdg: Union[pg.Grid, pg.MixedDimensionalGrid],
+    mdg: pg.MixedDimensionalGrid,
     discr: Optional[pg.Discretization] = None,
     **kwargs,
 ) -> sps.csc_array:
@@ -111,4 +111,4 @@ def stiff_matrix(
         mdg, n_minus_k - 1, discr, **kwargs
     )
 
-    return (diff.T @ mass_plus_1 @ diff).tocsc()
+    return (diff.T @ mass_plus_1 @ diff).tocsc()  # type: ignore

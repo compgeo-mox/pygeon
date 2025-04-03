@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 import porepy as pp
-import pygeon as pg
+import pygeon as pg  # type: ignore[import-untyped]
 
 
 class VElasticityTestPrimal(unittest.TestCase):
@@ -44,9 +44,10 @@ class VElasticityTestPrimal(unittest.TestCase):
         """
         Test case for 2D rigid body motion.
 
-        This test case verifies the correctness of the solution for 2D rigid body motion.
-        It sets up the problem, applies essential boundary conditions, solves the linear system,
-        and checks if the computed solution matches the expected solution.
+        This test case verifies the correctness of the solution for 2D rigid body
+        motion. It sets up the problem, applies essential boundary conditions, solves
+        the linear system, and checks if the computed solution matches the expected
+        solution.
 
         Returns:
             None

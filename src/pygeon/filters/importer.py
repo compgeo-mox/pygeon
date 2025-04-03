@@ -26,8 +26,8 @@ def graph_from_file(**kwargs):
         (np.ones(frac.size), (frac, intersect)), shape=shape
     )
     adj = sps.block_array(
-        [[None, frac_to_intersect], [frac_to_intersect.T, None]], format="csc"
-    )
+        [[None, frac_to_intersect], [frac_to_intersect.T, None]]
+    ).tocsc()
 
     # creates a new graph from an adjacency matrix given as a SciPy sparse matrix
     graph = nx.from_scipy_sparse_array(adj)
@@ -53,7 +53,8 @@ def graph_from_file(**kwargs):
         ) in enumerate(np.loadtxt(kwargs["centres"][1])):
             attrs[idi + num_frac]["centre"] = ic
 
-    # read the boundary flags: left 1, right 2, top 3, bottom 4, front 5, back 6, internal 0
+    # read the boundary flags: left 1, right 2, top 3, bottom 4, front 5, back 6,
+    # internal 0
     if kwargs.get("boundary_flag", None) is not None:
         for idi, flag in enumerate(np.loadtxt(kwargs["boundary_flag"], dtype=int)):
             attrs[idi + num_frac]["boundary_flag"] = flag

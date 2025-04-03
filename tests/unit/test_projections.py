@@ -52,7 +52,7 @@ class ProjectionsUnitTest(unittest.TestCase):
         discr = pg.RT0("rt0")
         P = pg.eval_at_cell_centers(mdg, discr)
 
-        data = discr.create_unitary_data(sd, None)
+        data = pg.RT0.create_unitary_data(discr.keyword, sd, None)
         discr_pp = pp.RT0("rt0")
         discr_pp.discretize(sd, data)
         P_pp = data[pp.DISCRETIZATION_MATRICES][discr_pp.keyword][

@@ -54,7 +54,8 @@ def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> pp.MixedDimensionalGr
     Convert a grid object to a mixed-dimensional grid (MDG) object.
 
     Args:
-        sd (Union[pp.MixedDimensionalGrid, pp.Grid]): The input grid object to be converted.
+        sd (Union[pp.MixedDimensionalGrid, pp.Grid]): The input grid object to be
+            converted.
 
     Returns:
         pp.MixedDimensionalGrid: The converted mixed-dimensional grid object.

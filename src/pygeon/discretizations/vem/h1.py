@@ -41,15 +41,16 @@ class VLagrange1(pg.Lagrange1):
         assemble_loc_monomial_mass(sd: pg.Grid, cell: int, diam: float) -> np.ndarray:
             Computes the inner products of the monomials.
 
-        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
+        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float,
+            nodes: np.ndarray) -> np.ndarray:
             Returns the matrix D for the local dofs of monomials.
 
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles and returns the stiffness matrix.
 
-        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
+        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float,
+            nodes: np.ndarray) -> np.ndarray:
             Computes the local VEM stiffness matrix on a given cell.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
@@ -58,7 +59,8 @@ class VLagrange1(pg.Lagrange1):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the function at the cell centers of the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function over the given grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -222,7 +224,8 @@ class VLagrange1(pg.Lagrange1):
 
         M = np.ones((2, 2)) + np.eye(2)
 
-        for face in sd.cell_faces[:, [cell]].indices:
+        cell_col = np.array([cell])
+        for face in sd.cell_faces[:, cell_col].indices:
             sub_volume = (
                 np.dot(
                     sd.face_centers[:, face] - sd.cell_centers[:, cell],

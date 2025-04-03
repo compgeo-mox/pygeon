@@ -10,7 +10,7 @@ import pygeon as pg
 
 def zero_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> Union[sps.csc_array, sps.block_array]:
+) -> Union[sps.csc_array, np.ndarray]:
     """
     Compute the operator that maps the tip degrees of freedom to zero.
 
@@ -23,13 +23,13 @@ def zero_tip_dofs(
                 sub-blocks. Default False.
 
     Returns:
-        sps.csc_array or sps.block_array: The operator that maps the tip degrees of freedom
+        sps.csc_array or np.ndarray: The operator that maps the tip degrees of freedom
             to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
     if n_minus_k == 0:
-        return sps.diags_array(np.ones(mdg.num_subdomain_cells()), dtype=int)
+        return sps.diags_array(np.ones(mdg.num_subdomain_cells()), dtype=int).tocsc()
 
     s = "tip_" + get_codim_str(n_minus_k)
 
@@ -47,12 +47,12 @@ def zero_tip_dofs(
             )
 
     pg.bmat.replace_nones_with_zeros(is_tip_dof)
-    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof, format="csc")
+    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof).tocsc()  # type: ignore[call-overload]
 
 
 def remove_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csr_array:
+) -> sps.csc_array:
     """
     Compute the operator that removes the tip degrees of freedom.
 
@@ -66,10 +66,10 @@ def remove_tip_dofs(
             differential form.
 
     Returns:
-        sps.csr_array: The operator that removes the tip degrees of freedom.
+        sps.csc_array: The operator that removes the tip degrees of freedom.
     """
-    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()
-    return R[R.indices, :]
+    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()  # type: ignore[union-attr]
+    return R[R.indices, :].tocsc()
 
 
 def get_codim_str(n_minus_k: int) -> str:

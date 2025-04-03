@@ -32,7 +32,6 @@ class Poincare:
         Args:
             mdg (pg.MixedDimensionalGrid): a (mixed-dimensional) grid
         """
-
         self.mdg = mdg
         self.dim = mdg.dim_max()
         self.top_sd = mdg.subdomains(dim=self.dim)[0]
@@ -42,7 +41,6 @@ class Poincare:
         """
         Flag the mesh entities that will be used to generate the Poincaré operators
         """
-
         # Preallocation
         self.bar_spaces = np.array([None] * (self.dim + 1))
 
@@ -69,7 +67,6 @@ class Poincare:
         Returns:
             np.ndarray: boolean array with flagged edges
         """
-
         grad = pg.grad(self.mdg)
         incidence = grad.T @ grad
 
@@ -82,9 +79,8 @@ class Poincare:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
         shape = (grad.shape[1], tree.nnz)
-        edge_finder = sps.csc_array((vals, (rows, cols)), shape=shape)
+        edge_finder = abs(grad) @ sps.csc_array((vals, (rows, cols)), shape=shape)
 
-        edge_finder = abs(grad) @ edge_finder
         edge, _, nr_common_nodes = sps.find(edge_finder)
         tree_edges = edge[nr_common_nodes == 2]
 
@@ -100,7 +96,6 @@ class Poincare:
         Returns:
             int: index of the central node
         """
-
         center = np.mean(self.top_sd.nodes, axis=1, keepdims=True)
         dists = np.linalg.norm(self.top_sd.nodes - center, axis=0)
 
@@ -113,7 +108,6 @@ class Poincare:
         Returns:
             np.ndarray: boolean array with flagged nodes
         """
-
         flagged_nodes = np.ones(self.top_sd.num_nodes, dtype=bool)
         flagged_nodes[0] = False
 
@@ -180,7 +174,7 @@ class Poincare:
             f (np.ndarray): the function to be decomposed
 
         Returns:
-            tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
+            Tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
         """
         n_minus_k = self.dim - k
 

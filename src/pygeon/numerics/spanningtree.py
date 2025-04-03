@@ -1,6 +1,6 @@
 """Module for spanning tree computation."""
 
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 import numpy as np
 import porepy as pp
@@ -47,8 +47,10 @@ class SpanningTree:
         solve_transpose(rhs: np.ndarray) -> np.ndarray:
             Post-process the pressure by performing a transposed solve.
 
-        visualize_2d(mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None) -> None:
-            Create a graphical illustration of the spanning tree superimposed on the grid.
+        visualize_2d(mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None)
+            -> None:
+            Create a graphical illustration of the spanning tree superimposed on the
+            grid.
     """
 
     def __init__(
@@ -166,11 +168,11 @@ class SpanningTree:
         This cell will be used as the root of the tree.
         """
         outside_cell = np.zeros((1, self.div.shape[1]))
-        outside_cell[0, self.starting_faces] = -np.sum(
+        outside_cell[0, self.starting_faces] = -np.sum(  # type: ignore[call-overload]
             self.div[:, self.starting_faces], axis=0
         )
 
-        self.div = sps.vstack([self.div, outside_cell], format="csc")
+        self.div = sps.vstack([self.div, outside_cell]).tocsc()  # type: ignore[list-item]
 
     def remove_outside_cell(self) -> None:
         """
@@ -184,7 +186,8 @@ class SpanningTree:
         Construct a spanning tree of the elements.
 
         Returns:
-            sps.csc_array: The computed spanning tree as a compressed sparse column matrix.
+            sps.csc_array: The computed spanning tree as a compressed sparse column
+                matrix.
         """
         incidence = self.div @ self.div.T
 
@@ -209,10 +212,9 @@ class SpanningTree:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        face_finder = sps.csc_array(
+        face_finder = abs(self.div.T) @ sps.csc_array(
             (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
         )
-        face_finder = abs(self.div.T) @ face_finder
         face, tree_edge_ind, nr_common_cells = sps.find(face_finder)
 
         # Polytopal grids may have multiple faces between a pair of cells.
@@ -267,7 +269,7 @@ class SpanningTree:
         Returns:
             np.ndarray: the post-processed pressure field
         """
-        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
+        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")  # type: ignore[call-overload]
 
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None, **kwargs
@@ -355,7 +357,7 @@ class SpanningTree:
 
             # Add connections from the roots to the starting faces
             num_bdry = len(self.starting_faces)
-            bdry_graph = sps.diags_array(
+            bdry_graph = sps.diags_array(  # type: ignore[call-overload]
                 np.ones(num_bdry),
                 num_bdry,
                 shape=(2 * num_bdry, 2 * num_bdry),
@@ -415,7 +417,8 @@ class SpanningTreeElasticity(SpanningTree):
         system (sps.csc_array): The computed system matrix.
 
     Methods:
-        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray)
+            -> None:
             Set up the system for the spanning tree algorithm.
 
         compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
@@ -440,10 +443,10 @@ class SpanningTreeElasticity(SpanningTree):
         """
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        self.expand = self.compute_expand(sd, flagged_faces)
+        self.expand = self.compute_expand(sd, flagged_faces)  # type: ignore[arg-type]
 
         # Save the sparse LU decomposition of the system
-        self.system = self.compute_system(sd)
+        self.system = self.compute_system(sd)  # type: ignore[arg-type]
         self.system_splu = sps.linalg.splu(self.system)
 
     def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
@@ -539,14 +542,14 @@ class SpanningTreeElasticity(SpanningTree):
 
         # combine all the P
         P_div = sps.block_diag([P_div] * sd.dim)
-        P = sps.hstack((P_div, P_asym), format="csc")
+        P = sps.hstack((P_div, P_asym)).tocsc()
 
         # restriction to the flagged faces and restrict P to them
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
         # 3 dof in 2D, 6 dof in 3D
         dofs_per_face = sd.dim * (sd.dim + 1) // 2
 
-        return P @ sps.block_diag([expand] * dofs_per_face, format="csc")
+        return P @ sps.block_diag([expand] * dofs_per_face).tocsc()
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -589,7 +592,8 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         system (sps.csc_array): The computed system matrix.
 
     Methods:
-        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
+        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray)
+            -> None:
             Set up the system for the spanning tree algorithm.
 
         compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
@@ -614,7 +618,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
 
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
 
-        return sps.block_diag([expand] * dim_sig_omega, format="csc")
+        return sps.block_diag([expand] * dim_sig_omega).tocsc()
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -638,7 +642,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         div = M @ vec_rt0.assemble_diff_matrix(sd)
         asym = M @ vec_rt0.assemble_asym_matrix(sd)
 
-        B = sps.block_array([[-div, None], [-asym, -div]], format="csc")
+        B = sps.block_array([[-div, None], [-asym, -div]]).tocsc()  # type: ignore[list-item]
 
         # create the solution operator
         return B @ self.expand
@@ -673,7 +677,7 @@ class SpanningWeightedTrees:
     def __init__(
         self,
         mdg: pg.MixedDimensionalGrid,
-        spt: SpanningTree,
+        spt: Type[SpanningTree],
         weights: np.ndarray,
         starting_faces: Optional[np.ndarray] = None,
     ) -> None:
@@ -682,10 +686,10 @@ class SpanningWeightedTrees:
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
             spt (object): The spanning tree object to use.
-            weights (np.ndarray): The weights to impose for each spanning tree, they need to
-                sum to 1.
-            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified
-                equi-distributed boundary faces are selected.
+            weights (np.ndarray): The weights to impose for each spanning tree, they
+                need to sum to 1.
+            starting_faces (Optional[np.ndarray]): The set of starting faces, if not
+                specified equi-distributed boundary faces are selected.
         """
         if starting_faces is None:
             num = np.asarray(weights).size
