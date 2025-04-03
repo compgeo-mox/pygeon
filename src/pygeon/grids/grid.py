@@ -225,7 +225,16 @@ class Grid(pp.Grid):
 
         # Ridges are oriented from low to high node indices
         ridges.sort(axis=0)
-        ridges, _, indices = pp.utils.setmembership.unique_columns_tol(ridges)
+
+        # Identify the ridges based on unique pairs of peaks
+        ridges, _, indices = pp.array_operations.uniquify_point_set(ridges, tol=1e-8)
+
+        # Sort the ridges by first peak index and second index
+        # i.e. [0,1], [0,2], [1,2]
+        reorder = np.lexsort((ridges[1], ridges[0]))
+        ridges = ridges[:, reorder]
+        indices = np.argsort(reorder)[indices]
+
         self.num_ridges = np.size(ridges, 1)
 
         # Generate ridge-peak connectivity such that
