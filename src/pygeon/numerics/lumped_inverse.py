@@ -103,3 +103,18 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
 
     # Convert the inverse matrix back to CSC format
     return sol.tocsc()
+
+
+def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
+    b_is_vector = b.ndim == 1
+
+    if b_is_vector:
+        b = np.atleast_2d(b).T
+
+    b_csc = sps.csc_array(b)
+    sol = block_diag_solver(M, b_csc).toarray()
+
+    if b_is_vector:
+        sol = np.squeeze(sol)
+
+    return sol

@@ -59,7 +59,11 @@ from pygeon.numerics.spanningtree import (
     SpanningTreeCosserat,
 )
 from pygeon.numerics.poincare import Poincare
-from pygeon.numerics.lumped_inverse import assemble_inverse, block_diag_solver
+from pygeon.numerics.lumped_inverse import (
+    assemble_inverse,
+    block_diag_solver,
+    block_diag_solver_dense,
+)
 
 import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
