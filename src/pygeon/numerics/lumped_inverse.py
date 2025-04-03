@@ -94,7 +94,7 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
         cols = np.unique(np.nonzero(sub_B)[1])
 
         # If there are no non-zero columns, skip this component
-        if not np.any(cols):
+        if cols.size == 0:
             continue
 
         # Create a dense submatrix for the connected component
@@ -129,7 +129,8 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
     """
     # If b is a 1D array, convert it to a 2D column vector
     # This is necessary for the solver to work correctly
-    if b.ndim == 1:
+    is_b_1d = b.ndim == 1
+    if is_b_1d:
         b = np.atleast_2d(b).T
 
     # Transform the right hand side to a sparse matrix
@@ -138,7 +139,7 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
     sol = block_diag_solver(M, b_csc).toarray()
 
     # If b was a 1D array, convert the solution back to a 1D array
-    if b.ndim == 1:
+    if is_b_1d:
         sol = np.squeeze(sol)
 
     return sol
