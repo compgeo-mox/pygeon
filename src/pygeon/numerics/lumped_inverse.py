@@ -37,7 +37,7 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
         indices = np.where(labels == patch)[0]
 
         # Create a submatrix for the connected component
-        submat = M_lil[np.ix_(indices, indices)].toarray()
+        submat = M_lil[np.ix_(indices, indices)].toarray()  # type: ignore[index]
         inv_submat = np.linalg.inv(submat)
 
         # Store the inverse in the corresponding positions
@@ -91,14 +91,14 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
         # Create a submatrix for the connected component
         sub_B = B_lil[rows, :]
         # Get the non-zero columns of the submatrix
-        cols = np.unique(np.nonzero(sub_B)[1])
+        cols = np.unique(np.nonzero(sub_B.tocoo())[1])
 
         # If there are no non-zero columns, skip this component
         if cols.size == 0:
             continue
 
         # Create a dense submatrix for the connected component
-        sub_M = M_lil[np.ix_(rows, rows)].toarray()
+        sub_M = M_lil[np.ix_(rows, rows)].toarray()  # type: ignore[index]
 
         # Solve the dense system and distribute to the solution matrix
         sol[np.ix_(rows, cols)] = scipy.linalg.solve(
