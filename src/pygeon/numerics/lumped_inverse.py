@@ -8,7 +8,7 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
 
-    This function computes the inverse of a sparse matrix `M` by dividing it into
+    This function computes the inverse of a sparse matrix M by dividing it into
     submatrices corresponding to connected components. Each submatrix is inverted
     independently, and the results are assembled into the final inverse matrix.
 
@@ -16,14 +16,10 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
 
     Returns:
-        sps.csc_array: The block-wise inverse of the input matrix `M` in CSC format.
-
-    Raises:
-        AssertionError: If the number of connected components in `M` does not match
-                        the number of nodes in the mesh `sd`.
+        sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
 
     Notes:
-        - The function uses the connected components of the graph represented by `M`
+        - The function uses the connected components of the graph represented by M
           to determine the blocks for inversion.
         - The inversion is performed using dense matrix operations for each block,
           which may be computationally expensive for large blocks.
@@ -31,9 +27,11 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
     # Get connected components
     n_components, labels = csgraph.connected_components(M, directed=False)
 
+    # Convert M to LIL format for efficient row and column access
     M_lil = M.tolil()
     inv_M_lil = sps.lil_array(M_lil.shape)
 
+    # Iterate over each connected component of the matrix M
     for patch in np.arange(n_components):
         # Get the indices of the connected component
         indices = np.where(labels == patch)[0]
