@@ -33,8 +33,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             Compute the total number of ridges in the mixed-dimensional grid.
 
         tag_leafs():
-            Tag the mesh entities that correspond to a mesh entity of a lower-dimensional grid
-            in a grid bucket.
+            Tag the mesh entities that correspond to a mesh entity of a
+            lower-dimensional grid in a grid bucket.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -71,7 +71,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
 
         for intf in self.interfaces():
             sd_pair = self.interface_to_subdomain_pair(intf)
-            intf.compute_geometry(sd_pair)
+            intf.compute_geometry(sd_pair)  # type: ignore[call-arg]
 
         self.tag_leafs()
 
@@ -81,7 +81,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
 
         This method initializes the data for each subdomain and interface
         in the multi-dimensional grid.
-        It sets the parameters and discretization matrices for each subdomain and interface.
+        It sets the parameters and discretization matrices for each subdomain and
+        interface.
 
         Args:
             None
@@ -127,7 +128,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
-        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int)
+        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int)  # type: ignore[arg-type]
 
     def num_subdomain_ridges(
         self, cond: Optional[Callable[[pg.Grid], bool]] = None
@@ -146,7 +147,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         if cond is None:
             cond = lambda _: True
         return np.sum(
-            [sd.num_ridges for sd in self.subdomains() if cond(sd)], dtype=int
+            [sd.num_ridges for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
+            dtype=int,
         )
 
     def num_subdomain_peaks(
@@ -165,7 +167,10 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
-        return np.sum([sd.num_peaks for sd in self.subdomains() if cond(sd)], dtype=int)
+        return np.sum(
+            [sd.num_peaks for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
+            dtype=int,
+        )
 
     def tag_leafs(self) -> None:
         """
@@ -184,15 +189,15 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             sd.tags["leaf_faces"] = sd.tags["tip_faces"] + sd.tags["fracture_faces"]
 
             # Initialize the other tags
-            sd.tags["leaf_ridges"] = np.zeros(sd.num_ridges, dtype=bool)
-            sd.tags["leaf_peaks"] = np.zeros(sd.num_peaks, dtype=bool)
+            sd.tags["leaf_ridges"] = np.zeros(sd.num_ridges, dtype=bool)  # type: ignore[attr-defined]
+            sd.tags["leaf_peaks"] = np.zeros(sd.num_peaks, dtype=bool)  # type: ignore[attr-defined]
 
         for intf in self.interfaces():
             # Tag the ridges that correspond to a cell in a codim 2 domain
             if intf.dim >= 1:
                 sd_up, sd_down = self.interface_to_subdomain_pair(intf)
                 sd_up.tags["leaf_ridges"] += (
-                    abs(intf.face_ridges) @ sd_down.tags["leaf_faces"]
+                    abs(intf.face_ridges) @ sd_down.tags["leaf_faces"]  # type: ignore[attr-defined]
                 ).astype("bool")
 
         for intf in self.interfaces():
@@ -200,5 +205,5 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             if intf.dim >= 2:
                 sd_up, sd_down = self.interface_to_subdomain_pair(intf)
                 sd_up.tags["leaf_peaks"] += (
-                    abs(intf.ridge_peaks) @ sd_down.tags["leaf_ridges"]
+                    abs(intf.ridge_peaks) @ sd_down.tags["leaf_ridges"]  # type: ignore[attr-defined]
                 ).astype("bool")

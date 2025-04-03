@@ -29,13 +29,15 @@ class RT0(pg.Discretization):
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles the mass matrix
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
@@ -48,9 +50,11 @@ class RT0(pg.Discretization):
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.
 
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray],
-            relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
-            Returns the l2 error computed against an analytical solution given as a function.
+        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray],
+            np.ndarray], relative: Optional[bool] = True,
+            etype: Optional[str] = "specific") -> float:
+            Returns the l2 error computed against an analytical solution given as a
+            function.
     """
 
     def ndof(self, sd: pg.Grid) -> int:
@@ -65,13 +69,17 @@ class RT0(pg.Discretization):
         """
         return sd.num_faces
 
-    def create_unitary_data(self, sd: pg.Grid, data: Optional[dict] = None) -> dict:
+    @staticmethod
+    def create_unitary_data(
+        keyword: str, sd: pg.Grid, data: Optional[dict] = None
+    ) -> dict:
         """
         Updates data such that it has all the necessary components for pp.RT0, if the
         second order tensor is not present, it is set to the identity. It represents
         the inverse of the diffusion tensor (permeability for porous media).
 
         Args:
+            keyword (str): The keyword for the discretization.
             sd (pg.Grid): Grid object or a subclass.
             data (dict): Dictionary object or None.
 
@@ -80,20 +88,20 @@ class RT0(pg.Discretization):
         """
         if data is None:
             data = {
-                pp.PARAMETERS: {self.keyword: {}},
-                pp.DISCRETIZATION_MATRICES: {self.keyword: {}},
+                pp.PARAMETERS: {keyword: {}},
+                pp.DISCRETIZATION_MATRICES: {keyword: {}},
             }
 
         try:
-            data[pp.PARAMETERS][self.keyword]["second_order_tensor"]
+            data[pp.PARAMETERS][keyword]["second_order_tensor"]
         except KeyError:
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data[pp.PARAMETERS].update({self.keyword: {"second_order_tensor": perm}})
+            data[pp.PARAMETERS].update({keyword: {"second_order_tensor": perm}})
 
         try:
-            data[pp.DISCRETIZATION_MATRICES][self.keyword]
+            data[pp.DISCRETIZATION_MATRICES][keyword]
         except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {self.keyword: {}}})
+            data.update({pp.DISCRETIZATION_MATRICES: {keyword: {}}})
 
         return data
 
@@ -105,9 +113,9 @@ class RT0(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for scaling,
-                in particular the second_order_tensor that is the inverse of the diffusion
-                tensor (permeability for porous media).
+            data (Optional[dict]): Optional dictionary with physical parameters for
+                scaling, in particular the second_order_tensor that is the inverse of
+                the diffusion tensor (permeability for porous media).
 
         Returns:
             sps.csc_array: The mass matrix.
@@ -117,7 +125,7 @@ class RT0(pg.Discretization):
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
         # create unitary data, unitary permeability, in case not present
-        data = self.create_unitary_data(sd, data)
+        data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -207,7 +215,8 @@ class RT0(pg.Discretization):
 
         Args:
             coord (np.ndarray): the coordinates of the opposite node for each face.
-            sign (np.ndarray): The sign associated to each of the face of the degree of freedom
+            sign (np.ndarray): The sign associated to each of the face of the degree of
+                freedom
             dim (int): The dimension of the grid.
 
         Return:
@@ -286,15 +295,15 @@ class RT0(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for scaling.
-                In particular the second_order_tensor that is the inverse of the diffusion
-                tensor (permeability for porous media).
+            data (Optional[dict]): Optional dictionary with physical parameters for
+                scaling. In particular the second_order_tensor that is the inverse of
+                the diffusion tensor (permeability for porous media).
 
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
         if data is None:
-            data = self.create_unitary_data(sd, data)
+            data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -312,8 +321,8 @@ class RT0(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix corresponding to the differential operator, the divergence in
-        this case.
+        Assembles the matrix corresponding to the differential operator, the divergence
+        in this case.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -331,8 +340,8 @@ class RT0(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
-            func (Callable[[np.ndarray], np.ndarray]): A function that returns the function
-                values at coordinates.
+            func (Callable[[np.ndarray], np.ndarray]): A function that returns the
+                function values at coordinates.
 
         Returns:
             np.ndarray: The values of the degrees of freedom.
@@ -393,7 +402,8 @@ class RT0(pg.Discretization):
         data: Optional[dict] = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -402,7 +412,8 @@ class RT0(pg.Discretization):
                 analytical solution.
             relative (Optional[bool], optional): Compute the relative error or not.
                 Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to "specific".
+            etype (Optional[str], optional): Type of error computed. Defaults to
+                "specific".
 
         Returns:
             float: The computed error.
@@ -423,10 +434,10 @@ class RT0(pg.Discretization):
 
 class BDM1(pg.Discretization):
     """
-    BDM1 is a class that represents the BDM1 (Brezzi-Douglas-Marini) finite element method.
-    It provides methods for assembling matrices, projecting to and from the RT0 space,
-    evaluating the solution at cell centers, interpolating a given function onto the grid,
-    assembling the natural boundary condition term, and more.
+    BDM1 is a class that represents the BDM1 (Brezzi-Douglas-Marini) finite element
+    method. It provides methods for assembling matrices, projecting to and from the RT0
+    space, evaluating the solution at cell centers, interpolating a given function onto
+    the grid, assembling the natural boundary condition term, and more.
 
     Attributes:
         keyword (str): The keyword associated with the BDM1 method.
@@ -453,7 +464,8 @@ class BDM1(pg.Discretization):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the finite element solution at the cell centers of the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a given function onto the grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -463,7 +475,8 @@ class BDM1(pg.Discretization):
         get_range_discr_class(dim: int) -> pg.Discretization:
             Returns the range discretization class for the given dimension.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped matrix for the given grid.
     """
 
@@ -530,7 +543,7 @@ class BDM1(pg.Discretization):
             weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
 
             # Compute the inner products
-            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
+            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]  # type: ignore[union-attr]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -626,7 +639,8 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
         """
-        return sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim).tocsc() / sd.dim
+        proj = sps.hstack([sps.eye_array(sd.num_faces)] * sd.dim) / sd.dim
+        return proj.tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -854,31 +868,34 @@ class RT1(pg.Discretization):
             Returns the number of degrees of freedom for the given grid.
 
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix for the given grid and optional physical parameters.
+            Assembles the mass matrix for the given grid and optional physical
+            parameters.
 
         local_inner_product(dim: int) -> np.ndarray:
             Assembles the local inner product matrix based on the Lagrange2 element.
 
-        reorder_faces(cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int) ->
-            tuple[np.ndarray]:
+        reorder_faces(cell_faces: sps.csc_array, opposite_nodes: sps.csc_array,
+            cell: int) ->  Tuple[np.ndarray]:
             Reorders the local nodes, faces, and corresponding cell-face orientations.
 
-        eval_basis_functions(sd: pg.Grid, nodes_loc: np.ndarray, signs_loc: np.ndarray, volume:
-            float) -> np.ndarray:
+        eval_basis_functions(sd: pg.Grid, nodes_loc: np.ndarray, signs_loc: np.ndarray,
+            volume: float) -> np.ndarray:
 
-        eval_basis_functions_at_center(sd: pg.Grid, nodes_loc: np.ndarray, volume: float) ->
-            np.ndarray:
+        eval_basis_functions_at_center(sd: pg.Grid, nodes_loc: np.ndarray,
+            volume: float) ->  np.ndarray:
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluates the finite element solution at the cell centers of the given grid.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator (divergence).
+            Assembles the matrix corresponding to the differential operator
+            (divergence).
 
         compute_local_div_matrix(dim: int) -> np.ndarray:
             Assembles the local divergence matrix using local node and face ordering.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
@@ -908,9 +925,9 @@ class RT1(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for scaling,
-                in particular the second_order_tensor that is the inverse of the diffusion
-                tensor (permeability for porous media).
+            data (Optional[dict]): Optional dictionary with physical parameters for
+                scaling, in particular the second_order_tensor that is the inverse of
+                the diffusion tensor (permeability for porous media).
 
         Returns:
             sps.csc_array: The mass matrix.
@@ -920,7 +937,7 @@ class RT1(pg.Discretization):
             return sps.csc_array((0, 0))
 
         # create unitary data, unitary permeability, in case not present
-        data = RT0.create_unitary_data(self, sd, data)
+        data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -1158,8 +1175,8 @@ class RT1(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix corresponding to the differential operator, the divergence in
-        this case.
+        Assembles the matrix corresponding to the differential operator, the divergence
+        in this case.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -1244,8 +1261,8 @@ class RT1(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
-            func (Callable[[np.ndarray], np.ndarray]): A function that returns the function
-                values at coordinates.
+            func (Callable[[np.ndarray], np.ndarray]): A function that returns the
+                function values at coordinates.
 
         Returns:
             np.ndarray: The values of the degrees of freedom.

@@ -61,7 +61,7 @@ class RT1Test(unittest.TestCase):
         cell_mass = discr_p.assemble_mass_matrix(sd, None)
         div = cell_mass @ discr_q.assemble_diff_matrix(sd)
 
-        spp = sps.block_array([[face_mass, -div.T], [div, None]], format="csc")
+        spp = sps.block_array([[face_mass, -div.T], [div, None]]).tocsc()
 
         # set the boundary conditions
         b_faces = sd.tags["domain_boundary_faces"]

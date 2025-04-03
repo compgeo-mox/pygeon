@@ -168,6 +168,27 @@ class Lagrange2Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(u, true_sol))
 
+    def test_diff_matrix(self):
+        dim = 2
+        sd = pg.reference_element(dim)
+        sd.compute_geometry()
+
+        discr = pg.Lagrange2()
+        D = discr.assemble_diff_matrix(sd)
+
+        D_known = np.array(
+            [
+                [-3.0, -1.0, 0.0, 4.0, 0.0, 0.0],
+                [0.0, -3.0, -1.0, 0.0, 4.0, 0.0],
+                [-1.0, 0.0, -3.0, 0.0, 0.0, 4.0],
+                [1.0, 3.0, 0.0, -4.0, 0.0, 0.0],
+                [0.0, 1.0, 3.0, 0.0, -4.0, 0.0],
+                [3.0, 0.0, 1.0, 0.0, 0.0, -4.0],
+            ]
+        )
+
+        self.assertTrue(np.allclose(D.todense(), D_known))
+
 
 if __name__ == "__main__":
     unittest.main()

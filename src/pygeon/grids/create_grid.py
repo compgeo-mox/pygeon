@@ -34,9 +34,9 @@ def grid_from_domain(
 
     pg.convert_from_pp(mdg)
     if as_mdg:
-        return mdg
+        return mdg  # type: ignore[return-value]
     else:
-        return mdg.subdomains(dim=mdg.dim_max())[0]
+        return mdg.subdomains(dim=mdg.dim_max())[0]  # type: ignore[return-value]
 
 
 def grid_from_boundary_pts(
@@ -76,7 +76,8 @@ def unit_grid(
         dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
         kwargs: Additional options. The following options are available:
-            - mesh_size_min (float): The minimum mesh size. Default is the same as mesh_size.
+            - mesh_size_min (float): The minimum mesh size. Default is the same as
+                mesh_size.
             - as_mdg (bool): If True, return the grid as a mixed-dimensional grid.
             - structured (bool): If True, create a structured grid.
 
@@ -86,20 +87,20 @@ def unit_grid(
     if dim == 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)
         if dim == 1:
-            sd = pp.CartGrid(num, [1])
+            sd = pp.CartGrid(num, np.ones(1))
         elif dim == 2:
-            sd = pp.StructuredTriangleGrid(num, [1] * dim)
+            sd = pp.StructuredTriangleGrid(num, np.ones(dim))  # type: ignore[assignment]
         else:
-            sd = pp.StructuredTetrahedralGrid(num, [1] * dim)
+            sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))  # type: ignore[assignment]
         pg.convert_from_pp(sd)
 
         if kwargs.get("as_mdg", True):
-            return pp.meshing.subdomains_to_mdg([[sd]])
-        return sd
+            return pp.meshing.subdomains_to_mdg([[sd]])  # type: ignore[return-value]
+        return sd  # type: ignore[return-value]
 
-    bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
+    bbox = {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0}
     if dim == 3:
-        bbox.update({"zmin": 0, "zmax": 1})
+        bbox.update({"zmin": 0.0, "zmax": 1.0})
 
     domain = pp.Domain(bounding_box=bbox)
     return grid_from_domain(domain, mesh_size, **kwargs)
@@ -118,7 +119,7 @@ def reference_element(dim: int) -> pg.Grid:
     if dim == 1:
         sd = unit_grid(1, 1, as_mdg=False)
         sd.name = "reference_segment"
-        return sd
+        return sd  # type: ignore[return-value]
     elif dim == 2:
         nodes = np.eye(3, k=1)
 
@@ -140,3 +141,5 @@ def reference_element(dim: int) -> pg.Grid:
         cell_faces = sps.csc_array(np.ones((4, 1)))
 
         return pg.Grid(3, nodes, face_nodes, cell_faces, "reference_tetrahedron")
+    else:
+        raise ValueError("Dimension must be 1, 2, or 3.")

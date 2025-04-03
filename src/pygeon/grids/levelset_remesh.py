@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -95,14 +95,14 @@ def merge_connectivities(
 
 
 def create_new_entity_map(
-    cut_entities: np.ndarray[Any, bool], offset: Optional[int] = 0
+    cut_entities: np.ndarray, offset: Optional[int] = 0
 ) -> sps.csc_array:
     """
     Creates a mapping matrix of size n_new x n_old in which
     (i_new, i_old) = 1 if i_new is a new entity placed on i_old
 
     Args:
-        cut_entities (np.ndarray[Any, bool]): Boolean array indicating which entities are cut
+        cut_entities (np.ndarray): Boolean array indicating which entities are cut
         offset (int, optional): Offset value for the mapping matrix. Defaults to 0.
 
     Returns:
@@ -120,15 +120,16 @@ def create_new_entity_map(
 
 
 def create_splitting_map(
-    cut_entities: np.ndarray[Any, bool], offset: Optional[int] = 0
+    cut_entities: np.ndarray, offset: Optional[int] = 0
 ) -> sps.csc_array:
     """
     Creates a mapping matrix of size n_new x n_old in which
     (i_new, i_old) = 1 if i_new is a new entity from a splitting of i_old
 
     Args:
-        cut_entities (np.ndarray[Any, bool]): Boolean array indicating which entities are cut
-        offset (int, optional): Offset value for the rows of the mapping matrix. Defaults to 0.
+        cut_entities (np.ndarray): Boolean array indicating which entities are cut
+        offset (int, optional): Offset value for the rows of the mapping matrix.
+        Defaults to 0.
 
     Returns:
         sps.csc_array: Mapping matrix of size n_new x n_old
@@ -146,7 +147,7 @@ def create_splitting_map(
 
 def intersect_faces(
     sd: pg.Grid, levelset: Callable, root_finder=brentq
-) -> Tuple[np.ndarray[Any, bool], np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Marks the cells and faces cut by the level set and
     finds the new nodes at the intersection points.
@@ -182,14 +183,12 @@ def intersect_faces(
         elif np.prod(levelset_vals) == 0:
             raise NotImplementedError("Level set passes exactly through a node.")
 
-    new_nodes = np.vstack(new_nodes).T
+    new_nodes_array = np.vstack(new_nodes).T
 
-    return cut_faces, new_nodes
+    return cut_faces, new_nodes_array
 
 
-def intersect_cells(
-    sd: pg.Grid, cut_faces: np.ndarray[Any, bool]
-) -> np.ndarray[Any, bool]:
+def intersect_cells(sd: pg.Grid, cut_faces: np.ndarray) -> np.ndarray:
     """
     Marks the cells that are cut and checks if each cut cell is only cut once.
 
@@ -210,8 +209,8 @@ def intersect_cells(
 
 def create_new_face_nodes(
     sd: pg.Grid,
-    cut_cells: np.ndarray[Any, bool],
-    cut_faces: np.ndarray[Any, bool],
+    cut_cells: np.ndarray,
+    cut_faces: np.ndarray,
     entity_maps: Dict,
 ) -> sps.csc_array:
     """
@@ -248,20 +247,20 @@ def create_new_face_nodes(
         new_faces = entity_maps["f_on_f"][:, [face]].indices
         new_node = entity_maps["n_on_f"][:, [face]].indices[0]
 
-        rows.append([old_nodes[0], new_node, old_nodes[1], new_node])
+        rows.append(np.array([old_nodes[0], new_node, old_nodes[1], new_node]))
         cols.append(np.repeat(new_faces, 2))
 
-    rows = np.hstack(rows)
-    cols = np.hstack(cols)
-    data = np.ones_like(rows, dtype=bool)
+    rows_array = np.hstack(rows)
+    cols_array = np.hstack(cols)
+    data_array = np.ones_like(rows_array, dtype=bool)
 
-    return sps.csc_array((data, (rows, cols)))
+    return sps.csc_array((data_array, (rows_array, cols_array)))
 
 
 def create_new_cell_faces(
     sd: pg.Grid,
-    cut_cells: np.ndarray[Any, bool],
-    cut_faces: np.ndarray[Any, bool],
+    cut_cells: np.ndarray,
+    cut_faces: np.ndarray,
     entity_maps: Dict,
     face_nodes: sps.csc_array,
 ) -> sps.csc_array:
@@ -300,8 +299,9 @@ def create_new_cell_faces(
         faces_el = sd.cell_faces[:, [el]].indices
 
         # Extract positively oriented face_node connectivity
+        cell_faces_loc = np.array(cell_faces[faces_el, [el]])
         face_nodes_el = face_ridges[:, faces_el] @ sps.diags_array(
-            cell_faces[faces_el, [el]].ravel()
+            cell_faces_loc.ravel()
         )
 
         (I_node, J_face, V_orient) = sps.find(face_nodes_el)
@@ -334,27 +334,27 @@ def create_new_cell_faces(
             )
             if sub_faces.size:
                 rows.append(sub_faces)
-                data.append(cell_faces[sub_faces, [el]].ravel())
+                cell_faces_loc = np.array(cell_faces[sub_faces, [el]])
+                data.append(cell_faces_loc.ravel())
 
             # Faces that are cut at the start/end of the loop
             start_face = faces_el[
                 J_face[np.logical_and(I_node == loop_starts[i], V_orient == 1)][0]
             ]
             splits_at_start = entity_maps["f_on_f"][:, [start_face]].indices
-            face_at_start = splits_at_start[
-                np.argmax(face_nodes[loop_starts[i], [splits_at_start]])
-            ]
+            face_nodes_loc = face_nodes[loop_starts[i], [splits_at_start]].todense()
+            face_at_start = splits_at_start[np.argmax(face_nodes_loc)]
 
             end_face = faces_el[
                 J_face[np.logical_and(I_node == loop_ends[i], V_orient == -1)][0]
             ]
             splits_at_end = entity_maps["f_on_f"][:, [end_face]].indices
-            face_at_end = splits_at_end[
-                np.argmax(face_nodes[loop_ends[i], [splits_at_end]])
-            ]
 
-            rows.append([face_at_start, face_at_end])
-            data.append([-1, 1])
+            face_nodes_loc = face_nodes[loop_ends[i], [splits_at_end]].todense()
+            face_at_end = splits_at_end[np.argmax(face_nodes_loc)]
+
+            rows.append(np.array([face_at_start, face_at_end]))
+            data.append(np.array([-1, 1]))
 
             # The new face cutting through the element
             cutting_face = entity_maps["f_on_c"][:, [el]].indices[0]
@@ -368,18 +368,18 @@ def create_new_cell_faces(
 
             cols.append(np.repeat(new_cells[i], 3 + len(sub_faces)))
 
-    rows = np.hstack(rows)
-    cols = np.hstack(cols)
-    data = np.hstack(data)
+    rows_array = np.hstack(rows)
+    cols_array = np.hstack(cols)
+    data_array = np.hstack(data)
 
-    return sps.csc_array((data, (rows, cols)))
+    return sps.csc_array((data_array, (rows_array, cols_array)))
 
 
 def create_oriented_node_loop(
-    I_node: np.ndarray[Any, int],
-    J_face: np.ndarray[Any, int],
-    V_orient: np.ndarray[Any, float],
-) -> np.ndarray[Any, int]:
+    I_node: np.ndarray,
+    J_face: np.ndarray,
+    V_orient: np.ndarray,
+) -> np.ndarray:
     """
     Creates a node loop for the cell according to a positive orientation.
 

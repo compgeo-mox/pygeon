@@ -26,10 +26,12 @@ class VecDiscretization(pg.Discretization):
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix corresponding to the differential operator.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles the lumped mass matrix given by the row sums on the diagonal.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space.
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
@@ -91,7 +93,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The mass matrix obtained from the discretization.
         """
         mass = self.scalar_discr.assemble_mass_matrix(sd, data)
-        return sps.block_diag([mass] * sd.dim, format="csc")
+        return sps.block_diag([mass] * sd.dim).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -104,7 +106,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The differential matrix.
         """
         diff = self.scalar_discr.assemble_diff_matrix(sd)
-        return sps.block_diag([diff] * sd.dim, format="csc")
+        return sps.block_diag([diff] * sd.dim).tocsc()
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -120,7 +122,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The lumped mass matrix.
         """
         lumped_mass = self.scalar_discr.assemble_lumped_matrix(sd, data)
-        return sps.block_diag([lumped_mass] * sd.dim, format="csc")
+        return sps.block_diag([lumped_mass] * sd.dim).tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -152,7 +154,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
         P = self.scalar_discr.eval_at_cell_centers(sd)
-        return sps.block_diag([P] * sd.dim, format="csc")
+        return sps.block_diag([P] * sd.dim).tocsc()
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray

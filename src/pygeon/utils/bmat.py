@@ -1,5 +1,7 @@
 """Block matrix utilities."""
 
+from typing import Tuple
+
 import numpy as np
 import scipy.sparse as sps
 
@@ -29,7 +31,7 @@ def replace_nones_with_zeros(mat: np.ndarray) -> None:
             mat[i, j] = sps.csc_array((row_lengths[i], col_lengths[j]))
 
 
-def find_row_col_lengths(mat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def find_row_col_lengths(mat: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find shapes of the blocks in mat.
 

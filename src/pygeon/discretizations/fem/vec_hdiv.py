@@ -11,11 +11,11 @@ import pygeon as pg
 
 class VecBDM1(pg.VecDiscretization):
     """
-    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite element
-    method. It provides methods for assembling matrices like the mass matrix, the trace matrix,
-    the asymmetric matrix and the differential matrix. It also provides methods for
-    evaluating the solution at cell centers, interpolating a given function onto the grid,
-    assembling the natural boundary condition term, and more.
+    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite
+    element method. It provides methods for assembling matrices like the mass matrix,
+    the trace matrix, the asymmetric matrix and the differential matrix. It also
+    provides methods for evaluating the solution at cell centers, interpolating a given
+    function onto the grid, assembling the natural boundary condition term, and more.
 
     Attributes:
         keyword (str): The keyword associated with the vector BDM1 method.
@@ -39,7 +39,8 @@ class VecBDM1(pg.VecDiscretization):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the finite element solution at the cell centers of the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a given function onto the grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -137,9 +138,10 @@ class VecBDM1(pg.VecDiscretization):
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat inner
-        product, which is given by (A sigma, tau) where
-        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu) + skw(sigma) / (2 mu_c)
+        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
+        inner product, which is given by (A sigma, tau) where
+        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
+                  + skw(sigma) / (2 mu_c)
         with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
         mu_c the coupling Lamé modulus.
 
@@ -158,7 +160,8 @@ class VecBDM1(pg.VecDiscretization):
 
         coeff = 0.25 * (1 / mu_c - 1 / mu)
 
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per cell
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per
+        # cell
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 
@@ -207,7 +210,7 @@ class VecBDM1(pg.VecDiscretization):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -291,7 +294,7 @@ class VecBDM1(pg.VecDiscretization):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
 
             for ind in ind_list:
                 Psi_v_copy = Psi_v.copy()
@@ -384,7 +387,8 @@ class VecBDM1(pg.VecDiscretization):
 
         coeff = 0.25 * (1 / mu_c - 1 / mu)
 
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per cell
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per
+        # cell
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 
@@ -413,7 +417,7 @@ class VecBDM1(pg.VecDiscretization):
             sps.csc_array: The projection matrix to the RT0 space.
         """
         proj = self.scalar_discr.proj_to_RT0(sd)
-        return sps.block_diag([proj] * sd.dim, format="csc")
+        return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -426,7 +430,7 @@ class VecBDM1(pg.VecDiscretization):
             sps.csc_array: The projection matrix.
         """
         proj = self.scalar_discr.proj_from_RT0(sd)
-        return sps.block_diag([proj] * sd.dim, format="csc")
+        return sps.block_diag([proj] * sd.dim).tocsc()
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -519,9 +523,10 @@ class VecRT0(pg.VecDiscretization):
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat inner
-        product, which is given by (A sigma, tau) where
-        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu) + skw(sigma) / (2 mu_c)
+        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
+        inner product, which is given by (A sigma, tau) where
+        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
+                  + skw(sigma) / (2 mu_c)
         with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
         mu_c the coupling Lamé modulus.
 
@@ -542,7 +547,8 @@ class VecRT0(pg.VecDiscretization):
 
         coeff = 0.25 * (1 / mu_c - 1 / mu)
 
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per cell
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per
+        # cell
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 

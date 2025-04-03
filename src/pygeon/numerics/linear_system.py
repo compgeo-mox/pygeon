@@ -100,22 +100,24 @@ class LinearSystem:
 
         return sol
 
-    def repeat_ess_vals(self) -> Union[np.ndarray, sps.csr_array]:
+    def repeat_ess_vals(self) -> Union[np.ndarray, sps.csc_array]:
         """
         Repeat the essential values of the linear system.
 
-        If the input vector `b` has dimension 1, the method returns the essential values as is.
-        Otherwise, it calculates the sum of the essential values for each column of `b`.
+        If the input vector `b` has dimension 1, the method returns the essential values
+        as is. Otherwise, it calculates the sum of the essential values for each column
+        of `b`.
 
         Returns:
-            numpy.ndarray or scipy.sparse.csr_array: The repeated essential values.
+            numpy.ndarray or scipy.sparse.csc_array: The repeated essential values.
         """
         if self.b.ndim == 1:
             return self.ess_vals
         else:
-            return sps.csr_array(self.ess_vals).T @ sps.csc_array(
+            vals = sps.csr_array(self.ess_vals).T @ sps.csc_array(
                 np.ones(self.b.shape[1])
             )
+            return vals.tocsc()
 
 
 def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
@@ -129,5 +131,5 @@ def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
     Returns:
         sps.csc_array: The restriction mapping matrix.
     """
-    R = sps.diags_array(keep_dof, dtype=int, format="csr")
+    R = sps.diags_array(keep_dof, dtype=int).tocsr()
     return R[R.indices, :].tocsc()

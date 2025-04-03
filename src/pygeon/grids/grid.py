@@ -1,6 +1,6 @@
 """Grid class for the pygeon package."""
 
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import porepy as pp
@@ -35,16 +35,16 @@ class Grid(pp.Grid):
             Computes the ridges of the grid.
 
         _compute_ridges_01d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
-            of dimension 0 or 1.
+            Assigns the number of ridges, number of peaks, and connectivity matrices to
+            a grid of dimension 0 or 1.
 
         _compute_ridges_2d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
-            of dimension 2.
+            Assigns the number of ridges, number of peaks, and connectivity matrices to
+            a grid of dimension 2.
 
         _compute_ridges_3d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to a grid
-            of dimension 3.
+            Assigns the number of ridges, number of peaks, and connectivity matrices to
+            a grid of dimension 3.
 
         tag_ridges():
             Tags the peaks and ridges of the grid located on fracture tips.
@@ -72,8 +72,8 @@ class Grid(pp.Grid):
             None
         """
         super(Grid, self).__init__(*args, **kwargs)
-        self.face_nodes: sps.csc_array
-        self.cell_faces: sps.csc_array
+        self.face_nodes: sps.csc_array  # type: ignore[assignment]
+        self.cell_faces: sps.csc_array  # type: ignore[assignment]
 
     def compute_geometry(self) -> None:
         """
@@ -134,8 +134,8 @@ class Grid(pp.Grid):
 
         This method calculates the number of ridges and peaks in a grid of dimension
         0 or 1.
-        It also initializes the ridge_peaks and face_ridges matrices with the appropriate
-        dimensions.
+        It also initializes the ridge_peaks and face_ridges matrices with the
+        appropriate dimensions.
 
         Args:
             None
@@ -153,9 +153,9 @@ class Grid(pp.Grid):
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 2.
 
-        This method computes the number of ridges, number of peaks, and connectivity matrices
-        for a 2-dimensional grid. It also computes the face-ridge orientation based on the
-        rotated normal and the difference vector between the ridges.
+        This method computes the number of ridges, number of peaks, and connectivity
+        matrices for a 2-dimensional grid. It also computes the face-ridge orientation
+        based on the rotated normal and the difference vector between the ridges.
 
         Args:
             None
@@ -189,10 +189,10 @@ class Grid(pp.Grid):
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 3.
 
-        This method computes the number of ridges, number of peaks, and connectivity matrices
-        for a 3-dimensional grid. It calculates the ridges between each pair of nodes in
-        each face, determines the orientation of each ridge with respect to the face, and
-        generates the ridge-peak and face-ridge connectivity matrices.
+        This method computes the number of ridges, number of peaks, and connectivity
+        matrices for a 3-dimensional grid. It calculates the ridges between each pair of
+        nodes in each face, determines the orientation of each ridge with respect to the
+        face, and generates the ridge-peak and face-ridge connectivity matrices.
 
         Args:
             None
@@ -255,10 +255,10 @@ class Grid(pp.Grid):
         """
         Tag the peaks and ridges of the grid located on fracture tips.
 
-        This method tags the peaks and ridges of the grid that are located on fracture tips.
-        It sets the "tip_peaks" and "tip_ridges" tags in the grid object.
-        For 2D grids, the "tip_ridges" tag is determined based on the "tip_faces" tag and
-        the face ridges.
+        This method tags the peaks and ridges of the grid that are located on fracture
+        tips. It sets the "tip_peaks" and "tip_ridges" tags in the grid object.
+        For 2D grids, the "tip_ridges" tag is determined based on the "tip_faces" tag
+        and the face ridges.
         For 3D grids, the "tip_ridges" tag is initialized as an array of zeros.
         The "domain_boundary_ridges" tag is also set based on the face ridges and the
         "domain_boundary_faces" tag.
@@ -282,7 +282,7 @@ class Grid(pp.Grid):
 
     def compute_subvolumes(
         self, return_subsimplices: Optional[bool] = False
-    ) -> Union[tuple[sps.csc_array, sps.csc_array], sps.csc_array]:
+    ) -> Union[Tuple[sps.csc_array, sps.csc_array], sps.csc_array]:
         """
         Compute the subvolumes of the grid.
 
@@ -291,8 +291,8 @@ class Grid(pp.Grid):
                                                     Defaults to False.
 
         Returns:
-            sps.csc_array: The computed subvolumes with each entry [node, cell] describing
-                    the signed measure of the associated sub-volume
+            sps.csc_array: The computed subvolumes with each entry [node, cell]
+                describing the signed measure of the associated sub-volume
         """
         sub_simplices = sps.csc_array(self.cell_faces.copy().astype(float))
 

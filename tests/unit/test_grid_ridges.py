@@ -7,13 +7,15 @@ import scipy.sparse as sps
 import pygeon as pg
 
 """
-Module contains a unit tests to validate the computation of ridges (co-dimension 2 from a cell).
+Module contains a unit tests to validate the computation of ridges (co-dimension 2 from 
+a cell).
 """
 
 
 class GridRidgesTest(unittest.TestCase):
     def test_grid_0d(self):
-        # no ridges or peaks are defined in 0d, we should obtain an empty map with correct size
+        # no ridges or peaks are defined in 0d, we should obtain an empty map with
+        # correct size
         sd = pp.PointGrid([0, 0, 0])
         pg.convert_from_pp(sd)
         sd.compute_geometry()
@@ -26,7 +28,8 @@ class GridRidgesTest(unittest.TestCase):
         self.assertEqual(sd.face_ridges.shape, (0, 0))
 
     def test_grid_1d(self):
-        # no ridges or peaks are defined in 1d, we should obtain an empty map with correct size
+        # no ridges or peaks are defined in 1d, we should obtain an empty map with
+        # correct size
         N = 3
         sd = pp.CartGrid(N)
         pg.convert_from_pp(sd)

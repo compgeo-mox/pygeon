@@ -26,16 +26,17 @@ class PieceWisePolynomial(pg.Discretization):
             Abstract method that returns the number of degrees of freedom per cell.
 
         assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles and returns the matrix corresponding to the differential operator for
-            the given grid.
+            Assembles and returns the matrix corresponding to the differential operator
+            for the given grid.
 
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles and returns the stiffness matrix for the given grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
             np.ndarray) -> np.ndarray:
-            Assembles and returns the natural boundary condition vector, which is equal to
-            zero.
+            Assembles and returns the natural boundary condition vector, which is equal
+            to zero.
 
         get_range_discr_class(dim: int) -> Type[pg.Discretization]:
             Returns the discretization class for the range of the differential.
@@ -144,18 +145,24 @@ class PwConstants(PieceWisePolynomial):
         assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Computes the mass matrix for piecewise constants.
 
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Computes the lumped mass matrix, which coincides with the mass matrix for P0.
+        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
+            Computes the lumped mass matrix, which coincides with the mass matrix for
+            P0.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> sps.csc_array:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> sps.csc_array:
             Interpolates a function onto the finite element space.
 
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix that evaluates a function at the cell centers of a grid.
+            Assembles the matrix that evaluates a function at the cell centers of a
+            grid.
 
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray], np.ndarray],
-            relative: Optional[bool] = True, etype: Optional[str] = "specific") -> float:
-            Returns the l2 error computed against an analytical solution given as a function.
+        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray],
+            np.ndarray], relative: Optional[bool] = True,
+            etype: Optional[str] = "specific") -> float:
+            Returns the l2 error computed against an analytical solution given as a
+            function.
 
         _cell_error(sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray) -> float:
             Calculate the error for each cell in the finite element mesh.
@@ -231,8 +238,7 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: The projection matrix.
         """
-
-        return sps.vstack([self.eval_at_cell_centers(sd)] * (sd.dim + 1))
+        return sps.vstack([self.eval_at_cell_centers(sd)] * (sd.dim + 1)).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -256,7 +262,8 @@ class PwConstants(PieceWisePolynomial):
         data: Optional[dict] = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -265,7 +272,8 @@ class PwConstants(PieceWisePolynomial):
                 analytical solution.
             relative (Optional[bool], optional): Compute the relative error or not.
                 Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to "specific".
+            etype (Optional[str], optional): Type of error computed. Defaults to
+            "specific".
 
         Returns:
             float: The computed error.
@@ -323,7 +331,8 @@ class PwLinears(PieceWisePolynomial):
             Assembles the matrix for evaluating the discretization at the cell centers.
             Not implemented.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space. Not implemented.
     """
 
@@ -417,9 +426,8 @@ class PwLinears(PieceWisePolynomial):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        eye = sps.eye_array(sd.num_cells) / (sd.dim + 1)
-
-        return sps.hstack([eye] * (sd.dim + 1)).tocsc()
+        matr = sps.hstack([sps.eye_array(sd.num_cells)] * (sd.dim + 1)) / (sd.dim + 1)
+        return matr.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -448,7 +456,8 @@ class PwLinears(PieceWisePolynomial):
 
 class PwQuadratics(PieceWisePolynomial):
     """
-    PwQuadratics is a class that represents piecewise quadratic finite element discretizations.
+    PwQuadratics is a class that represents piecewise quadratic finite element
+    discretizations.
 
     Attributes:
         keyword (str): The keyword for the discretization.
@@ -463,7 +472,8 @@ class PwQuadratics(PieceWisePolynomial):
         eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Assembles the matrix for evaluating the discretization at the cell centers.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function onto the finite element space.
     """
 
