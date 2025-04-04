@@ -82,7 +82,9 @@ class EinSteinGrid(pg.Grid):
 
         n = 14
         # uniquify the points coordinate
-        coords, _, cell_nodes = pp.utils.setmembership.unique_columns_tol(all_pts)
+        coords, _, cell_nodes = pp.array_operations.uniquify_point_set(
+            all_pts, tol=1e-8
+        )
         # cell node map after uniquify
         cell_nodes = cell_nodes.reshape((-1, n))
 
