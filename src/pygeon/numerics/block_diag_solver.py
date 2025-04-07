@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sps
-import scipy.sparse.csgraph as csgraph
+import scipy.sparse.csgraph as csgraph  # type: ignore[import-untyped]
 
 
 def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
