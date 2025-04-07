@@ -487,7 +487,7 @@ class VecLagrange1(pg.VecDiscretization):
 
 
 class VecLagrange2(pg.VecDiscretization):
-    """ ""
+    """
     VecLagrange2 is a vector discretization class that extends the functionality of
     the pg.VecDiscretization base class. It utilizes the pg.Lagrange2 scalar
     discretization class for its operations.
