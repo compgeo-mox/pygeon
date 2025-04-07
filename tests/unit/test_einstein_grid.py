@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import scipy.sparse as sps
 
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 import os
 
 

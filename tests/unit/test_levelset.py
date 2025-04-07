@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 import scipy.sparse as sps
 
-import pygeon as pg  # type: ignore[import-untyped]
-import pygeon.grids.levelset_remesh as remesh  # type: ignore[import-untyped]
+import pygeon as pg
+import pygeon.grids.levelset_remesh as remesh
 import porepy as pp
 
 

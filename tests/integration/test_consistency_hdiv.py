@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 
 """
 Module contains tests to validate the consistency between H(div) discretizations.

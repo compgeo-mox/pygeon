@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import porepy as pp
 
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 
 """
 Module contains a unit tests to validate the edge length computations for grids

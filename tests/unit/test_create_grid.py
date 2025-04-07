@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 
 import porepy as pp
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 
 
 class StandardGridTest(unittest.TestCase):

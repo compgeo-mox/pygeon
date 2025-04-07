@@ -6,7 +6,7 @@ import numpy as np
 import porepy as pp
 import scipy.sparse as sps
 
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 
 
 class BDM1Test(unittest.TestCase):

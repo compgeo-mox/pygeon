@@ -1,5 +1,5 @@
 import numpy as np
-import pygeon as pg  # type: ignore[import-untyped]
+import pygeon as pg
 import unittest
 
 
