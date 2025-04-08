@@ -470,3 +470,70 @@ class VecLagrange1(pg.VecDiscretization):
         """
         proj = self.scalar_discr.proj_to_pwConstants(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
+
+    def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a linear Lagrangian function to a second
+        order vector Lagrange function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.scalar_discr.proj_to_lagrange2(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
+
+
+class VecLagrange2(pg.VecDiscretization):
+    """
+    VecLagrange2 is a vector discretization class that extends the functionality of
+    the pg.VecDiscretization base class. It utilizes the pg.Lagrange2 scalar
+    discretization class for its operations.
+
+    Attributes:
+        scalar_discr (pg.Lagrange2): The scalar discretization class used for
+            vector discretization.
+
+        keyword (str): A keyword specifying the type of vector discretization.
+            Defaults to pg.UNITARY_DATA.
+
+    Methods:
+        __init__(keyword: str = pg.UNITARY_DATA) -> None:
+            Initializes the VecLagrange2 class with the specified keyword and
+            sets up the scalar discretization class.
+    """
+
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        """
+        Initialize the vector discretization class.
+        The scalar discretization class is pg.Lagrange2.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+
+        Returns:
+            None
+        """
+        self.scalar_discr: pg.Lagrange2
+        super().__init__(keyword, pg.Lagrange2)
+
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the discretization class that contains the range of the differential.
+
+        Args:
+            dim (int): The dimension of the range.
+
+        Returns:
+            Discretization: The discretization class that contains the range of
+                the differential.
+
+        Raises:
+            NotImplementedError: If there is no range discretization for the vector
+                Lagrangian 2 in PyGeoN.
+        """
+        raise NotImplementedError(
+            "There's no range discr for the vector Lagrangian 2 in PyGeoN"
+        )
