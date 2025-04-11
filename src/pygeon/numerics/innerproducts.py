@@ -132,7 +132,7 @@ def local_matrix(
     Compute the local matrix for a given spatial domain.
 
     Args:
-        sd (Union[pp.Grid, pg.Grid, pg.Graph]): The spatial domain.
+        sd (pg.Grid): The spatial domain.
         n_minus_k (int): The number of basis functions minus the number of constraints.
         discr (pg.Discretization): The discretization scheme.
         d_sd (dict): Additional parameters for the spatial domain.
