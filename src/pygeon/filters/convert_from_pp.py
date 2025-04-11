@@ -9,14 +9,13 @@ import pygeon as pg
 
 
 def convert_from_pp(
-    obj: Union[pg.Graph, pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid],
+    obj: Union[pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid],
 ) -> None:
     """
     Convert an object from the PorePy library to the PyGeoN  library.
 
     Args:
         obj: The object to be converted. It can be one of the following types:
-            - pg.Graph: No conversion is needed.
             - pp.Grid: Convert to pg.Grid.
             - pp.MortarGrid: Convert to pg.MortarGrid.
             - pp.MixedDimensionalGrid: Convert to pg.MixedDimensionalGrid.
@@ -24,9 +23,7 @@ def convert_from_pp(
     Raises:
         TypeError: If the input object is not one of the supported types.
     """
-    if isinstance(obj, pg.Graph):
-        pass
-    elif isinstance(obj, pp.Grid):
+    if isinstance(obj, pp.Grid):
         obj.__class__ = pg.Grid
     elif isinstance(obj, pp.MortarGrid):
         obj.__class__ = pg.MortarGrid

@@ -6,21 +6,6 @@ import pygeon as pg
 
 
 class ConvertFromPpTest(unittest.TestCase):
-    def test_convert_graph(self):
-        class DummyGraph:
-            pass
-
-        g = DummyGraph()
-
-        self.assertRaises(TypeError, pg.convert_from_pp, g)
-        self.assertRaises(ValueError, pg.as_mdg, g)
-
-        g.__class__ = pg.Graph
-
-        pg.convert_from_pp(g)
-        # No conversion is needed, so the object should remain unchanged
-        self.assertIsInstance(g, pg.Graph)
-
     def test_convert_grid(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
