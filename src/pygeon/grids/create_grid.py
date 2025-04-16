@@ -1,7 +1,7 @@
 """Create grids from various sources."""
 
-from typing import Union
 import inspect
+from typing import Union
 
 import numpy as np
 import porepy as pp
