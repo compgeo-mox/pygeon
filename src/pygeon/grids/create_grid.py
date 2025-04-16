@@ -1,5 +1,6 @@
 """Create grids from various sources."""
 
+import inspect
 from typing import Union
 
 import numpy as np
@@ -28,9 +29,19 @@ def grid_from_domain(
     """
     as_mdg = kwargs.get("as_mdg", True)
     mesh_size_min = kwargs.get("mesh_size_min", mesh_size / 10)
-
     mesh_kwargs = {"mesh_size_frac": mesh_size, "mesh_size_min": mesh_size_min}
-    mdg = pp.create_fracture_network(domain=domain).mesh(mesh_kwargs, **kwargs)
+
+    # Inspect the signature of the function to get the valid parameters
+    sig = inspect.signature(pp.create_fracture_network)
+    sub_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+    # Create the fracture network
+    frac_net = pp.create_fracture_network(domain=domain, **sub_kwargs)
+
+    # Inspect the signature of the function to get the valid parameters
+    sig = inspect.signature(frac_net.mesh)
+    sub_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+    # Create the mesh
+    mdg = frac_net.mesh(mesh_kwargs, **sub_kwargs)
 
     pg.convert_from_pp(mdg)
     if as_mdg:
