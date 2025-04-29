@@ -103,11 +103,14 @@ class VecBDM1(pg.VecDiscretization):
             sps.csc_array: The mass matrix obtained from the discretization.
         """
         if data is None:
-            raise ValueError("Data must be provided for the assembly")
-
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5 * np.ones(sd.num_cells)
+            lambda_ = np.zeros(sd.num_cells)
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
 
         # If mu is a scalar, replace it by a vector so that it can be accessed per cell
         if isinstance(mu, np.ScalarType):
@@ -499,27 +502,41 @@ class VecRT0(pg.VecDiscretization):
             sps.csc_array: The mass matrix obtained from the discretization.
         """
         if data is None:
-            raise ValueError("Data must be provided for the assembly")
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5 * np.ones(sd.num_cells)
+            lambda_ = np.zeros(sd.num_cells)
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
 
-        # Assemble the block diagonal mass matrix for the base discretization class,
-        # with unitary data. The data are handled afterwards
-        D = super().assemble_mass_matrix(sd)
+        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(mu, np.ScalarType):
+            mu = np.full(sd.num_cells, mu)
 
+        # Save 1/(2mu) as a tensor so that it can be read by BDM1
+        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
+        data_for_RT0 = pp.initialize_data(
+            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
+        )
+
+        # Save the coefficient for the trace contribution
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        # Assemble the block diagonal mass matrix for the base discretization class
+        D = super().assemble_mass_matrix(sd, data_for_RT0)
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
         discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_mass_matrix(sd)
-
-        # Extract the data and compute the coefficient for the trace part
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+        M = discr.assemble_mass_matrix(sd, data_for_PwL)
 
         # Compose all the parts and return them
-        return (D - coeff * B.T @ M @ B) / (2 * mu)
+        return D - B.T @ M @ B
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
