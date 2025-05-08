@@ -193,7 +193,7 @@ class VecBDM1(pg.VecDiscretization):
             sps.csc_array: The trace matrix obtained from the discretization.
         """
         # overestimate the size
-        size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
+        size = (sd.dim + 1) * sd.dim**2 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -636,6 +636,18 @@ class VecRT1(pg.VecDiscretization):
         super().__init__(keyword, pg.RT1)
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
+        """
+        Assembles and returns the mass matrix for vector RT1, which is given by
+        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
+        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_array: The mass matrix obtained from the discretization.
+        """
         # Extract the data
         mu = data[pp.PARAMETERS][self.keyword]["mu"]
         lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
@@ -644,26 +656,35 @@ class VecRT1(pg.VecDiscretization):
         if isinstance(mu, np.ScalarType):
             mu = np.full(sd.num_cells, mu)
 
-        # Save 1/(2mu) as a tensor so that it can be read by BDM1
+        # Save 1/(2mu) as a tensor so that it can be read by RT1
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
-        data_for_BDM = pp.initialize_data(
+        data_for_RT1 = pp.initialize_data(
             sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
         )
 
         # Save the coefficient for the trace contribution
         coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_for_PwQ = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
 
         # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_for_BDM)
+        D = super().assemble_mass_matrix(sd, data_for_RT1)
 
-        # TODO TRACE
+        # Assemble trace matrix
         B = self.assemble_trace_matrix(sd)
 
-    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+        # Assemble the piecewise linear mass matrix, to assemble the term
+        # (Trace(sigma), Trace(tau))
+        discr = pg.PwQuadratics(self.keyword)
+        M = discr.assemble_mass_matrix(sd, data_for_PwQ)
 
+        # Compose all the parts and return them
+        return D - B.T @ M @ B
+
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         # overestimate the size
-        size = sd.dim * sd.num_cells  # TOFIX
+        d = sd.dim
+        loc_size = d * (d * (d + 1) ** 2 + d**2 * (d + 1) // 2)
+        size = loc_size * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -671,15 +692,46 @@ class VecRT1(pg.VecDiscretization):
 
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
+        scalar_ndof = self.scalar_discr.ndof(sd)
+        edges_nodes_per_cell = sd.dim + 1 + sd.dim * (sd.dim + 1) // 2
 
         for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its faces
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            nodes_loc = np.sort(opposite_nodes.data[loc])
+            nodes_loc, faces_loc, signs_loc = self.scalar_discr.reorder_faces(
+                sd.cell_faces, opposite_nodes, c
+            )
 
-            P = self.eval_basis_functions_at_center(sd, nodes_loc, sd.cell_volumes[c])
+            Psi = self.scalar_discr.eval_basis_functions(
+                sd, nodes_loc, signs_loc, sd.cell_volumes[c]
+            )
 
-            pass
+            # Get all the components of the basis at nodes and edges
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+
+            # Get the indices for the local face and cell degrees of freedom
+            loc_face = np.hstack([faces_loc] * sd.dim)
+            loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+            loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
+            loc_ind = np.hstack((loc_face, loc_cell))
+
+            cols = np.tile(loc_ind, (3, 1))
+            cols[1, :] += scalar_ndof
+            cols[2, :] += 2 * scalar_ndof
+            cols = np.tile(cols, (edges_nodes_per_cell, 1)).T
+            cols = cols[Psi_i, Psi_j]
+
+            nodes_edges_loc = np.arange(edges_nodes_per_cell) * sd.num_cells + c
+            rows = np.repeat(nodes_edges_loc, 3)[Psi_j]
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = rows
+            cols_J[loc_idx] = cols
+            data_IJ[loc_idx] = Psi_v
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
     def get_range_discr_class(self, dim: int) -> object:
         """
@@ -691,4 +743,4 @@ class VecRT1(pg.VecDiscretization):
         Returns:
             pg.Discretization: The range discretization class.
         """
-        return pg.VecPwLinear
+        return pg.VecPwLinears

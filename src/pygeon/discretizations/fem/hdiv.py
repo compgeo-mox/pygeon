@@ -999,18 +999,7 @@ class RT1(pg.Discretization):
             np.ndarray: The local mass matrix.
         """
         lagrange2 = pg.Lagrange2()
-        # We first need the barycentric coordinates lambda_i for each i
-        expnts_nodes = np.eye(dim + 1)
-
-        # For each edge (i, j) also consider the products \lambda_i \lambda_j
-        # by setting the appropriate exponents to one
-        edge_nodes = lagrange2.get_local_edge_nodes(dim)
-        expnts_edges = np.zeros((dim + 1, edge_nodes.shape[0]))
-        for ind, edge in enumerate(edge_nodes):
-            expnts_edges[edge, ind] = 1
-
-        expnts = np.hstack((expnts_nodes, expnts_edges))
-        M = lagrange2.assemble_barycentric_mass(expnts)
+        M = lagrange2.assemble_local_mass(dim)
 
         return np.kron(M, np.eye(3))
 
@@ -1082,12 +1071,14 @@ class RT1(pg.Discretization):
         edge_nodes = pg.Lagrange2().get_local_edge_nodes(dim)
         n_edges = edge_nodes.shape[0]
 
+        node_edges = np.array([np.nonzero(edge_nodes == n)[0] for n in range(dim + 1)])
+
         psi_nodes = np.zeros((dim + 1, 3 * (dim + 1)))
         psi_edges = np.zeros((dim + 1, 3 * n_edges))
 
         for edge, (i, j) in enumerate(edge_nodes):
-            psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j)
-            psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i)
+            psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j) / 4
+            psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i) / 4
 
         psi_k = np.hstack((psi_nodes, psi_edges))
 
@@ -1096,7 +1087,14 @@ class RT1(pg.Discretization):
 
         # Evaluate the basis functions of the face-dofs
         for dof, (i, j) in enumerate(zip(loc_nodes, opp_nodes)):
+            # Face-dofs are one at their respective nodes
             Psi[dof, 3 * i : 3 * (i + 1)] = tangent(j, i)
+            # Face-dofs are a half at the adjacent edges
+            for edge in node_edges[i]:
+                Psi[dof, 3 * (dim + 1 + edge) : 3 * (dim + 1 + edge + 1)] = (
+                    0.5 * tangent(j, i)
+                )
+            # See docs/RT1.md
             Psi[dof] -= psi_k[j] - psi_k[i]
             Psi[dof] *= signs[dof]
 
