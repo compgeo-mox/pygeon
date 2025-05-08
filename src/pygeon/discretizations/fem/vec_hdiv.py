@@ -54,7 +54,7 @@ class VecBDM1(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector BDM1 discretization class.
-        The scalar discretization class is pg.BDM1.
+        The base discretization class is pg.BDM1.
 
         We are considering the following structure of the stress tensor in 2d
 
@@ -84,8 +84,8 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             None
         """
-        self.scalar_discr: pg.BDM1
-        super().__init__(keyword, pg.BDM1)
+        super().__init__(keyword)
+        self.base_discr = pg.BDM1(keyword)
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -200,7 +200,7 @@ class VecBDM1(pg.VecDiscretization):
         idx = 0
 
         opposite_nodes = sd.compute_opposite_nodes()
-        scalar_ndof = self.scalar_discr.ndof(sd)
+        scalar_ndof = self.base_discr.ndof(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -209,7 +209,7 @@ class VecBDM1(pg.VecDiscretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
+            Psi = self.base_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
@@ -284,7 +284,7 @@ class VecBDM1(pg.VecDiscretization):
             raise ValueError("The grid should be either two or three-dimensional")
 
         opposite_nodes = sd.compute_opposite_nodes()
-        ndof_scalar = self.scalar_discr.ndof(sd)
+        ndof_scalar = self.base_discr.ndof(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -293,7 +293,7 @@ class VecBDM1(pg.VecDiscretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
+            Psi = self.base_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
@@ -419,7 +419,7 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
         """
-        proj = self.scalar_discr.proj_to_RT0(sd)
+        proj = self.base_discr.proj_to_RT0(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
@@ -432,7 +432,7 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        proj = self.scalar_discr.proj_from_RT0(sd)
+        proj = self.base_discr.proj_from_RT0(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
@@ -453,7 +453,7 @@ class VecRT0(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT0 discretization class.
-        The scalar discretization class is pg.RT0.
+        The base discretization class is pg.RT0.
 
         We are considering the following structure of the stress tensor in 2d
 
@@ -483,8 +483,8 @@ class VecRT0(pg.VecDiscretization):
         Returns:
             None
         """
-        self.scalar_discr: pg.RT0
-        super().__init__(keyword, pg.RT0)
+        super().__init__(keyword)
+        self.base_discr = pg.RT0(keyword)
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -633,7 +633,8 @@ class VecRT0(pg.VecDiscretization):
 
 class VecRT1(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        super().__init__(keyword, pg.RT1)
+        super().__init__(keyword)
+        self.base_discr = pg.RT1(keyword)
 
     def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
         """
@@ -692,15 +693,15 @@ class VecRT1(pg.VecDiscretization):
 
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
-        scalar_ndof = self.scalar_discr.ndof(sd)
+        scalar_ndof = self.base_discr.ndof(sd)
         edges_nodes_per_cell = sd.dim + 1 + sd.dim * (sd.dim + 1) // 2
 
         for c in np.arange(sd.num_cells):
-            nodes_loc, faces_loc, signs_loc = self.scalar_discr.reorder_faces(
+            nodes_loc, faces_loc, signs_loc = self.base_discr.reorder_faces(
                 sd.cell_faces, opposite_nodes, c
             )
 
-            Psi = self.scalar_discr.eval_basis_functions(
+            Psi = self.base_discr.eval_basis_functions(
                 sd, nodes_loc, signs_loc, sd.cell_volumes[c]
             )
 

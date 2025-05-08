@@ -40,7 +40,7 @@ class VecVLagrange1(pg.VecDiscretization):
         keyword (str): The keyword for the H1 class.
 
     Attributes:
-        scalar_discr (pg.VLagrange1): A local virtual Lagrange1 class for performing
+        base_discr (pg.VLagrange1): A local virtual Lagrange1 class for performing
             some of the computations.
 
     Methods:
@@ -86,7 +86,7 @@ class VecVLagrange1(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange1.
+        The base discretization class is pg.Lagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -94,8 +94,8 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             None
         """
-        self.scalar_discr: pg.VLagrange1
-        super().__init__(keyword, pg.VLagrange1)
+        super().__init__(keyword)
+        self.base_discr = pg.VLagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -156,7 +156,7 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             ndarray: Local mass Hdiv matrix.
         """
-        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
         return sd.cell_volumes[cell] * proj[1:] / diam
 
@@ -275,7 +275,7 @@ class VecVLagrange1(pg.VecDiscretization):
             np.ndarray: Local symmetric gradient matrix.
         """
 
-        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
         grad = spl.block_diag(*([proj[1:]] * sd.dim))
 
         return sd.cell_volumes[cell] * sym @ grad / diam
@@ -372,9 +372,9 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             np.ndarray: The computed local VEM mass matrix.
         """
-        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
-        D = self.scalar_discr.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
+        D = self.base_discr.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
         I_minus_Pi = np.eye(nodes.size) - D @ proj
 
         return I_minus_Pi.T @ I_minus_Pi
