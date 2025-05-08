@@ -1330,7 +1330,7 @@ class RT1(pg.Discretization):
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid,
         using the integration rule from Egger & Radu (2020)
@@ -1340,12 +1340,12 @@ class RT1(pg.Discretization):
             data (Optional[dict]): Optional data dictionary.
 
         Returns:
-            sps.csc_matrix: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped matrix.
         """
 
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
-            return sps.csc_matrix((0, 0))
+            return sps.csc_array((0, 0))
 
         bdm1 = pg.BDM1(self.keyword)
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
@@ -1389,6 +1389,6 @@ class RT1(pg.Discretization):
             idx += A.size
 
         # Construct the global matrix
-        cell_dof_lumped = sps.csc_matrix((data_IJ, (rows_I, cols_J)))
+        cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
         return sps.block_diag((bdm1_lumped, cell_dof_lumped), "csc")
