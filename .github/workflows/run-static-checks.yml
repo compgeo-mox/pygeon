@@ -45,16 +45,16 @@ jobs:
         architecture: x64
         cache: 'pip'
 
-    # Cache pip dependencies
-    # Source: https://github.com/actions/cache/blob/main/examples.md#python---pip
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      id: cache
-      with:
-        # Cache the full python environment, this is more efficient than just caching pip
-        # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+    # # Cache pip dependencies
+    # # Source: https://github.com/actions/cache/blob/main/examples.md#python---pip
+    # - name: Cache dependencies
+    #   uses: actions/cache@v4
+    #   id: cache
+    #   with:
+    #     # Cache the full python environment, this is more efficient than just caching pip
+    #     # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
+    #     path: ${{ env.pythonLocation }}
+    #     key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
     - name: Cache mypy
       uses: actions/cache@v4
@@ -62,6 +62,13 @@ jobs:
       with:
         path: mypy-cache-${{ matrix.python-version}}
         key: ${{ runner.os }}-mypy
+
+    # Make sure pip is up to date.
+    - name: Upgrade pip
+      run: |
+        pip cache purge
+        python -m pip install -U pip
+        pip --version
 
     # Install the requirements. Mypy needs this to access stubs for numpy etc.
     - name: Install requirements
