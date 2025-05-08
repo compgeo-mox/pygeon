@@ -43,16 +43,16 @@ jobs:
         architecture: x64
         cache: 'pip'
 
-    # Cache pip dependencies
-    # Source: https://github.com/actions/cache/blob/main/examples.md#python---pip
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      id: cache
-      with:
-        # Cache the full python environment, this is more efficient than just caching pip
-        # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        path: ${{ env.pythonLocation }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+    # # Cache pip dependencies
+    # # Source: https://github.com/actions/cache/blob/main/examples.md#python---pip
+    # - name: Cache dependencies
+    #   uses: actions/cache@v4
+    #   id: cache
+    #   with:
+    #     # Cache the full python environment, this is more efficient than just caching pip
+    #     # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
+    #     path: ${{ env.pythonLocation }}
+    #     key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
 
     - name: Install external libraries
       run: |
@@ -60,12 +60,16 @@ jobs:
         sudo apt-get install libglu1-mesa libgeos-dev libffi-dev
         export LD_LIBRARY_PATH=/usr/local/lib64/:$LD_LIBRARY_PATH
 
+    # Make sure pip is up to date.
+    - name: Upgrade pip
+      run: |
+        pip cache purge
+        python -m pip install -U pip
+        pip --version
+
     - name: Install requirements and PyGeoN
       run: |
-        pip install -U pip
-        # Install requirements, using eager updates to avoid stalled dependencies due to caching
-        # https://blog.allenai.org/python-caching-in-github-actions-e9452698e98d
-        pip install --upgrade --upgrade-strategy eager --force-reinstall -e .
+        pip install .
         pip freeze
 
     - name: unit tests
