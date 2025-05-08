@@ -7,7 +7,6 @@ import pygeon as pg
 
 
 class RT1Test(unittest.TestCase):
-
     def test_linear_distribution_cart_1D(self):
         N, dim = 5, 1
         sd = pp.CartGrid([N] * dim, [1] * dim)
@@ -137,4 +136,4 @@ class RT1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    RT1Test().test_lumped_matrix_unstr()
+    unittest.main()
