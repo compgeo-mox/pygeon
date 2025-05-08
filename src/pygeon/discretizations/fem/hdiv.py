@@ -1351,7 +1351,7 @@ class RT1(pg.Discretization):
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
         # create unitary data, unitary permeability, in case not present
-        data = RT0.create_unitary_data(self, sd, data)
+        data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
