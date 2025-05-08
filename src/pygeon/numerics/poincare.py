@@ -1,6 +1,6 @@
-""" Module for poincare operators. """
+"""Module for poincare operators."""
 
-from typing import Callable, Optional
+from typing import Callable, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -32,7 +32,6 @@ class Poincare:
         Args:
             mdg (pg.MixedDimensionalGrid): a (mixed-dimensional) grid
         """
-
         self.mdg = mdg
         self.dim = mdg.dim_max()
         self.top_sd = mdg.subdomains(dim=self.dim)[0]
@@ -42,9 +41,8 @@ class Poincare:
         """
         Flag the mesh entities that will be used to generate the Poincaré operators
         """
-
         # Preallocation
-        self.bar_spaces = [None] * (self.dim + 1)
+        self.bar_spaces = np.array([None] * (self.dim + 1))
 
         # Cells
         self.bar_spaces[self.dim] = np.zeros(self.mdg.num_subdomain_cells(), dtype=bool)
@@ -69,7 +67,6 @@ class Poincare:
         Returns:
             np.ndarray: boolean array with flagged edges
         """
-
         grad = pg.grad(self.mdg)
         incidence = grad.T @ grad
 
@@ -81,13 +78,11 @@ class Poincare:
         rows = np.hstack((c_start, c_end))
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
+        shape = (grad.shape[1], tree.nnz)
+        edge_finder = abs(grad) @ sps.csc_array((vals, (rows, cols)), shape=shape)
 
-        edge_finder = sps.csc_array(
-            (vals, (rows, cols)), shape=(grad.shape[1], tree.nnz)
-        )
-        edge_finder = np.abs(grad) @ edge_finder
-        I, _, V = sps.find(edge_finder)
-        tree_edges = I[V == 2]
+        edge, _, nr_common_nodes = sps.find(edge_finder)
+        tree_edges = edge[nr_common_nodes == 2]
 
         flagged_edges = np.ones(grad.shape[0], dtype=bool)
         flagged_edges[tree_edges] = False
@@ -101,11 +96,10 @@ class Poincare:
         Returns:
             int: index of the central node
         """
-
         center = np.mean(self.top_sd.nodes, axis=1, keepdims=True)
         dists = np.linalg.norm(self.top_sd.nodes - center, axis=0)
 
-        return np.argmin(dists)
+        return int(np.argmin(dists))
 
     def flag_nodes(self) -> np.ndarray:
         """
@@ -114,14 +108,13 @@ class Poincare:
         Returns:
             np.ndarray: boolean array with flagged nodes
         """
-
         flagged_nodes = np.ones(self.top_sd.num_nodes, dtype=bool)
         flagged_nodes[0] = False
 
         return flagged_nodes
 
     def apply(
-        self, k: int, f: np.ndarray, solver: Optional[Callable] = sps.linalg.spsolve
+        self, k: int, f: np.ndarray, solver: Callable = sps.linalg.spsolve
     ) -> np.ndarray:
         """
         Apply the Poincare operator
@@ -172,7 +165,7 @@ class Poincare:
 
         return R_bar.T @ solver(pi_0_d_bar, R_0 @ f)
 
-    def decompose(self, k: int, f: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def decompose(self, k: int, f: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Use the Poincaré operators to decompose f = pd(f) + dp(f)
 
@@ -181,7 +174,7 @@ class Poincare:
             f (np.ndarray): the function to be decomposed
 
         Returns:
-            tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
+            Tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
         """
         n_minus_k = self.dim - k
 
@@ -202,9 +195,9 @@ class Poincare:
     def solve_subproblem(
         self,
         k: int,
-        A: sps.sparray,
+        A: sps.csc_array,
         b: np.ndarray,
-        solver: Optional[Callable] = sps.linalg.spsolve,
+        solver: Callable = sps.linalg.spsolve,
     ) -> np.ndarray:
         """
         Solve a linear system on the subspace of
@@ -212,9 +205,9 @@ class Poincare:
 
         Args:
             k (int): order of the k-form
-            A (sps.sparray): the system, usually a stiffness matrix
+            A (sps.csc_array): the system, usually a stiffness matrix
             b (np.ndarray): the right-hand side vector
-            solver (Optional[Callable]): The solver function to use. Defaults to
+            solver (Callable): The solver function to use. Defaults to
                 sps.linalg.spsolve.
 
         Returns:

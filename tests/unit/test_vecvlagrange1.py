@@ -1,5 +1,4 @@
-""" Module contains vector virtual Lagrangean tests.
-"""
+"""Module contains vector virtual Lagrangean tests."""
 
 import unittest
 import numpy as np
@@ -24,12 +23,12 @@ class VecVLagrange1_test(unittest.TestCase):
         symgrad_symgrad = discr.assemble_symgrad_symgrad_matrix(sd)
 
         pen = discr.assemble_penalisation_matrix(sd)
-        pen.data[np.abs(pen.data) < 1e-10] = 0
+        pen.data[abs(pen.data) < 1e-10] = 0
 
         diff = discr.assemble_diff_matrix(sd)
 
         stiff = discr.assemble_stiff_matrix(sd)
-        stiff.data[np.abs(stiff.data) < 1e-10] = 0
+        stiff.data[abs(stiff.data) < 1e-10] = 0
 
         for X in [div, symgrad, div_div, pen, symgrad_symgrad, diff, stiff]:
             self.make_canonical(X)
@@ -37,9 +36,9 @@ class VecVLagrange1_test(unittest.TestCase):
         return M, div, symgrad, div_div, symgrad_symgrad, pen, diff, stiff, discr
 
     def make_canonical(self, A: sps.sparray):
-        A.sum_duplicates()
-        A.eliminate_zeros()
-        A.sort_indices()
+        A.sum_duplicates()  # type: ignore[attr-defined]
+        A.eliminate_zeros()  # type: ignore[attr-defined]
+        A.sort_indices()  # type: ignore[attr-defined]
 
     def assemble_known(self, data, indices, indptr, shape=None):
         A = sps.csc_array((data, indices, indptr), shape=shape)
@@ -243,14 +242,14 @@ class VecVLagrange1_test(unittest.TestCase):
 
         self.assertTrue(np.allclose(pen.data, 0))
 
-        diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
+        diff_known = sps.block_array([[symgrad_known], [div_known]]).tocsc()
         self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))
         self.assertTrue(np.allclose(diff.indices, diff_known.indices))
         self.assertTrue(np.allclose(diff.indptr, diff_known.indptr))
 
-        pen_known = sps.csc_matrix(pen.shape)
+        pen_known = sps.csc_array(pen.shape)
 
         stiff_known = symgrad_symgrad_known + div_div_known + pen_known
         self.make_canonical(stiff_known)
@@ -951,7 +950,7 @@ class VecVLagrange1_test(unittest.TestCase):
         self.assertTrue(np.allclose(pen.indices, pen_known.indices))
         self.assertTrue(np.allclose(pen.indptr, pen_known.indptr))
 
-        diff_known = sps.bmat([[symgrad_known], [div_known]], format="csc")
+        diff_known = sps.block_array([[symgrad_known], [div_known]]).tocsc()
         self.make_canonical(diff_known)
 
         self.assertTrue(np.allclose(diff.data, diff_known.data))

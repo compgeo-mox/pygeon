@@ -52,7 +52,7 @@ class ProjectionsUnitTest(unittest.TestCase):
         discr = pg.RT0("rt0")
         P = pg.eval_at_cell_centers(mdg, discr)
 
-        data = discr.create_unitary_data(sd, None)
+        data = pg.RT0.create_unitary_data(discr.keyword, sd, None)
         discr_pp = pp.RT0("rt0")
         discr_pp.discretize(sd, data)
         P_pp = data[pp.DISCRETIZATION_MATRICES][discr_pp.keyword][
@@ -150,7 +150,7 @@ class ProjectionsUnitTest(unittest.TestCase):
         for sd in mdg.subdomains():
             arange = np.arange(3 * sd.num_cells)
             indices = np.reshape(arange, (3, -1), order="F").ravel()
-            R_sd = sps.csc_matrix((np.ones_like(indices), (arange, indices)))
+            R_sd = sps.csc_array((np.ones_like(indices), (arange, indices)))
             R_list.append(R_sd)
 
         R = sps.block_diag(R_list, "csc")
@@ -270,7 +270,7 @@ class ProjectionsUnitTest(unittest.TestCase):
         # fmt: on
 
         # Assemble the sparse matrix and reorder the rows to the pg convention
-        P_known = sps.csc_matrix((P_known_data, P_known_indices, P_known_indptr))
+        P_known = sps.csc_array((P_known_data, P_known_indices, P_known_indptr))
         P_known = R @ P_known
 
         self.assertTrue(np.allclose((P_known - P).data, 0))

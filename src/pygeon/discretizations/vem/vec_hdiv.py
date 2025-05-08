@@ -1,4 +1,6 @@
-""" Module for the discretizations of the H(div) space. """
+"""Module for the discretizations of the H(div) space."""
+
+from typing import Type
 
 import pygeon as pg
 
@@ -37,9 +39,10 @@ class VecVRT0(pg.VecDiscretization):
         Returns:
             None
         """
+        self.scalar_discr: pg.VRT0
         super().__init__(keyword, pg.VRT0)
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

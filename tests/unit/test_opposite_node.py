@@ -2,12 +2,12 @@ import unittest
 
 import numpy as np
 import porepy as pp
-import scipy.sparse as sps
 
 import pygeon as pg
 
 """
-Module contains a unit tests to validate the opposite_node computations on simplicial grids.
+Module contains a unit tests to validate the opposite_node computations on simplicial 
+grids.
 """
 
 

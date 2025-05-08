@@ -1,4 +1,4 @@
-""" This module contains functions that compute restriction operators. """
+"""This module contains functions that compute restriction operators."""
 
 from typing import Union
 
@@ -10,11 +10,11 @@ import pygeon as pg
 
 def zero_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> Union[sps.spmatrix, sps.bmat]:
+) -> Union[sps.csc_array, np.ndarray]:
     """
     Compute the operator that maps the tip degrees of freedom to zero.
 
-    Parameters:
+    Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
@@ -23,35 +23,36 @@ def zero_tip_dofs(
                 sub-blocks. Default False.
 
     Returns:
-        sps.csc_matrix or sps.bmat: The operator that maps the tip degrees of freedom to zero.
+        sps.csc_array or np.ndarray: The operator that maps the tip degrees of freedom
+            to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
     if n_minus_k == 0:
-        return sps.diags(np.ones(mdg.num_subdomain_cells()), dtype=int)
+        return sps.diags_array(np.ones(mdg.num_subdomain_cells()), dtype=int).tocsc()
 
     s = "tip_" + get_codim_str(n_minus_k)
 
     # Pre-allocation of the block-matrix
     is_tip_dof = np.empty(
-        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.spmatrix
+        shape=(mdg.num_subdomains(), mdg.num_subdomains()), dtype=sps.csc_array
     )
     for sd in mdg.subdomains():
         if sd.dim >= n_minus_k:
             # Get indice (node_numbers) in grid_bucket
             node_nr = mdg.subdomains().index(sd)
             # Add the sparse matrix
-            is_tip_dof[node_nr, node_nr] = sps.diags(
+            is_tip_dof[node_nr, node_nr] = sps.diags_array(
                 np.logical_not(sd.tags[s]), dtype=int
             )
 
     pg.bmat.replace_nones_with_zeros(is_tip_dof)
-    return is_tip_dof if as_bmat else sps.bmat(is_tip_dof)
+    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof).tocsc()  # type: ignore[call-overload]
 
 
 def remove_tip_dofs(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csr_matrix:
+) -> sps.csc_array:
     """
     Compute the operator that removes the tip degrees of freedom.
 
@@ -59,23 +60,23 @@ def remove_tip_dofs(
     a given mixed-dimensional grid. The operator is represented as a sparse matrix
     in compressed sparse column (CSC) format.
 
-    Parameters:
+    Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
 
     Returns:
-        sps.csr_matrix: The operator that removes the tip degrees of freedom.
+        sps.csc_array: The operator that removes the tip degrees of freedom.
     """
-    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()
-    return R[R.indices, :]
+    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()  # type: ignore[union-attr]
+    return R[R.indices, :].tocsc()
 
 
 def get_codim_str(n_minus_k: int) -> str:
     """
     Helper function that returns the name of the mesh entity
 
-    Parameters:
+    Args:
         n_minus_k (int): The codimension of the mesh entity
 
     Returns:

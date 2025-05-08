@@ -1,7 +1,9 @@
-""" Module for the discretization class. """
+"""Module for the discretization class."""
+
+from __future__ import annotations
 
 import abc
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -63,7 +65,7 @@ class Discretization(abc.ABC):
     @abc.abstractmethod
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
@@ -72,12 +74,12 @@ class Discretization(abc.ABC):
             data (dict, optional): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The mass matrix.
+            sps.csc_array: The mass matrix.
         """
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
@@ -86,13 +88,13 @@ class Discretization(abc.ABC):
             data (dict, optional): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The lumped mass matrix.
+            sps.csc_array: The lumped mass matrix.
         """
-        diag_mass = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
-        return sps.diags(np.asarray(diag_mass).flatten()).tocsc()
+        diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
+        return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
 
     @abc.abstractmethod
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -100,17 +102,18 @@ class Discretization(abc.ABC):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles the stiffness matrix.
 
-        This method takes a grid object `sd` and an optional data dictionary `data` as input.
-        It first calls the `assemble_diff_matrix` method to obtain the differential matrix `B`.
+        This method takes a grid object `sd` and an optional data dictionary `data` as
+        input. It first calls the `assemble_diff_matrix` method to obtain the
+        differential matrix `B`.
         Then, it creates an instance of the range discretization class using the `dim`
         attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
         discretization class to obtain the mass matrix `A`.
@@ -121,7 +124,7 @@ class Discretization(abc.ABC):
             data (dict, optional): Optional data dictionary. Defaults to None.
 
         Returns:
-            sps.csc_matrix: The stiffness matrix.
+            sps.csc_array: The stiffness matrix.
         """
         B = self.assemble_diff_matrix(sd)
 
@@ -146,7 +149,7 @@ class Discretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
 
@@ -154,7 +157,7 @@ class Discretization(abc.ABC):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            np.ndarray: The evaluation matrix.
+             sps.csc_array: The evaluation matrix.
         """
 
     def source_term(
@@ -191,7 +194,7 @@ class Discretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -208,18 +211,20 @@ class Discretization(abc.ABC):
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "standard",
-        data: dict = None,
+        relative: bool = True,
+        etype: str = "standard",
+        data: Optional[dict] = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable): Function that represents the analytical solution.
-            relative (bool, optional): Compute the relative error or not. Defaults to True.
+            relative (bool, optional): Compute the relative error or not. Defaults to
+                True.
             etype (str, optional): Type of error computed. For "standard", the current
                 implementation. Defaults to "standard".
 

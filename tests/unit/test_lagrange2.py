@@ -1,9 +1,7 @@
-""" Module contains a unit test for the Lagrangean P2 discretization.
-"""
+"""Module contains a unit test for the Lagrangean P2 discretization."""
 
 import unittest
 import numpy as np
-import scipy.sparse as sps
 
 import porepy as pp
 import pygeon as pg
@@ -61,7 +59,6 @@ class Lagrange2Test(unittest.TestCase):
         self.solve_laplacian(sd)
 
     def solve_laplacian(self, sd):
-
         sd.compute_geometry()
         discr = pg.Lagrange2()
         A = discr.assemble_stiff_matrix(sd, None)
@@ -137,7 +134,6 @@ class Lagrange2Test(unittest.TestCase):
         self.solve_mixed_bcs(sd)
 
     def solve_mixed_bcs(self, sd):
-
         sd.compute_geometry()
         discr = pg.Lagrange2()
         A = discr.assemble_stiff_matrix(sd, None)
@@ -153,9 +149,9 @@ class Lagrange2Test(unittest.TestCase):
         if sd.dim == 1:
             bdry_edges = np.zeros(sd.num_cells, dtype=bool)
         elif sd.dim == 2:
-            bdry_edges = bdry_nodes @ np.abs(sd.face_ridges) > 1
+            bdry_edges = bdry_nodes @ abs(sd.face_ridges) > 1
         elif sd.dim == 3:
-            bdry_edges = bdry_nodes @ np.abs(sd.ridge_peaks) > 1
+            bdry_edges = bdry_nodes @ abs(sd.ridge_peaks) > 1
         ess_bc = np.hstack((bdry_nodes, bdry_edges), dtype=bool)
 
         ess_vals = np.zeros_like(ess_bc, dtype=float)
@@ -171,6 +167,27 @@ class Lagrange2Test(unittest.TestCase):
         u = LS.solve()
 
         self.assertTrue(np.allclose(u, true_sol))
+
+    def test_diff_matrix(self):
+        dim = 2
+        sd = pg.reference_element(dim)
+        sd.compute_geometry()
+
+        discr = pg.Lagrange2()
+        D = discr.assemble_diff_matrix(sd)
+
+        D_known = np.array(
+            [
+                [-3.0, -1.0, 0.0, 4.0, 0.0, 0.0],
+                [0.0, -3.0, -1.0, 0.0, 4.0, 0.0],
+                [-1.0, 0.0, -3.0, 0.0, 0.0, 4.0],
+                [1.0, 3.0, 0.0, -4.0, 0.0, 0.0],
+                [0.0, 1.0, 3.0, 0.0, -4.0, 0.0],
+                [3.0, 0.0, 1.0, 0.0, 0.0, -4.0],
+            ]
+        )
+
+        self.assertTrue(np.allclose(D.todense(), D_known))
 
 
 if __name__ == "__main__":

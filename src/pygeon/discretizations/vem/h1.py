@@ -1,6 +1,6 @@
-""" Module for the discretizations of the H1 space. """
+"""Module for the discretizations of the H1 space."""
 
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -19,7 +19,7 @@ class VLagrange1(pg.Lagrange1):
         ndof(sd: pg.Grid) -> int:
             Returns the number of degrees of freedom associated to the method.
 
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
             Assembles and returns the mass matrix.
 
         assemble_loc_mass_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
@@ -41,24 +41,26 @@ class VLagrange1(pg.Lagrange1):
         assemble_loc_monomial_mass(sd: pg.Grid, cell: int, diam: float) -> np.ndarray:
             Computes the inner products of the monomials.
 
-        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
+        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float,
+            nodes: np.ndarray) -> np.ndarray:
             Returns the matrix D for the local dofs of monomials.
 
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_matrix:
+        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
+            -> sps.csc_array:
             Assembles and returns the stiffness matrix.
 
-        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
+        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float,
+            nodes: np.ndarray) -> np.ndarray:
             Computes the local VEM stiffness matrix on a given cell.
 
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_matrix:
+        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
             Returns the differential mapping in the discrete cochain complex.
 
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_matrix:
+        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
             Evaluate the function at the cell centers of the given grid.
 
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]) -> np.ndarray:
+        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
+            -> np.ndarray:
             Interpolates a function over the given grid.
 
         assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
@@ -68,7 +70,7 @@ class VLagrange1(pg.Lagrange1):
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix.
 
@@ -77,7 +79,7 @@ class VLagrange1(pg.Lagrange1):
             data (Optional[dict]): Optional data for the assembly process.
 
         Returns:
-            sps.csc_matrix: The sparse mass matrix obtained from the discretization.
+            sps.csc_array: The sparse mass matrix obtained from the discretization.
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
@@ -104,7 +106,7 @@ class VLagrange1(pg.Lagrange1):
             data_V[loc_idx] = A.ravel()
             idx += cols.size
 
-        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+        return sps.csc_array((data_V, (rows_I, cols_J)))
 
     def assemble_loc_mass_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
@@ -222,7 +224,8 @@ class VLagrange1(pg.Lagrange1):
 
         M = np.ones((2, 2)) + np.eye(2)
 
-        for face in sd.cell_faces[:, cell].indices:
+        cell_col = np.array([cell])
+        for face in sd.cell_faces[:, cell_col].indices:
             sub_volume = (
                 np.dot(
                     sd.face_centers[:, face] - sd.cell_centers[:, cell],
@@ -232,7 +235,7 @@ class VLagrange1(pg.Lagrange1):
             )
 
             vals = (
-                sd.nodes[:2, sd.face_nodes[:, face].indices]
+                sd.nodes[:2, sd.face_nodes[:, [face]].indices]
                 - sd.cell_centers[:2, [cell] * 2]
             ) / diam
 
@@ -265,7 +268,7 @@ class VLagrange1(pg.Lagrange1):
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+    ) -> sps.csc_array:
         """
         Assembles and returns the stiffness matrix.
 
@@ -274,7 +277,7 @@ class VLagrange1(pg.Lagrange1):
             data (Optional[dict]): Optional data for the assembly process.
 
         Returns:
-            sps.csc_matrix: The stiffness matrix obtained from the discretization.
+            sps.csc_array: The stiffness matrix obtained from the discretization.
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
@@ -301,7 +304,7 @@ class VLagrange1(pg.Lagrange1):
             data_V[loc_idx] = M_loc.ravel()
             idx += cols.size
 
-        return sps.csc_matrix((data_V, (rows_I, cols_J)))
+        return sps.csc_array((data_V, (rows_I, cols_J)))
 
     def assemble_loc_stiff_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
@@ -328,7 +331,7 @@ class VLagrange1(pg.Lagrange1):
 
         return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
 
-    def get_range_discr_class(self, dim: int) -> pg.Discretization:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

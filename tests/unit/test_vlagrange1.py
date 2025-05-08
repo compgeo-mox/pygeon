@@ -1,11 +1,9 @@
-""" Module contains virtual Lagrangean tests.
-"""
+"""Module contains virtual Lagrangean tests."""
 
 import unittest
 import numpy as np
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -14,8 +12,8 @@ class VLagrange1Test(unittest.TestCase):
         nodes = np.array([[0, 3, 3, 3.0 / 2.0, 0], [0, 0, 2, 4, 4], np.zeros(5)])
         indptr = np.arange(0, 11, 2)
         indices = np.roll(np.repeat(np.arange(5), 2), -1)
-        face_nodes = sps.csc_matrix((np.ones(10), indices, indptr))
-        cell_faces = sps.csc_matrix(np.ones((5, 1)))
+        face_nodes = sps.csc_array((np.ones(10), indices, indptr))
+        cell_faces = sps.csc_array(np.ones((5, 1)))
 
         sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
         sd.compute_geometry()
