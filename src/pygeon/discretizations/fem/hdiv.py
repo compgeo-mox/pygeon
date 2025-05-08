@@ -1327,3 +1327,68 @@ class RT1(pg.Discretization):
             pg.Discretization: The range discretization class.
         """
         return pg.PwLinears
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped matrix for the given grid,
+        using the integration rule from Egger & Radu (2020)
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((0, 0))
+
+        bdm1 = pg.BDM1(self.keyword)
+        bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
+
+        # create unitary data, unitary permeability, in case not present
+        data = RT0.create_unitary_data(self.keyword, sd, data)
+
+        # Get dictionary for parameter storage
+        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        # Retrieve the inverse of permeability
+        inv_K = parameter_dictionary["second_order_tensor"]
+
+        # Allocate the data to store matrix P entries
+        size = sd.dim * sd.dim * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            nodes_loc = np.sort(opposite_nodes.data[loc])
+
+            P = self.eval_basis_functions_at_center(sd, nodes_loc, sd.cell_volumes[c])
+            weight = inv_K.values[:, :, c]
+
+            A = P.T @ weight @ P * sd.cell_volumes[c] * (sd.dim + 1) / (sd.dim + 2)
+
+            loc_ind = sd.num_cells * np.arange(sd.dim) + c
+
+            # Save values for projection P local matrix in the global structure
+            cols = np.tile(loc_ind, (loc_ind.size, 1))
+            loc_idx = slice(idx, idx + A.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += A.size
+
+        # Construct the global matrix
+        cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+        return sps.block_diag((bdm1_lumped, cell_dof_lumped), "csc")

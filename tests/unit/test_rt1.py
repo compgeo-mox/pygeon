@@ -45,7 +45,7 @@ class RT1Test(unittest.TestCase):
 
         self.linear_distribution_test(sd)
 
-    def linear_distribution_test(self, sd):
+    def linear_distribution_test(self, sd, lumped=False):
         discr_q = pg.RT1()
         discr_p = pg.PwLinears()
 
@@ -57,7 +57,10 @@ class RT1Test(unittest.TestCase):
             return -x @ q_func(x)
 
         # assemble the saddle point problem
-        face_mass = discr_q.assemble_mass_matrix(sd)
+        if lumped:
+            face_mass = discr_q.assemble_lumped_matrix(sd)
+        else:
+            face_mass = discr_q.assemble_mass_matrix(sd)
         cell_mass = discr_p.assemble_mass_matrix(sd, None)
         div = cell_mass @ discr_q.assemble_diff_matrix(sd)
 
@@ -115,6 +118,21 @@ class RT1Test(unittest.TestCase):
         computed_norm = interp @ M @ interp
 
         self.assertTrue(np.isclose(computed_norm, 2))
+
+    def test_lumped_matrix_tris(self):
+        N, dim = 5, 2
+        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+
+        self.linear_distribution_test(sd, lumped=True)
+
+    def test_lumped_matrix_unstr(self):
+        N, dim = 3, 3
+        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
+        sd.compute_geometry()
+
+        self.linear_distribution_test(sd, lumped=True)
 
 
 if __name__ == "__main__":

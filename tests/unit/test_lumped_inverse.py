@@ -19,7 +19,7 @@ class LumpedInverseTest(unittest.TestCase):
                 [0, 0, 0, 2, 2],
             ]
         )
-        M_sparse = sps.csc_matrix(M)
+        M_sparse = sps.csc_array(M)
 
         B = np.array(
             [
@@ -30,7 +30,7 @@ class LumpedInverseTest(unittest.TestCase):
                 [0, 0, 0, 0, 0, 0],
             ]
         )
-        B_sparse = sps.csc_matrix(B)
+        B_sparse = sps.csc_array(B)
 
         # Create a right-hand side vector b
         b_vector = np.array([1, 2, 3, 0, 1])
