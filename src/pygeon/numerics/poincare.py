@@ -1,5 +1,6 @@
 """Module for poincare operators."""
 
+import warnings
 from typing import Callable, Tuple
 
 import numpy as np
@@ -35,29 +36,51 @@ class Poincare:
         self.mdg = mdg
         self.dim = mdg.dim_max()
         self.top_sd = mdg.subdomains(dim=self.dim)[0]
-        self.define_bar_spaces()
 
-    def define_bar_spaces(self) -> None:
+        self.check_grid_admissibility()
+
+        self.bar_spaces, self.zer_spaces = self.define_subspaces()
+        self.zero_out_tips()
+
+    def define_subspaces(self) -> None:
         """
         Flag the mesh entities that will be used to generate the Poincaré operators
         """
         # Preallocation
-        self.bar_spaces = np.array([None] * (self.dim + 1))
+        bar_spaces = np.array([None] * (self.dim + 1))
+        zer_spaces = np.array([None] * (self.dim + 1))
 
         # Cells
-        self.bar_spaces[self.dim] = np.zeros(self.mdg.num_subdomain_cells(), dtype=bool)
+        bar_spaces[self.dim] = np.zeros(self.mdg.num_subdomain_cells(), dtype=bool)
 
         # Faces
-        self.bar_spaces[self.dim - 1] = pg.SpanningTree(
-            self.mdg, "all_bdry"
-        ).flagged_faces
+        bar_spaces[self.dim - 1] = pg.SpanningTree(self.mdg, "all_bdry").flagged_faces
 
         # Edges in 3D
         if self.dim == 3:
-            self.bar_spaces[1] = self.flag_edges_3d()
+            bar_spaces[1] = self.flag_edges_3d()
 
         # Nodes
-        self.bar_spaces[0] = self.flag_nodes()
+        bar_spaces[0] = self.flag_nodes()
+
+        # Define the complementary set
+        zer_spaces[:] = [~bar for bar in bar_spaces]
+
+        return bar_spaces, zer_spaces
+
+    def zero_out_tips(self) -> None:
+        tip_ridges = np.concatenate(
+            [sd.tags["tip_ridges"] for sd in self.mdg.subdomains()]
+        )
+        self.bar_spaces[self.dim - 2][tip_ridges] = False
+        assert np.all(self.zer_spaces[self.dim - 2][tip_ridges] == False)
+
+        tip_faces = np.concatenate(
+            [sd.tags["tip_faces"] for sd in self.mdg.subdomains()]
+        )
+
+        assert np.all(self.bar_spaces[self.dim - 1][tip_faces] == False)
+        self.zer_spaces[self.dim - 1][tip_faces] = False
 
     def flag_edges_3d(self) -> np.ndarray:
         """
@@ -158,7 +181,7 @@ class Poincare:
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
 
-        R_0 = create_restriction(~self.bar_spaces[k])
+        R_0 = create_restriction(self.zer_spaces[k])
         R_bar = create_restriction(self.bar_spaces[k - 1])
 
         pi_0_d_bar = R_0 @ _diff @ R_bar.T
@@ -218,3 +241,12 @@ class Poincare:
         LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
 
         return LS.solve(solver=solver)
+
+    def check_grid_admissibility(self):
+        for sd in self.mdg.subdomains(dim=1):
+            if sd.num_cells == 1:
+                warnings.warn(
+                    "There is a 1D domain with only one cell. "
+                    + "Consider refining the grid."
+                )
+                break

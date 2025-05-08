@@ -322,9 +322,12 @@ class SpanningTree:
                 labelbottom=False,
                 bottom=False,
             )
-            ax = fig.add_subplot(111)
-            ax.set_xlim(pp_ax.get_xlim())
-            ax.set_ylim(pp_ax.get_ylim())
+
+            if draw_tree or draw_complement:
+                ax = fig.add_subplot(111)
+                ax.set_xlim(pp_ax.get_xlim())
+                ax.set_ylim(pp_ax.get_ylim())
+                ax.set_aspect("equal")
 
         # If there is no PorePy grid plot, we create our own axes
         else:
@@ -336,7 +339,7 @@ class SpanningTree:
             ax.set_xlim((min_coord[0], max_coord[0]))
             ax.set_ylim((min_coord[1], max_coord[1]))
 
-        ax.set_aspect("equal")
+            ax.set_aspect("equal")
 
         # Draw the tree that spans all cells
         if draw_tree:
@@ -359,7 +362,7 @@ class SpanningTree:
             num_bdry = len(self.starting_faces)
             bdry_graph = sps.diags_array(  # type: ignore[call-overload]
                 np.ones(num_bdry),
-                num_bdry,
+                offsets=num_bdry,
                 shape=(2 * num_bdry, 2 * num_bdry),
             )
             graph = nx.from_scipy_sparse_array(bdry_graph)
