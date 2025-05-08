@@ -1,4 +1,4 @@
-""" This module contains the MortarGrid class. """
+"""This module contains the MortarGrid class."""
 
 from typing import Tuple
 
@@ -22,13 +22,13 @@ class MortarGrid(pp.MortarGrid):
     interfaces between subdomains in a numerical simulation.
 
     Attributes:
-        cell_faces (scipy.sparse.csc_matrix): The connectivity between cells of the
+        cell_faces (scipy.sparse.csc_array): The connectivity between cells of the
             secondary grid and faces of the primary grid.
-        face_ridges (scipy.sparse.csc_matrix): The connectivities between high-dimensional
-            ridges and low-dimensional faces in the mortar grid.
-        ridge_peaks (scipy.sparse.csc_matrix): The connectivities between high-dimensional
-            peaks and low-dimensional ridges in the mortar grid.
-        signed_mortar_to_primary (scipy.sparse.csc_matrix): The mapping from mortar cells
+        face_ridges (scipy.sparse.csc_array): The connectivities between
+            high-dimensional ridges and low-dimensional faces in the mortar grid.
+        ridge_peaks (scipy.sparse.csc_array): The connectivities between
+            high-dimensional peaks and low-dimensional ridges in the mortar grid.
+        signed_mortar_to_primary (scipy.sparse.csc_array): The mapping from mortar cells
             to the faces of the primary grid that respects orientation.
 
     Methods:
@@ -63,7 +63,7 @@ class MortarGrid(pp.MortarGrid):
         """
         super(MortarGrid, self).__init__(*args, **kwargs)
 
-    def compute_geometry(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
+    def compute_geometry(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:  # type: ignore
         """
         Computes the geometry of the MortarGrid.
 
@@ -94,9 +94,9 @@ class MortarGrid(pp.MortarGrid):
         sd_up, sd_down = sd_pair
 
         # High-dim ridges matching to low-dim face
-        face_ridges = sps.lil_matrix((sd_up.num_ridges, sd_down.num_faces), dtype=int)
+        face_ridges = sps.lil_array((sd_up.num_ridges, sd_down.num_faces), dtype=int)
         # High-dim peaks matching to low-dim ridge
-        ridge_peaks = sps.lil_matrix((sd_up.num_peaks, sd_down.num_ridges), dtype=int)
+        ridge_peaks = sps.lil_array((sd_up.num_peaks, sd_down.num_ridges), dtype=int)
 
         # Find information about the two-dimensional grid
         if self.dim == 1:
@@ -127,8 +127,8 @@ class MortarGrid(pp.MortarGrid):
                 face_xyz = sd_down.face_centers[:, faces_down]
                 ridge_xyz = sd_up.nodes[:, ridges_up]
             else:  # self.dim == 2
-                face_xyz = sd_down.nodes * abs(sd_down.face_ridges[:, faces_down]) / 2
-                ridge_xyz = sd_up.nodes * abs(sd_up.ridge_peaks[:, ridges_up]) / 2
+                face_xyz = sd_down.nodes @ abs(sd_down.face_ridges[:, faces_down]) / 2
+                ridge_xyz = sd_up.nodes @ abs(sd_up.ridge_peaks[:, ridges_up]) / 2
 
             ridges_up = ridges_up[match_coordinates(face_xyz, ridge_xyz)]
 
@@ -152,7 +152,8 @@ class MortarGrid(pp.MortarGrid):
                 peaks_up = peaks_up[match_coordinates(ridge_xyz, peak_xyz)]
 
             # Take care of orientations
-            # NOTE:this computation is done here so that we have access to the normal vector
+            # NOTE:this computation is done here so that we have access to the normal
+            # vector
 
             # Find the normal vector oriented outward wrt the higher-dim grid
             is_outward = sd_up.cell_faces.tocsr()[face_up, :].data[0]
@@ -172,7 +173,7 @@ class MortarGrid(pp.MortarGrid):
                 # we say that orientations align if the cross product
                 # between the ridge tangent and the mortar normal corresponds
                 # to the normal of the lower-dimensional face
-                tangents = sd_up.nodes * sd_up.ridge_peaks[:, ridges_up]
+                tangents = sd_up.nodes @ sd_up.ridge_peaks[:, ridges_up]
                 products = np.cross(tangents, normal_up, axisa=0, axisc=0)
                 orientations_fr = [
                     np.dot(products[:, i], normal_down[:, i])
@@ -190,15 +191,15 @@ class MortarGrid(pp.MortarGrid):
 
         # Ensure that double indices are mapped to +-1
         # This step ensures that the jump maps to zero at tips.
-        face_ridges = sps.csc_matrix(face_ridges, dtype=int)
-        ridge_peaks = sps.csc_matrix(ridge_peaks, dtype=int)
+        face_ridges_csc = sps.csc_array(face_ridges, dtype=int)
+        ridge_peaks_csc = sps.csc_array(ridge_peaks, dtype=int)
 
-        face_ridges.data = np.sign(face_ridges.data)
-        ridge_peaks.data = np.sign(ridge_peaks.data)
+        face_ridges_csc.data = np.sign(face_ridges_csc.data)
+        ridge_peaks_csc.data = np.sign(ridge_peaks_csc.data)
 
         # Set face_ridges and ridge_peaks as properties of the mortar grid
-        self.face_ridges = face_ridges
-        self.ridge_peaks = ridge_peaks
+        self.face_ridges = face_ridges_csc
+        self.ridge_peaks = ridge_peaks_csc
 
     def assign_signed_mortar_to_primary(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
         """
@@ -209,16 +210,16 @@ class MortarGrid(pp.MortarGrid):
             sd_pair (Tuple[pp.Grid, pp.Grid]): pair of adjacent subdomains
 
         Returns:
-            sps.csc_matrix: A sparse matrix representing the mapping from mortar
+            sps.csc_array: A sparse matrix representing the mapping from mortar
                 cells to primary grid faces.
                 The matrix has dimensions num_primary_faces x num_mortar_cells.
         """
         sd_up = sd_pair[0]
-        cells, faces, _ = sps.find(self.primary_to_mortar_int())
+        cells, faces, _ = sps.find(self.primary_to_mortar_int())  # type: ignore[arg-type]
         cf_csr = sd_up.cell_faces.tocsr()
         signs = [cf_csr[face, :].data[0] for face in faces]
 
-        self.signed_mortar_to_primary = sps.csc_matrix(
+        self.signed_mortar_to_primary = sps.csc_array(
             (signs, (faces, cells)), (sd_up.num_faces, self.num_cells)
         )
 
@@ -239,5 +240,5 @@ class MortarGrid(pp.MortarGrid):
             None
         """
         self.cell_faces = (
-            -self.signed_mortar_to_primary * self.secondary_to_mortar_int()
+            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()  # type: ignore[operator]
         )

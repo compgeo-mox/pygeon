@@ -44,9 +44,10 @@ class ElasticityTestPrimal(unittest.TestCase):
         """
         Test case for 2D rigid body motion.
 
-        This test case verifies the correctness of the solution for 2D rigid body motion.
-        It sets up the problem, applies essential boundary conditions, solves the linear system,
-        and checks if the computed solution matches the expected solution.
+        This test case verifies the correctness of the solution for 2D rigid body
+        motion. It sets up the problem, applies essential boundary conditions, solves
+        the linear system, and checks if the computed solution matches the expected
+        solution.
 
         Returns:
             None
@@ -71,8 +72,9 @@ class ElasticityTestPrimal(unittest.TestCase):
         """
         Test case for simulating rigid body motion in 3D.
 
-        This test sets up a linear system and solves it to simulate rigid body motion in 3D.
-        It verifies that the computed solution matches the expected solution within a tolerance.
+        This test sets up a linear system and solves it to simulate rigid body motion
+        in 3D. It verifies that the computed solution matches the expected solution
+        within a tolerance.
 
         Returns:
             None
@@ -135,8 +137,8 @@ class ElasticityTestPrimal(unittest.TestCase):
         """
         Test case for simulating a 3D footing using elasticity.
 
-        This test sets up a 3D problem with a footing and solves it using elasticity equations.
-        It verifies that the solution has a non-positive z component.
+        This test sets up a 3D problem with a footing and solves it using elasticity
+        equations. It verifies that the solution has a non-positive z component.
 
         Returns:
             None
@@ -162,8 +164,7 @@ class ElasticityTestPrimal(unittest.TestCase):
 
 class ElasticityTestMixed(unittest.TestCase):
     def run_elasticity_2d(self, u_boundary, N):
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(2, 1 / N, as_mdg=False)
         sd.compute_geometry()
 
         key = "elasticity"
@@ -180,7 +181,7 @@ class ElasticityTestMixed(unittest.TestCase):
         asym = Mr @ vec_bdm1.assemble_asym_matrix(sd)
 
         # fmt: off
-        spp = sps.bmat([[  Ms, div.T, -asym.T],
+        spp = sps.block_array([[  Ms, div.T, -asym.T],
                         [-div,  None,    None],
                         [asym,  None,    None]], format = "csc")
         # fmt: on
@@ -238,8 +239,7 @@ class ElasticityTestMixed(unittest.TestCase):
         self.assertTrue(np.allclose(cell_r, 0))
 
     def run_elasticity_3d(self, u_boundary, N):
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
+        sd = pg.unit_grid(3, 1 / N, as_mdg=False)
         sd.compute_geometry()
 
         key = "elasticity"
@@ -255,9 +255,9 @@ class ElasticityTestMixed(unittest.TestCase):
         asym = Mr @ vec_bdm1.assemble_asym_matrix(sd)
 
         # fmt: off
-        spp = sps.bmat([[   Ms, div.T, asym.T],
-                        [ -div,  None,   None],
-                        [-asym,  None,   None]], format = "csc")
+        spp = sps.block_array([[   Ms, div.T, asym.T],
+                               [ -div,  None,   None],
+                               [-asym,  None,   None]], format = "csc")
         # fmt: on
 
         b_faces = sd.tags["domain_boundary_faces"]

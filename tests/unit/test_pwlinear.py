@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-import scipy.sparse as sps
 
 import pygeon as pg
 import porepy as pp
@@ -10,6 +9,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_ndof(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -17,41 +17,20 @@ class PwLinearsTest(unittest.TestCase):
 
     def test_assemble_mass_matrix(self):
         dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        sd = pg.reference_element(dim)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
         M = discr.assemble_mass_matrix(sd)
 
-        # fmt: off
-        M_known_data = np.array([
-            2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1,
-            2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1,
-            2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1,
-            1, 2, 1, 1, 1, 2]) / 96
-        
+        M_known = np.array([[2.0, 1.0, 1.0], [1.0, 2.0, 1.0], [1.0, 1.0, 2.0]]) / 24
 
-        M_known_indices = np.array(
-        [ 0,  1,  2,  0,  1,  2,  0,  1,  2,  3,  4,  5,  3,  4,  5,  3,  4,
-         5,  6,  7,  8,  6,  7,  8,  6,  7,  8,  9, 10, 11,  9, 10, 11,  9,
-        10, 11, 12, 13, 14, 12, 13, 14, 12, 13, 14, 15, 16, 17, 15, 16, 17,
-        15, 16, 17, 18, 19, 20, 18, 19, 20, 18, 19, 20, 21, 22, 23, 21, 22,
-        23, 21, 22, 23]
-        )
-
-        M_known_indptr = np.array(
-        [0,  3,  6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48,
-        51, 54, 57, 60, 63, 66, 69, 72]
-        )
-        # fmt: on
-
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
+        self.assertTrue(np.allclose(M.todense(), M_known))
 
     def test_assemble_lumped_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -79,6 +58,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_diff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -89,6 +69,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_stiff_matrix(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -99,6 +80,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_interpolate(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -112,6 +94,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_eval_at_cell_centers(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -125,6 +108,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_assemble_nat_bc(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()
@@ -138,6 +122,7 @@ class PwLinearsTest(unittest.TestCase):
     def test_get_range_discr_class(self):
         dim = 2
         sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
         sd.compute_geometry()
 
         discr = pg.PwLinears()

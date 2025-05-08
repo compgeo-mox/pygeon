@@ -1,5 +1,4 @@
-""" Module contains BDM1 tests.
-"""
+"""Module contains BDM1 tests."""
 
 import unittest
 
@@ -27,7 +26,7 @@ class BDM1Test(unittest.TestCase):
 
         E = discr_bdm1.proj_from_RT0(sd)
 
-        check = E.T * mass_bdm1 * E - mass_rt0
+        check = E.T @ mass_bdm1 @ E - mass_rt0
 
         self.assertAlmostEqual(np.linalg.norm(check.data), 0)
 
@@ -81,7 +80,7 @@ class BDM1Test(unittest.TestCase):
             return x
 
         interp_q = discr_bdm1.interpolate(sd, q_linear)
-        eval_q = discr_bdm1.eval_at_cell_centers(sd) * interp_q
+        eval_q = discr_bdm1.eval_at_cell_centers(sd) @ interp_q
         eval_q = np.reshape(eval_q, (3, -1))
 
         known_q = np.array([q_linear(x) for x in sd.cell_centers.T]).T
@@ -103,7 +102,7 @@ class BDM1Test(unittest.TestCase):
 
         E = discr_bdm1.proj_from_RT0(sd)
 
-        check = E.T * mass_bdm1 * E - mass_rt0
+        check = E.T @ mass_bdm1 @ E - mass_rt0
         self.assertAlmostEqual(np.linalg.norm(check.data), 0)
 
     def test_linear_distribution_2D(self):
@@ -130,10 +129,10 @@ class BDM1Test(unittest.TestCase):
         for face_mass in mass_matrices:
             cell_mass = discr_p0.assemble_mass_matrix(sd, None)
 
-            div = cell_mass * discr_bdm1.assemble_diff_matrix(sd)
+            div = cell_mass @ discr_bdm1.assemble_diff_matrix(sd)
 
             # assemble the saddle point problem
-            spp = sps.bmat([[face_mass, -div.T], [div, None]], format="csc")
+            spp = sps.block_array([[face_mass, -div.T], [div, None]]).tocsc()
 
             b_faces = sd.tags["domain_boundary_faces"]
 
@@ -158,8 +157,8 @@ class BDM1Test(unittest.TestCase):
             face_proj = discr_bdm1.eval_at_cell_centers(sd)
             cell_proj = discr_p0.eval_at_cell_centers(sd)
 
-            cell_q = (face_proj * q).reshape((3, -1))
-            cell_p = cell_proj * p
+            cell_q = (face_proj @ q).reshape((3, -1))
+            cell_p = cell_proj @ p
 
             known_q = np.zeros(cell_q.shape)
             known_q[0, :] = -1.0

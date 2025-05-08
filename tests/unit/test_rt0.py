@@ -6,7 +6,6 @@ import pygeon as pg
 
 
 class RT0Test(unittest.TestCase):
-
     def test_0d(self):
         sd = pp.PointGrid(np.zeros(3))
 
@@ -72,7 +71,7 @@ class RT0Test(unittest.TestCase):
 
             M = discr.assemble_mass_matrix(sd)
 
-            data = discr.create_unitary_data(sd)
+            data = pg.RT0.create_unitary_data(discr.keyword, sd)
             discr_pp.discretize(sd, data)
 
             M_pp = data[pp.DISCRETIZATION_MATRICES]["flow"][

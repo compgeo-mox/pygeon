@@ -1,4 +1,4 @@
-""" Set membership utilities. """
+"""Set membership utilities."""
 
 import numpy as np
 
