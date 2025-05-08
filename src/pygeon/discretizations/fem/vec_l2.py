@@ -26,6 +26,16 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
 
     """
 
+    def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
+        n_base = self.base_discr.ndof(sd)
+
+        dof_base = self.base_discr.local_dofs_of_cell(sd, c)
+        shift = np.repeat(n_base * np.arange(sd.dim), dof_base.size)
+
+        dof_base = np.tile(dof_base, sd.dim)
+
+        return dof_base + shift
+
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class for the range of the differential.

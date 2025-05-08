@@ -341,6 +341,21 @@ class VecBDM1Test(unittest.TestCase):
 
         self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
 
+    def test_proj_to_matpwlinears(self):
+        for dim in [2, 3]:
+            sd = pg.unit_grid(dim, 1.0, as_mdg=False)
+            sd.compute_geometry()
+
+            discr = pg.MatPwLinears()
+            trace = discr.assemble_trace_matrix(sd)
+
+            bdm = pg.VecBDM1()
+            trace_bdm = bdm.assemble_trace_matrix(sd)
+            proj = bdm.proj_to_MatPwLinears(sd)
+
+            check = trace_bdm - trace @ proj
+            self.assertTrue(np.allclose(check.data, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

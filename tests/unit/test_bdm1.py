@@ -169,6 +169,21 @@ class BDM1Test(unittest.TestCase):
 
             self.assertTrue(discr_bdm1.get_range_discr_class(sd.dim) is pg.PwConstants)
 
+    def test_proj_topwlinears(self):
+        sd = pg.unit_grid(2, 1.0, as_mdg=False)
+        sd.compute_geometry()
+
+        disc = pg.BDM1()
+        M_BDM = disc.assemble_mass_matrix(sd)
+        P = disc.project_to_VecPwLinears(sd)
+
+        linears = pg.VecPwLinears()
+        M_lin = linears.assemble_mass_matrix(sd)
+
+        check = M_BDM - P.T @ M_lin @ P
+
+        self.assertTrue(np.allclose(check.data, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

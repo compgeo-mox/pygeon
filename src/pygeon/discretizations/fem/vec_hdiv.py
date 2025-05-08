@@ -235,8 +235,10 @@ class VecBDM1(pg.VecDiscretization):
             data_IJ[loc_idx] = Psi_v
             idx += cols.size
 
+        ndof_pwlinear = pg.PwLinears().ndof(sd)
+        shape = (ndof_pwlinear, self.ndof(sd))
         # Construct the global matrices
-        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])), shape=shape)
 
     def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
         """
@@ -447,6 +449,11 @@ class VecBDM1(pg.VecDiscretization):
                 differential
         """
         return pg.VecPwConstants
+
+    def proj_to_MatPwLinears(self, sd: pg.Grid):
+        proj = self.base_discr.proj_to_VecPwLinears(sd)
+
+        return sps.block_diag([proj] * sd.dim).tocsc()
 
 
 class VecRT0(pg.VecDiscretization):

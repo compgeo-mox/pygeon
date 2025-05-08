@@ -758,7 +758,7 @@ class BDM1(pg.Discretization):
             b_faces = np.where(b_faces)[0]
 
         p1 = pg.Lagrange1(self.keyword)
-        local_mass = p1.local_mass(sd.dim - 1)
+        local_mass = p1.assemble_local_mass(sd.dim - 1)
 
         vals = np.zeros(self.ndof(sd))
         signs = sd.cell_faces @ np.ones(sd.num_cells)
@@ -852,6 +852,47 @@ class BDM1(pg.Discretization):
 
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+    def proj_to_VecPwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        size = sd.dim**2 * (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        shift = pg.PwLinears().ndof(sd) * np.tile(np.arange(3), sd.dim + 1)
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces and
+            # determine the location of the dof
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
+
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]
+
+            # Extract indices of local dofs
+            loc_ind = np.hstack([faces_loc] * sd.dim)
+            loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+
+            # Extract local dofs of VecPwLinears
+            dof_range = sd.num_cells * np.arange(sd.dim + 1) + c
+            dof_range = np.repeat(dof_range, 3) + shift
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + Psi_v.size)
+            rows_I[loc_idx] = dof_range[Psi_j]
+            cols_J[loc_idx] = loc_ind[Psi_i]
+            data_IJ[loc_idx] = Psi_v
+            idx += Psi_v.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
 
 class RT1(pg.Discretization):

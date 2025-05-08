@@ -57,6 +57,9 @@ class PieceWisePolynomial(pg.Discretization):
         """
         return sd.num_cells * self.ndof_per_cell(sd)
 
+    def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
+        return sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
+
     @abc.abstractmethod
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -362,14 +365,14 @@ class PwLinears(PieceWisePolynomial):
             sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
         # Data allocation
-        size = np.square(sd.dim + 1) * sd.num_cells
+        size = np.square(self.ndof_per_cell(sd)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
         lagrange1 = pg.Lagrange1(self.keyword)
-        local_mass = lagrange1.local_mass(sd.dim)
+        local_mass = lagrange1.assemble_local_mass(sd.dim)
 
         weight = np.ones(sd.num_cells)
         if data is not None:
@@ -382,7 +385,7 @@ class PwLinears(PieceWisePolynomial):
             A = local_mass * sd.cell_volumes[c] * weight[c]
 
             # Save values for mass local matrix in the global structure
-            dofs_loc = sd.num_cells * np.arange(sd.dim + 1) + c
+            dofs_loc = self.local_dofs_of_cell(sd, c)
             cols = np.tile(dofs_loc, (dofs_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
 
@@ -503,8 +506,7 @@ class PwQuadratics(PieceWisePolynomial):
             sps.csc_array: Sparse csc matrix of shape (ndof, ndof).
         """
         # Data allocation
-        ndof_per_cell = self.ndof_per_cell(sd)
-        size = np.square(ndof_per_cell) * sd.num_cells
+        size = np.square(self.ndof_per_cell(sd)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -524,7 +526,7 @@ class PwQuadratics(PieceWisePolynomial):
             A = local_mass * sd.cell_volumes[c] * weight[c]
 
             # Save values for mass local matrix in the global structure
-            dof_loc = np.arange(ndof_per_cell) * sd.num_cells + c
+            dof_loc = self.local_dofs_of_cell(sd, c)
             cols = np.tile(dof_loc, (dof_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
 

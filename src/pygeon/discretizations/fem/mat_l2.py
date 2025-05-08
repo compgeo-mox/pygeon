@@ -1,5 +1,7 @@
 """Module for the discretizations of the matrix L2 space."""
 
+import numpy as np
+import scipy.sparse as sps
 import pygeon as pg
 
 
@@ -57,6 +59,45 @@ class MatPwLinears(pg.VecPwLinears):
         """
         super().__init__(keyword)
         self.base_discr = pg.VecPwLinears(keyword)
+
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the trace matrix for the matrix-valued piecewise linears.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The trace matrix obtained from the discretization.
+        """
+        size = (sd.dim + 1) * sd.dim * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.ones(size)
+        idx = 0
+
+        if sd.dim == 2:
+            mask = [0, 1, 2, 9, 10, 11]
+        elif sd.dim == 3:
+            mask = [0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35]
+
+        linears = pg.PwLinears()
+
+        for c in np.arange(sd.num_cells):
+            loc_dofs = self.local_dofs_of_cell(sd, c)[mask]
+
+            ran_dofs = linears.local_dofs_of_cell(sd, c)
+            ran_dofs = np.tile(ran_dofs, sd.dim)
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + loc_dofs.size)
+            rows_I[loc_idx] = ran_dofs
+            cols_J[loc_idx] = loc_dofs
+            idx += loc_dofs.size
+
+        # Construct the global matrices
+        shape = (linears.ndof(sd), self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
 
 class MatPwQuadratics(pg.VecPwQuadratics):
