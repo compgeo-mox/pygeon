@@ -99,6 +99,52 @@ class MatPwLinears(pg.VecPwLinears):
         shape = (linears.ndof(sd), self.ndof(sd))
         return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the asymmetry matrix for the matrix-valued
+        piecewise linears.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The asymmetry matrix obtained from the discretization.
+        """
+        size = (sd.dim + 1) * (sd.dim * (sd.dim - 1)) * sd.num_cells  # TODO
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        if sd.dim == 2:
+            mask = np.arange(3, 9)
+            loc_data = np.repeat([-1, 1], 3)
+            range_disc = pg.PwLinears()
+            rearrange = [0, 1, 2, 0, 1, 2]
+
+        elif sd.dim == 3:
+            mask = np.hstack((np.arange(4, 16), np.arange(20, 32)))
+            loc_data = np.repeat([-1, 1, 1, -1, -1, 1], 4)
+            range_disc = pg.VecPwLinears()
+
+            rearrange = np.arange(12).reshape((3, 4))
+            rearrange = rearrange[[2, 1, 2, 0, 1, 0]].ravel()
+
+        for c in np.arange(sd.num_cells):
+            loc_dofs = self.local_dofs_of_cell(sd, c)[mask]
+            ran_dofs = range_disc.local_dofs_of_cell(sd, c)[rearrange]
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + loc_dofs.size)
+            rows_I[loc_idx] = ran_dofs
+            cols_J[loc_idx] = loc_dofs
+            data_IJ[loc_idx] = loc_data
+            idx += loc_dofs.size
+
+        # Construct the global matrices
+        shape = (range_disc.ndof(sd), self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
+
 
 class MatPwQuadratics(pg.VecPwQuadratics):
     """

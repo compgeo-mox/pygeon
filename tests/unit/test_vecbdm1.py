@@ -341,7 +341,7 @@ class VecBDM1Test(unittest.TestCase):
 
         self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
 
-    def test_proj_to_matpwlinears(self):
+    def test_trace_with_proj(self):
         for dim in [2, 3]:
             sd = pg.unit_grid(dim, 1.0, as_mdg=False)
             sd.compute_geometry()
@@ -354,6 +354,21 @@ class VecBDM1Test(unittest.TestCase):
             proj = bdm.proj_to_MatPwLinears(sd)
 
             check = trace_bdm - trace @ proj
+            self.assertTrue(np.allclose(check.data, 0))
+
+    def test_asym_with_proj(self):
+        for dim in [2, 3]:
+            sd = pg.unit_grid(dim, 1.0, as_mdg=False)
+            sd.compute_geometry()
+
+            discr = pg.MatPwLinears()
+            asym = discr.assemble_asym_matrix(sd)
+
+            bdm = pg.VecBDM1()
+            asym_bdm = bdm.assemble_asym_matrix(sd, as_pwconstant=False)
+            proj = bdm.proj_to_MatPwLinears(sd)
+
+            check = asym_bdm - asym @ proj
             self.assertTrue(np.allclose(check.data, 0))
 
 
