@@ -577,7 +577,7 @@ class SpanningTreeElasticity(SpanningTree):
             raise NotImplementedError("Grid must be 2D or 3D.")
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
-        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd)
+        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)
 
         # create the solution operator
         return sps.vstack((-div, -asym)) @ self.expand
@@ -640,7 +640,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         M = vec_p0.assemble_mass_matrix(sd)
 
         div = M @ vec_rt0.assemble_diff_matrix(sd)
-        asym = M @ vec_rt0.assemble_asym_matrix(sd)
+        asym = M @ vec_rt0.assemble_asym_matrix(sd, True)
 
         B = sps.block_array([[-div, None], [-asym, -div]]).tocsc()  # type: ignore[list-item]
 

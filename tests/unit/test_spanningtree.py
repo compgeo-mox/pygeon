@@ -171,7 +171,7 @@ class SpanningTreeElasticityTest(unittest.TestCase):
             M_asym = M_div
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
-        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd)
+        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)
 
         return sps.vstack((-div, -asym))
 
@@ -261,7 +261,7 @@ class SpanningTreeCosseratTest(unittest.TestCase):
         M = vec_p0.assemble_mass_matrix(sd)
 
         div = M @ vec_rt0.assemble_diff_matrix(sd)
-        asym = M @ vec_rt0.assemble_asym_matrix(sd)
+        asym = M @ vec_rt0.assemble_asym_matrix(sd, True)
 
         return sps.block_array([[-div, None], [-asym, -div]]).tocsc()
 

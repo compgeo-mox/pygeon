@@ -9,7 +9,185 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class VecBDM1(pg.VecDiscretization):
+class VecHDiv(pg.VecDiscretization):
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles and returns the mass matrix for vector BDM1, which is given by
+        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
+        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_array: The mass matrix obtained from the discretization.
+        """
+        if data is None:
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5 * np.ones(sd.num_cells)
+            lambda_ = np.zeros(sd.num_cells)
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+
+        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
+        if isinstance(mu, np.ScalarType):
+            mu = np.full(sd.num_cells, mu)
+
+        # Save 1/(2mu) as a tensor so that it can be read by self
+        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
+        data_self = pp.initialize_data(
+            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
+        )
+
+        # Save the coefficient for the trace contribution
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        data_tr_space = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        # Assemble the block diagonal mass matrix for the base discretization class
+        D = super().assemble_mass_matrix(sd, data_self)
+        # Assemble the trace part
+        B = self.assemble_trace_matrix(sd)
+
+        # Assemble the piecewise linear mass matrix, to assemble the term
+        # (Trace(sigma), Trace(tau))
+        M = self.scalar_discr.assemble_mass_matrix(sd, data_tr_space)
+
+        # Compose all the parts and return them
+        return D - B.T @ M @ B
+
+    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+        """
+        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
+        inner product, which is given by (A sigma, tau) where
+        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
+                  + skw(sigma) / (2 mu_c)
+        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
+        mu_c the coupling Lamé modulus.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_array: The mass matrix obtained from the discretization.
+        """
+        M = self.assemble_mass_matrix(sd, data)
+
+        # Extract the data
+        mu = data[pp.PARAMETERS][self.keyword]["mu"]
+        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per
+        # cell
+        if isinstance(coeff, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff)
+
+        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        R_space: pg.Discretization
+        if sd.dim == 2:
+            R_space = self.scalar_discr
+        elif sd.dim == 3:
+            R_space = self.vec_discr
+
+        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
+
+        asym = self.assemble_asym_matrix(sd)
+
+        return M + asym.T @ R_mass @ asym
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+        if data is None:
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5
+            lambda_ = 0.0
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+
+        # Assemble the block diagonal mass matrix for the base discretization class
+        D = super().assemble_lumped_matrix(sd)
+
+        # Assemble the trace part
+        B = self.assemble_trace_matrix(sd)
+
+        # Assemble the piecewise linear mass matrix, to assemble the term
+        # (Trace(sigma), Trace(tau))
+        M = self.scalar_discr.assemble_lumped_matrix(sd)
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+
+        # Compose all the parts and return them
+        return (D - coeff * B.T @ M @ B) / (2 * mu)
+
+    def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+        """
+        Assembles the lumped matrix with cosserat terms for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+        M = self.assemble_lumped_matrix(sd, data)
+
+        # Extract the data
+        if data is None:
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5
+            mu_c = 0.5
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per
+        # cell
+        if isinstance(coeff, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff)
+
+        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        R_space: pg.Discretization
+        if sd.dim == 2:
+            R_space = self.scalar_discr
+        elif sd.dim == 3:
+            R_space = self.vec_discr
+
+        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
+
+        asym = self.assemble_asym_matrix(sd)
+
+        return M + asym.T @ R_mass @ asym
+
+
+class VecBDM1(VecHDiv):
     """
     VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite
     element method. It provides methods for assembling matrices like the mass matrix,
@@ -86,101 +264,8 @@ class VecBDM1(pg.VecDiscretization):
         """
         super().__init__(keyword)
         self.base_discr = pg.BDM1(keyword)
-
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for vector BDM1, which is given by
-        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        if data is None:
-            # If the data is not provided then use default values to build a block
-            # diagonal mass matrix without the trace term
-            mu = 0.5 * np.ones(sd.num_cells)
-            lambda_ = np.zeros(sd.num_cells)
-        else:
-            # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-
-        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
-        if isinstance(mu, np.ScalarType):
-            mu = np.full(sd.num_cells, mu)
-
-        # Save 1/(2mu) as a tensor so that it can be read by BDM1
-        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
-        data_for_BDM = pp.initialize_data(
-            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
-        )
-
-        # Save the coefficient for the trace contribution
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_for_BDM)
-        # Assemble the trace part
-        B = self.assemble_trace_matrix(sd)
-
-        # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
-        discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_mass_matrix(sd, data_for_PwL)
-
-        # Compose all the parts and return them
-        return D - B.T @ M @ B
-
-    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
-        inner product, which is given by (A sigma, tau) where
-        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
-                  + skw(sigma) / (2 mu_c)
-        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
-        mu_c the coupling Lamé modulus.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        M = self.assemble_mass_matrix(sd, data)
-
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
-
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
-
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
-
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.PwLinears(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.VecPwLinears(self.keyword)
-
-        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
-
-        asym = self.assemble_asym_matrix(sd, False)
-
-        return M + asym.T @ R_mass @ asym
+        self.scalar_discr = pg.PwLinears(keyword)
+        self.vec_discr = pg.VecPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -240,7 +325,7 @@ class VecBDM1(pg.VecDiscretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])), shape=shape)
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=False) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
@@ -254,7 +339,7 @@ class VecBDM1(pg.VecDiscretization):
         Args:
             sd (pg.Grid): The grid.
             as_pwconstant (bool): Compute the operator with the range on the piece-wise
-                constant (default), otherwise the mapping is on the piece-wise linears.
+                linears (default), otherwise the mapping is on the piece-wise constant.
 
         Returns:
             sps.csc_array: The asymmetric matrix obtained from the discretization.
@@ -338,79 +423,6 @@ class VecBDM1(pg.VecDiscretization):
         else:
             return asym
 
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped matrix for the given grid.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
-
-        Returns:
-            sps.csc_array: The assembled lumped matrix.
-        """
-        if data is None:
-            raise ValueError("Data must be provided for the assembly")
-
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_lumped_matrix(sd)
-
-        # Assemble the trace part
-        B = self.assemble_trace_matrix(sd)
-
-        # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
-        discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_lumped_matrix(sd)
-
-        # Extract the data and compute the coefficient for the trace part
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
-
-        # Compose all the parts and return them
-        return (D - coeff * B.T @ M @ B) / (2 * mu)
-
-    def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
-        """
-        Assembles the lumped matrix with cosserat terms for the given grid.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
-
-        Returns:
-            sps.csc_array: The assembled lumped matrix.
-        """
-        M = self.assemble_lumped_matrix(sd, data)
-
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
-
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
-
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
-
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.PwLinears(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.VecPwLinears(self.keyword)
-
-        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
-
-        asym = self.assemble_asym_matrix(sd, False)
-
-        return M + asym.T @ R_mass @ asym
-
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
@@ -456,7 +468,7 @@ class VecBDM1(pg.VecDiscretization):
         return sps.block_diag([proj] * sd.dim).tocsc()
 
 
-class VecRT0(pg.VecDiscretization):
+class VecRT0(VecHDiv):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT0 discretization class.
@@ -492,103 +504,8 @@ class VecRT0(pg.VecDiscretization):
         """
         super().__init__(keyword)
         self.base_discr = pg.RT0(keyword)
-
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for vector RT0, which is given by
-        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        if data is None:
-            # If the data is not provided then use default values to build a block
-            # diagonal mass matrix without the trace term
-            mu = 0.5 * np.ones(sd.num_cells)
-            lambda_ = np.zeros(sd.num_cells)
-        else:
-            # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-
-        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
-        if isinstance(mu, np.ScalarType):
-            mu = np.full(sd.num_cells, mu)
-
-        # Save 1/(2mu) as a tensor so that it can be read by BDM1
-        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
-        data_for_RT0 = pp.initialize_data(
-            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
-        )
-
-        # Save the coefficient for the trace contribution
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_for_RT0)
-        # Assemble the trace part
-        B = self.assemble_trace_matrix(sd)
-
-        # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
-        discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_mass_matrix(sd, data_for_PwL)
-
-        # Compose all the parts and return them
-        return D - B.T @ M @ B
-
-    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
-        inner product, which is given by (A sigma, tau) where
-        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
-                  + skw(sigma) / (2 mu_c)
-        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
-        mu_c the coupling Lamé modulus.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-
-        TODO: Consider using inheritance from VecBDM1.assemble_mass_matrix_cosserat
-        """
-        M = self.assemble_mass_matrix(sd, data)
-
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
-
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
-
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
-
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.PwLinears(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.VecPwLinears(self.keyword)
-
-        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
-
-        asym = self.assemble_asym_matrix(sd, False)
-
-        return M + asym.T @ R_mass @ asym
+        self.scalar_discr = pg.PwLinears(keyword)
+        self.vec_discr = pg.VecPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -604,7 +521,7 @@ class VecRT0(pg.VecDiscretization):
         proj = vec_bdm1.proj_from_RT0(sd)
         return vec_bdm1.assemble_trace_matrix(sd) @ proj
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=False) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
@@ -638,55 +555,12 @@ class VecRT0(pg.VecDiscretization):
         return pg.VecPwConstants
 
 
-class VecRT1(pg.VecDiscretization):
+class VecRT1(VecHDiv):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         super().__init__(keyword)
         self.base_discr = pg.RT1(keyword)
-
-    def assemble_mass_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_matrix:
-        """
-        Assembles and returns the mass matrix for vector RT1, which is given by
-        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-
-        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
-        if isinstance(mu, np.ScalarType):
-            mu = np.full(sd.num_cells, mu)
-
-        # Save 1/(2mu) as a tensor so that it can be read by RT1
-        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
-        data_for_RT1 = pp.initialize_data(
-            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
-        )
-
-        # Save the coefficient for the trace contribution
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_for_PwQ = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_for_RT1)
-
-        # Assemble trace matrix
-        B = self.assemble_trace_matrix(sd)
-
-        # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
-        discr = pg.PwQuadratics(self.keyword)
-        M = discr.assemble_mass_matrix(sd, data_for_PwQ)
-
-        # Compose all the parts and return them
-        return D - B.T @ M @ B
+        self.scalar_discr = pg.PwQuadratics(keyword)
+        self.vec_discr = pg.VecPwQuadratics(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         # overestimate the size
