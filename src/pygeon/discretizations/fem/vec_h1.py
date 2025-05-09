@@ -54,7 +54,7 @@ class VecLagrange1(pg.VecDiscretization):
         keyword (str): The keyword for the H1 class.
 
     Attributes:
-        scalar_discr (pg.Lagrange1): A local Lagrange1 class for performing some of the
+        base_discr (pg.Lagrange1): A local Lagrange1 class for performing some of the
             computations.
 
     Methods:
@@ -100,7 +100,7 @@ class VecLagrange1(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange1.
+        The base discretization class is pg.Lagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -108,8 +108,8 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             None
         """
-        self.scalar_discr: pg.Lagrange1
-        super().__init__(keyword, pg.Lagrange1)
+        super().__init__(keyword)
+        self.base_discr = pg.Lagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -180,7 +180,7 @@ class VecLagrange1(pg.VecDiscretization):
                 Shape: (num_faces_of_cell, num_faces_of_cell)
         """
 
-        dphi = self.scalar_discr.local_grads(coord, dim)
+        dphi = self.base_discr.local_grads(coord, dim)
 
         return c_volume * dphi
 
@@ -309,7 +309,7 @@ class VecLagrange1(pg.VecDiscretization):
             np.ndarray: Local symmetric gradient matrix of shape
                 (num_faces_of_cell, num_faces_of_cell).
         """
-        dphi = self.scalar_discr.local_grads(coord, dim)
+        dphi = self.base_discr.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
         return c_volume * sym @ grad
 
@@ -454,7 +454,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        proj = self.scalar_discr.proj_to_pwLinears(sd)
+        proj = self.base_discr.proj_to_pwLinears(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
@@ -468,7 +468,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        proj = self.scalar_discr.proj_to_pwConstants(sd)
+        proj = self.base_discr.proj_to_pwConstants(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
@@ -482,7 +482,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        proj = self.scalar_discr.proj_to_lagrange2(sd)
+        proj = self.base_discr.proj_to_lagrange2(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
 
@@ -493,7 +493,7 @@ class VecLagrange2(pg.VecDiscretization):
     discretization class for its operations.
 
     Attributes:
-        scalar_discr (pg.Lagrange2): The scalar discretization class used for
+        base_discr (pg.Lagrange2): The base discretization class used for
             vector discretization.
 
         keyword (str): A keyword specifying the type of vector discretization.
@@ -502,13 +502,13 @@ class VecLagrange2(pg.VecDiscretization):
     Methods:
         __init__(keyword: str = pg.UNITARY_DATA) -> None:
             Initializes the VecLagrange2 class with the specified keyword and
-            sets up the scalar discretization class.
+            sets up the base discretization class.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange2.
+        The base discretization class is pg.Lagrange2.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -516,8 +516,8 @@ class VecLagrange2(pg.VecDiscretization):
         Returns:
             None
         """
-        self.scalar_discr: pg.Lagrange2
-        super().__init__(keyword, pg.Lagrange2)
+        super().__init__(keyword)
+        self.base_discr = pg.Lagrange2(keyword)
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """

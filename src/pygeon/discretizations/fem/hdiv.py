@@ -500,6 +500,12 @@ class BDM1(pg.Discretization):
         else:
             raise ValueError
 
+    def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray):
+        loc_ind = np.hstack([faces_loc] * sd.dim)
+        loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+
+        return loc_ind
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
@@ -545,11 +551,10 @@ class BDM1(pg.Discretization):
             # Compute the inner products
             A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]  # type: ignore[union-attr]
 
-            loc_ind = np.hstack([faces_loc] * sd.dim)
-            loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
 
             # Save values of the local matrix in the global structure
-            cols = np.tile(loc_ind, (loc_ind.size, 1))
+            cols = np.tile(loc_dofs, (loc_dofs.size, 1))
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
@@ -700,14 +705,13 @@ class BDM1(pg.Discretization):
                 sd.dim + 1
             )
 
-            loc_ind = np.hstack([faces_loc] * sd.dim)
-            loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
 
             # Save values of the local matrix in the global structure
             row = np.repeat(c + np.arange(3) * sd.num_cells, basis_at_center.shape[0])
             loc_idx = slice(idx, idx + row.size)
             rows_I[loc_idx] = row
-            cols_J[loc_idx] = np.tile(loc_ind, 3)
+            cols_J[loc_idx] = np.tile(loc_dofs, 3)
             data_IJ[loc_idx] = basis_at_center.ravel(order="F")
             idx += row.size
 
@@ -758,7 +762,7 @@ class BDM1(pg.Discretization):
             b_faces = np.where(b_faces)[0]
 
         p1 = pg.Lagrange1(self.keyword)
-        local_mass = p1.local_mass(sd.dim - 1)
+        local_mass = p1.assemble_local_mass(sd.dim - 1)
 
         vals = np.zeros(self.ndof(sd))
         signs = sd.cell_faces @ np.ones(sd.num_cells)
@@ -831,8 +835,7 @@ class BDM1(pg.Discretization):
             # Compute a matrix Psi such that Psi[i, j] = psi_i(x_j)
             Psi, nod_ind = self.eval_basis_at_node(sd, opposites_loc, faces_loc, True)
 
-            Bdm_indices = np.hstack([faces_loc] * sd.dim)
-            Bdm_indices += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
 
             for node in np.arange(sd.dim + 1):
                 bf_is_at_node = nod_ind == node
@@ -840,10 +843,10 @@ class BDM1(pg.Discretization):
                 A = basis @ inv_K.values[:, :, c] @ basis.T
                 A *= sd.cell_volumes[c] / (sd.dim + 1)
 
-                loc_ind = Bdm_indices[bf_is_at_node]
+                dofs_at_node = loc_dofs[bf_is_at_node]
 
                 # Save values for the local matrix in the global structure
-                cols = np.tile(loc_ind, (loc_ind.size, 1))
+                cols = np.tile(dofs_at_node, (dofs_at_node.size, 1))
                 loc_idx = slice(idx, idx + cols.size)
                 rows_I[loc_idx] = cols.T.ravel()
                 cols_J[loc_idx] = cols.ravel()
@@ -852,6 +855,46 @@ class BDM1(pg.Discretization):
 
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
+    def proj_to_VecPwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        size = sd.dim**2 * (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        shift = pg.PwLinears().ndof(sd) * np.tile(np.arange(3), sd.dim + 1)
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces and
+            # determine the location of the dof
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+
+            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
+
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]
+
+            # Extract indices of local dofs
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
+
+            # Extract local dofs of VecPwLinears
+            ran_dofs = sd.num_cells * np.arange(sd.dim + 1) + c
+            ran_dofs = np.repeat(ran_dofs, 3) + shift
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + Psi_v.size)
+            rows_I[loc_idx] = ran_dofs[Psi_j]
+            cols_J[loc_idx] = loc_dofs[Psi_i]
+            data_IJ[loc_idx] = Psi_v
+            idx += Psi_v.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
 
 class RT1(pg.Discretization):
@@ -917,6 +960,16 @@ class RT1(pg.Discretization):
         """
         return sd.dim * (sd.num_faces + sd.num_cells)
 
+    def ndof_per_cell(self, dim: int) -> int:
+        return dim * (dim + 2)
+
+    def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray, c: int):
+        loc_face = np.hstack([faces_loc] * sd.dim)
+        loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+        loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
+
+        return np.hstack((loc_face, loc_cell))
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
@@ -972,13 +1025,10 @@ class RT1(pg.Discretization):
             A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
             # Get the indices for the local face and cell degrees of freedom
-            loc_face = np.hstack([faces_loc] * sd.dim)
-            loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
-            loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
-            loc_ind = np.hstack((loc_face, loc_cell))
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc, c)
 
             # Save values of the local matrix in the global structure
-            cols = np.tile(loc_ind, (loc_ind.size, 1))
+            cols = np.tile(loc_dofs, (loc_dofs.size, 1))
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
@@ -999,18 +1049,7 @@ class RT1(pg.Discretization):
             np.ndarray: The local mass matrix.
         """
         lagrange2 = pg.Lagrange2()
-        # We first need the barycentric coordinates lambda_i for each i
-        expnts_nodes = np.eye(dim + 1)
-
-        # For each edge (i, j) also consider the products \lambda_i \lambda_j
-        # by setting the appropriate exponents to one
-        edge_nodes = lagrange2.get_local_edge_nodes(dim)
-        expnts_edges = np.zeros((dim + 1, edge_nodes.shape[0]))
-        for ind, edge in enumerate(edge_nodes):
-            expnts_edges[edge, ind] = 1
-
-        expnts = np.hstack((expnts_nodes, expnts_edges))
-        M = lagrange2.assemble_barycentric_mass(expnts)
+        M = lagrange2.assemble_local_mass(dim)
 
         return np.kron(M, np.eye(3))
 
@@ -1082,12 +1121,14 @@ class RT1(pg.Discretization):
         edge_nodes = pg.Lagrange2().get_local_edge_nodes(dim)
         n_edges = edge_nodes.shape[0]
 
+        node_edges = np.array([np.nonzero(edge_nodes == n)[0] for n in range(dim + 1)])
+
         psi_nodes = np.zeros((dim + 1, 3 * (dim + 1)))
         psi_edges = np.zeros((dim + 1, 3 * n_edges))
 
         for edge, (i, j) in enumerate(edge_nodes):
-            psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j)
-            psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i)
+            psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j) / 4
+            psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i) / 4
 
         psi_k = np.hstack((psi_nodes, psi_edges))
 
@@ -1096,7 +1137,14 @@ class RT1(pg.Discretization):
 
         # Evaluate the basis functions of the face-dofs
         for dof, (i, j) in enumerate(zip(loc_nodes, opp_nodes)):
+            # Face-dofs are one at their respective nodes
             Psi[dof, 3 * i : 3 * (i + 1)] = tangent(j, i)
+            # Face-dofs are a half at the adjacent edges
+            for edge in node_edges[i]:
+                Psi[dof, 3 * (dim + 1 + edge) : 3 * (dim + 1 + edge + 1)] = (
+                    0.5 * tangent(j, i)
+                )
+            # See docs/RT1.md
             Psi[dof] -= psi_k[j] - psi_k[i]
             Psi[dof] *= signs[dof]
 
@@ -1161,7 +1209,7 @@ class RT1(pg.Discretization):
 
             P = self.eval_basis_functions_at_center(sd, nodes_loc, sd.cell_volumes[c])
 
-            cell_dofs = sd.num_faces * sd.dim + sd.num_cells * np.arange(sd.dim) + c
+            cell_dofs = self.local_dofs_of_cell(sd, np.zeros(sd.dim + 1), c)[-sd.dim :]
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + P.size)
@@ -1195,6 +1243,8 @@ class RT1(pg.Discretization):
         loc_div = self.compute_local_div_matrix(sd.dim)
         opposite_nodes = sd.compute_opposite_nodes()
 
+        range_disc = pg.PwLinears()
+
         for c in np.arange(sd.num_cells):
             _, faces_loc, signs_loc = self.reorder_faces(
                 sd.cell_faces, opposite_nodes, c
@@ -1207,20 +1257,17 @@ class RT1(pg.Discretization):
             div = loc_div * signs / (sd.dim * sd.cell_volumes[c])
 
             # Indices of the local degrees of freedom
-            loc_face = np.hstack([faces_loc] * sd.dim)
-            loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
-            loc_cell = sd.dim * sd.num_faces + np.arange(sd.dim) * sd.num_cells + c
-            loc_ind = np.hstack((loc_face, loc_cell))
-            loc_ind = np.tile(loc_ind, sd.dim + 1)
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc, c)
+            div_dofs = np.tile(loc_dofs, sd.dim + 1)
 
             # Indices of the range degrees of freedom
-            pwlinear_ind = sd.num_cells * np.arange(sd.dim + 1) + c
-            pwlinear_ind = np.repeat(pwlinear_ind, div.shape[1])
+            ran_dofs = range_disc.local_dofs_of_cell(sd, c)
+            ran_dofs = np.repeat(ran_dofs, div.shape[1])
 
             # Save values of the local matrix in the global structure
             loc_idx = slice(idx, idx + div.size)
-            rows_I[loc_idx] = pwlinear_ind
-            cols_J[loc_idx] = loc_ind
+            rows_I[loc_idx] = ran_dofs
+            cols_J[loc_idx] = div_dofs
             data_IJ[loc_idx] = div.ravel()
             idx += div.size
 
@@ -1378,10 +1425,10 @@ class RT1(pg.Discretization):
 
             A = P.T @ weight @ P * sd.cell_volumes[c] * (sd.dim + 1) / (sd.dim + 2)
 
-            loc_ind = sd.num_cells * np.arange(sd.dim) + c
+            loc_cell_dofs = sd.num_cells * np.arange(sd.dim) + c
 
             # Save values for projection P local matrix in the global structure
-            cols = np.tile(loc_ind, (loc_ind.size, 1))
+            cols = np.tile(loc_cell_dofs, (loc_cell_dofs.size, 1))
             loc_idx = slice(idx, idx + A.size)
             rows_I[loc_idx] = cols.T.ravel()
             cols_J[loc_idx] = cols.ravel()
@@ -1392,3 +1439,46 @@ class RT1(pg.Discretization):
         cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
         return sps.block_diag((bdm1_lumped, cell_dof_lumped), "csc")
+
+    def proj_to_VecPwQuadratics(self, sd: pg.Grid):
+        size = sd.dim * (3 * sd.dim + 2) * ((sd.dim * (sd.dim + 1)) // 2) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        range_disc = pg.VecPwQuadratics()
+
+        n_dof_per_cell = 18 if sd.dim == 2 else 30
+        rearrange = np.reshape(np.arange(n_dof_per_cell), (3, -1)).ravel(order="F")
+
+        for c in np.arange(sd.num_cells):
+            nodes_loc, faces_loc, signs_loc = self.reorder_faces(
+                sd.cell_faces, opposite_nodes, c
+            )
+
+            Psi = self.eval_basis_functions(
+                sd, nodes_loc, signs_loc, sd.cell_volumes[c]
+            )
+
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]
+
+            # Extract indices of local dofs
+            loc_dofs = self.local_dofs_of_cell(sd, faces_loc, c)
+
+            # Extract local dofs of VecPwQuadratics
+            ran_dofs = range_disc.local_dofs_of_cell(sd, c, 3)
+            ran_dofs = ran_dofs[rearrange]
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + Psi_v.size)
+            rows_I[loc_idx] = ran_dofs[Psi_j]
+            cols_J[loc_idx] = loc_dofs[Psi_i]
+            data_IJ[loc_idx] = Psi_v
+            idx += Psi_v.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))

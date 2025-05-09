@@ -9,7 +9,7 @@ class VecVRT0(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector virtual RT0 discretization class.
-        The scalar discretization class is pg.VRT0.
+        The base discretization class is pg.VRT0.
 
         We are considering the following structure of the stress tensor in 2d
 
@@ -39,8 +39,8 @@ class VecVRT0(pg.VecDiscretization):
         Returns:
             None
         """
-        self.scalar_discr: pg.VRT0
-        super().__init__(keyword, pg.VRT0)
+        super().__init__(keyword)
+        self.base_discr = pg.VRT0(keyword)
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """

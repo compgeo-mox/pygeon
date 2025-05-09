@@ -105,7 +105,7 @@ class VecRT0Test(unittest.TestCase):
 
         fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
         u = vec_rt0.interpolate(sd, fun)
-        asym = vec_rt0.assemble_asym_matrix(sd)
+        asym = vec_rt0.assemble_asym_matrix(sd, True)
 
         p0 = pg.PwConstants("p0")
         cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)
@@ -205,7 +205,7 @@ class VecRT0Test(unittest.TestCase):
 
         fun = lambda _: np.array([[1, 2, -1], [4, 3, 2], [1, 1, 1]])
         u = vec_rt0.interpolate(sd, fun)
-        asym = vec_rt0.assemble_asym_matrix(sd)
+        asym = vec_rt0.assemble_asym_matrix(sd, True)
 
         p0 = pg.VecPwConstants("p0")
         cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)

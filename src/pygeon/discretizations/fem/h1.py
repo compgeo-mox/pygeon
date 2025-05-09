@@ -95,7 +95,7 @@ class Lagrange1(pg.Discretization):
         idx = 0
 
         cell_nodes = sd.cell_nodes()
-        local_mass = self.local_mass(sd.dim)
+        local_mass = self.assemble_local_mass(sd.dim)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its nodes
@@ -116,7 +116,7 @@ class Lagrange1(pg.Discretization):
         # Construct the global matrix
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-    def local_mass(self, dim: int) -> np.ndarray:
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
         """Compute the local mass matrix on an element with measure 1.
 
         Args:
