@@ -135,6 +135,55 @@ class VecRT1Test(unittest.TestCase):
         M = vec_rt1.assemble_mass_matrix(sd, data)
         self.assertAlmostEqual(u.T @ M @ u, 32)
 
+    def test_trace_with_proj(self):
+        for dim in [2, 3]:
+            sd = pg.reference_element(dim)
+            sd.compute_geometry()
+
+            rt1 = pg.VecRT1()
+            proj = rt1.proj_to_MatPwQuadratics(sd)
+            trace_bdm = rt1.assemble_trace_matrix(sd)
+
+            discr = pg.MatPwQuadratics()
+            trace = discr.assemble_trace_matrix(sd)
+
+            check = trace_bdm - trace @ proj
+            self.assertTrue(np.allclose(check.data, 0))
+
+    def test_proj_topwquadratics(self):
+        for dim in [2, 3]:
+            sd = pg.unit_grid(dim, 1.0, as_mdg=False, structured=True)
+            sd.compute_geometry()
+
+            key = "test"
+            disc = pg.VecRT1(key)
+            data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
+            M_RT = disc.assemble_mass_matrix(sd, data)
+            P = disc.proj_to_MatPwQuadratics(sd)
+
+            quadratics = pg.MatPwQuadratics()
+            M_quad = quadratics.assemble_mass_matrix(sd)
+
+            check = M_RT - P.T @ M_quad @ P
+
+            self.assertTrue(np.allclose(check.data, 0))
+
+    def test_asym(self):
+        for dim in [2, 3]:
+            # sd = pg.unit_grid(dim, 1.0, as_mdg=False)
+            sd = pg.reference_element(dim)
+            sd.compute_geometry()
+
+            discr = pg.MatPwLinears()
+            asym = discr.assemble_asym_matrix(sd)
+
+            bdm = pg.VecBDM1()
+            asym_bdm = bdm.assemble_asym_matrix(sd, as_pwconstant=False)
+            proj = bdm.proj_to_MatPwLinears(sd)
+
+            check = asym_bdm - asym @ proj
+            self.assertTrue(np.allclose(check.data, 0))
+
     # def test_assemble_asym_matrix_2d(self):
     #     N = 1
     #     sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
@@ -206,5 +255,4 @@ class VecRT1Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # VecRT1Test().test_trace_2d()
     unittest.main()

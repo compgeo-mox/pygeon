@@ -26,15 +26,23 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
 
     """
 
-    def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
+    def local_dofs_of_cell(
+        self, sd: pg.Grid, c: int, ambient_dim: int = None
+    ) -> np.ndarray:
+        if ambient_dim is None:
+            ambient_dim = sd.dim
+
         n_base = self.base_discr.ndof(sd)
 
         dof_base = self.base_discr.local_dofs_of_cell(sd, c)
-        shift = np.repeat(n_base * np.arange(sd.dim), dof_base.size)
+        shift = np.repeat(n_base * np.arange(ambient_dim), dof_base.size)
 
-        dof_base = np.tile(dof_base, sd.dim)
+        dof_base = np.tile(dof_base, ambient_dim)
 
         return dof_base + shift
+
+    def ndof_per_cell(self, sd: pg.Grid) -> int:
+        return self.base_discr.ndof_per_cell(sd) * sd.dim
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """

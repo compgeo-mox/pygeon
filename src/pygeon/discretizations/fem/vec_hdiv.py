@@ -752,3 +752,8 @@ class VecRT1(pg.VecDiscretization):
             pg.Discretization: The range discretization class.
         """
         return pg.VecPwLinears
+
+    def proj_to_MatPwQuadratics(self, sd: pg.Grid):
+        proj = self.base_discr.proj_to_VecPwQuadratics(sd)
+
+        return sps.block_diag([proj] * sd.dim).tocsc()

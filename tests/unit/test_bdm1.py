@@ -175,7 +175,7 @@ class BDM1Test(unittest.TestCase):
 
         disc = pg.BDM1()
         M_BDM = disc.assemble_mass_matrix(sd)
-        P = disc.project_to_VecPwLinears(sd)
+        P = disc.proj_to_VecPwLinears(sd)
 
         linears = pg.VecPwLinears()
         M_lin = linears.assemble_mass_matrix(sd)

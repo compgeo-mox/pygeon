@@ -134,6 +134,21 @@ class RT1Test(unittest.TestCase):
 
         self.linear_distribution_test(sd, lumped=True)
 
+    def test_proj_topwquadratics(self):
+        sd = pg.unit_grid(2, 1.0, as_mdg=False, structured=True)
+        sd.compute_geometry()
+
+        disc = pg.RT1()
+        M_RT = disc.assemble_mass_matrix(sd)
+        P = disc.proj_to_VecPwQuadratics(sd)
+
+        quadratics = pg.VecPwQuadratics()
+        M_quad = quadratics.assemble_mass_matrix(sd)
+
+        check = M_RT - P.T @ M_quad @ P
+
+        self.assertTrue(np.allclose(check.data, 0))
+
 
 if __name__ == "__main__":
     unittest.main()
