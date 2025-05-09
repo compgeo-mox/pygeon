@@ -741,6 +741,12 @@ class VecRT1(pg.VecDiscretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        P = self.proj_to_MatPwQuadratics(sd)
+        asym = pg.MatPwQuadratics().assemble_asym_matrix(sd)
+
+        return asym @ P
+
     def get_range_discr_class(self, dim: int) -> object:
         """
         Returns the range discretization class for the given dimension.

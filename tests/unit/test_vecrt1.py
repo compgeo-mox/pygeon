@@ -168,90 +168,74 @@ class VecRT1Test(unittest.TestCase):
 
             self.assertTrue(np.allclose(check.data, 0))
 
-    def test_asym(self):
+    def test_asym_2d(self):
+        dim = 2
+        sd = pg.unit_grid(dim, 1.0, as_mdg=False, structured=True)
+        sd.compute_geometry()
+
+        discr = pg.VecRT1()
+        asym = discr.assemble_asym_matrix(sd)
+
+        func = lambda x: np.array([[x[0], x[1], 0], [x[0], x[1], 0]])
+        func_asym = lambda x: x[0] - x[1]
+
+        func_interp = discr.interpolate(sd, func)
+        asym_interp = pg.PwQuadratics().interpolate(sd, func_asym)
+
+        self.assertTrue(np.allclose(asym @ func_interp, asym_interp))
+
+    def test_asym_3d(self):
+        dim = 3
+        sd = pg.unit_grid(dim, 1.0, as_mdg=False, structured=True)
+        sd.compute_geometry()
+
+        discr = pg.VecRT1()
+        asym = discr.assemble_asym_matrix(sd)
+
+        func = lambda x: np.array(
+            [
+                [x[0], x[1], x[2]],
+                [x[0], x[1], x[2]],
+                [x[0], x[1], x[2]],
+            ]
+        )
+        func_asym = lambda x: np.array(
+            [
+                x[1] - x[2],
+                x[2] - x[0],
+                x[0] - x[1],
+            ]
+        )
+
+        func_interp = discr.interpolate(sd, func)
+        asym_interp = pg.VecPwQuadratics().interpolate(sd, func_asym)
+
+        self.assertTrue(np.allclose(asym @ func_interp, asym_interp))
+
+    def test_proj_with_interp(self):
         for dim in [2, 3]:
-            # sd = pg.unit_grid(dim, 1.0, as_mdg=False)
             sd = pg.reference_element(dim)
             sd.compute_geometry()
 
-            discr = pg.MatPwLinears()
-            asym = discr.assemble_asym_matrix(sd)
+            discr = pg.VecRT1()
 
-            bdm = pg.VecBDM1()
-            asym_bdm = bdm.assemble_asym_matrix(sd, as_pwconstant=False)
-            proj = bdm.proj_to_MatPwLinears(sd)
+            M_lumped = discr.assemble_lumped_matrix(sd)
 
-            check = asym_bdm - asym @ proj
-            self.assertTrue(np.allclose(check.data, 0))
+            func = lambda x: np.array([x, x, x])
+            func_interp = discr.interpolate(sd, func)
 
-    # def test_assemble_asym_matrix_2d(self):
-    #     N = 1
-    #     sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
+            norm_L = func_interp @ M_lumped @ func_interp
 
-    #     vec_rt1 = pg.VecRT1()
+            quads = pg.MatPwQuadratics()
+            P = discr.proj_to_MatPwQuadratics(sd)
+            M_q = quads.assemble_lumped_matrix(sd)
+            M_lumped2 = P.T @ M_q @ P
 
-    #     fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-    #     u = vec_rt1.interpolate(sd, fun)
-    #     asym = vec_rt1.assemble_asym_matrix(sd)
+            norm_L2 = func_interp @ M_lumped2 @ func_interp
 
-    #     p0 = pg.PwConstants("p0")
-    #     cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)
+            self.assertTrue(np.isclose(norm_L, norm_L2))
 
-    #     self.assertTrue(np.allclose(cell_asym_u, 2))
-
-    # def test_assemble_asym_matrix_3d(self):
-    #     N = 1
-    #     sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
-
-    #     vec_rt1 = pg.VecRT1()
-
-    #     fun = lambda _: np.array([[1, 2, -1], [4, 3, 2], [1, 1, 1]])
-    #     u = vec_rt1.interpolate(sd, fun)
-    #     asym = vec_rt1.assemble_asym_matrix(sd)
-
-    #     p0 = pg.VecPwConstants("p0")
-    #     cell_asym_u = p0.eval_at_cell_centers(sd) @ (asym @ u)
-    #     cell_asym_u = cell_asym_u.reshape((3, -1))
-
-    #     self.assertTrue(np.allclose(cell_asym_u[0], -1))
-    #     self.assertTrue(np.allclose(cell_asym_u[1], -2))
-    #     self.assertTrue(np.allclose(cell_asym_u[2], 2))
-
-    # def test_assemble_mass_matrix_cosserat_2d(self):
-    #     N = 10
-    #     sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
-
-    #     vec_rt1 = pg.VecRT1()
-
-    #     data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
-    #     M = vec_rt1.assemble_mass_matrix_cosserat(sd, data)
-
-    #     fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-    #     u = vec_rt1.interpolate(sd, fun)
-
-    #     self.assertAlmostEqual(u.T @ M @ u, 28)
-
-    # def test_assemble_mass_matrix_cosserat_3d(self):
-    #     N = 1
-    #     sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-    #     pg.convert_from_pp(sd)
-    #     sd.compute_geometry()
-
-    #     vec_rt1 = pg.VecRT1()
-
-    #     data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
-    #     M = vec_rt1.assemble_mass_matrix_cosserat(sd, data)
-
-    #     fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
-    #     u = vec_rt1.interpolate(sd, fun)
-
-    #     self.assertAlmostEqual(u.T @ M @ u, 29.5)
+            self.assertTrue(np.allclose((M_lumped2 - M_lumped).data, 0))
 
 
 if __name__ == "__main__":

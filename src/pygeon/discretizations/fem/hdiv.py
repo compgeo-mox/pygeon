@@ -1441,7 +1441,7 @@ class RT1(pg.Discretization):
         return sps.block_diag((bdm1_lumped, cell_dof_lumped), "csc")
 
     def proj_to_VecPwQuadratics(self, sd: pg.Grid):
-        size = (sd.dim**3 * (sd.dim + 1)) // 2 * 3 * sd.num_cells
+        size = sd.dim * (3 * sd.dim + 2) * ((sd.dim * (sd.dim + 1)) // 2) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)

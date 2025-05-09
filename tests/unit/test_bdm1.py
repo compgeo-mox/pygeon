@@ -184,6 +184,22 @@ class BDM1Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(check.data, 0))
 
+    def test_proj_with_lumped(self):
+        sd = pg.reference_element(2)
+        sd.compute_geometry()
+
+        disc = pg.BDM1()
+        disc.assemble_mass_matrix(sd)
+        M_BDM = disc.assemble_lumped_matrix(sd)
+        P = disc.proj_to_VecPwLinears(sd)
+
+        linears = pg.VecPwLinears()
+        M_lin = linears.assemble_lumped_matrix(sd)
+
+        check = M_BDM - P.T @ M_lin @ P
+
+        self.assertTrue(np.allclose(check.data, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

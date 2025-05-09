@@ -593,3 +593,53 @@ class PwQuadratics(PieceWisePolynomial):
             vals[c, sd.dim + 1 :] = [func(x) for x in edge_mid_pt.T]
 
         return vals.ravel(order="F")
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
+
+        # Data allocation
+        size = np.square(self.ndof_per_cell(sd)) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        if sd.dim == 2:
+            vals_at_center = np.array([-1, -1, -1, 4, 4, 4]) / 9
+            A_loc = 0.75 * np.outer(vals_at_center, vals_at_center)
+            A_loc += np.diag(np.array([1, 1, 1, 0, 0, 0])) / 12
+
+        else:
+            vals_at_center = np.array([-1, -1, -1, -1, 2, 2, 2, 2, 2, 2]) / 8
+            A_loc = 0.8 * np.outer(vals_at_center, vals_at_center)
+            A_loc += np.diag(np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0])) / 20
+
+        for c in np.arange(sd.num_cells):
+            loc_dofs = self.local_dofs_of_cell(sd, c)
+            cols = np.tile(loc_dofs, (loc_dofs.size, 1))
+
+            local_mass = A_loc * sd.cell_volumes[c] * weight[c]
+
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = local_mass.ravel()
+            idx += cols.size
+
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))

@@ -149,6 +149,27 @@ class RT1Test(unittest.TestCase):
 
         self.assertTrue(np.allclose(check.data, 0))
 
+    def test_proj_with_lump(self):
+        for dim in [2, 3]:
+            sd_list = [
+                pg.unit_grid(dim, 1.0, as_mdg=False, structured=False),
+                pg.reference_element(dim),
+            ]
+            for sd in sd_list:
+                sd.compute_geometry()
+                key = "test"
+
+                discr = pg.RT1(key)
+
+                M_lumped = discr.assemble_lumped_matrix(sd)
+
+                quads = pg.VecPwQuadratics()
+                P = discr.proj_to_VecPwQuadratics(sd)
+                M_q = quads.assemble_lumped_matrix(sd)
+                M_lumped2 = P.T @ M_q @ P
+
+                self.assertTrue(np.allclose((M_lumped2 - M_lumped).data, 0))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -121,6 +121,23 @@ class PwQuadraticsTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(source, source_known))
 
+    def test_lumped(self):
+        for dim in [2, 3]:
+            sd = pg.unit_grid(dim, 0.25, as_mdg=False)
+            sd.compute_geometry()
+
+            discr = pg.PwQuadratics()
+            M_lumped = discr.assemble_lumped_matrix(sd)
+            M_full = discr.assemble_mass_matrix(sd)
+
+            func = lambda x: x[1]
+            func_interp = discr.interpolate(sd, func)
+
+            norm_L = func_interp @ M_lumped @ func_interp
+            norm_M = func_interp @ M_full @ func_interp
+
+            self.assertTrue(np.isclose(norm_L, norm_M))
+
 
 if __name__ == "__main__":
     unittest.main()
