@@ -186,6 +186,17 @@ class VecHDiv(pg.VecDiscretization):
 
         return M + asym.T @ R_mass @ asym
 
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        P = self.proj_to_MatPwPolynomials(sd)
+        asym = self.mat_discr.assemble_asym_matrix(sd)
+
+        return asym @ P
+
+    def proj_to_MatPwPolynomials(self, sd: pg.Grid):
+        proj = self.base_discr_proj(sd)
+
+        return sps.block_diag([proj] * sd.dim).tocsc()
+
 
 class VecBDM1(VecHDiv):
     """
@@ -266,6 +277,7 @@ class VecBDM1(VecHDiv):
         self.base_discr = pg.BDM1(keyword)
         self.scalar_discr = pg.PwLinears(keyword)
         self.vec_discr = pg.VecPwLinears(keyword)
+        self.mat_discr = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -506,6 +518,7 @@ class VecRT0(VecHDiv):
         self.base_discr = pg.RT0(keyword)
         self.scalar_discr = pg.PwLinears(keyword)
         self.vec_discr = pg.VecPwLinears(keyword)
+        self.mat_discr = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -561,6 +574,8 @@ class VecRT1(VecHDiv):
         self.base_discr = pg.RT1(keyword)
         self.scalar_discr = pg.PwQuadratics(keyword)
         self.vec_discr = pg.VecPwQuadratics(keyword)
+        self.mat_discr = pg.MatPwQuadratics(keyword)
+        self.base_discr_proj = self.base_discr.proj_to_VecPwQuadratics
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
         # overestimate the size
@@ -615,12 +630,6 @@ class VecRT1(VecHDiv):
         # Construct the global matrices
         return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
-    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        P = self.proj_to_MatPwQuadratics(sd)
-        asym = pg.MatPwQuadratics().assemble_asym_matrix(sd)
-
-        return asym @ P
-
     def get_range_discr_class(self, dim: int) -> object:
         """
         Returns the range discretization class for the given dimension.
@@ -632,8 +641,3 @@ class VecRT1(VecHDiv):
             pg.Discretization: The range discretization class.
         """
         return pg.VecPwLinears
-
-    def proj_to_MatPwQuadratics(self, sd: pg.Grid):
-        proj = self.base_discr.proj_to_VecPwQuadratics(sd)
-
-        return sps.block_diag([proj] * sd.dim).tocsc()
