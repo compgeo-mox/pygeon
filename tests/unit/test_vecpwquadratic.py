@@ -32,28 +32,6 @@ class VecPwQuadraticsTest(unittest.TestCase):
 
         self.assertTrue(np.allclose(M.todense(), M_known))
 
-    # def test_assemble_lumped_matrix(self):
-    #     dim = 2
-    #     sd = pg.unit_grid(dim, 0.5, as_mdg = False, structured=True)
-
-    #     sd.compute_geometry()
-
-    #     discr = pg.VecPwQuadratics()
-
-    #     M = discr.assemble_lumped_matrix(sd)
-
-    #     # fmt: off
-    #     M_known_data = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]) / 6
-
-    #     M_known_indices = np.array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11])
-
-    #     M_known_indptr = np.array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12])
-    #     # fmt: on
-
-    #     self.assertTrue(np.allclose(M.data, M_known_data))
-    #     self.assertTrue(np.allclose(M.indptr, M_known_indptr))
-    #     self.assertTrue(np.allclose(M.indices, M_known_indices))
-
     def test_assemble_diff_matrix(self):
         dim = 2
         sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)

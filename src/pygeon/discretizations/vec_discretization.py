@@ -43,6 +43,16 @@ class VecDiscretization(pg.Discretization):
             Assembles the natural boundary condition vector.
     """
 
+    def __init__(self, keyword: str):
+        """
+        Initializes the VecDiscretization class.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+        """
+        super().__init__(keyword)
+        self.base_discr: pg.Discretization
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.

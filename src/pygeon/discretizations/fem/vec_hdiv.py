@@ -1,5 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
+import abc
 from typing import Optional, Type
 
 import numpy as np
@@ -10,6 +11,18 @@ import pygeon as pg
 
 
 class VecHDiv(pg.VecDiscretization):
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        """
+        Initialize the VecHDiv class.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+        """
+        super().__init__(keyword)
+        self.scalar_discr: pg.Discretization
+        self.vec_discr: pg.VecDiscretization
+        self.mat_discr: pg.VecDiscretization
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
@@ -187,12 +200,55 @@ class VecHDiv(pg.VecDiscretization):
         return M + asym.T @ R_mass @ asym
 
     def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assemble the asymmetric matrix for the given grid.
+
+        This method constructs an asymmetric matrix by projecting to
+        matrix piecewise polynomials and combining it with the
+        discretization's asymmetric matrix.
+
+        Args:
+            sd (pg.Grid): The grid object representing the spatial discretization.
+
+        Returns:
+            sps.csc_array: The assembled asymmetric matrix in compressed sparse column
+                format.
+        """
         P = self.proj_to_MatPwPolynomials(sd)
         asym = self.mat_discr.assemble_asym_matrix(sd)
 
         return asym @ P
 
-    def proj_to_MatPwPolynomials(self, sd: pg.Grid):
+    @abc.abstractmethod
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the trace matrix for the vector HDiv.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The trace matrix obtained from the discretization.
+
+        Note:
+            This method should be implemented in subclasses.
+        """
+
+    def proj_to_MatPwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the base discretization to a matrix of piecewise polynomials.
+
+        This method constructs a block diagonal sparse matrix where each block
+        corresponds to the projection of the base discretization. The number of
+        blocks is determined by the spatial dimension of the grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the spatial discretization.
+
+        Returns:
+            sps.csc_matrix: A block diagonal sparse matrix in CSC format
+                containing the projections for each spatial dimension.
+        """
         proj = self.base_discr_proj(sd)
 
         return sps.block_diag([proj] * sd.dim).tocsc()
@@ -522,7 +578,7 @@ class VecRT0(VecHDiv):
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles and returns the trace matrix for the vector BDM1.
+        Assembles and returns the trace matrix for the vector RT0.
 
         Args:
             sd (pg.Grid): The grid.
@@ -577,10 +633,25 @@ class VecRT1(VecHDiv):
         self.mat_discr = pg.MatPwQuadratics(keyword)
         self.base_discr_proj = self.base_discr.proj_to_VecPwQuadratics
 
-    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assemble the trace matrix for the given grid.
+
+        This method constructs a sparse matrix that represents the trace operator
+        for a finite element discretization on a given grid. The trace operator
+        maps the degrees of freedom associated with the elements of the grid to
+        the degrees of freedom associated with the faces and edges of the grid.
+
+        Args:
+            sd (pg.Grid): The grid object containing information about the
+                discretization.
+
+        Returns:
+            sps.csc_array: A sparse matrix in compressed sparse column (CSC) format
+                representing the trace operator.
+        """
         # overestimate the size
-        d = sd.dim
-        loc_size = d * (d * (d + 1) ** 2 + d**2 * (d + 1) // 2)
+        loc_size = sd.dim * (sd.dim * (sd.dim + 1) ** 2 + sd.dim**2 * (sd.dim + 1) // 2)
         size = loc_size * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
