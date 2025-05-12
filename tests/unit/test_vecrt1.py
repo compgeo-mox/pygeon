@@ -141,7 +141,7 @@ class VecRT1Test(unittest.TestCase):
             sd.compute_geometry()
 
             rt1 = pg.VecRT1()
-            proj = rt1.proj_to_MatPwQuadratics(sd)
+            proj = rt1.proj_to_MatPwPolynomials(sd)
             trace_bdm = rt1.assemble_trace_matrix(sd)
 
             discr = pg.MatPwQuadratics()
@@ -159,7 +159,7 @@ class VecRT1Test(unittest.TestCase):
             disc = pg.VecRT1(key)
             data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
             M_RT = disc.assemble_mass_matrix(sd, data)
-            P = disc.proj_to_MatPwQuadratics(sd)
+            P = disc.proj_to_MatPwPolynomials(sd)
 
             quadratics = pg.MatPwQuadratics()
             M_quad = quadratics.assemble_mass_matrix(sd)
@@ -227,7 +227,7 @@ class VecRT1Test(unittest.TestCase):
             norm_L = func_interp @ M_lumped @ func_interp
 
             quads = pg.MatPwQuadratics()
-            P = discr.proj_to_MatPwQuadratics(sd)
+            P = discr.proj_to_MatPwPolynomials(sd)
             M_q = quads.assemble_lumped_matrix(sd)
             M_lumped2 = P.T @ M_q @ P
 
