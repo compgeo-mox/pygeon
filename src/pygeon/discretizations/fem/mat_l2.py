@@ -9,17 +9,6 @@ import pygeon as pg
 class MatPwConstants(pg.VecPwConstants):
     """
     A class representing the discretization using matrix piecewise constant functions.
-
-    Attributes:
-        keyword (str): The keyword for the matrix discretization class.
-        base_discr (pg.Discretization): The base discretization class.
-
-    Methods:
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray],
-            np.ndarray], relative: Optional[bool] = True, etype:
-            Optional[str] = "specific") -> float:
-            Returns the l2 error computed against an analytical solution given as a
-            function.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -29,6 +18,7 @@ class MatPwConstants(pg.VecPwConstants):
 
         Args:
             keyword (str): The keyword for the matrix discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
@@ -40,11 +30,6 @@ class MatPwConstants(pg.VecPwConstants):
 class MatPwLinears(pg.VecPwLinears):
     """
     A class representing the discretization using matrix piecewise linear functions.
-
-    Attributes:
-        keyword (str): The keyword for the matrix discretization class.
-        base_discr (pg.Discretization): The base discretization class.
-
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -54,6 +39,7 @@ class MatPwLinears(pg.VecPwLinears):
 
         Args:
             keyword (str): The keyword for the matrix discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
@@ -153,11 +139,6 @@ class MatPwLinears(pg.VecPwLinears):
 class MatPwQuadratics(pg.VecPwQuadratics):
     """
     A class representing the discretization using matrix piecewise quadratic functions.
-
-    Attributes:
-        keyword (str): The keyword for the matrix discretization class.
-        base_discr (pg.Discretization): The base discretization class.
-
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -167,6 +148,7 @@ class MatPwQuadratics(pg.VecPwQuadratics):
 
         Args:
             keyword (str): The keyword for the matrix discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None

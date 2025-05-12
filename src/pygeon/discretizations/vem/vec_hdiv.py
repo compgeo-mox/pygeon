@@ -35,6 +35,7 @@ class VecVRT0(pg.VecDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None

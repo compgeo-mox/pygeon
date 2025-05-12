@@ -14,40 +14,6 @@ class VRT0(pg.RT0):
     VRT0 class for virtual lowest order Raviart-Thomas discretization.
 
     Each degree of freedom is the integral over a mesh face.
-
-    Args:
-        keyword (str): The keyword for the discretization.
-
-    Attributes:
-        keyword (str): The keyword for the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of faces.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped mass matrix.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the matrix.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-        Assembles the natural boundary condition term.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -56,6 +22,7 @@ class VRT0(pg.RT0):
 
         Args:
             keyword (str): The keyword for the discretization.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
@@ -117,37 +84,6 @@ class VBDM1(pg.BDM1):
     It provides methods for assembling the mass matrix, projecting to VRT0 space,
     assembling the differential matrix, evaluating at cell centers, interpolating
     a function, assembling the natural boundary condition term, and more.
-
-    Attributes:
-        keyword (str): The keyword associated with the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of faces time the dimension.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped mass matrix.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the matrix.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition term.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
     """
 
     def assemble_mass_matrix(

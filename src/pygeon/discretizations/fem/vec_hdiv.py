@@ -246,7 +246,7 @@ class VecHDiv(pg.VecDiscretization):
             sd (pg.Grid): The grid object representing the spatial discretization.
 
         Returns:
-            sps.csc_matrix: A block diagonal sparse matrix in CSC format
+            sps.csc_array: A block diagonal sparse matrix in CSC format
                 containing the projections for each spatial dimension.
         """
         proj = self.base_discr_proj(sd)
@@ -261,39 +261,6 @@ class VecBDM1(VecHDiv):
     the trace matrix, the asymmetric matrix and the differential matrix. It also
     provides methods for evaluating the solution at cell centers, interpolating a given
     function onto the grid, assembling the natural boundary condition term, and more.
-
-    Attributes:
-        keyword (str): The keyword associated with the vector BDM1 method.
-
-    Methods:
-        ndof(sd: pp.Grid) -> int:
-            Return the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix for the given grid.
-
-        assemble_trace_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the trace matrix for the vector BDM1.
-
-        assemble_asym_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the asymmetric matrix for the vector BDM1.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the finite element solution at the cell centers of the given grid.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a given function onto the grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition term.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -325,6 +292,7 @@ class VecBDM1(VecHDiv):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
@@ -566,6 +534,7 @@ class VecRT0(VecHDiv):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
@@ -625,7 +594,24 @@ class VecRT0(VecHDiv):
 
 
 class VecRT1(VecHDiv):
+    """
+    VecRT1 is a vector Raviart-Thomas finite element discretization class of order 1.
+
+    This class is designed for matrix-valued finite element discretizations in the
+    H(div) space, specifically using the Raviart-Thomas elements of order 1 (RT1).
+    """
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        """
+        Initialize the vector RT1 discretization class.
+        The base discretization class is pg.RT1.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
+        Returns:
+            None
+        """
         super().__init__(keyword)
         self.base_discr = pg.RT1(keyword)
         self.scalar_discr = pg.PwQuadratics(keyword)
