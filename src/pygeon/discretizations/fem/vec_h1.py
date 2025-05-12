@@ -64,7 +64,7 @@ class VecLagrange1(pg.VecDiscretization):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.Lagrange1(keyword)
+        self.base_discr: pg.Lagrange1 = pg.Lagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -457,7 +457,7 @@ class VecLagrange2(pg.VecDiscretization):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.Lagrange2(keyword)
+        self.base_discr: pg.Lagrange2 = pg.Lagrange2(keyword)
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """

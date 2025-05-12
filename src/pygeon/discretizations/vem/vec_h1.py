@@ -50,7 +50,7 @@ class VecVLagrange1(pg.VecDiscretization):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.VLagrange1(keyword)
+        self.base_discr: pg.VLagrange1 = pg.VLagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """

@@ -14,7 +14,7 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
     """
 
     def local_dofs_of_cell(
-        self, sd: pg.Grid, c: int, ambient_dim: int = None
+        self, sd: pg.Grid, c: int, ambient_dim: int = -1
     ) -> np.ndarray:
         """
         Compute the local degrees of freedom (DOFs) of a cell in a vector-valued
@@ -30,12 +30,12 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
             np.ndarray: An array containing the local DOFs of the specified cell,
                 adjusted for the vector-valued nature of the discretization.
         """
-        if ambient_dim is None:
+        if ambient_dim == -1:
             ambient_dim = sd.dim
 
         n_base = self.base_discr.ndof(sd)
 
-        dof_base = self.base_discr.local_dofs_of_cell(sd, c)
+        dof_base = self.base_discr.local_dofs_of_cell(sd, c)  # type: ignore[attr-defined]
         shift = np.repeat(n_base * np.arange(ambient_dim), dof_base.size)
 
         dof_base = np.tile(dof_base, ambient_dim)
@@ -56,7 +56,7 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
         Returns:
             int: The total number of degrees of freedom per cell.
         """
-        return self.base_discr.ndof_per_cell(sd) * sd.dim
+        return self.base_discr.ndof_per_cell(sd) * sd.dim  # type: ignore[attr-defined]
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -107,7 +107,7 @@ class VecPwConstants(VecPieceWisePolynomial):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.PwConstants(keyword)
+        self.base_discr: pg.PwConstants = pg.PwConstants(keyword)
 
     def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -180,7 +180,7 @@ class VecPwLinears(VecPieceWisePolynomial):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.PwLinears(keyword)
+        self.base_discr: pg.PwLinears = pg.PwLinears(keyword)
 
 
 class VecPwQuadratics(VecPieceWisePolynomial):
@@ -201,4 +201,4 @@ class VecPwQuadratics(VecPieceWisePolynomial):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.PwQuadratics(keyword)
+        self.base_discr: pg.PwQuadratics = pg.PwQuadratics(keyword)

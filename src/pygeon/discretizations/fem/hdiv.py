@@ -797,7 +797,7 @@ class BDM1(pg.Discretization):
             Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
 
             # Extract indices of local dofs
             loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
@@ -1317,7 +1317,7 @@ class RT1(pg.Discretization):
         # Construct the global matrix
         cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-        return sps.block_diag((bdm1_lumped, cell_dof_lumped), "csc")
+        return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
     def proj_to_VecPwQuadratics(self, sd: pg.Grid):
         size = sd.dim * (3 * sd.dim + 2) * ((sd.dim * (sd.dim + 1)) // 2) * sd.num_cells

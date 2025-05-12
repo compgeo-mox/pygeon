@@ -91,7 +91,7 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
         # Create a submatrix for the connected component
         sub_B = B_lil[rows, :]
         # Get the non-zero columns of the submatrix
-        cols = np.unique(np.nonzero(sub_B.tocoo())[1])
+        cols = cols = np.unique(sub_B.tocoo().nonzero()[1])
 
         # If there are no non-zero columns, skip this component
         if cols.size == 0:

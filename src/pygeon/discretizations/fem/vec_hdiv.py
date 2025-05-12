@@ -215,7 +215,7 @@ class VecHDiv(pg.VecDiscretization):
                 format.
         """
         P = self.proj_to_MatPwPolynomials(sd)
-        asym = self.mat_discr.assemble_asym_matrix(sd)
+        asym = self.mat_discr.assemble_asym_matrix(sd)  # type: ignore[attr-defined]
 
         return asym @ P
 
@@ -249,8 +249,7 @@ class VecHDiv(pg.VecDiscretization):
             sps.csc_array: A block diagonal sparse matrix in CSC format
                 containing the projections for each spatial dimension.
         """
-        proj = self.base_discr_proj(sd)
-
+        proj = self.base_discr_proj(sd)  # type: ignore[attr-defined]
         return sps.block_diag([proj] * sd.dim).tocsc()
 
 
@@ -298,10 +297,10 @@ class VecBDM1(VecHDiv):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.BDM1(keyword)
-        self.scalar_discr = pg.PwLinears(keyword)
-        self.vec_discr = pg.VecPwLinears(keyword)
-        self.mat_discr = pg.MatPwLinears(keyword)
+        self.base_discr: pg.BDM1 = pg.BDM1(keyword)
+        self.scalar_discr: pg.PwLinears = pg.PwLinears(keyword)
+        self.vec_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)
+        self.mat_discr: pg.MatPwLinears = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -498,9 +497,22 @@ class VecBDM1(VecHDiv):
         """
         return pg.VecPwConstants
 
-    def proj_to_MatPwLinears(self, sd: pg.Grid):
-        proj = self.base_discr.proj_to_VecPwLinears(sd)
+    def proj_to_MatPwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the base discretization to a matrix of piecewise linear functions.
 
+        This method constructs a block diagonal sparse matrix by projecting the
+        base discretization to vector piecewise linear functions and repeating
+        the projection for each spatial dimension.
+
+        Args:
+            sd (pg.Grid): The spatial grid on which the projection is performed.
+
+        Returns:
+            scipy.sparse.csc_matrix: A block diagonal sparse matrix representing
+            the projection to piecewise linear functions for each spatial dimension.
+        """
+        proj = self.base_discr.proj_to_VecPwLinears(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
 
@@ -540,10 +552,10 @@ class VecRT0(VecHDiv):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.RT0(keyword)
-        self.scalar_discr = pg.PwLinears(keyword)
-        self.vec_discr = pg.VecPwLinears(keyword)
-        self.mat_discr = pg.MatPwLinears(keyword)
+        self.base_discr: pg.RT0 = pg.RT0(keyword)
+        self.scalar_discr: pg.PwLinears = pg.PwLinears(keyword)
+        self.vec_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)
+        self.mat_discr: pg.MatPwLinears = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -613,10 +625,10 @@ class VecRT1(VecHDiv):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.RT1(keyword)
-        self.scalar_discr = pg.PwQuadratics(keyword)
-        self.vec_discr = pg.VecPwQuadratics(keyword)
-        self.mat_discr = pg.MatPwQuadratics(keyword)
+        self.base_discr: pg.RT1 = pg.RT1(keyword)
+        self.scalar_discr: pg.PwQuadratics = pg.PwQuadratics(keyword)
+        self.vec_discr: pg.VecPwQuadratics = pg.VecPwQuadratics(keyword)
+        self.mat_discr: pg.MatPwQuadratics = pg.MatPwQuadratics(keyword)
         self.base_discr_proj = self.base_discr.proj_to_VecPwQuadratics
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
@@ -687,7 +699,7 @@ class VecRT1(VecHDiv):
         # Construct the global matrices
         return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

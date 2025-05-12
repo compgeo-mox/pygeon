@@ -116,7 +116,7 @@ class LinearSystem:
             return sps.csc_array(self.b.shape)
         else:
             ess_vals = sps.csr_array(np.atleast_2d(self.ess_vals))
-            return sps.vstack([ess_vals] * self.b.shape[1]).T
+            return sps.vstack([ess_vals] * self.b.shape[1]).T.tocsc()
 
 
 def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:

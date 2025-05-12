@@ -41,7 +41,7 @@ class VecVRT0(pg.VecDiscretization):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.VRT0(keyword)
+        self.base_discr: pg.VRT0 = pg.VRT0(keyword)
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
