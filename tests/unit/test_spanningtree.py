@@ -1,6 +1,7 @@
 """Module contains Spanning Tree tests."""
 
 import unittest
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps

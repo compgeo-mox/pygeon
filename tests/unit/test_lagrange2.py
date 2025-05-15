@@ -1,9 +1,10 @@
 """Module contains a unit test for the Lagrangean P2 discretization."""
 
 import unittest
-import numpy as np
 
+import numpy as np
 import porepy as pp
+
 import pygeon as pg
 
 

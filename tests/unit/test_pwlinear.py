@@ -1,8 +1,9 @@
 import unittest
+
 import numpy as np
+import porepy as pp
 
 import pygeon as pg
-import porepy as pp
 
 
 class PwLinearsTest(unittest.TestCase):
@@ -140,7 +141,7 @@ class PwLinearsTest(unittest.TestCase):
 
         discr = pg.PwLinears()
 
-        discr.proj_to_pwquadratics(sd)
+        discr.proj_to_pwQuadratics(sd)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,10 @@
 import unittest
+
 import numpy as np
+import porepy as pp
 import scipy.linalg as spla
 
 import pygeon as pg
-import porepy as pp
 
 
 class VecPwQuadraticsTest(unittest.TestCase):
