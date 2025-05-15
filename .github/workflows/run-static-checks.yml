@@ -88,9 +88,7 @@ jobs:
 
     - name: isort
       if: ${{always()}}
-      run: |
-        isort --check src
-        isort --check test
+      run: isort --check src tests
 
     - name: mypy
       if: ${{ always() }}
