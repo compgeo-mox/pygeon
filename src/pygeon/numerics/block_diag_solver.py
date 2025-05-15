@@ -14,7 +14,8 @@ def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
 
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
-        rtol
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Default 1e-10.
 
     Returns:
         sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
@@ -28,11 +29,12 @@ def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
     # Get connected components
     n_components, labels = csgraph.connected_components(M, directed=False)
 
-    # Convert M to LIL format for efficient row and column access
+    # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
     M.eliminate_zeros()
-    M_lil = M.tolil()
 
+    # Convert M to LIL format for efficient row and column access
+    M_lil = M.tolil()
     inv_M_lil = sps.lil_array(M_lil.shape)
 
     # Iterate over each connected component of the matrix M
@@ -67,7 +69,8 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array, rtol=1e-10) -> sps.csc
             assumed to be symmetric and positive definite.
         B (sps.csc_array): The right-hand side matrix in Compressed Sparse Column (CSC)
             format.
-        rtol
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Default 1e-10.
 
     Returns:
         sps.csc_array: The solution matrix X.
@@ -83,11 +86,12 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array, rtol=1e-10) -> sps.csc
     # Get connected components
     n_components, labels = csgraph.connected_components(M, directed=False)
 
-    # Convert M and B to LIL format for efficient row and column access
+    # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
     M.eliminate_zeros()
-    M_lil = M.tolil()
 
+    # Convert M and B to LIL format for efficient row and column access
+    M_lil = M.tolil()
     B_lil = B.tolil()
     sol = sps.lil_array(B.shape)
 
