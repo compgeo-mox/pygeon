@@ -1,10 +1,8 @@
-"""Module contains vector Lagrangean fem tests."""
+"""Module contains vector Lagrangean2 fem tests."""
 
 import unittest
 
 import numpy as np
-import porepy as pp
-import scipy.sparse as sps
 
 import pygeon as pg
 
