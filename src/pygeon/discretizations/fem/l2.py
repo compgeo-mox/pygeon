@@ -379,19 +379,29 @@ class PwLinears(PieceWisePolynomial):
 
         return vals.ravel(order="F")
 
-    def proj_to_pwquadratics(self, sd: pg.Grid):
-        l2 = pg.Lagrange2()
-        num_cell_edges = l2.num_edges_per_cell(sd.dim)
+    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the P1 discretization to the P2 discretization.
 
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+        l2 = pg.Lagrange2()
+        p1 = pg.PwLinears()
+        p2 = pg.PwQuadratics()
+
+        # Local dof mapping
+        num_cell_edges = l2.num_edges_per_cell(sd.dim)
         edge_nodes = l2.get_local_edge_nodes(sd.dim).ravel()
         vals = np.concatenate((np.ones(sd.dim + 1), 0.5 * np.ones(num_cell_edges * 2)))
 
+        # Define the vectors for storing the matrix entries
         rows_I = np.empty((sd.num_cells, vals.size), dtype=int)
         cols_J = np.empty((sd.num_cells, vals.size), dtype=int)
         data_IJ = np.tile(vals, (sd.num_cells, 1))
-
-        p1 = pg.PwLinears()
-        p2 = pg.PwQuadratics()
 
         for c in np.arange(sd.num_cells):
             dofs_p1 = p1.local_dofs_of_cell(sd, c)
