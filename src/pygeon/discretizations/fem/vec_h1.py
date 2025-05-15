@@ -477,3 +477,17 @@ class VecLagrange2(pg.VecDiscretization):
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 2 in PyGeoN"
         )
+
+    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a quadratic Lagrangian function to a second
+        order vector piece-wise function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.base_discr.proj_to_pwQuadratics(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
