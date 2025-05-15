@@ -8,6 +8,15 @@ import pygeon as pg
 
 
 class VecLagrange2Test(unittest.TestCase):
+    def test_range_discr_class(self):
+        l2 = pg.VecLagrange2()
+        for dim in [1, 2, 3]:
+            self.assertRaises(
+                NotImplementedError,
+                l2.get_range_discr_class,
+                dim,
+            )
+
     def test_proj_to_pwquadratics(self):
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
