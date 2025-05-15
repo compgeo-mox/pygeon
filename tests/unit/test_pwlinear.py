@@ -133,6 +133,15 @@ class PwLinearsTest(unittest.TestCase):
             dim,
         )
 
+    def test_proj_to_quadratics(self):
+        dim = 2
+        sd = pg.unit_grid(2, 1.0, as_mdg=False)
+        sd.compute_geometry()
+
+        discr = pg.PwLinears()
+
+        discr.proj_to_pwquadratics(sd)
+
 
 if __name__ == "__main__":
     unittest.main()

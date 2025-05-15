@@ -379,6 +379,31 @@ class PwLinears(PieceWisePolynomial):
 
         return vals.ravel(order="F")
 
+    def proj_to_pwquadratics(self, sd: pg.Grid):
+        l2 = pg.Lagrange2()
+        num_cell_edges = l2.num_edges_per_cell(sd.dim)
+
+        edge_nodes = l2.get_local_edge_nodes(sd.dim).ravel()
+        vals = np.concatenate((np.ones(sd.dim + 1), 0.5 * np.ones(num_cell_edges * 2)))
+
+        rows_I = np.empty((sd.num_cells, vals.size), dtype=int)
+        cols_J = np.empty((sd.num_cells, vals.size), dtype=int)
+        data_IJ = np.tile(vals, (sd.num_cells, 1))
+
+        p1 = pg.PwLinears()
+        p2 = pg.PwQuadratics()
+
+        for c in np.arange(sd.num_cells):
+            dofs_p1 = p1.local_dofs_of_cell(sd, c)
+            dofs_p2 = p2.local_dofs_of_cell(sd, c)
+
+            rows_I[c] = np.concatenate(
+                (dofs_p2[: sd.dim + 1], np.repeat(dofs_p2[sd.dim + 1 :], 2))
+            )
+            cols_J[c] = np.concatenate((dofs_p1, dofs_p1[edge_nodes]))
+
+        return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
+
 
 class PwQuadratics(PieceWisePolynomial):
     """

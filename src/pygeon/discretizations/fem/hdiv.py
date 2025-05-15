@@ -56,7 +56,7 @@ class RT0(pg.Discretization):
             data[pp.PARAMETERS][keyword]["second_order_tensor"]
         except KeyError:
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data[pp.PARAMETERS].update({keyword: {"second_order_tensor": perm}})
+            data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
 
         try:
             data[pp.DISCRETIZATION_MATRICES][keyword]

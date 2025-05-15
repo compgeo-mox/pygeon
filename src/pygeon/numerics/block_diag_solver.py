@@ -4,7 +4,7 @@ import scipy.sparse as sps
 import scipy.sparse.csgraph as csgraph  # type: ignore[import-untyped]
 
 
-def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
+def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
 
@@ -14,6 +14,7 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
 
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
+        rtol
 
     Returns:
         sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
@@ -28,7 +29,10 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
     n_components, labels = csgraph.connected_components(M, directed=False)
 
     # Convert M to LIL format for efficient row and column access
+    M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
+    M.eliminate_zeros()
     M_lil = M.tolil()
+
     inv_M_lil = sps.lil_array(M_lil.shape)
 
     # Iterate over each connected component of the matrix M
@@ -47,7 +51,7 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
     return inv_M_lil.tocsc()
 
 
-def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
+def block_diag_solver(M: sps.csc_array, B: sps.csc_array, rtol=1e-10) -> sps.csc_array:
     """
     Solves a block diagonal system of linear equations for each connected component.
 
@@ -63,6 +67,7 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
             assumed to be symmetric and positive definite.
         B (sps.csc_array): The right-hand side matrix in Compressed Sparse Column (CSC)
             format.
+        rtol
 
     Returns:
         sps.csc_array: The solution matrix X.
@@ -79,7 +84,10 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
     n_components, labels = csgraph.connected_components(M, directed=False)
 
     # Convert M and B to LIL format for efficient row and column access
+    M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
+    M.eliminate_zeros()
     M_lil = M.tolil()
+
     B_lil = B.tolil()
     sol = sps.lil_array(B.shape)
 
