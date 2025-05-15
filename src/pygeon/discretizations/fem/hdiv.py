@@ -85,10 +85,10 @@ class RT0(pg.Discretization):
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
         # create unitary data, unitary permeability, in case not present
-        data = RT0.create_unitary_data(self.keyword, sd, data)
+        data_ = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
         # Retrieve the inverse of permeability
         inv_K = parameter_dictionary["second_order_tensor"]
 
@@ -97,7 +97,7 @@ class RT0(pg.Discretization):
         _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
         nodes = nodes[: sd.dim, :]
 
-        if not data.get("is_tangential", False):
+        if not data_.get("is_tangential", False):
             # Rotate the inverse of the permeability tensor and delete last dimension
             if sd.dim < 3:
                 inv_K = inv_K.copy()
@@ -869,10 +869,10 @@ class RT1(pg.Discretization):
             return sps.csc_array((0, 0))
 
         # create unitary data, unitary permeability, in case not present
-        data = RT0.create_unitary_data(self.keyword, sd, data)
+        data_ = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
         # Retrieve the inverse of permeability
         inv_K = parameter_dictionary["second_order_tensor"]
 
@@ -1277,10 +1277,10 @@ class RT1(pg.Discretization):
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
         # create unitary data, unitary permeability, in case not present
-        data = RT0.create_unitary_data(self.keyword, sd, data)
+        data_ = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
+        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
         # Retrieve the inverse of permeability
         inv_K = parameter_dictionary["second_order_tensor"]
 
