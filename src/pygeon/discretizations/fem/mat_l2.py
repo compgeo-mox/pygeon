@@ -217,13 +217,13 @@ class MatPwQuadratics(pg.VecPwQuadratics):
         if sd.dim == 2:
             mask = np.arange(6, 18)
             loc_data = np.repeat([-1, 1], num_int_points)
-            range_disc = pg.PwQuadratics()
+            range_disc = pg.PwQuadratics()  # type: ignore[assignment]
             rearrange = np.tile(np.arange(range_disc.ndof_per_cell(sd)), 2)
 
         elif sd.dim == 3:
             mask = np.hstack((np.arange(10, 40), np.arange(50, 80)))
             loc_data = np.repeat([-1, 1, 1, -1, -1, 1], num_int_points)
-            range_disc = pg.VecPwQuadratics()
+            range_disc = pg.VecPwQuadratics()  # type: ignore[assignment]
 
             rearrange = np.arange(3 * num_int_points).reshape((3, -1))
             rearrange = rearrange[[2, 1, 2, 0, 1, 0]].ravel()
