@@ -26,12 +26,12 @@ def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
         - The inversion is performed using dense matrix operations for each block,
           which may be computationally expensive for large blocks.
     """
-    # Get connected components
-    n_components, labels = csgraph.connected_components(M, directed=False)
-
     # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
     M.eliminate_zeros()
+
+    # Get connected components
+    n_components, labels = csgraph.connected_components(M, directed=False)
 
     # Convert M to LIL format for efficient row and column access
     M_lil = M.tolil()
@@ -83,12 +83,12 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array, rtol=1e-10) -> sps.csc
         - If the right-hand side B is sparse and contains zero entries for a connected
           component, the solution for that component is skipped.
     """
-    # Get connected components
-    n_components, labels = csgraph.connected_components(M, directed=False)
-
     # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
     M.eliminate_zeros()
+
+    # Get connected components
+    n_components, labels = csgraph.connected_components(M, directed=False)
 
     # Convert M and B to LIL format for efficient row and column access
     M_lil = M.tolil()
