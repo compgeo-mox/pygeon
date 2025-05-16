@@ -11,59 +11,21 @@ import pygeon as pg
 class VecDiscretization(pg.Discretization):
     """
     A class representing a vector discretization.
-
-    Attributes:
-        keyword (str): The keyword for the vector discretization class.
-        scalar_discr (pg.Discretization): The scalar discretization object.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix for the lowest order Lagrange element.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped mass matrix given by the row sums on the diagonal.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the finite element solution at the cell centers of the given grid.
-
-        assemble_nat_bc(
-            sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
-        ) -> np.ndarray:
-            Assembles the natural boundary condition vector.
     """
 
-    def __init__(
-        self,
-        keyword: str = pg.UNITARY_DATA,
-        scalar_discr: Optional[type[pg.Discretization]] = None,
-    ) -> None:
+    def __init__(self, keyword: str) -> None:
         """
-        Initialize the vector discretization class.
+        Initializes the VecDiscretization class.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-            scalar_discr (pg.Discretization): The scalar discretization object.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
         super().__init__(keyword)
-        # a local discr class for performing some of the computations
-        if scalar_discr is not None:
-            self.scalar_discr = scalar_discr(keyword)
-        else:
-            raise ValueError("A scalar discretization object must be provided.")
+        self.base_discr: pg.Discretization
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -77,7 +39,7 @@ class VecDiscretization(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return self.scalar_discr.ndof(sd) * sd.dim
+        return self.base_discr.ndof(sd) * sd.dim
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -92,7 +54,7 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        mass = self.scalar_discr.assemble_mass_matrix(sd, data)
+        mass = self.base_discr.assemble_mass_matrix(sd, data)
         return sps.block_diag([mass] * sd.dim).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
@@ -105,7 +67,7 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The differential matrix.
         """
-        diff = self.scalar_discr.assemble_diff_matrix(sd)
+        diff = self.base_discr.assemble_diff_matrix(sd)
         return sps.block_diag([diff] * sd.dim).tocsc()
 
     def assemble_lumped_matrix(
@@ -121,7 +83,7 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        lumped_mass = self.scalar_discr.assemble_lumped_matrix(sd, data)
+        lumped_mass = self.base_discr.assemble_lumped_matrix(sd, data)
         return sps.block_diag([lumped_mass] * sd.dim).tocsc()
 
     def interpolate(
@@ -138,7 +100,7 @@ class VecDiscretization(pg.Discretization):
             np.ndarray: the values of the degrees of freedom
         """
         interp = [
-            self.scalar_discr.interpolate(sd, lambda x: func(x)[d])
+            self.base_discr.interpolate(sd, lambda x: func(x)[d])
             for d in np.arange(sd.dim)
         ]
         return np.hstack(interp)
@@ -153,7 +115,7 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
-        P = self.scalar_discr.eval_at_cell_centers(sd)
+        P = self.base_discr.eval_at_cell_centers(sd)
         return sps.block_diag([P] * sd.dim).tocsc()
 
     def assemble_nat_bc(
@@ -172,7 +134,7 @@ class VecDiscretization(pg.Discretization):
             np.ndarray: The assembled natural boundary condition vector.
         """
         nat_bc = [
-            self.scalar_discr.assemble_nat_bc(sd, lambda x: func(x)[d], b_faces)
+            self.base_discr.assemble_nat_bc(sd, lambda x: func(x)[d], b_faces)
             for d in np.arange(sd.dim)
         ]
         return np.hstack(nat_bc)

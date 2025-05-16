@@ -1,8 +1,9 @@
 import unittest
+
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -133,6 +134,42 @@ class RT1Test(unittest.TestCase):
         sd.compute_geometry()
 
         self.linear_distribution_test(sd, lumped=True)
+
+    def test_proj_topwquadratics(self):
+        sd = pg.unit_grid(2, 1.0, as_mdg=False, structured=True)
+        sd.compute_geometry()
+
+        disc = pg.RT1()
+        M_RT = disc.assemble_mass_matrix(sd)
+        P = disc.proj_to_VecPwQuadratics(sd)
+
+        quadratics = pg.VecPwQuadratics()
+        M_quad = quadratics.assemble_mass_matrix(sd)
+
+        check = M_RT - P.T @ M_quad @ P
+
+        self.assertTrue(np.allclose(check.data, 0))
+
+    def test_proj_with_lump(self):
+        for dim in [2, 3]:
+            sd_list = [
+                pg.unit_grid(dim, 1.0, as_mdg=False, structured=False),
+                pg.reference_element(dim),
+            ]
+            for sd in sd_list:
+                sd.compute_geometry()
+                key = "test"
+
+                discr = pg.RT1(key)
+
+                M_lumped = discr.assemble_lumped_matrix(sd)
+
+                quads = pg.VecPwQuadratics()
+                P = discr.proj_to_VecPwQuadratics(sd)
+                M_q = quads.assemble_lumped_matrix(sd)
+                M_lumped2 = P.T @ M_q @ P
+
+                self.assertTrue(np.allclose((M_lumped2 - M_lumped).data, 0))
 
 
 if __name__ == "__main__":

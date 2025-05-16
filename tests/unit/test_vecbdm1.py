@@ -1,7 +1,8 @@
 import unittest
-import numpy as np
 
+import numpy as np
 import porepy as pp
+
 import pygeon as pg
 
 
@@ -340,6 +341,36 @@ class VecBDM1Test(unittest.TestCase):
         interp_from_rt0 = vec_bdm1.proj_from_RT0(sd) @ interp_to_rt0
 
         self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
+
+    def test_trace_with_proj(self):
+        for dim in [2, 3]:
+            sd = pg.unit_grid(dim, 1.0, as_mdg=False)
+            sd.compute_geometry()
+
+            discr = pg.MatPwLinears()
+            trace = discr.assemble_trace_matrix(sd)
+
+            bdm = pg.VecBDM1()
+            trace_bdm = bdm.assemble_trace_matrix(sd)
+            proj = bdm.proj_to_MatPwLinears(sd)
+
+            check = trace_bdm - trace @ proj
+            self.assertTrue(np.allclose(check.data, 0))
+
+    def test_asym_with_proj(self):
+        for dim in [2, 3]:
+            sd = pg.unit_grid(dim, 1.0, as_mdg=False)
+            sd.compute_geometry()
+
+            discr = pg.MatPwLinears()
+            asym = discr.assemble_asym_matrix(sd)
+
+            bdm = pg.VecBDM1()
+            asym_bdm = bdm.assemble_asym_matrix(sd, as_pwconstant=False)
+            proj = bdm.proj_to_MatPwLinears(sd)
+
+            check = asym_bdm - asym @ proj
+            self.assertTrue(np.allclose(check.data, 0))
 
 
 if __name__ == "__main__":

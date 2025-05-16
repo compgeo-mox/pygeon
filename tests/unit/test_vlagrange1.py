@@ -1,6 +1,7 @@
 """Module contains virtual Lagrangean tests."""
 
 import unittest
+
 import numpy as np
 import scipy.sparse as sps
 
