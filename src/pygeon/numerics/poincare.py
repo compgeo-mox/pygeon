@@ -42,6 +42,8 @@ class Poincare:
         self.bar_spaces, self.zer_spaces = self.define_subspaces()
         self.zero_out_tips()
 
+        self.check_cohomology()
+
     def define_subspaces(self) -> None:
         """
         Flag the mesh entities that will be used to generate the Poincaré operators
@@ -135,6 +137,60 @@ class Poincare:
         flagged_nodes[0] = False
 
         return flagged_nodes
+
+    def check_cohomology(self):
+        dim_bar = [np.sum(bar) for bar in self.bar_spaces]
+        dim_zer = [np.sum(zer) for zer in self.zer_spaces]
+
+        assert dim_bar[self.dim - 1] == dim_zer[self.dim]
+
+        if dim_bar[self.dim - 2] == dim_zer[self.dim - 1]:
+            self.prune_graph_to_tree()
+
+    def prune_graph_to_tree(self):
+        curl = pg.curl(self.mdg)
+        curl *= self.zer_spaces[self.dim - 1][:, None]
+
+        for _ in np.arange(100):
+            num_faces = curl.astype(bool).sum(axis=0)
+            curl *= num_faces > 1
+
+            keep_face = curl.sum(axis=1) == 0
+            curl *= keep_face[:, None]
+
+            if np.all(keep_face):
+                break
+        else:
+            raise LookupError("Could not prune graph to a surface in 100 iterations")
+
+        surface = np.abs(curl).sum(axis=1).astype(bool)
+
+        # Extract number of subdomains
+        div = pg.div(self.mdg) * np.logical_not(surface)
+        n_subdomains, flags = sps.csgraph.connected_components(div @ div.T)
+
+        # Extract subdomain boundaries
+        div = pg.div(self.mdg).tocsr()
+        sub_bdry = np.empty((n_subdomains, div.shape[1]), dtype=int)
+        for sub in range(n_subdomains):
+            loc_div = div[flags == sub, :]
+            sub_bdry[sub] = np.sum(loc_div, axis=0)
+            sub_bdry[sub] *= surface
+
+        # Find subdomain connectivity
+        connectivity = np.zeros((n_subdomains, n_subdomains), dtype=bool)
+        for sub_1 in range(n_subdomains):
+            for sub_2 in range(sub_1, n_subdomains):
+                connectivity[sub_1, sub_2] = np.any(
+                    np.logical_and(sub_bdry[sub_1], sub_bdry[sub_2])
+                )
+
+        sub_tree = sps.csgraph.breadth_first_tree(connectivity, 0, directed=False)
+        for sub_1, sub_2, _ in zip(*sps.find(sub_tree)):
+            face = np.argmax(np.logical_and(sub_bdry[sub_1], sub_bdry[sub_2]))
+            self.zer_spaces[self.dim - 1][face] = False
+
+        pass
 
     def apply(
         self, k: int, f: np.ndarray, solver: Callable = sps.linalg.spsolve
