@@ -135,7 +135,6 @@ class VecLagrange1(pg.VecDiscretization):
                 Shape: (num_faces_of_cell, num_faces_of_cell)
         """
         dphi = self.base_discr.local_grads(coord, dim)
-
         return c_volume * dphi
 
     def assemble_div_div_matrix(
