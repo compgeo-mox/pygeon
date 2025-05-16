@@ -42,6 +42,7 @@ class Poincare:
         self.bar_spaces, self.zer_spaces = self.define_subspaces()
         self.zero_out_tips()
 
+        self.hom_spaces, self.cycles, self.hom_basis = self.define_cohomology_spaces()
         self.check_cohomology()
 
     def define_subspaces(self) -> None:
@@ -69,6 +70,17 @@ class Poincare:
         zer_spaces[:] = [~bar for bar in bar_spaces]
 
         return bar_spaces, zer_spaces
+
+    def define_cohomology_spaces(self):
+        hom_spaces = np.array([None] * (self.dim + 1))
+        hom_spaces[:] = [np.zeros_like(bar) for bar in self.bar_spaces]
+
+        cycles = np.array([None] * (self.dim + 1))
+        cycles[:] = [np.zeros_like(bar, dtype=int) for bar in self.bar_spaces]
+
+        hom_basis = np.array([None] * (self.dim + 1))
+
+        return hom_spaces, cycles, hom_basis
 
     def zero_out_tips(self) -> None:
         tip_ridges = np.concatenate(
@@ -138,22 +150,37 @@ class Poincare:
 
         return flagged_nodes
 
-    def check_cohomology(self):
+    def get_subspace_dimensions(self):
         dim_bar = [np.sum(bar) for bar in self.bar_spaces]
         dim_zer = [np.sum(zer) for zer in self.zer_spaces]
 
-        assert dim_bar[self.dim - 1] == dim_zer[self.dim]
+        return dim_bar, dim_zer
 
-        if dim_bar[self.dim - 2] == dim_zer[self.dim - 1]:
-            self.prune_graph_to_tree()
+    def check_cohomology(self):
+        dim_bar, dim_zer = self.get_subspace_dimensions()
 
-    def prune_graph_to_tree(self):
+        if dim_bar[self.dim - 2] != dim_zer[self.dim - 1]:
+            self.compute_face_cohomology()
+            self.compute_cohomology_basis(self.dim - 1)
+
+        if self.dim == 3:
+            assert dim_bar[1] == dim_zer[2]
+            # self.compute_ridge_cohomology()
+
+        dim_bar, dim_zer = self.get_subspace_dimensions()
+        assert np.all(dim_bar[:-1] == dim_zer[1:])
+
+    def compute_face_cohomology(self):
+        k = self.dim - 1
+
+        # The zero space includes a cycle in 2D or a closed surface in 3D.
+        # We find these cycles by pruning the graph.
         curl = pg.curl(self.mdg)
-        curl *= self.zer_spaces[self.dim - 1][:, None]
+        curl *= self.zer_spaces[k][:, None]
 
         for _ in np.arange(100):
-            num_faces = curl.astype(bool).sum(axis=0)
-            curl *= num_faces > 1
+            n_faces_of_ridge = curl.astype(bool).sum(axis=0)
+            curl *= n_faces_of_ridge > 1
 
             keep_face = curl.sum(axis=1) == 0
             curl *= keep_face[:, None]
@@ -161,11 +188,12 @@ class Poincare:
             if np.all(keep_face):
                 break
         else:
-            raise LookupError("Could not prune graph to a surface in 100 iterations")
+            raise RuntimeError("Could not prune graph to a surface in 100 iterations")
 
+        # The remaining faces form a closed surface
         surface = np.abs(curl).sum(axis=1).astype(bool)
 
-        # Extract number of subdomains
+        # The surface divides the domain into subdomains
         div = pg.div(self.mdg) * np.logical_not(surface)
         n_subdomains, flags = sps.csgraph.connected_components(div @ div.T)
 
@@ -177,6 +205,9 @@ class Poincare:
             sub_bdry[sub] = np.sum(loc_div, axis=0)
             sub_bdry[sub] *= surface
 
+        # The first subdomain boundary is equal to the negated sum of the others
+        assert np.all(np.sum(sub_bdry, axis=0) == 0)
+
         # Find subdomain connectivity
         connectivity = np.zeros((n_subdomains, n_subdomains), dtype=bool)
         for sub_1 in range(n_subdomains):
@@ -185,12 +216,31 @@ class Poincare:
                     np.logical_and(sub_bdry[sub_1], sub_bdry[sub_2])
                 )
 
+        # Create a tree that connects the subdomains.
+        # Using the tree, we can move one face from each closed surface
+        # from the zero space to the cohomology space
         sub_tree = sps.csgraph.breadth_first_tree(connectivity, 0, directed=False)
         for sub_1, sub_2, _ in zip(*sps.find(sub_tree)):
             face = np.argmax(np.logical_and(sub_bdry[sub_1], sub_bdry[sub_2]))
-            self.zer_spaces[self.dim - 1][face] = False
+            self.zer_spaces[k][face] = False
+            self.hom_spaces[k][face] = True
 
-        pass
+        # Generate a basis for the cohomology space
+        cycles = sub_bdry[1:].T
+        self.cycles[k] = cycles
+
+    def compute_cohomology_basis(self, k):
+        pdc, dpc = self.decompose(k, self.cycles[k], False)
+        self.hom_basis[k] = self.cycles[k] - pdc - dpc
+
+    def hom_projection(self, k: int, f: np.ndarray):
+        if not np.any(self.hom_spaces[k]):
+            return np.zeros_like(f)
+
+        basis = self.cycles[k]
+        coeff = np.linalg.solve(basis.T @ basis, basis.T @ f)
+
+        return self.hom_basis[k] @ coeff
 
     def apply(
         self, k: int, f: np.ndarray, solver: Callable = sps.linalg.spsolve
@@ -237,14 +287,16 @@ class Poincare:
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
 
-        R_0 = create_restriction(self.zer_spaces[k])
+        R_zer = create_restriction(self.zer_spaces[k])
         R_bar = create_restriction(self.bar_spaces[k - 1])
 
-        pi_0_d_bar = R_0 @ _diff @ R_bar.T
+        pizer_dbar = R_zer @ _diff @ R_bar.T
 
-        return R_bar.T @ solver(pi_0_d_bar, R_0 @ f)
+        return R_bar.T @ solver(pizer_dbar, R_zer @ f)
 
-    def decompose(self, k: int, f: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def decompose(
+        self, k: int, f: np.ndarray, with_cohomology=False
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Use the Poincaré operators to decompose f = pd(f) + dp(f)
 
@@ -269,7 +321,11 @@ class Poincare:
             pf = self.apply(k, f)
             dpf = diff(self.mdg, n_minus_k + 1) @ pf
 
-        return pdf, dpf
+        if with_cohomology:
+            hf = self.hom_projection(k, f)
+            return pdf, dpf, hf
+        else:
+            return pdf, dpf
 
     def solve_subproblem(
         self,
@@ -306,3 +362,15 @@ class Poincare:
                     + "Consider refining the grid."
                 )
                 break
+
+    def orthogonalize_cohomology_basis(self, k):
+        candidates = self.hom_basis[k]
+        D = diff(self.mdg, self.dim - k + 1)
+        M = pg.face_mass(self.mdg)
+
+        A = D.T @ M @ D
+        b = D.T @ M @ candidates
+
+        return candidates - D @ sps.linalg.spsolve(A, b)
+
+        pass
