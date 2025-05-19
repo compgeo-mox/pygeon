@@ -76,8 +76,6 @@ class Poincare:
         hom_spaces[:] = [np.zeros_like(bar) for bar in self.bar_spaces]
 
         cycles = np.array([None] * (self.dim + 1))
-        cycles[:] = [np.zeros_like(bar, dtype=int) for bar in self.bar_spaces]
-
         hom_basis = np.array([None] * (self.dim + 1))
 
         return hom_spaces, cycles, hom_basis
@@ -157,15 +155,23 @@ class Poincare:
         return dim_bar, dim_zer
 
     def check_cohomology(self):
+        euler_char = self.compute_euler_char()
+        if euler_char != 1:
+            print("The domain has non-trivial topology")
+
         dim_bar, dim_zer = self.get_subspace_dimensions()
+
+        assert dim_bar[self.dim - 1] == dim_zer[self.dim]
 
         if dim_bar[self.dim - 2] != dim_zer[self.dim - 1]:
             self.compute_face_cohomology()
-            self.compute_cohomology_basis(self.dim - 1)
 
+        dim_bar, dim_zer = self.get_subspace_dimensions()
         if self.dim == 3:
-            assert dim_bar[1] == dim_zer[2]
-            # self.compute_ridge_cohomology()
+            if dim_bar[1] != dim_zer[2]:
+                self.compute_ridge_cohomology()
+
+        self.compute_cohomology_basis(self.dim - 1)
 
         dim_bar, dim_zer = self.get_subspace_dimensions()
         assert np.all(dim_bar[:-1] == dim_zer[1:])
@@ -178,35 +184,13 @@ class Poincare:
         curl = pg.curl(self.mdg)
         curl *= self.zer_spaces[k][:, None]
 
-        for _ in np.arange(100):
-            n_faces_of_ridge = curl.astype(bool).sum(axis=0)
-            curl *= n_faces_of_ridge > 1
+        surface = self.prune_graph(curl, self.dim)
 
-            keep_face = curl.sum(axis=1) == 0
-            curl *= keep_face[:, None]
+        if not np.any(surface):
+            return
 
-            if np.all(keep_face):
-                break
-        else:
-            raise RuntimeError("Could not prune graph to a surface in 100 iterations")
-
-        # The remaining faces form a closed surface
-        surface = np.abs(curl).sum(axis=1).astype(bool)
-
-        # The surface divides the domain into subdomains
-        div = pg.div(self.mdg) * np.logical_not(surface)
-        n_subdomains, flags = sps.csgraph.connected_components(div @ div.T)
-
-        # Extract subdomain boundaries
-        div = pg.div(self.mdg).tocsr()
-        sub_bdry = np.empty((n_subdomains, div.shape[1]), dtype=int)
-        for sub in range(n_subdomains):
-            loc_div = div[flags == sub, :]
-            sub_bdry[sub] = np.sum(loc_div, axis=0)
-            sub_bdry[sub] *= surface
-
-        # The first subdomain boundary is equal to the negated sum of the others
-        assert np.all(np.sum(sub_bdry, axis=0) == 0)
+        sub_bdry = self.divide_domain(pg.div(self.mdg), surface)
+        n_subdomains = sub_bdry.shape[0]
 
         # Find subdomain connectivity
         connectivity = np.zeros((n_subdomains, n_subdomains), dtype=bool)
@@ -228,6 +212,142 @@ class Poincare:
         # Generate a basis for the cohomology space
         cycles = sub_bdry[1:].T
         self.cycles[k] = cycles
+
+    def prune_graph(self, incidence, dim):
+        incidence = incidence.copy()
+        for _ in np.arange(100):
+            n_edges_of_node = incidence.astype(bool).sum(axis=0)
+            incidence *= n_edges_of_node > 1
+
+            n_nodes_of_edge = incidence.astype(bool).sum(axis=1)
+            keep_edge = np.logical_or(n_nodes_of_edge == 0, n_nodes_of_edge == dim)
+            incidence *= keep_edge[:, None]
+
+            if np.all(keep_edge):
+                break
+        else:
+            raise RuntimeError("Could not prune graph to a surface in 100 iterations")
+
+        # The remaining faces form a closed surface
+        return np.abs(incidence).sum(axis=1).astype(bool)
+
+    def divide_domain(self, div, surface):
+        # The surface divides the domain into subdomains
+        div_ = div * np.logical_not(surface)
+        n_subdomains, flags = sps.csgraph.connected_components(div_ @ div_.T)
+
+        # Extract subdomain boundaries
+        div = div.tocsr()
+        sub_bdry = np.empty((n_subdomains, div.shape[1]), dtype=int)
+        for sub in range(n_subdomains):
+            loc_div = div[flags == sub, :]
+            sub_bdry[sub] = np.sum(loc_div, axis=0)
+            sub_bdry[sub] *= surface
+
+        # The first subdomain boundary is equal to the negated sum of the others
+        assert np.all(np.sum(sub_bdry, axis=0) == 0)
+
+        return sub_bdry
+
+    def compute_ridge_cohomology(self):
+        bdry_faces = np.concatenate(
+            [sd.tags["domain_boundary_faces"] for sd in self.mdg.subdomains()]
+        )
+        bdry_ridges = np.concatenate(
+            [sd.tags["domain_boundary_ridges"] for sd in self.mdg.subdomains()]
+        )
+        bdry_nodes = np.concatenate(
+            [sd.tags["domain_boundary_nodes"] for sd in self.mdg.subdomains()]
+        )
+
+        # Compute the boundary divergence
+        curl = pg.curl(self.mdg).tolil()
+        div = curl[np.ix_(bdry_faces, bdry_ridges)].tocsc()
+
+        # Create the co-tree
+        incidence = div @ div.T
+        tree = sps.csgraph.breadth_first_tree(incidence, 0, directed=False)
+
+        # Extract start/end cells for each edge of the tree
+        c_start, c_end, _ = sps.find(tree)
+
+        # Find the mesh faces that correspond to tree edges
+        rows = np.hstack((c_start, c_end))
+        cols = np.hstack([np.arange(c_start.size)] * 2)
+        vals = np.ones_like(rows)
+
+        face_finder = abs(div.T) @ sps.csc_array(
+            (vals, (rows, cols)), shape=(div.shape[0], tree.nnz)
+        )
+        face, _, nr_common_cells = sps.find(face_finder)
+        tree_faces = face[nr_common_cells == 2]
+
+        # Flag the relevant mesh faces in the grid
+        flagged_faces = np.zeros(div.shape[1], dtype=bool)
+        flagged_faces[tree_faces] = True
+
+        # Compute the boundary curl
+        grad = pg.grad(self.mdg).tolil()
+        curl = grad[np.ix_(bdry_ridges, bdry_nodes)].tocsc()
+
+        # Find the edges on the cycles
+        surface = self.prune_graph(curl * np.logical_not(flagged_faces)[:, None], 2)
+
+        curl *= surface[:, None]
+
+        import networkx as nx
+
+        graph = curl.T @ curl
+        graph.setdiag(np.zeros(graph.shape[0]))
+        graph.eliminate_zeros()
+
+        G = nx.from_scipy_sparse_array(graph)
+
+        # Compute the cycles in terms of node lists
+        cycles = nx.cycle_basis(G)
+
+        #
+        nodes = np.where(bdry_nodes)[0]
+        adjacency = np.abs(pg.div(self.mdg)) @ np.abs(pg.curl(self.mdg)[:, bdry_ridges])
+        adjacency = adjacency.tocsc()
+        adj_cell = adjacency.indices[adjacency.indptr[:-1]]
+
+        for cycle in cycles:
+            U, P = self.generate_polygon(cycle, div, curl, nodes, adj_cell)
+
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection="3d")
+
+        indices = np.nonzero(bdry_ridges)[0]
+        grad_top = pg.grad(self.mdg).tocsr()
+
+        for edge in indices[surface.nonzero()]:
+            nodes = grad_top.indices[grad_top.indptr[edge] : grad_top.indptr[edge + 1]]
+            nodes = self.top_sd.nodes[:, nodes]
+            ax.plot(*nodes)
+        plt.show()
+        pass
+
+    def generate_polygon(self, cycle, div, curl, nodes, adj_cell):
+        extended_cycle = np.append(cycle, cycle[0])
+        U = np.zeros((3, 1 + 2 * len(cycle)))
+        U[:, ::2] = self.top_sd.nodes[:, nodes[extended_cycle]]
+
+        U_midpoints = []
+        for start, end in zip(cycle, extended_cycle[1:]):
+            edge_finder = np.zeros(curl.shape[1])
+            edge_finder[[start, end]] = 1.0
+            edge = np.where(np.abs(curl) @ edge_finder == 2)[0]
+            U_midpoints.append(self.top_sd.cell_centers[:, adj_cell[edge]])
+
+        U[:, 1::2] = np.hstack(U_midpoints)
+
+        # TODO
+        P = 0
+
+        return U, P
 
     def compute_cohomology_basis(self, k):
         pdc, dpc = self.decompose(k, self.cycles[k], False)
@@ -362,6 +482,19 @@ class Poincare:
                     + "Consider refining the grid."
                 )
                 break
+
+    def compute_euler_char(self):
+        c = self.mdg.num_subdomain_cells()
+        f = self.mdg.num_subdomain_faces()
+        e = self.mdg.num_subdomain_ridges()
+        p = self.mdg.num_subdomain_peaks()
+
+        char = p - e + f - c
+
+        if self.dim == 2:
+            char *= -1
+
+        return char
 
     def orthogonalize_cohomology_basis(self, k):
         candidates = self.hom_basis[k]
