@@ -67,8 +67,8 @@ def test_decomposition(poincare_and_flist):
     poin, f_list = poincare_and_flist
 
     for k, f in enumerate(f_list):
-        pdf, dpf = poin.decompose(k, f)
-        assert np.allclose(f, pdf + dpf)
+        pdf, dpf, qf = poin.decompose(k, f)
+        assert np.allclose(f, pdf + dpf + qf)
 
 
 if __name__ == "__main__":
