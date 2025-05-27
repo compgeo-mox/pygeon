@@ -12,6 +12,12 @@ Module contains tests to validate the consistency between H(div) discretizations
 
 class HdivConvergenceTest(unittest.TestCase):
     def test_rt1_2d_lumped(self):
+        self.validate_convergence_rt1(use_lumped=True)
+
+    def test_rt1_2d_full(self):
+        self.validate_convergence_rt1(use_lumped=False)
+
+    def validate_convergence_rt1(self, use_lumped):
         # Provide the solution
         def q_func(x):
             return np.array([x[1] * x[0], 2 * x[0], 0])
@@ -37,7 +43,10 @@ class HdivConvergenceTest(unittest.TestCase):
             sd.compute_geometry()
 
             # assemble the saddle point problem
-            face_mass = discr_q.assemble_lumped_matrix(sd)
+            if use_lumped:
+                face_mass = discr_q.assemble_lumped_matrix(sd)
+            else:
+                face_mass = discr_q.assemble_mass_matrix(sd)
             cell_mass = discr_p.assemble_mass_matrix(sd, None)
             div = cell_mass @ discr_q.assemble_diff_matrix(sd)
 
