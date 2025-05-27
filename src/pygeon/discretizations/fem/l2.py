@@ -214,6 +214,18 @@ class PwConstants(PieceWisePolynomial):
         """
         return np.array([[1]])
 
+    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local lumped mass matrix for piecewise constants
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local lumped mass matrix for piecewise constants.
+        """
+        return self.assemble_local_mass(dim)
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
