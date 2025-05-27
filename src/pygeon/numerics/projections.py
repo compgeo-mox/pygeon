@@ -18,7 +18,7 @@ def eval_at_cell_centers(
     (optional) and returns an operator that can be used to evaluate a solution in
     the cell centers of the grid.
 
-    Parameters:
+    Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         discr (pg.Discretization): The discretization used for the evaluation.
         kwargs (dict): Optional parameters.

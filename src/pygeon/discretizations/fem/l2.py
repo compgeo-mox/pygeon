@@ -238,7 +238,7 @@ class PwConstants(PieceWisePolynomial):
         """
         Computes the lumped mass matrix, which coincides with the mass matrix for P0.
 
-        Parameters:
+        Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
             data (Optional[dict]): Additional data for the assembly process.
 
