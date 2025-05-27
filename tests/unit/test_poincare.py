@@ -1,7 +1,7 @@
 import numpy as np
+import porepy as pp
 import pytest
 
-import porepy as pp
 import pygeon as pg
 
 

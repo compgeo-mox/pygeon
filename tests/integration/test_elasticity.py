@@ -1,8 +1,9 @@
 import unittest
+
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 
@@ -178,12 +179,12 @@ class ElasticityTestMixed(unittest.TestCase):
         Mr = p0.assemble_mass_matrix(sd)
 
         div = Mu @ vec_bdm1.assemble_diff_matrix(sd)
-        asym = Mr @ vec_bdm1.assemble_asym_matrix(sd)
+        asym = Mr @ vec_bdm1.assemble_asym_matrix(sd, True)
 
         # fmt: off
         spp = sps.block_array([[  Ms, div.T, -asym.T],
-                        [-div,  None,    None],
-                        [asym,  None,    None]], format = "csc")
+                               [-div,  None,    None],
+                               [asym,  None,    None]], format = "csc")
         # fmt: on
 
         b_faces = sd.tags["domain_boundary_faces"]
@@ -252,7 +253,7 @@ class ElasticityTestMixed(unittest.TestCase):
         Mr = Mu
 
         div = Mu @ vec_bdm1.assemble_diff_matrix(sd)
-        asym = Mr @ vec_bdm1.assemble_asym_matrix(sd)
+        asym = Mr @ vec_bdm1.assemble_asym_matrix(sd, True)
 
         # fmt: off
         spp = sps.block_array([[   Ms, div.T, asym.T],

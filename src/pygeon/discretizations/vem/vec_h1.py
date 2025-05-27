@@ -35,67 +35,22 @@ class VecVLagrange1(pg.VecDiscretization):
              sigma_yx, sigma_yy]
 
     The strain tensor follows the same approach.
-
-    Args:
-        keyword (str): The keyword for the H1 class.
-
-    Attributes:
-        scalar_discr (pg.VLagrange1): A local virtual Lagrange1 class for performing
-            some of the computations.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated with the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix for the lowest order Lagrange element.
-
-        assemble_div_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the divergence matrix operator for the lowest order vector Lagrange
-            element.
-
-        local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
-            Computes the local divergence matrix for P1.
-
-        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Returns the div-div matrix operator for the lowest order vector Lagrange
-            element.
-
-        assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the symmetric gradient matrix operator for the lowest order vector
-            Lagrange element.
-
-        local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray)
-            -> np.ndarray:
-            Computes the local symmetric gradient matrix for P1.
-
-        assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Returns the symgrad-symgrad matrix operator for the lowest order vector
-            Lagrange element.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange1.
+        The base discretization class is pg.Lagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.VLagrange1
-        super().__init__(keyword, pg.VLagrange1)
+        super().__init__(keyword)
+        self.base_discr: pg.VLagrange1 = pg.VLagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -156,7 +111,7 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             ndarray: Local mass Hdiv matrix.
         """
-        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
         return sd.cell_volumes[cell] * proj[1:] / diam
 
@@ -199,9 +154,6 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
-
-        Raises:
-            None
 
         Notes:
             - If a 0-dimensional grid is given, a zero matrix is returned.
@@ -275,7 +227,7 @@ class VecVLagrange1(pg.VecDiscretization):
             np.ndarray: Local symmetric gradient matrix.
         """
 
-        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
         grad = spl.block_diag(*([proj[1:]] * sd.dim))
 
         return sd.cell_volumes[cell] * sym @ grad / diam
@@ -372,9 +324,9 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             np.ndarray: The computed local VEM mass matrix.
         """
-        proj = self.scalar_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
+        proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
-        D = self.scalar_discr.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
+        D = self.base_discr.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
         I_minus_Pi = np.eye(nodes.size) - D @ proj
 
         return I_minus_Pi.T @ I_minus_Pi

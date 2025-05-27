@@ -1,12 +1,12 @@
 """Module contains a unit test for the Einstein grid class."""
 
+import os
 import unittest
 
 import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
-import os
 
 
 class EinSteinGridTest(unittest.TestCase):

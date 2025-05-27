@@ -10,62 +10,7 @@ import pygeon as pg
 
 class VLagrange1(pg.Lagrange1):
     """
-    Discretization class for the VLagrange1 method.
-
-    Attributes:
-        keyword (str): The keyword for the discretization method.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix.
-
-        assemble_loc_mass_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Computes the local VEM mass matrix on a given cell.
-
-        assemble_loc_proj_to_mon(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Computes the local projection onto the monomials.
-
-        assemble_loc_L2proj_lhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Returns the system matrix G for the local L2 projection.
-
-        assemble_loc_L2proj_rhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Returns the righthand side B for the local L2 projection.
-
-        assemble_loc_monomial_mass(sd: pg.Grid, cell: int, diam: float) -> np.ndarray:
-            Computes the inner products of the monomials.
-
-        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float,
-            nodes: np.ndarray) -> np.ndarray:
-            Returns the matrix D for the local dofs of monomials.
-
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles and returns the stiffness matrix.
-
-        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float,
-            nodes: np.ndarray) -> np.ndarray:
-            Computes the local VEM stiffness matrix on a given cell.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the differential mapping in the discrete cochain complex.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the function at the cell centers of the given grid.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function over the given grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the 'natural' boundary condition.
+    Discretization class for the virtual Lagrange1 method.
     """
 
     def assemble_mass_matrix(
