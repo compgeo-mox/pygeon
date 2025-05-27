@@ -159,6 +159,30 @@ class PieceWisePolynomial(pg.Discretization):
         """
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
+    @abc.abstractmethod
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local mass matrix for piecewise polynomials.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local mass matrix for piecewise polynomials.
+        """
+
+    @abc.abstractmethod
+    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local lumped mass matrix for piecewise polynomials
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local lumped mass matrix for piecewise polynomials.
+        """
+
 
 class PwConstants(PieceWisePolynomial):
     """
