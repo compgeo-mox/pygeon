@@ -1,6 +1,8 @@
-import numpy as np
-import pygeon as pg
 import unittest
+
+import numpy as np
+
+import pygeon as pg
 
 
 class VoronoiTest(unittest.TestCase):

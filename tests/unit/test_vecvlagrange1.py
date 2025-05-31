@@ -1,10 +1,11 @@
 """Module contains vector virtual Lagrangean tests."""
 
 import unittest
+
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 

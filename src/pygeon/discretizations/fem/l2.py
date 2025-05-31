@@ -13,34 +13,7 @@ import pygeon as pg
 class PieceWisePolynomial(pg.Discretization):
     """
     PieceWisePolynomial is a subclass of pg.Discretization that represents
-    an abstract elementwise polynomial discretization.
-
-    Attributes:
-        keyword (str): The keyword for the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated with the method.
-
-        ndof_per_cell(sd: pg.Grid) -> int:
-            Abstract method that returns the number of degrees of freedom per cell.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles and returns the matrix corresponding to the differential operator
-            for the given grid.
-
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles and returns the stiffness matrix for the given grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
-            np.ndarray) -> np.ndarray:
-            Assembles and returns the natural boundary condition vector, which is equal
-            to zero.
-
-        get_range_discr_class(dim: int) -> Type[pg.Discretization]:
-            Returns the discretization class for the range of the differential.
-            Raises NotImplementedError if not available.
+    an abstract element wise polynomial discretization.
     """
 
     def ndof(self, sd: pg.Grid) -> int:
@@ -57,6 +30,9 @@ class PieceWisePolynomial(pg.Discretization):
         """
         return sd.num_cells * self.ndof_per_cell(sd)
 
+    def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
+        return sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
+
     @abc.abstractmethod
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -68,6 +44,60 @@ class PieceWisePolynomial(pg.Discretization):
         Returns:
             int: The number of degrees of freedom per cell.
         """
+
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Computes the mass matrix for piecewise linears
+
+        Args:
+            sd (pg.Grid): The grid on which to assemble the matrix.
+            data (Optional[dict]): Dictionary with possible scaling.
+
+        Returns:
+            sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
+        """
+        local_mass = self.assemble_local_mass(sd.dim)
+
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
+
+        diag_weight = sps.diags_array(sd.cell_volumes * weight)
+        M = sps.kron(local_mass, diag_weight)
+        M.eliminate_zeros()
+
+        return M.tocsc()
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+        local_mass = self.assemble_local_lumped_mass(sd.dim)
+
+        weight = np.ones(sd.num_cells)
+        if data is not None:
+            weight = (
+                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+            )
+
+        diag_weight = sps.diags_array(sd.cell_volumes * weight)
+        M = sps.kron(local_mass, diag_weight).tocsc()
+        M.eliminate_zeros()
+
+        return M
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -129,43 +159,35 @@ class PieceWisePolynomial(pg.Discretization):
         """
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
+    @abc.abstractmethod
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local mass matrix for piecewise polynomials.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local mass matrix for piecewise polynomials.
+        """
+
+    @abc.abstractmethod
+    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local lumped mass matrix for piecewise polynomials
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local lumped mass matrix for piecewise polynomials.
+        """
+
 
 class PwConstants(PieceWisePolynomial):
     """
     Discretization class for the piecewise constants.
     NB! Each degree of freedom is the integral over the cell.
-
-    Attributes:
-        keyword (str): The keyword for the discretization.
-
-    Methods:
-        ndof_per_cell(sd: pg.Grid) -> int:
-            Method that returns the number of degrees of freedom per cell.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Computes the mass matrix for piecewise constants.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Computes the lumped mass matrix, which coincides with the mass matrix for
-            P0.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> sps.csc_array:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix that evaluates a function at the cell centers of a
-            grid.
-
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray],
-            np.ndarray], relative: Optional[bool] = True,
-            etype: Optional[str] = "specific") -> float:
-            Returns the l2 error computed against an analytical solution given as a
-            function.
-
-        _cell_error(sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray) -> float:
-            Calculate the error for each cell in the finite element mesh.
     """
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
@@ -180,6 +202,30 @@ class PwConstants(PieceWisePolynomial):
         """
         return 1
 
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local mass matrix for piecewise constants
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local mass matrix for piecewise constants.
+        """
+        return np.array([[1]])
+
+    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local lumped mass matrix for piecewise constants
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local lumped mass matrix for piecewise constants.
+        """
+        return self.assemble_local_mass(dim)
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
@@ -193,7 +239,10 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
-        return sps.diags_array(1 / sd.cell_volumes).tocsc()
+        M = super().assemble_mass_matrix(sd, data)
+        M /= np.square(sd.cell_volumes)
+
+        return M.tocsc()
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -201,7 +250,7 @@ class PwConstants(PieceWisePolynomial):
         """
         Computes the lumped mass matrix, which coincides with the mass matrix for P0.
 
-        Parameters:
+        Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
             data (Optional[dict]): Additional data for the assembly process.
 
@@ -316,24 +365,6 @@ class PwConstants(PieceWisePolynomial):
 class PwLinears(PieceWisePolynomial):
     """
     Discretization class for piecewise linear finite element method.
-
-    Attributes:
-        keyword (str): The keyword for the discretization.
-
-    Methods:
-        ndof_per_cell(sd: pg.Grid) -> int:
-            Abstract method that returns the number of degrees of freedom per cell.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Computes the mass matrix for piecewise linears.
-
-        eval_at_cell_centers(sd: pg.Grid) -> np.ndarray:
-            Assembles the matrix for evaluating the discretization at the cell centers.
-            Not implemented.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space. Not implemented.
     """
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
@@ -348,73 +379,30 @@ class PwLinears(PieceWisePolynomial):
         """
         return sd.dim + 1
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the mass matrix for piecewise linears
+        Computes the local mass matrix for piecewise linears
 
         Args:
-            sd (pg.Grid): The grid on which to assemble the matrix.
-            data (Optional[dict]): Dictionary with possible scaling.
+            dim (int): The dimension of the grid.
 
         Returns:
-            sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
+            np.ndarray: Local mass matrix for piecewise linears.
         """
-        # Data allocation
-        size = np.square(sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
         lagrange1 = pg.Lagrange1(self.keyword)
-        local_mass = lagrange1.local_mass(sd.dim)
+        return lagrange1.assemble_local_mass(dim)
 
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
-
-        for c in np.arange(sd.num_cells):
-            # Compute the mass local matrix
-            A = local_mass * sd.cell_volumes[c] * weight[c]
-
-            # Save values for mass local matrix in the global structure
-            dofs_loc = sd.num_cells * np.arange(sd.dim + 1) + c
-            cols = np.tile(dofs_loc, (dofs_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrix
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
+    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Assembles the lumped matrix for the given grid.
+        Computes the local lumped mass matrix for piecewise linears
 
         Args:
-            sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            dim (int): The dimension of the grid.
 
         Returns:
-            sps.csc_array: The assembled lumped matrix.
+            np.ndarray: Local lumped mass matrix for piecewise linears.
         """
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
-
-        diag = np.tile(weight * sd.cell_volumes / (sd.dim + 1), sd.dim + 1)
-        return sps.diags_array(diag).tocsc()
+        return np.eye(dim + 1) / (dim + 1)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -453,28 +441,46 @@ class PwLinears(PieceWisePolynomial):
 
         return vals.ravel(order="F")
 
+    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the P1 discretization to the P2 discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+        l2 = pg.Lagrange2()
+        p1 = pg.PwLinears()
+        p2 = pg.PwQuadratics()
+
+        # Local dof mapping
+        num_cell_edges = l2.num_edges_per_cell(sd.dim)
+        edge_nodes = l2.get_local_edge_nodes(sd.dim).ravel()
+        vals = np.concatenate((np.ones(sd.dim + 1), 0.5 * np.ones(num_cell_edges * 2)))
+
+        # Define the vectors for storing the matrix entries
+        rows_I = np.empty((sd.num_cells, vals.size), dtype=int)
+        cols_J = np.empty((sd.num_cells, vals.size), dtype=int)
+        data_IJ = np.tile(vals, (sd.num_cells, 1))
+
+        for c in np.arange(sd.num_cells):
+            dofs_p1 = p1.local_dofs_of_cell(sd, c)
+            dofs_p2 = p2.local_dofs_of_cell(sd, c)
+
+            rows_I[c] = np.concatenate(
+                (dofs_p2[: sd.dim + 1], np.repeat(dofs_p2[sd.dim + 1 :], 2))
+            )
+            cols_J[c] = np.concatenate((dofs_p1, dofs_p1[edge_nodes]))
+
+        return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
+
 
 class PwQuadratics(PieceWisePolynomial):
     """
     PwQuadratics is a class that represents piecewise quadratic finite element
     discretizations.
-
-    Attributes:
-        keyword (str): The keyword for the discretization.
-
-    Methods:
-        ndof_per_cell(sd: pg.Grid) -> int:
-            Method that returns the number of degrees of freedom per cell.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Computes the mass matrix for piecewise quadratics.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix for evaluating the discretization at the cell centers.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
     """
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
@@ -489,52 +495,44 @@ class PwQuadratics(PieceWisePolynomial):
         """
         return (sd.dim + 1) * (sd.dim + 2) // 2
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
+    def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the mass matrix for piecewise quadratics.
+        Computes the local mass matrix for piecewise quadratics.
 
         Args:
-            sd (pg.Grid): The grid on which to assemble the matrix.
-            data (Optional[dict]): Dictionary with possible scaling.
+            dim (int): The dimension of the grid.
 
         Returns:
-            sps.csc_array: Sparse csc matrix of shape (ndof, ndof).
+            np.ndarray: Local mass matrix for piecewise quadratics.
         """
-        # Data allocation
-        ndof_per_cell = self.ndof_per_cell(sd)
-        size = np.square(ndof_per_cell) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
         lagrange2 = pg.Lagrange2(self.keyword)
-        local_mass = lagrange2.assemble_local_mass(sd.dim)
+        return lagrange2.assemble_local_mass(dim)
 
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
+    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+        """
+        Computes the local lumped mass matrix for piecewise quadratics
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: Local lumped mass matrix for piecewise quadratics.
+        """
+        if dim == 1:
+            raise NotImplementedError(
+                "Lumped mass matrix for piecewise quadratics in 1D is not implemented."
             )
+        elif dim == 2:
+            vals_at_center = np.array([-1, -1, -1, 4, 4, 4]) / 9
+            L = 0.75 * np.outer(vals_at_center, vals_at_center)
+            L += np.diag(np.array([1, 1, 1, 0, 0, 0])) / 12
 
-        for c in np.arange(sd.num_cells):
-            # Compute the mass local matrix
-            A = local_mass * sd.cell_volumes[c] * weight[c]
+        else:
+            vals_at_center = np.array([-1, -1, -1, -1, 2, 2, 2, 2, 2, 2]) / 8
+            L = 0.8 * np.outer(vals_at_center, vals_at_center)
+            L += np.diag(np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0])) / 20
 
-            # Save values for mass local matrix in the global structure
-            dof_loc = np.arange(ndof_per_cell) * sd.num_cells + c
-            cols = np.tile(dof_loc, (dof_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrix
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return L
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
