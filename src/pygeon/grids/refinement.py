@@ -20,23 +20,27 @@ def barycentric_split(sd: pg.Grid) -> pg.Grid:
     Returns:
         pg.Grid: A new grid object representing the barycentric split of the input grid.
     """
-    oppisite_nodes = sd.compute_opposite_nodes()
+    opposite_nodes = sd.compute_opposite_nodes()
 
+    # The new nodes (at the cell-centers) are appended in the node list
     new_nodes = np.arange(sd.num_cells) + sd.num_nodes
+    nodes = np.hstack((sd.nodes, sd.cell_centers))
 
-    rows_I = np.concatenate((oppisite_nodes.data, np.repeat(new_nodes, sd.dim + 1)))
-    cols_J = np.tile(np.arange(oppisite_nodes.data.size), sd.dim)
+    ## Face-node connectivity
+    # Each new face connects a node to a cell-center
+    rows_I = np.concatenate((opposite_nodes.data, np.repeat(new_nodes, sd.dim + 1)))
+    cols_J = np.tile(np.arange(opposite_nodes.data.size), sd.dim)
     data_IJ = np.ones(rows_I.size)
 
     new_fn = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    # Extend the existing face_nodes to accommodate the new nodes
     shape = (new_fn.shape[0], sd.face_nodes.shape[1])
     extended_fn = sps.csc_array(sd.face_nodes, shape=shape)
 
-    fn = sps.hstack((extended_fn, new_fn)).tocsc()
+    face_nodes = sps.hstack((extended_fn, new_fn)).tocsc()
 
-    nodes = np.hstack((sd.nodes, sd.cell_centers))
-
+    ## Cell-face connectivity
     new_face_inds = sd.cell_faces.copy()
     new_face_inds.data = np.arange(new_face_inds.nnz)
 
@@ -50,14 +54,17 @@ def barycentric_split(sd: pg.Grid) -> pg.Grid:
         loc_slice = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
         loc_faces = sd.cell_faces.indices[loc_slice]
 
+        # Loop over each sub-simplex given by a cell-face pair in the original grid
         for f in loc_faces:
+            # Connect the original face to the sub-simplex
             cols_J[idx : idx + sd.dim + 1] = new_face_inds[f, c]
             rows_I[idx] = f
             data_IJ[idx] = sd.cell_faces[f, c]
             idx += 1
 
+            # Connect each new face to the sub-simplex
             other_f = loc_faces[loc_faces != f]
-            mask = np.argsort(fn.indices[fn.indptr[other_f]])
+            mask = np.argsort(face_nodes.indices[face_nodes.indptr[other_f]])
             other_f = other_f[mask]
 
             rows_I[idx : idx + sd.dim] = (
@@ -66,6 +73,6 @@ def barycentric_split(sd: pg.Grid) -> pg.Grid:
             data_IJ[idx : idx + sd.dim] = np.array([1, -1]) * sd.cell_faces[f, c]
             idx += sd.dim
 
-    cf = sps.csc_array((data_IJ, (rows_I, cols_J)))
+    cell_faces = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-    return pg.Grid(sd.dim, nodes, fn, cf, "barycentric split")
+    return pg.Grid(sd.dim, nodes, face_nodes, cell_faces, "Barycentric split")
