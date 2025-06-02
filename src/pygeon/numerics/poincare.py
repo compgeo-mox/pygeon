@@ -53,8 +53,8 @@ class Poincare:
         Flag the mesh entities that will be used to generate the Poincaré operators
         """
         # Preallocation
-        bar_spaces = np.array([None] * (self.dim + 1))
-        zer_spaces = np.array([None] * (self.dim + 1))
+        bar_spaces = [None] * (self.dim + 1)
+        zer_spaces = [None] * (self.dim + 1)
 
         # Cells
         bar_spaces[self.dim] = np.zeros(self.mdg.num_subdomain_cells(), dtype=bool)
@@ -75,13 +75,9 @@ class Poincare:
         return bar_spaces, zer_spaces
 
     def define_cohomology_spaces(self):
-        hom_spaces = np.array(
-            [np.zeros_like(bar) for bar in self.bar_spaces], dtype=np.ndarray
-        )
-        hom_basis = np.array(
-            [np.zeros((bar.size, 0)) for bar in self.bar_spaces], dtype=np.ndarray
-        )
-        cycles = np.array([sps.csc_array((bar.size, 0)) for bar in self.bar_spaces])
+        hom_spaces = [np.zeros_like(bar) for bar in self.bar_spaces]
+        hom_basis = [np.zeros((bar.size, 0)) for bar in self.bar_spaces]
+        cycles = [sps.csc_array((bar.size, 0), dtype=int) for bar in self.bar_spaces]
 
         return hom_spaces, cycles, hom_basis
 
@@ -644,14 +640,15 @@ class Poincare:
 
         return char
 
-    def orthogonalize_cohomology_basis(self, k):
-        candidates = self.hom_basis[k]
+    def orthogonalize_cohomology_basis(self, k, Mass=None):
         D = diff(self.mdg, self.dim - k + 1)
-        M = pg.numerics.innerproducts.mass_matrix(self.mdg, self.dim - k)
 
-        A = D.T @ M @ D
-        b = D.T @ M @ candidates
+        if Mass is None:
+            Mass = pg.numerics.innerproducts.mass_matrix(self.mdg, self.dim - k)
 
-        return candidates - D @ sps.linalg.spsolve(A, b)
+        A = D.T @ Mass @ D
+        b = D.T @ Mass @ self.hom_basis[k]
 
-        pass
+        proj = self.solve_subproblem(k - 1, A, b)
+
+        return self.hom_basis[k] - D @ proj
