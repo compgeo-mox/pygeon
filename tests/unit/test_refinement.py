@@ -1,24 +1,34 @@
 import unittest
 
 import numpy as np
-import porepy as pp
 
 import pygeon as pg
 
 
 class RefinementTest(unittest.TestCase):
-    def test_reference_element(self):
-        dim = 2
-        # sd = pg.reference_element(dim)
-        sd = pg.unit_grid(dim, 1 / 5, as_mdg=False)
+    def unit_cube_test_unstr(self, dim):
+        sd_old = pg.unit_grid(dim, 1 / 2, as_mdg=False)
+        sd_old.compute_geometry()
+
+        sd = pg.barycentric_split(sd_old)
         sd.compute_geometry()
 
-        sd = pg.barycentric_split(sd)
-        sd.compute_geometry()
+        self.assertTrue(sd.num_cells == (sd.dim + 1) * sd_old.num_cells)
+        self.assertTrue(sd.num_nodes == sd_old.num_nodes + sd_old.num_cells)
+
+        self.assertTrue(np.isclose(sd.cell_volumes.sum(), 1))
 
         self.assertTrue((sd.face_ridges @ sd.cell_faces).nnz == 0)
+        self.assertTrue((sd.ridge_peaks @ sd.face_ridges).nnz == 0)
 
-        pass
+    def test_unit_line(self):
+        self.unit_cube_test_unstr(1)
+
+    def test_unit_square(self):
+        self.unit_cube_test_unstr(2)
+
+    def test_unit_cube(self):
+        self.unit_cube_test_unstr(3)
 
 
 if __name__ == "__main__":
