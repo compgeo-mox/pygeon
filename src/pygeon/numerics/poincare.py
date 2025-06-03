@@ -42,13 +42,13 @@ class Poincare:
 
         self.check_grid_admissibility()
 
-        self.bar_spaces, self.zer_spaces = self.define_subspaces()
+        self.bar_spaces, self.zer_spaces, self.hom_basis = self.define_subspaces()
         self.zero_out_tips()
 
-        self.hom_spaces, self.cycles, self.hom_basis = self.define_cohomology_spaces()
+        self.hom_spaces, self.cycles = self.define_cohomology_spaces()
         self.check_cohomology()
 
-    def define_subspaces(self) -> None:
+    def define_subspaces(self) -> Tuple:
         """
         Flag the mesh entities that will be used to generate the Poincaré operators
         """
@@ -69,13 +69,13 @@ class Poincare:
         # Nodes
         bar_spaces[0] = self.flag_nodes()
 
-        # Define the complementary set
+        # Define the complementary sets
         zer_spaces[:] = [~bar for bar in bar_spaces]
+        hom_spaces = [np.zeros_like(bar) for bar in self.bar_spaces]
 
-        return bar_spaces, zer_spaces
+        return bar_spaces, zer_spaces, hom_spaces
 
     def define_cohomology_spaces(self):
-        hom_spaces = [np.zeros_like(bar) for bar in self.bar_spaces]
         hom_basis = [np.zeros((bar.size, 0)) for bar in self.bar_spaces]
         cycles = [sps.csc_array((bar.size, 0), dtype=int) for bar in self.bar_spaces]
 
@@ -86,6 +86,7 @@ class Poincare:
             [sd.tags["tip_ridges"] for sd in self.mdg.subdomains()]
         )
         self.bar_spaces[self.dim - 2][tip_ridges] = False
+
         assert np.all(self.zer_spaces[self.dim - 2][tip_ridges] == False)
 
         tip_faces = np.concatenate(
@@ -142,7 +143,7 @@ class Poincare:
 
     def flag_nodes(self) -> np.ndarray:
         """
-        Flag all the nodes in the top-dim domain, except for the first node
+        Flag all the nodes in the top-dim domain, except for the central node
 
         Returns:
             np.ndarray: boolean array with flagged nodes
@@ -161,14 +162,11 @@ class Poincare:
         )
 
     def check_cohomology(self):
-        self.hom_spaces[0] = self.zer_spaces[0].copy()
-        self.zer_spaces[0] *= False
-        cycle = np.atleast_2d(self.hom_spaces[0])
-        self.cycles[0] = sps.csr_array(cycle, dtype=int)
-
         dim_diff = self.get_subspace_dim_differences()
 
         assert dim_diff[-1] == 0
+
+        self.compute_node_cohomology()
 
         if dim_diff[-2] != 0:
             self.compute_face_cohomology()
@@ -186,6 +184,13 @@ class Poincare:
 
         dim_diff = self.get_subspace_dim_differences()
         assert np.all(dim_diff == 0)
+
+    def compute_node_cohomology(self):
+        self.hom_spaces[0] = self.zer_spaces[0].copy()
+        self.zer_spaces[0] *= False
+
+        cycle = np.atleast_2d(self.hom_spaces[0]).T
+        self.cycles[0] = sps.csc_array(cycle, dtype=int)
 
     def compute_face_cohomology(self):
         k = self.dim - 1
@@ -221,7 +226,8 @@ class Poincare:
             self.hom_spaces[k][face] = True
 
         # Generate a basis for the cohomology space
-        self.cycles[k] = sps.csr_array(sub_bdry[1:])
+        cycles = sps.csc_array(sub_bdry[1:].T)
+        self.cycles[k] = cycles
 
     def prune_graph(self, incidence, dim):
         incidence = incidence.copy()
@@ -310,7 +316,7 @@ class Poincare:
 
         coeffs = self.find_relevant_cycles(U_list, P_list)
 
-        self.cycles[1] = sps.csr_array(coeffs.T) @ cycle_basis.T
+        self.cycles[1] = cycle_basis.tocsc() @ sps.csc_array(coeffs)
 
     def compute_node_cycles(self, div, curl):
         # Create the co-tree
@@ -498,16 +504,17 @@ class Poincare:
     def compute_cohomology_basis(self, k):
         cycles = self.cycles[k].todense()
         pdc, dpc = self.decompose(k, cycles, False)
+
         self.hom_basis[k] = cycles - pdc - dpc
 
     def hom_projection(self, k: int, f: np.ndarray):
         if not np.any(self.hom_spaces[k]):
             return np.zeros_like(f)
 
-        basis = self.cycles[k].T
+        basis = self.cycles[k]
         system = basis.T @ basis
         if system.shape == (1, 1):
-            return self.hom_basis[k] * basis @ f / system[0, 0]
+            return self.hom_basis[k] * basis.T @ f / system[0, 0]
         else:
             system = system.todense()
             coeff = np.linalg.solve(system, basis.T @ f)
@@ -571,6 +578,9 @@ class Poincare:
         else:
             pf = self.apply(k, f)
             dpf = diff(self.mdg, n_minus_k + 1) @ pf
+
+        pdf = np.reshape(pdf, f.shape)
+        dpf = np.reshape(dpf, f.shape)
 
         if with_cohomology:
             qf = self.hom_projection(k, f)
