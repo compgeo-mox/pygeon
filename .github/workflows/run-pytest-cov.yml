@@ -83,4 +83,6 @@ jobs:
         pytest --cov=pygeon --cov-report=xml:baseline.xml tests/unit tests/integration
 
     - name: Compare coverage
-      run: python ${{ github.workspace }}/compare_coverage.py
+      run: |
+        git checkout -
+        python compare_coverage.py
