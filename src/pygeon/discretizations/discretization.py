@@ -105,6 +105,30 @@ class Discretization(abc.ABC):
             sps.csc_array: The differential matrix.
         """
 
+    #TODO
+    #Just a placeholder for now, to be implemented in the future.
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the stiffness matrix.
+
+        This method takes a grid object `sd` and an optional data dictionary `data` as
+        input. It first calls the `assemble_diff_matrix` method to obtain the
+        differential matrix `B`.
+        Then, it creates an instance of the range discretization class using the `dim`
+        attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
+        discretization class to obtain the mass matrix `A`.
+        Finally, it returns the product of the transpose of `B`, `A`, and `B`.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict, optional): Optional data dictionary. Defaults to None.
+
+        Returns:
+            sps.csc_array: The stiffness matrix.
+        """
+
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
