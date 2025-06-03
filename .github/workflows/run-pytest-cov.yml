@@ -72,14 +72,14 @@ jobs:
 
     - name: Get PR coverage
       run: |
-        pip install . -e
+        pip install -e .
         pytest --cov=pygeon --cov-report=xml:pr.xml tests/unit tests/integration
 
     - name: Get baseline coverage
       run: |
         git fetch origin main
         git checkout origin/main
-        pip install . -e
+        pip install -e .
         pytest --cov=pygeon --cov-report=xml:baseline.xml tests/unit tests/integration
 
     - name: Compare coverage
