@@ -66,11 +66,9 @@ jobs:
         python -m pip install -U pip
         pip --version
 
-    # - name: Install requirements and PyGeoN
-    #   run: |
-    #     pip install .
-    #     pip install pytest-cov
-    #     pip freeze
+    - name: Install additional dependencies
+      run: |
+        pip install pytest-cov
 
     - name: Get PR coverage
       run: |
