@@ -31,6 +31,16 @@ class PieceWisePolynomial(pg.Discretization):
         return sd.num_cells * self.ndof_per_cell(sd)
 
     def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
+        """
+        Compute the local degrees of freedom (DOFs) indices for a cell.
+
+        Args:
+            sd (pp.Grid): Grid object or a subclass.
+            c (int): Index of the cell.
+
+        Returns:
+            np.ndarray: Array of local DOF indices associated with the cell.
+        """
         return sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
 
     @abc.abstractmethod
