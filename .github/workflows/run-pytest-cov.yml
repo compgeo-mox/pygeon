@@ -1,6 +1,8 @@
 # Adapted from PorePy
 # Run coverage test.
 name: Pytest-Coverage
+permissions:
+  contents: read
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events for the main and develop branches
