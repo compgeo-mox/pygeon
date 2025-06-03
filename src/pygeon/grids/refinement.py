@@ -6,16 +6,12 @@ import pygeon as pg
 
 def barycentric_split(sd: pg.Grid) -> pg.Grid:
     """
-    Performs a barycentric split of the input grid, subdividing each cell into smaller
-    cells using barycentric coordinates.
-
     This function constructs a new grid where each original cell is split into (dim+1)
     subcells by introducing a new node at the cell center and connecting it to the
-    original cell's nodes and faces. The resulting grid has updated nodes, face-node
-    connectivity, and cell-face connectivity.
+    original cell's nodes.
 
     Args:
-        sd (pg.Grid): The input grid to be barycentrically split.
+        sd (pg.Grid): The input grid split.
 
     Returns:
         pg.Grid: A new grid object representing the barycentric split of the input grid.
@@ -46,12 +42,11 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
 
     Args:
         sd (pg.Grid): The input grid.
-        face_nodes (sps.csc_array): Sparse matrix mapping faces to their nodes, used
-            for determining face connectivity.
+        face_nodes (sps.csc_array): Connectivity matrix.
 
     Returns:
-    sps.csc_array: A sparse matrix representing the mapping between (possibly new) faces
-        and cells, including orientation information.
+    sps.csc_array: A sparse matrix representing the mapping between the faces
+        and cells, including orientation.
     """
     new_cell_inds = sd.cell_faces.copy()
     new_cell_inds.data = np.arange(new_cell_inds.nnz)
@@ -106,16 +101,15 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
 
 def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
     """
-    Compute the mapping between new faces and nodes for a given grid refinement.
+    Compute the connectivity between new faces and nodes.
 
     Args:
         sd (pg.Grid): The input grid.
-        new_nodes (np.ndarray): Array of indices representing the new nodes introduced
-            during refinement.
+        new_nodes (np.ndarray): Array of new node indices.
 
     Returns:
         sps.csc_array: A sparse array in CSC format where each entry (i, j) indicates
-        that node `i` is associated with face `j` in the refined grid.
+        that node `i` is connected to face `j` in the refined grid.
     """
     if sd.dim == 1:
         # Each new face is at the location of a new node
