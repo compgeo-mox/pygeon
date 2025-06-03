@@ -17,7 +17,6 @@ from pygeon.grids.create_grid import (
     unit_grid,
     reference_element,
 )
-from pygeon.grids.refinement import barycentric_split
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.vec_discretization import VecDiscretization
