@@ -40,6 +40,19 @@ def barycentric_split(sd: pg.Grid) -> pg.Grid:
 
 
 def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
+    """
+    Computes the mapping between cells and their associated faces (including new faces
+    created by refinement) for a given grid structure.
+
+    Args:
+        sd (pg.Grid): The input grid.
+        face_nodes (sps.csc_array): Sparse matrix mapping faces to their nodes, used
+            for determining face connectivity.
+
+    Returns:
+    sps.csc_array: A sparse matrix representing the mapping between (possibly new) faces
+        and cells, including orientation information.
+    """
     new_cell_inds = sd.cell_faces.copy()
     new_cell_inds.data = np.arange(new_cell_inds.nnz)
 
@@ -92,6 +105,18 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
 
 
 def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
+    """
+    Compute the mapping between new faces and nodes for a given grid refinement.
+
+    Args:
+        sd (pg.Grid): The input grid.
+        new_nodes (np.ndarray): Array of indices representing the new nodes introduced
+            during refinement.
+
+    Returns:
+        sps.csc_array: A sparse array in CSC format where each entry (i, j) indicates
+        that node `i` is associated with face `j` in the refined grid.
+    """
     if sd.dim == 1:
         # Each new face is at the location of a new node
         rows_I = new_nodes
