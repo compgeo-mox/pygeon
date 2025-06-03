@@ -161,6 +161,11 @@ class Poincare:
         )
 
     def check_cohomology(self):
+        self.hom_spaces[0] = self.zer_spaces[0].copy()
+        self.zer_spaces[0] *= False
+        cycle = np.atleast_2d(self.hom_spaces[0])
+        self.cycles[0] = sps.csr_array(cycle, dtype=int)
+
         dim_diff = self.get_subspace_dim_differences()
 
         assert dim_diff[-1] == 0
@@ -216,8 +221,7 @@ class Poincare:
             self.hom_spaces[k][face] = True
 
         # Generate a basis for the cohomology space
-        cycles = sps.csc_array(sub_bdry[1:].T)
-        self.cycles[k] = cycles
+        self.cycles[k] = sps.csr_array(sub_bdry[1:])
 
     def prune_graph(self, incidence, dim):
         incidence = incidence.copy()
@@ -306,7 +310,7 @@ class Poincare:
 
         coeffs = self.find_relevant_cycles(U_list, P_list)
 
-        self.cycles[1] = cycle_basis.tocsc() @ sps.csc_array(coeffs)
+        self.cycles[1] = sps.csr_array(coeffs.T) @ cycle_basis.T
 
     def compute_node_cycles(self, div, curl):
         # Create the co-tree
@@ -494,17 +498,20 @@ class Poincare:
     def compute_cohomology_basis(self, k):
         cycles = self.cycles[k].todense()
         pdc, dpc = self.decompose(k, cycles, False)
-        self.hom_basis[k] = self.cycles[k] - pdc - dpc
+        self.hom_basis[k] = cycles - pdc - dpc
 
     def hom_projection(self, k: int, f: np.ndarray):
         if not np.any(self.hom_spaces[k]):
             return np.zeros_like(f)
 
-        basis = self.cycles[k]
-        system = (basis.T @ basis).todense()
-        coeff = np.linalg.solve(system, basis.T @ f)
-
-        return self.hom_basis[k] @ coeff
+        basis = self.cycles[k].T
+        system = basis.T @ basis
+        if system.shape == (1, 1):
+            return self.hom_basis[k] * basis @ f / system[0, 0]
+        else:
+            system = system.todense()
+            coeff = np.linalg.solve(system, basis.T @ f)
+            return self.hom_basis[k] @ coeff
 
     def apply(
         self, k: int, f: np.ndarray, solver: Callable = sps.linalg.spsolve
@@ -524,30 +531,8 @@ class Poincare:
         """
         # Nodes to the constants
         if k == 0:
-            return np.full_like(f, np.mean(f))
+            return np.zeros_like(f)
 
-        # For k > 0, we simply apply the operator
-        pf = self._apply_op(k, f, solver)
-
-        # For the edge-to-node map, we subtract the mean
-        if k == 1:
-            pf -= np.mean(pf)
-
-        return pf
-
-    def _apply_op(self, k: int, f: np.ndarray, solver: Callable) -> np.ndarray:
-        """
-        Apply the permitted Poincaré operator for k-forms
-
-        Args:
-            k (int): order of the form
-            f (np.ndarray): the input differential k-form
-                as an array of the degrees of freedom
-            solver (Callable): The solver function to use.
-
-        Returns:
-            np.ndarray: the image of f under the Poincaré operator, i.e. p(f)
-        """
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
 
@@ -556,7 +541,9 @@ class Poincare:
 
         pizer_dbar = R_zer @ _diff @ R_bar.T
 
-        return R_bar.T @ solver(pizer_dbar, R_zer @ f)
+        pf = R_bar.T @ solver(pizer_dbar, R_zer @ f)
+
+        return pf
 
     def decompose(
         self, k: int, f: np.ndarray, with_cohomology=True
@@ -579,7 +566,7 @@ class Poincare:
             df = diff(self.mdg, n_minus_k) @ f
             pdf = self.apply(k + 1, df)
 
-        if k == 0:  # then dpf = mean(f)
+        if k == 0:
             dpf = self.apply(k, f)
         else:
             pf = self.apply(k, f)
