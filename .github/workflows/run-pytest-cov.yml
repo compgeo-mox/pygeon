@@ -66,22 +66,24 @@ jobs:
         python -m pip install -U pip
         pip --version
 
-    - name: Install requirements and PyGeoN
+    # - name: Install requirements and PyGeoN
+    #   run: |
+    #     pip install .
+    #     pip install pytest-cov
+    #     pip freeze
+
+    - name: Get PR coverage
       run: |
         pip install .
-        pip install pytest-cov
-        pip freeze
+        git checkout ${{ github.head_ref }}
+        pytest --cov=src/pygeon --cov-report=xml:pr.xml tests/unit tests/integration
 
     - name: Get baseline coverage
       run: |
         git fetch origin main
         git checkout origin/main
+        pip install .
         pytest --cov=src/pygeon --cov-report=xml:baseline.xml tests/unit tests/integration
-
-    - name: Get PR coverage
-      run: |
-        git checkout ${{ github.head_ref }}
-        pytest --cov=src/pygeon --cov-report=xml:pr.xml tests/unit tests/integration
 
     - name: Compare coverage
       run: python compare_coverage.py
