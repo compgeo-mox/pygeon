@@ -82,12 +82,6 @@ class RT0(pg.Discretization):
             data[pp.DISCRETIZATION_MATRICES]
         except KeyError:
             data.update({pp.DISCRETIZATION_MATRICES: {}})
-            data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {}})
 
         try:
             data[pp.DISCRETIZATION_MATRICES][keyword]
