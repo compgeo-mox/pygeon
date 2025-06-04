@@ -13,7 +13,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
         self.assertTrue(discr.ndof(sd) == sd.num_cells * dim * (dim + 1))
 
     def test_assemble_mass_matrix(self):
@@ -21,7 +21,7 @@ class VecPwLinearsTest(unittest.TestCase):
         sd = pg.reference_element(dim)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
         M = discr.assemble_mass_matrix(sd)
 
         M_known = (
@@ -46,7 +46,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         M = discr.assemble_lumped_matrix(sd)
 
@@ -68,7 +68,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         B = discr.assemble_diff_matrix(sd)
 
@@ -80,7 +80,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         self.assertRaises(NotImplementedError, discr.assemble_stiff_matrix, sd)
 
@@ -90,7 +90,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         interp = discr.interpolate(sd, lambda x: x)
         P = discr.eval_at_cell_centers(sd)
@@ -104,7 +104,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         P = discr.eval_at_cell_centers(sd)
 
@@ -128,7 +128,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         func = lambda x: np.sin(x[0])  # Example function
 
@@ -145,7 +145,7 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
 
         self.assertRaises(
             NotImplementedError,
@@ -159,12 +159,31 @@ class VecPwLinearsTest(unittest.TestCase):
         pg.convert_from_pp(sd)
         sd.compute_geometry()
 
-        discr = pg.VecPwLinears("P1")
+        discr = pg.VecPwLinears()
         ana_sol = lambda x: x
         num_sol = discr.interpolate(sd, ana_sol)
 
         error = discr.error_l2(sd, num_sol, ana_sol)
         self.assertTrue(np.isclose(error, 0))
+
+    def test_proj_to_quadratics(self):
+        sd = pg.unit_grid(2, 1.0, as_mdg=False)
+        sd.compute_geometry()
+
+        vec_p1 = pg.VecPwLinears()
+        P = vec_p1.proj_to_pwQuadratics(sd)
+        M_1 = vec_p1.assemble_mass_matrix(sd)
+
+        test_func = np.arange(vec_p1.ndof(sd))
+        norm_test_func = test_func @ M_1 @ test_func
+
+        P2 = pg.VecPwQuadratics()
+        M_2 = P2.assemble_mass_matrix(sd)
+
+        quad_func = P @ test_func
+        norm_quad_func = quad_func @ M_2 @ quad_func
+
+        self.assertTrue(np.isclose(norm_test_func, norm_quad_func))
 
 
 if __name__ == "__main__":
