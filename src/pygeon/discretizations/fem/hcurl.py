@@ -122,7 +122,7 @@ class Nedelec0(pg.Discretization):
         """
         Assembles the differential matrix for the given grid.
 
-        Parameters:
+        Args:
             sd (pg.Grid): The grid for which the differential matrix is assembled.
 
         Returns:
@@ -246,7 +246,7 @@ class Nedelec1(pg.Discretization):
         """
         Assembles the mass matrix for the given grid and data.
 
-        Parameters:
+        Args:
             sd (pg.Grid): The grid for which the mass matrix is to be assembled.
             data (dict, optional): Additional data required for the assembly process.
 

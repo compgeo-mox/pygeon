@@ -53,6 +53,9 @@ class VecRT0Test(unittest.TestCase):
         M = vec_rt0.assemble_mass_matrix(sd, data)
         self.assertAlmostEqual(u.T @ M @ u, 30)
 
+        M = vec_rt0.assemble_mass_matrix(sd)
+        self.assertAlmostEqual(u.T @ M @ u, 30)
+
     def test_assemble_mass_matrix_cosserat_2d(self):
         N = 10
         sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)

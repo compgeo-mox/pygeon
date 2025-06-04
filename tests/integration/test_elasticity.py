@@ -323,5 +323,107 @@ class ElasticityTestMixed(unittest.TestCase):
         self.assertTrue(np.allclose(cell_r, 0))
 
 
+class ElasticityTestMixedRT1(unittest.TestCase):
+    def run_elasticity_2d(self, u_boundary, N, is_lumped):
+        sd = pg.unit_grid(2, 1 / N, as_mdg=False)
+        sd = pg.barycentric_split(sd)
+        sd.compute_geometry()
+
+        key = "elasticity"
+        vec_rt1 = pg.VecRT1(key)
+        vec_p1 = pg.VecPwLinears(key)
+        p1 = pg.PwLinears(key)
+        p2 = pg.PwQuadratics(key)
+
+        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
+        if is_lumped:
+            Ms = vec_rt1.assemble_lumped_matrix(sd, data)
+        else:
+            Ms = vec_rt1.assemble_mass_matrix(sd, data)
+        Mu = vec_p1.assemble_mass_matrix(sd)
+        Mr = p2.assemble_mass_matrix(sd)
+        Pi = p1.proj_to_pwQuadratics(sd)
+
+        div = Mu @ vec_rt1.assemble_diff_matrix(sd)
+        asym = Pi.T @ Mr @ vec_rt1.assemble_asym_matrix(sd)
+
+        # fmt: off
+        spp = sps.block_array([[  Ms, div.T, -asym.T],
+                               [-div,  None,    None],
+                               [asym,  None,    None]], format = "csc")
+        # fmt: on
+
+        b_faces = sd.tags["domain_boundary_faces"]
+        bc = vec_rt1.assemble_nat_bc(sd, u_boundary, b_faces)
+
+        rhs = np.zeros(spp.shape[0])
+        rhs[: vec_rt1.ndof(sd)] = bc
+
+        x = sps.linalg.spsolve(spp, rhs)
+
+        split_idx = np.cumsum([vec_rt1.ndof(sd), vec_p1.ndof(sd)])
+        sigma, u, r = np.split(x, split_idx)
+
+        cell_sigma = vec_rt1.eval_at_cell_centers(sd) @ sigma
+        cell_u = vec_p1.eval_at_cell_centers(sd) @ u
+        cell_r = p1.eval_at_cell_centers(sd) @ r
+
+        return cell_sigma, cell_u, cell_r, sd
+
+    def test_elasticity_rbm_2d(self):
+        N = 3
+        u_boundary = lambda x: np.array([-0.5 - x[1], -0.5 + x[0], 0])
+        cell_sigma, cell_u, cell_r, sd = self.run_elasticity_2d(u_boundary, N, False)
+
+        key = "elasticity"
+        vec_p1 = pg.VecPwLinears(key)
+        interp = vec_p1.interpolate(sd, u_boundary)
+        u_known = vec_p1.eval_at_cell_centers(sd) @ interp
+
+        self.assertTrue(np.allclose(cell_sigma, 0))
+        self.assertTrue(np.allclose(cell_u, u_known))
+        self.assertTrue(np.allclose(cell_r, -1))
+
+        cell_sigma, cell_u, cell_r, sd = self.run_elasticity_2d(u_boundary, N, True)
+
+        self.assertTrue(np.allclose(cell_sigma, 0))
+        self.assertTrue(np.allclose(cell_u, u_known))
+        self.assertTrue(np.allclose(cell_r, -1))
+
+    def test_elasticity_2d(self):
+        N = 3
+        u_boundary = lambda x: np.array([x[0], x[1], 0])
+        cell_sigma, cell_u, cell_r, sd = self.run_elasticity_2d(u_boundary, N, False)
+
+        key = "elasticity"
+        vec_p1 = pg.VecPwLinears(key)
+        interp = vec_p1.interpolate(sd, u_boundary)
+        u_known = vec_p1.eval_at_cell_centers(sd) @ interp
+
+        cell_sigma = cell_sigma.reshape((6, -1))
+
+        self.assertTrue(np.allclose(cell_sigma[0], 2))
+        self.assertTrue(np.allclose(cell_sigma[1], 0))
+        self.assertTrue(np.allclose(cell_sigma[2], 0))
+        self.assertTrue(np.allclose(cell_sigma[3], 0))
+        self.assertTrue(np.allclose(cell_sigma[4], 2))
+        self.assertTrue(np.allclose(cell_sigma[5], 0))
+        self.assertTrue(np.allclose(cell_u, u_known))
+        self.assertTrue(np.allclose(cell_r, 0))
+
+        cell_sigma, cell_u, cell_r, sd = self.run_elasticity_2d(u_boundary, N, True)
+
+        cell_sigma = cell_sigma.reshape((6, -1))
+
+        self.assertTrue(np.allclose(cell_sigma[0], 2))
+        self.assertTrue(np.allclose(cell_sigma[1], 0))
+        self.assertTrue(np.allclose(cell_sigma[2], 0))
+        self.assertTrue(np.allclose(cell_sigma[3], 0))
+        self.assertTrue(np.allclose(cell_sigma[4], 2))
+        self.assertTrue(np.allclose(cell_sigma[5], 0))
+        self.assertTrue(np.allclose(cell_u, u_known))
+        self.assertTrue(np.allclose(cell_r, 0))
+
+
 if __name__ == "__main__":
     unittest.main()

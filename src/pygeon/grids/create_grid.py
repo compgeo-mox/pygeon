@@ -57,7 +57,7 @@ def grid_from_boundary_pts(
     Create a 2D grid from a set of nodes, where portions of the boundary of the grid
     are constructed from subsequent nodes, with a given mesh size.
 
-    Parameters:
+    Args:
         pts (np.ndarray): The ordered points representing the boundary.
         mesh_size (float): The desired mesh size.
         **kwargs: Additional options. The following options are available:
@@ -83,7 +83,7 @@ def unit_grid(
     """
     Create a unit square or cube grid with a given mesh size.
 
-    Parameters:
+    Args:
         dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
         kwargs: Additional options. The following options are available:
@@ -121,7 +121,7 @@ def reference_element(dim: int) -> pg.Grid:
     """
     Create a reference element of a given dimension.
 
-    Parameters:
+    Args:
         dim (int): The dimension of the reference element.
 
     Returns:
