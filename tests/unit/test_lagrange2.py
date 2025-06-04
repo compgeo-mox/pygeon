@@ -1,9 +1,10 @@
 """Module contains a unit test for the Lagrangean P2 discretization."""
 
 import unittest
-import numpy as np
 
+import numpy as np
 import porepy as pp
+
 import pygeon as pg
 
 
@@ -178,12 +179,12 @@ class Lagrange2Test(unittest.TestCase):
 
         D_known = np.array(
             [
-                [-3.0, -1.0, 0.0, 4.0, 0.0, 0.0],
-                [0.0, -3.0, -1.0, 0.0, 4.0, 0.0],
-                [-1.0, 0.0, -3.0, 0.0, 0.0, 4.0],
-                [1.0, 3.0, 0.0, -4.0, 0.0, 0.0],
-                [0.0, 1.0, 3.0, 0.0, -4.0, 0.0],
-                [3.0, 0.0, 1.0, 0.0, 0.0, -4.0],
+                [0.0, -3.0, -1.0, 4.0, 0.0, 0.0],
+                [-3.0, 0.0, -1.0, 0.0, 4.0, 0.0],
+                [-3.0, -1.0, 0.0, 0.0, 0.0, 4.0],
+                [0.0, 1.0, 3.0, -4.0, 0.0, 0.0],
+                [1.0, 0.0, 3.0, 0.0, -4.0, 0.0],
+                [1.0, 3.0, 0.0, 0.0, 0.0, -4.0],
             ]
         )
 

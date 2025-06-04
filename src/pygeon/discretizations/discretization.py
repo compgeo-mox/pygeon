@@ -13,16 +13,7 @@ import pygeon as pg
 
 class Discretization(abc.ABC):
     """
-    Abstract class for pygeon discretization methods.
-    For full compatibility, a child class requires the following methods:
-        ndof
-        assemble_mass_matrix
-        assemble_diff_matrix
-        interpolate
-        eval_at_cell_centers
-        assemble_nat_bc
-        get_range_discr_class
-
+    Abstract class for PyGeoN discretization methods.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -31,6 +22,10 @@ class Discretization(abc.ABC):
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
+                Default is pg.UNITARY_DATA.
+
+        Returns:
+            None
         """
         self.keyword = keyword
 

@@ -11,20 +11,52 @@ import pygeon as pg
 class VecPieceWisePolynomial(pg.VecDiscretization):
     """
     A class representing an abstract vector piecewise polynomial discretization.
-
-    Attributes:
-        keyword (str): The keyword for the vector discretization class.
-        scalar_discr (pg.Discretization): The scalar discretization class.
-
-    Methods:
-        get_range_discr_class(dim: int) -> Type[pg.Discretization]:
-            Returns the discretization class for the range of the differential.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces:
-            np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition vector, equal to zero.
-
     """
+
+    def local_dofs_of_cell(
+        self, sd: pg.Grid, c: int, ambient_dim: int = -1
+    ) -> np.ndarray:
+        """
+        Compute the local degrees of freedom (DOFs) of a cell in a vector-valued
+        finite element discretization.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization domain.
+            c (int): The index of the cell for which the local DOFs are to be computed.
+                ambient_dim (int, optional): The ambient dimension of the space. If not
+                provided, it defaults to the dimension of the grid (`sd.dim`).
+
+        Returns:
+            np.ndarray: An array containing the local DOFs of the specified cell,
+                adjusted for the vector-valued nature of the discretization.
+        """
+        if ambient_dim == -1:
+            ambient_dim = sd.dim
+
+        n_base = self.base_discr.ndof(sd)
+
+        dof_base = self.base_discr.local_dofs_of_cell(sd, c)  # type: ignore[attr-defined]
+        shift = np.repeat(n_base * np.arange(ambient_dim), dof_base.size)
+
+        dof_base = np.tile(dof_base, ambient_dim)
+
+        return dof_base + shift
+
+    def ndof_per_cell(self, sd: pg.Grid) -> int:
+        """
+        Computes the number of degrees of freedom (DOF) per cell for the given grid.
+
+        This method calculates the total number of DOFs per cell by multiplying
+        the number of DOFs per cell from the base discretization by the spatial
+        dimension of the grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the spatial discretization.
+
+        Returns:
+            int: The total number of degrees of freedom per cell.
+        """
+        return self.base_discr.ndof_per_cell(sd) * sd.dim  # type: ignore[attr-defined]
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -37,7 +69,7 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
             pg.Discretization: The discretization class for the range of the
             differential.
         """
-        return self.scalar_discr.get_range_discr_class(dim)
+        return self.base_discr.get_range_discr_class(dim)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -60,32 +92,22 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
 class VecPwConstants(VecPieceWisePolynomial):
     """
     A class representing the discretization using vector piecewise constant functions.
-
-    Attributes:
-        keyword (str): The keyword for the vector discretization class.
-        scalar_discr (pg.Discretization): The scalar discretization class.
-
-    Methods:
-        error_l2(sd: pg.Grid, num_sol: np.ndarray, ana_sol: Callable[[np.ndarray],
-            np.ndarray], relative: Optional[bool] = True, etype:
-            Optional[str] = "specific") -> float:
-            Returns the l2 error computed against an analytical solution given as a
-            function.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.PwConstants.
+        The base discretization class is pg.PwConstants.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.PwConstants
-        super().__init__(keyword, pg.PwConstants)
+        super().__init__(keyword)
+        self.base_discr: pg.PwConstants = pg.PwConstants(keyword)
 
     def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -97,7 +119,7 @@ class VecPwConstants(VecPieceWisePolynomial):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        proj = self.scalar_discr.proj_to_pwLinears(sd)
+        proj = self.base_discr.proj_to_pwLinears(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def error_l2(
@@ -133,7 +155,7 @@ class VecPwConstants(VecPieceWisePolynomial):
             ana_sol_dim = lambda x: ana_sol(x)[d]
             num_sol_dim = num_sol[d]
 
-            err2_dim = self.scalar_discr.error_l2(
+            err2_dim = self.base_discr.error_l2(
                 sd, num_sol_dim, ana_sol_dim, relative, etype
             )
             err2 += np.square(err2_dim)
@@ -143,23 +165,40 @@ class VecPwConstants(VecPieceWisePolynomial):
 class VecPwLinears(VecPieceWisePolynomial):
     """
     A class representing the discretization using vector piecewise linear functions.
-
-    Attributes:
-        keyword (str): The keyword for the vector discretization class.
-        scalar_discr (pg.Discretization): The scalar discretization class.
-
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.PwLinears.
+        The base discretization class is pg.PwLinears.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.PwLinears
-        super().__init__(keyword, pg.PwLinears)
+        super().__init__(keyword)
+        self.base_discr: pg.PwLinears = pg.PwLinears(keyword)
+
+
+class VecPwQuadratics(VecPieceWisePolynomial):
+    """
+    A class representing the discretization using vector piecewise quadratic functions.
+    """
+
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        """
+        Initialize the vector discretization class.
+        The base discretization class is pg.PwQuadratics.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
+
+        Returns:
+            None
+        """
+        super().__init__(keyword)
+        self.base_discr: pg.PwQuadratics = pg.PwQuadratics(keyword)

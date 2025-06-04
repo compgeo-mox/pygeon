@@ -12,37 +12,6 @@ class Nedelec0(pg.Discretization):
     """
     Discretization class for the Nedelec of the first kind of lowest order.
     Each degree of freedom is the integral over a mesh edge in 3D.
-
-    Attributes:
-        None
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Computes the mass matrix for a lowest-order Nedelec discretization.
-
-        local_inner_product(dim: int) -> sps.csc_array:
-            Compute the local inner product matrix for the given dimension.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the differential matrix for the given grid.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the function at the cell centers of the given grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition matrix for the given grid and
-            function.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a given function onto the grid using the hcurl discretization.
     """
 
     def ndof(self, sd: pg.Grid) -> int:
@@ -256,42 +225,6 @@ class Nedelec1(pg.Discretization):
     """
     Discretization class for the Nedelec of the second kind of lowest order.
     Each degree of freedom is a first moment over a mesh edge in 3D.
-
-    Attributes:
-        keyword (str): The keyword associated with the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Return the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix for the given grid and data.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped matrix for the given grid and data.
-
-        proj_to_Ne0(sd: pg.Grid) -> sps.csc_array:
-            Project the solution to the Nedelec of the first kind.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the differential matrix for the H(curl) finite element space.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates the given function `func` over the specified grid `sd`.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the basis functions at the cell centers and construct the global
-            matrices.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition for the given grid, function, and
-            boundary faces.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
     """
 
     def ndof(self, sd: pg.Grid) -> int:

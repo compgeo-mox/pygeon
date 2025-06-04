@@ -49,67 +49,22 @@ class VecLagrange1(pg.VecDiscretization):
 
 
     The strain tensor follows the same approach.
-
-    Args:
-        keyword (str): The keyword for the H1 class.
-
-    Attributes:
-        scalar_discr (pg.Lagrange1): A local Lagrange1 class for performing some of the
-            computations.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated with the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix for the lowest order Lagrange element.
-
-        assemble_div_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the divergence matrix operator for the lowest order vector Lagrange
-            element.
-
-        local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
-            Computes the local divergence matrix for P1.
-
-        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Returns the div-div matrix operator for the lowest order vector Lagrange
-            element.
-
-        assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the symmetric gradient matrix operator for the lowest order vector
-            Lagrange element.
-
-        local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray)
-            -> np.ndarray:
-            Computes the local symmetric gradient matrix for P1.
-
-        assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Returns the symgrad-symgrad matrix operator for the lowest order vector
-            Lagrange element.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange1.
+        The base discretization class is pg.Lagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.Lagrange1
-        super().__init__(keyword, pg.Lagrange1)
+        super().__init__(keyword)
+        self.base_discr: pg.Lagrange1 = pg.Lagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -179,9 +134,7 @@ class VecLagrange1(pg.VecDiscretization):
             ndarray: Local mass Hdiv matrix.
                 Shape: (num_faces_of_cell, num_faces_of_cell)
         """
-
-        dphi = self.scalar_discr.local_grads(coord, dim)
-
+        dphi = self.base_discr.local_grads(coord, dim)
         return c_volume * dphi
 
     def assemble_div_div_matrix(
@@ -223,9 +176,6 @@ class VecLagrange1(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
-
-        Raises:
-            None
 
         Notes:
             - If a 0-dimensional grid is given, a zero matrix is returned.
@@ -309,7 +259,7 @@ class VecLagrange1(pg.VecDiscretization):
             np.ndarray: Local symmetric gradient matrix of shape
                 (num_faces_of_cell, num_faces_of_cell).
         """
-        dphi = self.scalar_discr.local_grads(coord, dim)
+        dphi = self.base_discr.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
         return c_volume * sym @ grad
 
@@ -454,7 +404,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        proj = self.scalar_discr.proj_to_pwLinears(sd)
+        proj = self.base_discr.proj_to_pwLinears(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
@@ -468,7 +418,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        proj = self.scalar_discr.proj_to_pwConstants(sd)
+        proj = self.base_discr.proj_to_pwConstants(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
@@ -482,7 +432,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        proj = self.scalar_discr.proj_to_lagrange2(sd)
+        proj = self.base_discr.proj_to_lagrange2(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
 
@@ -491,33 +441,22 @@ class VecLagrange2(pg.VecDiscretization):
     VecLagrange2 is a vector discretization class that extends the functionality of
     the pg.VecDiscretization base class. It utilizes the pg.Lagrange2 scalar
     discretization class for its operations.
-
-    Attributes:
-        scalar_discr (pg.Lagrange2): The scalar discretization class used for
-            vector discretization.
-
-        keyword (str): A keyword specifying the type of vector discretization.
-            Defaults to pg.UNITARY_DATA.
-
-    Methods:
-        __init__(keyword: str = pg.UNITARY_DATA) -> None:
-            Initializes the VecLagrange2 class with the specified keyword and
-            sets up the scalar discretization class.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange2.
+        The base discretization class is pg.Lagrange2.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.Lagrange2
-        super().__init__(keyword, pg.Lagrange2)
+        super().__init__(keyword)
+        self.base_discr: pg.Lagrange2 = pg.Lagrange2(keyword)
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -537,3 +476,17 @@ class VecLagrange2(pg.VecDiscretization):
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 2 in PyGeoN"
         )
+
+    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a quadratic Lagrangian function to a second
+        order vector piece-wise function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.base_discr.proj_to_pwQuadratics(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
