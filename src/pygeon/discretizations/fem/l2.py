@@ -267,7 +267,10 @@ class PwConstants(PieceWisePolynomial):
         Returns:
             sps.csc_array: The assembled lumped mass matrix.
         """
-        return self.assemble_mass_matrix(sd, data)
+        M = super().assemble_lumped_matrix(sd, data)
+        M /= np.square(sd.cell_volumes)
+
+        return M.tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
