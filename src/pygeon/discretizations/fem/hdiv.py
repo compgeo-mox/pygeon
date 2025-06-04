@@ -63,9 +63,25 @@ class RT0(pg.Discretization):
             data[pp.PARAMETERS].update({keyword: {}})
 
         try:
+            data[pp.PARAMETERS]
+        except KeyError:
+            data.update({pp.PARAMETERS: {}})
+
+        try:
+            data[pp.PARAMETERS][keyword]
+        except KeyError:
+            data[pp.PARAMETERS].update({keyword: {}})
+
+        try:
             data[pp.PARAMETERS][keyword]["second_order_tensor"]
         except KeyError:
             perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+            data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
+
+        try:
+            data[pp.DISCRETIZATION_MATRICES]
+        except KeyError:
+            data.update({pp.DISCRETIZATION_MATRICES: {}})
             data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
 
         try:
@@ -428,14 +444,23 @@ class BDM1(pg.Discretization):
 
         Raises:
             ValueError: If the input grid is not an instance of pp.Grid.
-
         """
         if isinstance(sd, pg.Grid):
             return sd.face_nodes.nnz
         else:
             raise ValueError
 
-    def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray):
+    def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray) -> np.ndarray:
+        """
+        Compute the local degrees of freedom (DOFs) indices for a cell.
+
+        Args:
+            sd (pp.Grid): Grid object or a subclass.
+            faces_loc (np.ndarray):  Array of local face indices for the cell.
+
+        Returns:
+            np.ndarray: Array of local DOF indices associated with the cell.
+        """
         loc_ind = np.hstack([faces_loc] * sd.dim)
         loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
 
@@ -792,6 +817,17 @@ class BDM1(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def proj_to_VecPwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Constructs the projection matrix from the current finite element space to the
+        VecPwLinears space.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: A sparse array in CSC format representing the projection from
+                the current space to VecPwLinears.
+        """
         size = sd.dim**2 * (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -858,6 +894,17 @@ class RT1(pg.Discretization):
         return dim * (dim + 2)
 
     def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray, c: int):
+        """
+        Compute the local degrees of freedom (DOFs) indices for a cell.
+
+        Args:
+            sd (pp.Grid): Grid object or a subclass.
+            faces_loc (np.ndarray):  Array of local face indices for the cell.
+            c (int): Cell index.
+
+        Returns:
+            np.ndarray: Array of local DOF indices associated with the cell.
+        """
         loc_face = np.hstack([faces_loc] * sd.dim)
         loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
         loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
@@ -1335,6 +1382,17 @@ class RT1(pg.Discretization):
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
     def proj_to_VecPwQuadratics(self, sd: pg.Grid):
+        """
+        Constructs the projection matrix from the current finite element space to the
+        VecPwQuadratics space.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: A sparse array in CSC format representing the projection from
+                the current space to VecPwQuadratics.
+        """
         size = sd.dim * (3 * sd.dim + 2) * ((sd.dim * (sd.dim + 1)) // 2) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)

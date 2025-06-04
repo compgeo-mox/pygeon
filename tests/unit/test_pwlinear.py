@@ -135,13 +135,23 @@ class PwLinearsTest(unittest.TestCase):
         )
 
     def test_proj_to_quadratics(self):
-        dim = 2
         sd = pg.unit_grid(2, 1.0, as_mdg=False)
         sd.compute_geometry()
 
-        discr = pg.PwLinears()
+        P1 = pg.PwLinears()
+        Proj = P1.proj_to_pwQuadratics(sd)
+        M_1 = P1.assemble_mass_matrix(sd)
 
-        discr.proj_to_pwQuadratics(sd)
+        test_func = np.arange(P1.ndof(sd))
+        norm_test_func = test_func @ M_1 @ test_func
+
+        P2 = pg.PwQuadratics()
+        M_2 = P2.assemble_mass_matrix(sd)
+
+        quad_func = Proj @ test_func
+        norm_quad_func = quad_func @ M_2 @ quad_func
+
+        self.assertTrue(np.isclose(norm_test_func, norm_quad_func))
 
 
 if __name__ == "__main__":
