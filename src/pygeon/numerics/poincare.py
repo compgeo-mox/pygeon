@@ -42,10 +42,10 @@ class Poincare:
 
         self.check_grid_admissibility()
 
-        self.bar_spaces, self.zer_spaces, self.hom_basis = self.define_subspaces()
+        self.bar_spaces, self.zer_spaces, self.hom_spaces = self.define_subspaces()
         self.zero_out_tips()
 
-        self.hom_spaces, self.cycles = self.define_cohomology_spaces()
+        self.hom_basis, self.cycles = self.define_cohomology_spaces()
         self.check_cohomology()
 
     def define_subspaces(self) -> Tuple:
@@ -71,7 +71,7 @@ class Poincare:
 
         # Define the complementary sets
         zer_spaces[:] = [~bar for bar in bar_spaces]
-        hom_spaces = [np.zeros_like(bar) for bar in self.bar_spaces]
+        hom_spaces = [np.zeros_like(bar) for bar in bar_spaces]
 
         return bar_spaces, zer_spaces, hom_spaces
 
@@ -79,7 +79,7 @@ class Poincare:
         hom_basis = [np.zeros((bar.size, 0)) for bar in self.bar_spaces]
         cycles = [sps.csc_array((bar.size, 0), dtype=int) for bar in self.bar_spaces]
 
-        return hom_spaces, cycles, hom_basis
+        return cycles, hom_basis
 
     def zero_out_tips(self) -> None:
         tip_ridges = np.concatenate(
