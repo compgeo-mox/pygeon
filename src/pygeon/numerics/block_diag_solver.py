@@ -1,10 +1,12 @@
+from typing import Optional
+
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sps
 import scipy.sparse.csgraph as csgraph  # type: ignore[import-untyped]
 
 
-def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
+def assemble_inverse(M: sps.csc_array, rtol: Optional[float] = 1e-10) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
 
@@ -14,7 +16,7 @@ def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
 
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
-        rtol (float): Relative tolerance for removing small matrix entries.
+        rtol (float, optional): Relative tolerance for removing small matrix entries.
             Default 1e-10.
 
     Returns:
@@ -53,7 +55,9 @@ def assemble_inverse(M: sps.csc_array, rtol=1e-10) -> sps.csc_array:
     return inv_M_lil.tocsc()
 
 
-def block_diag_solver(M: sps.csc_array, B: sps.csc_array, rtol=1e-10) -> sps.csc_array:
+def block_diag_solver(
+    M: sps.csc_array, B: sps.csc_array, rtol: Optional[float] = 1e-10
+) -> sps.csc_array:
     """
     Solves a block diagonal system of linear equations for each connected component.
 
@@ -69,7 +73,7 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array, rtol=1e-10) -> sps.csc
             assumed to be symmetric and positive definite.
         B (sps.csc_array): The right-hand side matrix in Compressed Sparse Column (CSC)
             format.
-        rtol (float): Relative tolerance for removing small matrix entries.
+        rtol (float, optional): Relative tolerance for removing small matrix entries.
             Default 1e-10.
 
     Returns:
