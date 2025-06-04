@@ -563,19 +563,22 @@ class PwQuadratics(PieceWisePolynomial):
         Returns:
             np.ndarray: Local lumped mass matrix for piecewise quadratics.
         """
-        if dim == 1:
-            raise NotImplementedError(
-                "Lumped mass matrix for piecewise quadratics in 1D is not implemented."
-            )
-        elif dim == 2:
-            vals_at_center = np.array([-1, -1, -1, 4, 4, 4]) / 9
-            L = 0.75 * np.outer(vals_at_center, vals_at_center)
-            L += np.diag(np.array([1, 1, 1, 0, 0, 0])) / 12
+        num_edges = (dim * (dim + 1)) // 2
 
-        else:
-            vals_at_center = np.array([-1, -1, -1, -1, 2, 2, 2, 2, 2, 2]) / 8
-            L = 0.8 * np.outer(vals_at_center, vals_at_center)
-            L += np.diag(np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0])) / 20
+        # Evaluate the basis function at the cell center
+        node_bf_at_cc = np.full(dim + 1, 1 - dim)
+        edge_bf_at_cc = np.full(num_edges, 4)
+        vals_at_center = np.concatenate((node_bf_at_cc, edge_bf_at_cc)) / (dim + 1) ** 2
+        center_weight = (dim + 1) / (dim + 2)
+
+        L = center_weight * np.outer(vals_at_center, vals_at_center)
+
+        # Evaluate the basis functions at the nodes
+        vals_at_nodes = np.zeros(dim + 1 + num_edges)
+        vals_at_nodes[: dim + 1] = 1
+        node_weight = 1 / ((dim + 1) * (dim + 2))
+
+        L += node_weight * np.diag(vals_at_nodes)
 
         return L
 
