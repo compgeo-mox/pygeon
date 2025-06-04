@@ -134,22 +134,22 @@ def reference_element(dim: int) -> pg.Grid:
     elif dim == 2:
         nodes = np.eye(3, k=1)
 
-        indices = np.array([0, 1, 1, 2, 2, 0])
+        indices = np.array([1, 2, 0, 2, 0, 1])
         indptr = np.array([0, 2, 4, 6])
         face_nodes = sps.csc_array((np.ones(6), indices, indptr))
 
-        cell_faces = sps.csc_array(np.ones((3, 1)))
+        cell_faces = sps.csc_array(np.array([1, -1, 1])[:, None])
 
         return pg.Grid(2, nodes, face_nodes, cell_faces, "reference_triangle")
 
     elif dim == 3:
         nodes = np.eye(3, 4, k=1)
 
-        indices = np.array([0, 2, 1, 0, 1, 3, 1, 2, 3, 0, 3, 2])
+        indices = np.array([1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2])
         indptr = np.array([0, 3, 6, 9, 12])
         face_nodes = sps.csc_array((np.ones(12), indices, indptr))
 
-        cell_faces = sps.csc_array(np.ones((4, 1)))
+        cell_faces = sps.csc_array(np.array([1, -1, 1, -1])[:, None])
 
         return pg.Grid(3, nodes, face_nodes, cell_faces, "reference_tetrahedron")
     else:

@@ -1,5 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
+import abc
 from typing import Optional, Type
 
 import numpy as np
@@ -9,83 +10,18 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class VecBDM1(pg.VecDiscretization):
-    """
-    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite
-    element method. It provides methods for assembling matrices like the mass matrix,
-    the trace matrix, the asymmetric matrix and the differential matrix. It also
-    provides methods for evaluating the solution at cell centers, interpolating a given
-    function onto the grid, assembling the natural boundary condition term, and more.
-
-    Attributes:
-        keyword (str): The keyword associated with the vector BDM1 method.
-
-    Methods:
-        ndof(sd: pp.Grid) -> int:
-            Return the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix for the given grid.
-
-        assemble_trace_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the trace matrix for the vector BDM1.
-
-        assemble_asym_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the asymmetric matrix for the vector BDM1.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the finite element solution at the cell centers of the given grid.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a given function onto the grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition term.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
-    """
-
+class VecHDiv(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
-        Initialize the vector BDM1 discretization class.
-        The scalar discretization class is pg.BDM1.
-
-        We are considering the following structure of the stress tensor in 2d
-
-        sigma = [[sigma_xx, sigma_xy],
-                 [sigma_yx, sigma_yy]]
-
-        which is represented in the code unrolled row-wise as a vector of length 4
-
-        sigma = [sigma_xx, sigma_xy,
-                 sigma_yx, sigma_yy]
-
-        While in 3d the stress tensor can be written as
-
-        sigma = [[sigma_xx, sigma_xy, sigma_xz],
-                 [sigma_yx, sigma_yy, sigma_yz],
-                 [sigma_zx, sigma_zy, sigma_zz]]
-
-        where its vectorized structure of lenght 9 is given by
-
-        sigma = [sigma_xx, sigma_xy, sigma_xz,
-                 sigma_yx, sigma_yy, sigma_yz,
-                 sigma_zx, sigma_zy, sigma_zz]
+        Initialize the VecHDiv class.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-
-        Returns:
-            None
         """
-        self.scalar_discr: pg.BDM1
-        super().__init__(keyword, pg.BDM1)
+        super().__init__(keyword)
+        self.scalar_discr: pg.Discretization
+        self.vec_discr: pg.VecDiscretization
+        self.mat_discr: pg.VecDiscretization
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -116,25 +52,24 @@ class VecBDM1(pg.VecDiscretization):
         if isinstance(mu, np.ScalarType):
             mu = np.full(sd.num_cells, mu)
 
-        # Save 1/(2mu) as a tensor so that it can be read by BDM1
+        # Save 1/(2mu) as a tensor so that it can be read by self
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
-        data_for_BDM = pp.initialize_data(
+        data_self = pp.initialize_data(
             sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
         )
 
         # Save the coefficient for the trace contribution
         coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_tr_space = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
 
         # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_for_BDM)
+        D = super().assemble_mass_matrix(sd, data_self)
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
-        discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_mass_matrix(sd, data_for_PwL)
+        M = self.scalar_discr.assemble_mass_matrix(sd, data_tr_space)
 
         # Compose all the parts and return them
         return D - B.T @ M @ B
@@ -172,15 +107,200 @@ class VecBDM1(pg.VecDiscretization):
 
         R_space: pg.Discretization
         if sd.dim == 2:
-            R_space = pg.PwLinears(self.keyword)
+            R_space = self.scalar_discr
         elif sd.dim == 3:
-            R_space = pg.VecPwLinears(self.keyword)
+            R_space = self.vec_discr
 
         R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
 
-        asym = self.assemble_asym_matrix(sd, False)
+        asym = self.assemble_asym_matrix(sd)
 
         return M + asym.T @ R_mass @ asym
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+        if data is None:
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5
+            lambda_ = 0.0
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+
+        # Assemble the block diagonal mass matrix for the base discretization class
+        D = super().assemble_lumped_matrix(sd)
+
+        # Assemble the trace part
+        B = self.assemble_trace_matrix(sd)
+
+        # Assemble the piecewise linear mass matrix, to assemble the term
+        # (Trace(sigma), Trace(tau))
+        M = self.scalar_discr.assemble_lumped_matrix(sd)
+        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+
+        # Compose all the parts and return them
+        return (D - coeff * B.T @ M @ B) / (2 * mu)
+
+    def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+        """
+        Assembles the lumped matrix with cosserat terms for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (Optional[dict]): Optional data dictionary.
+
+        Returns:
+            sps.csc_array: The assembled lumped matrix.
+        """
+        M = self.assemble_lumped_matrix(sd, data)
+
+        # Extract the data
+        if data is None:
+            # If the data is not provided then use default values to build a block
+            # diagonal mass matrix without the trace term
+            mu = 0.5
+            mu_c = 0.5
+        else:
+            # Extract the data
+            mu = data[pp.PARAMETERS][self.keyword]["mu"]
+            mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        # If coeff is a scalar, replace it by a vector so that it can be accessed per
+        # cell
+        if isinstance(coeff, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff)
+
+        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+
+        R_space: pg.Discretization
+        if sd.dim == 2:
+            R_space = self.scalar_discr
+        elif sd.dim == 3:
+            R_space = self.vec_discr
+
+        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
+
+        asym = self.assemble_asym_matrix(sd)
+
+        return M + asym.T @ R_mass @ asym
+
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assemble the asymmetric matrix for the given grid.
+
+        This method constructs an asymmetric matrix by projecting to
+        matrix piecewise polynomials and combining it with the
+        discretization's asymmetric matrix.
+
+        Args:
+            sd (pg.Grid): The grid object representing the spatial discretization.
+
+        Returns:
+            sps.csc_array: The assembled asymmetric matrix in compressed sparse column
+                format.
+        """
+        P = self.proj_to_MatPwPolynomials(sd)
+        asym = self.mat_discr.assemble_asym_matrix(sd)  # type: ignore[attr-defined]
+
+        return asym @ P
+
+    @abc.abstractmethod
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the trace matrix for the vector HDiv.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The trace matrix obtained from the discretization.
+
+        Note:
+            This method should be implemented in subclasses.
+        """
+
+    def proj_to_MatPwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the base discretization to a matrix of piecewise polynomials.
+
+        This method constructs a block diagonal sparse matrix where each block
+        corresponds to the projection of the base discretization. The number of
+        blocks is determined by the spatial dimension of the grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the spatial discretization.
+
+        Returns:
+            sps.csc_array: A block diagonal sparse matrix in CSC format
+                containing the projections for each spatial dimension.
+        """
+        proj = self.base_discr_proj(sd)  # type: ignore[attr-defined]
+        return sps.block_diag([proj] * sd.dim).tocsc()
+
+
+class VecBDM1(VecHDiv):
+    """
+    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite
+    element method. It provides methods for assembling matrices like the mass matrix,
+    the trace matrix, the asymmetric matrix and the differential matrix. It also
+    provides methods for evaluating the solution at cell centers, interpolating a given
+    function onto the grid, assembling the natural boundary condition term, and more.
+    """
+
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        """
+        Initialize the vector BDM1 discretization class.
+        The base discretization class is pg.BDM1.
+
+        We are considering the following structure of the stress tensor in 2d
+
+        sigma = [[sigma_xx, sigma_xy],
+                 [sigma_yx, sigma_yy]]
+
+        which is represented in the code unrolled row-wise as a vector of length 4
+
+        sigma = [sigma_xx, sigma_xy,
+                 sigma_yx, sigma_yy]
+
+        While in 3d the stress tensor can be written as
+
+        sigma = [[sigma_xx, sigma_xy, sigma_xz],
+                 [sigma_yx, sigma_yy, sigma_yz],
+                 [sigma_zx, sigma_zy, sigma_zz]]
+
+        where its vectorized structure of lenght 9 is given by
+
+        sigma = [sigma_xx, sigma_xy, sigma_xz,
+                 sigma_yx, sigma_yy, sigma_yz,
+                 sigma_zx, sigma_zy, sigma_zz]
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
+
+        Returns:
+            None
+        """
+        super().__init__(keyword)
+        self.base_discr: pg.BDM1 = pg.BDM1(keyword)
+        self.scalar_discr: pg.PwLinears = pg.PwLinears(keyword)
+        self.vec_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)
+        self.mat_discr: pg.MatPwLinears = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -193,14 +313,14 @@ class VecBDM1(pg.VecDiscretization):
             sps.csc_array: The trace matrix obtained from the discretization.
         """
         # overestimate the size
-        size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
+        size = (sd.dim + 1) * sd.dim**2 * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
         idx = 0
 
         opposite_nodes = sd.compute_opposite_nodes()
-        scalar_ndof = self.scalar_discr.ndof(sd)
+        scalar_ndof = self.base_discr.ndof(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -209,7 +329,7 @@ class VecBDM1(pg.VecDiscretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
+            Psi = self.base_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
@@ -235,10 +355,12 @@ class VecBDM1(pg.VecDiscretization):
             data_IJ[loc_idx] = Psi_v
             idx += cols.size
 
+        ndof_pwlinear = pg.PwLinears().ndof(sd)
+        shape = (ndof_pwlinear, self.ndof(sd))
         # Construct the global matrices
-        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])), shape=shape)
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=False) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
@@ -252,7 +374,7 @@ class VecBDM1(pg.VecDiscretization):
         Args:
             sd (pg.Grid): The grid.
             as_pwconstant (bool): Compute the operator with the range on the piece-wise
-                constant (default), otherwise the mapping is on the piece-wise linears.
+                linears (default), otherwise the mapping is on the piece-wise constant.
 
         Returns:
             sps.csc_array: The asymmetric matrix obtained from the discretization.
@@ -284,7 +406,7 @@ class VecBDM1(pg.VecDiscretization):
             raise ValueError("The grid should be either two or three-dimensional")
 
         opposite_nodes = sd.compute_opposite_nodes()
-        ndof_scalar = self.scalar_discr.ndof(sd)
+        ndof_scalar = self.base_discr.ndof(sd)
 
         for c in np.arange(sd.num_cells):
             # For the current cell retrieve its faces and
@@ -293,7 +415,7 @@ class VecBDM1(pg.VecDiscretization):
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
 
-            Psi = self.scalar_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
+            Psi = self.base_discr.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
@@ -336,79 +458,6 @@ class VecBDM1(pg.VecDiscretization):
         else:
             return asym
 
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped matrix for the given grid.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
-
-        Returns:
-            sps.csc_array: The assembled lumped matrix.
-        """
-        if data is None:
-            raise ValueError("Data must be provided for the assembly")
-
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_lumped_matrix(sd)
-
-        # Assemble the trace part
-        B = self.assemble_trace_matrix(sd)
-
-        # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
-        discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_lumped_matrix(sd)
-
-        # Extract the data and compute the coefficient for the trace part
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
-
-        # Compose all the parts and return them
-        return (D - coeff * B.T @ M @ B) / (2 * mu)
-
-    def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
-        """
-        Assembles the lumped matrix with cosserat terms for the given grid.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
-
-        Returns:
-            sps.csc_array: The assembled lumped matrix.
-        """
-        M = self.assemble_lumped_matrix(sd, data)
-
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
-
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
-
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
-
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.PwLinears(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.VecPwLinears(self.keyword)
-
-        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
-
-        asym = self.assemble_asym_matrix(sd, False)
-
-        return M + asym.T @ R_mass @ asym
-
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
@@ -419,7 +468,7 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
         """
-        proj = self.scalar_discr.proj_to_RT0(sd)
+        proj = self.base_discr.proj_to_RT0(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
@@ -432,7 +481,7 @@ class VecBDM1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        proj = self.scalar_discr.proj_from_RT0(sd)
+        proj = self.base_discr.proj_from_RT0(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
@@ -448,12 +497,30 @@ class VecBDM1(pg.VecDiscretization):
         """
         return pg.VecPwConstants
 
+    def proj_to_MatPwLinears(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the base discretization to a matrix of piecewise linear functions.
 
-class VecRT0(pg.VecDiscretization):
+        This method constructs a block diagonal sparse matrix by projecting the
+        base discretization to vector piecewise linear functions and repeating
+        the projection for each spatial dimension.
+
+        Args:
+            sd (pg.Grid): The spatial grid on which the projection is performed.
+
+        Returns:
+            scipy.sparse.csc_matrix: A block diagonal sparse matrix representing
+            the projection to piecewise linear functions for each spatial dimension.
+        """
+        proj = self.base_discr.proj_to_VecPwLinears(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
+
+
+class VecRT0(VecHDiv):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT0 discretization class.
-        The scalar discretization class is pg.RT0.
+        The base discretization class is pg.RT0.
 
         We are considering the following structure of the stress tensor in 2d
 
@@ -479,113 +546,20 @@ class VecRT0(pg.VecDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.RT0
-        super().__init__(keyword, pg.RT0)
-
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for vector RT0, which is given by
-        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        if data is None:
-            # If the data is not provided then use default values to build a block
-            # diagonal mass matrix without the trace term
-            mu = 0.5 * np.ones(sd.num_cells)
-            lambda_ = np.zeros(sd.num_cells)
-        else:
-            # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-
-        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
-        if isinstance(mu, np.ScalarType):
-            mu = np.full(sd.num_cells, mu)
-
-        # Save 1/(2mu) as a tensor so that it can be read by BDM1
-        mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
-        data_for_RT0 = pp.initialize_data(
-            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
-        )
-
-        # Save the coefficient for the trace contribution
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_for_PwL = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_for_RT0)
-        # Assemble the trace part
-        B = self.assemble_trace_matrix(sd)
-
-        # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
-        discr = pg.PwLinears(self.keyword)
-        M = discr.assemble_mass_matrix(sd, data_for_PwL)
-
-        # Compose all the parts and return them
-        return D - B.T @ M @ B
-
-    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
-        inner product, which is given by (A sigma, tau) where
-        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
-                  + skw(sigma) / (2 mu_c)
-        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
-        mu_c the coupling Lamé modulus.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-
-        TODO: Consider using inheritance from VecBDM1.assemble_mass_matrix_cosserat
-        """
-        M = self.assemble_mass_matrix(sd, data)
-
-        # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
-
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
-
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
-
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.PwLinears(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.VecPwLinears(self.keyword)
-
-        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
-
-        asym = self.assemble_asym_matrix(sd, False)
-
-        return M + asym.T @ R_mass @ asym
+        super().__init__(keyword)
+        self.base_discr: pg.RT0 = pg.RT0(keyword)
+        self.scalar_discr: pg.PwLinears = pg.PwLinears(keyword)
+        self.vec_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)
+        self.mat_discr: pg.MatPwLinears = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles and returns the trace matrix for the vector BDM1.
+        Assembles and returns the trace matrix for the vector RT0.
 
         Args:
             sd (pg.Grid): The grid.
@@ -597,7 +571,7 @@ class VecRT0(pg.VecDiscretization):
         proj = vec_bdm1.proj_from_RT0(sd)
         return vec_bdm1.assemble_trace_matrix(sd) @ proj
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=True) -> sps.csc_array:
+    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=False) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
@@ -629,3 +603,110 @@ class VecRT0(pg.VecDiscretization):
             pg.Discretization: The range discretization class.
         """
         return pg.VecPwConstants
+
+
+class VecRT1(VecHDiv):
+    """
+    VecRT1 is a vector Raviart-Thomas finite element discretization class of order 1.
+
+    This class is designed for matrix-valued finite element discretizations in the
+    H(div) space, specifically using the Raviart-Thomas elements of order 1 (RT1).
+    """
+
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
+        """
+        Initialize the vector RT1 discretization class.
+        The base discretization class is pg.RT1.
+
+        Args:
+            keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
+        Returns:
+            None
+        """
+        super().__init__(keyword)
+        self.base_discr: pg.RT1 = pg.RT1(keyword)
+        self.scalar_discr: pg.PwQuadratics = pg.PwQuadratics(keyword)
+        self.vec_discr: pg.VecPwQuadratics = pg.VecPwQuadratics(keyword)
+        self.mat_discr: pg.MatPwQuadratics = pg.MatPwQuadratics(keyword)
+        self.base_discr_proj = self.base_discr.proj_to_VecPwQuadratics
+
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assemble the trace matrix for the given grid.
+
+        This method constructs a sparse matrix that represents the trace operator
+        for a finite element discretization on a given grid. The trace operator
+        maps the degrees of freedom associated with the elements of the grid to
+        the degrees of freedom associated with the faces and edges of the grid.
+
+        Args:
+            sd (pg.Grid): The grid object containing information about the
+                discretization.
+
+        Returns:
+            sps.csc_array: A sparse matrix in compressed sparse column (CSC) format
+                representing the trace operator.
+        """
+        # overestimate the size
+        loc_size = sd.dim * (sd.dim * (sd.dim + 1) ** 2 + sd.dim**2 * (sd.dim + 1) // 2)
+        size = loc_size * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+        scalar_ndof = self.base_discr.ndof(sd)
+        edges_nodes_per_cell = sd.dim + 1 + sd.dim * (sd.dim + 1) // 2
+
+        for c in np.arange(sd.num_cells):
+            nodes_loc, faces_loc, signs_loc = self.base_discr.reorder_faces(
+                sd.cell_faces, opposite_nodes, c
+            )
+
+            Psi = self.base_discr.eval_basis_functions(
+                sd, nodes_loc, signs_loc, sd.cell_volumes[c]
+            )
+
+            # Get all the components of the basis at nodes and edges
+            Psi_i, Psi_j = np.nonzero(Psi)
+            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+
+            # Get the indices for the local face and cell degrees of freedom
+            loc_face = np.hstack([faces_loc] * sd.dim)
+            loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
+            loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
+            loc_ind = np.hstack((loc_face, loc_cell))
+
+            cols = np.tile(loc_ind, (3, 1))
+            cols[1, :] += scalar_ndof
+            cols[2, :] += 2 * scalar_ndof
+            cols = np.tile(cols, (edges_nodes_per_cell, 1)).T
+            cols = cols[Psi_i, Psi_j]
+
+            nodes_edges_loc = np.arange(edges_nodes_per_cell) * sd.num_cells + c
+            rows = np.repeat(nodes_edges_loc, 3)[Psi_j]
+
+            # Save values of the local matrix in the global structure
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = rows
+            cols_J[loc_idx] = cols
+            data_IJ[loc_idx] = Psi_v
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            pg.Discretization: The range discretization class.
+        """
+        return pg.VecPwLinears

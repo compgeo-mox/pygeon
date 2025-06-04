@@ -1,8 +1,9 @@
 import unittest
 
 import numpy as np
-import pygeon as pg
 import scipy.sparse as sps
+
+import pygeon as pg
 
 
 class BlockMatrixTest(unittest.TestCase):
