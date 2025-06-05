@@ -106,9 +106,9 @@ def export_data(sol, mdg, sd):
 mdg = create_grid(grid_size, dim)
 
 for sd, data in mdg.subdomains(return_data=True):
-    diff = pp.SecondOrderTensor(np.ones(sd.num_cells))
+    diff = pp.SecondOrderTensor(np.full(sd.num_cells, 0.05))
 
-    vel_field = first_order_tensor(sd, np.ones(sd.num_cells))
+    vel_field = first_order_tensor(sd, np.full(sd.num_cells, 2))
     param = {"first_order_tensor": vel_field, "second_order_tensor": diff}
     pp.initialize_data(sd, data, key, param)
 
@@ -121,16 +121,14 @@ for sd, data in mdg.subdomains(return_data=True):
     top = sd.nodes[1, :] == 1
 
     nat_bc_faces = np.logical_or(left, right)
-    ess_bc_faces = np.logical_or(bottom, top)
+    ess_bc_nodes = np.logical_or(bottom, top)
     
     nat_bc.append(dt * P1.assemble_nat_bc(sd, u_bc, nat_bc_faces))
-    ess_bc.append(ess_bc_faces)
+    ess_bc.append(ess_bc_nodes)
 
     P1.interpolate(sd, source_term1)
     mass = P1.assemble_mass_matrix(sd)
     source.append(dt * mass @ P1.interpolate(sd, source_term))
-
-
 
 # construct the local matrices
 mass = P1.assemble_mass_matrix(sd)
