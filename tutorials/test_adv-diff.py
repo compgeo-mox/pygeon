@@ -8,10 +8,10 @@ import pygeon as pg
 
 import inspect
 
-grid_size = [5, 5]
+grid_size = [50, 50]
 dim = [1,1]
 dt = 0.1
-num_steps = 10
+num_steps = 100
 
 key = "mass"
 
@@ -52,7 +52,6 @@ def first_order_tensor(grid,
     return vel  
 
 def source_term1(x):
-    print(x)
     # Example: a Gaussian source
     center = sd.cell_centers[:,sd.num_cells // 2]
     sigma = 0.05
@@ -62,7 +61,7 @@ def source_term1(x):
 
 def source_term(x):
 
-    center_cell = sd.num_cells // 2 - 1 
+    center_cell = sd.num_cells // 2 - grid_size[0]
 
     bd_nodes = sd.get_all_boundary_nodes()
 
@@ -75,34 +74,34 @@ def source_term(x):
 
     source_nodes_coord = sd.nodes.T[center_nodes]
 
-    return 1.0 if np.any(np.all(source_nodes_coord == x, axis=1)) else 0.0
+    return 500.0 if np.any(np.all(source_nodes_coord == x, axis=1)) else 0.0
 
 def u_bc(x):
     return 1.0 if abs(x[0]) < 1e-10 else 0.0
 
 def export_data(sol, mdg, sd):
 
-    output_directory = "output_directory"
+    output_directory = os.path.join(os.path.dirname(__file__), "adv-diff sol")
     # Delete the output directory, if it exisis
     if os.path.exists(output_directory):
         shutil.rmtree(output_directory)
 
     n = 0 
+
     save = pp.Exporter(mdg, "adv-diff", folder_name=output_directory)
+
     proj_u = P1.eval_at_cell_centers(sd)
-    
-    for u in sol:
-        for _, data in mdg.subdomains(return_data=True):
+
+    for n, u in enumerate(sol):
+        for sd, data in mdg.subdomains(return_data=True):
+            
             # post process variables
-            cell_u = (proj_u @ u)
+            cell_u = proj_u @ u
 
-            pp.set_solution_values("cell_mass", cell_u, data, time_step_index = n)
+            pp.set_solution_values("mass", cell_u, data, time_step_index=0)
+            save.write_vtu(["mass"], time_step=n)
 
-            save.write_vtu(["cell_mass"], time_step=n)
-
-            n += 1
-
-    save.write_pvd()
+    save.write_pvd(range(len(sol)))
 
 mdg = create_grid(grid_size, dim)
 
@@ -118,21 +117,19 @@ for sd, data in mdg.subdomains(return_data=True):
 
     left = sd.face_centers[0, :] == 0
     right = sd.face_centers[0, :] == 1
-    top = sd.face_centers[1, :] == 1
-    bottom = sd.face_centers[1, :] == 1
-    
-    ess_u_dofs = np.zeros(P1.ndof(sd), dtype=bool)
+    bottom = sd.nodes[1, :] == 0
+    top = sd.nodes[1, :] == 1
 
     nat_bc_faces = np.logical_or(left, right)
-    ess_bc_faces = np.logical_or(top, bottom)
+    ess_bc_faces = np.logical_or(bottom, top)
     
-    nat_bc.append(P1.assemble_nat_bc(sd, u_bc, nat_bc_faces))
-    ess_bc.append(ess_u_dofs)
-
+    nat_bc.append(dt * P1.assemble_nat_bc(sd, u_bc, nat_bc_faces))
+    ess_bc.append(ess_bc_faces)
 
     P1.interpolate(sd, source_term1)
     mass = P1.assemble_mass_matrix(sd)
-    source.append(mass @ P1.interpolate(sd, source_term))
+    source.append(dt * mass @ P1.interpolate(sd, source_term))
+
 
 
 # construct the local matrices
@@ -154,7 +151,6 @@ rhs_const[:dof_u] += np.hstack(nat_bc) + np.hstack(source)
 
 # set initial conditions
 u = np.zeros(dof_u)
-
 sol.append(u)
 
 for n in np.arange(num_steps):

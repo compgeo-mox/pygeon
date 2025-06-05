@@ -6,6 +6,7 @@ from typing import Callable, Optional, Type
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
+import scipy
 
 import pygeon as pg
 
@@ -239,7 +240,7 @@ class Lagrange1(pg.Discretization):
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
         if not data.get("is_tangential", False):
-            # Rotate the permeability tensor and delete last dimension
+            # Rotate the velocity tensor and delete last dimension
             if sd.dim < 3:
                 V = V.copy()
                 V = R @ V
@@ -339,7 +340,7 @@ class Lagrange1(pg.Discretization):
             np.ndarray: local advection matrix of (dim+1, dim+1) shape.
         """
 
-        phi = np.full((dim + 1,), 1/(dim+1)) 
+        phi = np.full((dim + 1,), (1/scipy.special.factorial((dim))/(dim+1)) )
 
         dphi = self.local_grads(coord, dim)
 
