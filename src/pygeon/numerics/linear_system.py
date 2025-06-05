@@ -96,6 +96,7 @@ class LinearSystem:
         """
         A_0, b_0, R_0 = self.reduce_system()
         sol_0 = solver(A_0.tocsc(), b_0)
+        sol_0 = np.reshape(sol_0, b_0.shape)
         sol = self.repeat_ess_vals() + R_0.T @ sol_0
 
         return sol

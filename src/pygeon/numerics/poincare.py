@@ -162,28 +162,24 @@ class Poincare:
         )
 
     def check_cohomology(self):
-        dim_diff = self.get_subspace_dim_differences()
-
-        assert dim_diff[-1] == 0
-
-        self.compute_node_cohomology()
-
-        if dim_diff[-2] != 0:
-            self.compute_face_cohomology()
+        self.compute_face_cohomology()
 
         dim_diff = self.get_subspace_dim_differences()
+
         if self.dim == 3 and dim_diff[1] != 0:
             self.compute_ridge_cohomology()
             self.bar_spaces[1], self.zer_spaces[1], self.hom_spaces[1] = (
                 self.recompute_edge_subspaces()
             )
 
-        for k in range(self.dim + 1):
-            if np.any(self.cycles[k].data):
-                self.compute_cohomology_basis(k)
+        self.compute_node_cohomology()
 
         dim_diff = self.get_subspace_dim_differences()
         assert np.all(dim_diff == 0)
+
+        for k in range(self.dim + 1):
+            if np.any(self.cycles[k].data):
+                self.compute_cohomology_basis(k)
 
     def compute_node_cohomology(self):
         self.hom_spaces[0] = self.zer_spaces[0].copy()
@@ -319,34 +315,49 @@ class Poincare:
         self.cycles[1] = cycle_basis.tocsc() @ sps.csc_array(coeffs)
 
     def compute_node_cycles(self, div, curl):
-        # Create the co-tree
+        # Compute the number of connected components of the boundary
         incidence = div @ div.T
-        tree = sps.csgraph.breadth_first_tree(incidence, 0, directed=False)
+        n_components, ids = sps.csgraph.connected_components(incidence)
+        cycle_basis = []
 
-        # Find the mesh faces that correspond to tree edges
-        c_start, c_end, _ = sps.find(tree)
-        rows = np.hstack((c_start, c_end))
-        cols = np.hstack([np.arange(c_start.size)] * 2)
-        vals = np.ones_like(rows)
+        for i in range(n_components):
+            bdry_cells = ids == i
+            loc_incidence = bdry_cells * incidence * bdry_cells[:, None]
+            loc_incidence.eliminate_zeros()
 
-        face_finder = abs(div.T) @ sps.csc_array(
-            (vals, (rows, cols)), shape=(div.shape[0], tree.nnz)
-        )
-        face, _, nr_common_cells = sps.find(face_finder)
+            # Create the co-tree
+            start_cell = np.argmax(bdry_cells)
+            tree = sps.csgraph.breadth_first_tree(
+                loc_incidence, start_cell, directed=False
+            )
 
-        # Flag the relevant mesh faces in the grid
-        cotree_faces = np.zeros(div.shape[1], dtype=bool)
-        cotree_faces[face[nr_common_cells == 2]] = True
+            # Find the mesh faces that correspond to tree edges
+            c_start, c_end, _ = sps.find(tree)
+            rows = np.hstack((c_start, c_end))
+            cols = np.hstack([np.arange(c_start.size)] * 2)
+            vals = np.ones_like(rows)
 
-        # Find the edges on the cycles
-        curl_surf = curl[np.logical_not(cotree_faces), :]
-        graph = curl_surf.T @ curl_surf
-        graph.setdiag(np.zeros(graph.shape[0]))
-        graph.eliminate_zeros()
-        G = nx.from_scipy_sparse_array(graph)
+            face_finder = abs(div.T) @ sps.csc_array(
+                (vals, (rows, cols)), shape=(div.shape[0], tree.nnz)
+            )
+            face, _, nr_common_cells = sps.find(face_finder)
 
-        # Compute the cycles in terms of node lists
-        cycle_basis = nx.cycle_basis(G)
+            # Flag the relevant mesh faces in the grid
+            cotree_faces = np.zeros(div.shape[1], dtype=bool)
+            cotree_faces[face[nr_common_cells == 2]] = True
+
+            # Find the edges on the cycles
+            relevant_faces = (bdry_cells @ np.abs(div)).astype(bool)
+            relevant_faces[cotree_faces] = False
+
+            curl_surf = curl[relevant_faces, :]
+            graph = curl_surf.T @ curl_surf
+            graph.setdiag(np.zeros(graph.shape[0]))
+            graph.eliminate_zeros()
+            G = nx.from_scipy_sparse_array(graph)
+
+            # Compute the cycles in terms of node lists
+            cycle_basis.extend(nx.cycle_basis(G))
 
         return [np.array(cycle) for cycle in cycle_basis]
 
@@ -370,14 +381,16 @@ class Poincare:
     def generate_submerged_polygon(
         self, node_cycle, edge_cycle, bdry_ridges, bdry_nodes
     ):
-        # We first compute the submerged polygon
-
+        # Preallocation
         U = np.zeros((3, 1 + 2 * len(node_cycle)))
+
+        # Fill the even entries with grid nodes
         extended_cycle = np.append(node_cycle, node_cycle[0])
         nodes = np.where(bdry_nodes)[0]
         U[:, ::2] = self.top_sd.nodes[:, nodes[extended_cycle]]
 
         # Find an adjacent 3D cell for each boundary ridge
+        # and fill the odd entries with the cell centers
         adj_faces = np.abs(pg.curl(self.mdg)[:, bdry_ridges])
         adjacency = np.abs(pg.div(self.mdg)) @ adj_faces[:, edge_cycle]
         adjacency = adjacency.tocsc()
@@ -507,7 +520,7 @@ class Poincare:
 
         self.hom_basis[k] = cycles - pdc - dpc
 
-    def hom_projection(self, k: int, f: np.ndarray):
+    def hom_projection(self, k: int, f: np.ndarray) -> np.ndarray:
         if not np.any(self.hom_spaces[k]):
             return np.zeros_like(f)
 
