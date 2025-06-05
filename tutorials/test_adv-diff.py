@@ -8,7 +8,7 @@ import pygeon as pg
 
 import inspect
 
-grid_size = [50, 50]
+grid_size = [25, 25]
 dim = [1,1]
 dt = 0.1
 num_steps = 100
