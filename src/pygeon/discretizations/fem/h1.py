@@ -177,9 +177,8 @@ class Lagrange1(pg.Discretization):
 
         # Get dictionary for parameter storage
         V = np.ones((3, sd.num_cells))
-
         if data is not None:
-            V = data[pp.PARAMETERS][self.keyword]["first_order_tensor"]
+            V = data[pp.PARAMETERS][self.keyword]["vector_field"]
         else:
             data = {"is_tangential": True}
 
@@ -188,7 +187,7 @@ class Lagrange1(pg.Discretization):
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
         if not data.get("is_tangential", False):
-            # Rotate the velocity tensor and delete last dimension
+            # Rotate the vector field and delete last dimension
             if sd.dim < 3:
                 V = V.copy()
                 V = R @ V
@@ -279,7 +278,7 @@ class Lagrange1(pg.Discretization):
         Compute the local advection matrix for P1.
 
         Args:
-            V (np.ndarray): velocity field over the cell of (dim, dim) shape.
+            V (np.ndarray): vector field over the cell of (dim, dim) shape.
             c_volume (np.ndarray): scalar cell volume.
             coord (np.ndarray): coordinates of the cell vertices of (dim+1, dim) shape.
             dim (int): dimension of the problem.
@@ -288,7 +287,7 @@ class Lagrange1(pg.Discretization):
             np.ndarray: local advection matrix of (dim+1, dim+1) shape.
         """
 
-        phi = np.full((dim + 1,), (1 / scipy.special.factorial((dim)) / (dim + 1)))
+        phi = np.full((dim + 1), (1 / (dim + 1)))
 
         dphi = self.local_grads(coord, dim)
 
