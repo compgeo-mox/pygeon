@@ -1387,7 +1387,11 @@ class RT1(pg.Discretization):
             sps.csc_array: A sparse array in CSC format representing the projection from
                 the current space to VecPwQuadratics.
         """
-        size = sd.dim * (3 * sd.dim + 2) * ((sd.dim * (sd.dim + 1)) // 2) * sd.num_cells
+        # overestimate the size of a local computation
+        loc_size = (
+            sd.dim * (3 * sd.dim + 2) * ((sd.dim * (sd.dim + 1)) // 2) + sd.dim**2
+        )
+        size = loc_size * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
