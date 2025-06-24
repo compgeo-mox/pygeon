@@ -648,8 +648,11 @@ class VecRT1(VecHDiv):
             sps.csc_array: A sparse matrix in compressed sparse column (CSC) format
                 representing the trace operator.
         """
-        # overestimate the size
-        loc_size = sd.dim * (sd.dim * (sd.dim + 1) ** 2 + sd.dim**2 * (sd.dim + 1) // 2)
+        # overestimate the size of a local computation
+        loc_size = (
+            sd.dim * (sd.dim * (sd.dim + 1) ** 2 + sd.dim**2 * (sd.dim + 1) // 2)
+            + sd.dim**2
+        )
         size = loc_size * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
