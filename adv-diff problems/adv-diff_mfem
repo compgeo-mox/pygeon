@@ -5,23 +5,60 @@ import porepy as pp
 import pygeon as pg
 import sympy as sp
 import matplotlib.pyplot as plt
+import scipy.sparse as sps
 
+"""
+Solve advection-diffusion equation using Backward Euler in time,
+linearized by the L-scheme, and discretized by Mixed Finite Element Method (MFEM).
+
+PDEs:
+    ∂u/∂t + ∇·q = S
+    q - a u + D*∇u = 0
+
+
+Time discretization (Backward Euler):
+    (u^{n+1} - u^n) / Δt + ∇·q^{n+1} = S
+    q^{n+1} - a u^{n+1} + D ∇u^{n+1} = 0
+
+Variational (weak) form: find u in V such that
+for all test functions φ_1, φ_2:
+
+    ∫_Ω u^{n+1} φ_1 dΩ
+    + Δt ∫_Ω ∇·q^{n+1} φ_1 dΩ
+    = Δt ∫_Ω S^{n+1} φ_1 dΩ
+    + ∫_Ω u^{n} φ_1 dΩ
+
+    ∫_Ω q^n+1 φ_2 dΩ
+    - ∫_Ω a · u^{n+1} φ_2 dΩ    
+    - D ∫_Ω u^n+1 ∇·φ_2 dΩ
+    = - D ∫_Γ u^n+1 (φ_2 · ν) dΓ
+
+This gives the matrix equation:
+    (M_u        Δt B) (u^n+1) = (ΔtS + Mu^n)
+    ((A - D B^T)   M_q) (q^n+1) = (-D BC     )
+"""
 
 # Paramenter
 D = 1  # Diffusion coefficient
 V = np.array([1.0, 0.0, 0.0])  # Velocity vector
+L = 1e-1  # L-scheme parameter, can be adjusted
+inflow_rate = 10.0  # Inflow rate for the boundary condition
 
-grid_sizes = [[5, 5], [10, 10], [20, 20], [40, 40], [80, 80]]  # [[100, 100]]
+grid_sizes = [[3, 3]]  # [[10, 10], [20, 20], [40, 40], [80, 80], [160, 160]]
 dim = [1, 1]
-timesteps = [0.0001]  # [0.50, 0.25, 0.125, 0.0625, 0.003125]
-end_time = 1
-
+timesteps = [0.001]  # [0.002, 0.001, 0.0005, 0.00025, 0.000125]
+num_steps = 50
+iter = 50  # Number of iterations for the L-scheme linearization
+# Relative and absolute tolerances for the non-linear solver
+abs_tol = 1e-10
+rel_tol = 1e-10
 
 key = "mass"
 
 l2_errors = []
 
-P1 = pg.Lagrange1(key)
+P0 = pg.PwConstants(key)
+RT0 = pg.RT0(key)
 
 
 def manufactured_solution():
@@ -39,16 +76,17 @@ def manufactured_solution():
     ux = sp.diff(u, x)
     uy = sp.diff(u, y)
 
-    # Advection term: divergence of V * u
-    adv = sp.diff(Vx * u, x) + sp.diff(Vy * u, y)
+    # Directional flux terms qx and qy
+    q_x = Vx * u - D * ux
+    q_y = Vy * u - D * uy
 
-    # Diffusion term
-    diff = sp.diff(D * ux, x) + sp.diff(D * uy, y)
+    # Compute the divergence of q
+    q_div = sp.diff(q_x, x) + sp.diff(q_y, y)
 
     # Source term f from PDE residual
-    f = ut + adv - diff
+    f = ut - q_div
 
-    # Set the velocity field and diffusion coefficient valus
+    # Set the velocity field values
     f = f.subs({Vx: 1.0, Vy: 0.0, D: 1.0})
 
     # Simplify the source term
@@ -59,6 +97,37 @@ def manufactured_solution():
     solution = sp.lambdify((x, y, t), u, "numpy")
 
     return source, solution
+
+
+def nat_bc_func(x):
+    """Natural boundary condition function."""
+    return inflow_rate
+
+
+def ess_bc_func(x):
+    """Essential boundary condition function."""
+    return 0.0
+
+
+def source_term(x):
+    """Source term function."""
+    return 0.0
+
+
+def init_sol_func(x):
+    """Initial condition function."""
+    return 0.0
+
+
+def diff_func(sd, u):
+    """Compute the non-linear diffusion term D(u) on grid."""
+    return u**2
+
+
+def vel_func(sd, u):
+    """Compute the non-linear advection term A(u) on grid.
+    Note: Not used"""
+    return 1.0 * np.ones(sd.num_cells)
 
 
 def create_grid(grid_size, dim):
@@ -78,14 +147,13 @@ def create_grid(grid_size, dim):
 def export_data(name, sol, mdg, sd):
     """Export the solution data to pvd-file."""
     output_directory = os.path.join(os.path.dirname(__file__), "adv-diff " + name)
-
     # Delete the output directory, if it exisis
     if os.path.exists(output_directory):
         shutil.rmtree(output_directory)
 
     save = pp.Exporter(mdg, "adv-diff", folder_name=output_directory)
 
-    proj_u = P1.eval_at_cell_centers(sd)
+    proj_u = P0.eval_at_cell_centers(sd)
 
     for n, u in enumerate(sol):
         for sd, data in mdg.subdomains(return_data=True):
@@ -113,8 +181,6 @@ def plot_spatial_convergence(grid_sizes, l2_errors):
 def plot_temporal_convergence(timesteps, l2_errors):
     """Plot the temporal convergence of the L2 error."""
     plt.plot(np.array(timesteps), l2_errors, marker="o")
-    plt.xscale("log")
-    plt.yscale("log")
     plt.xlabel("Time step size")
     plt.ylabel("L2 error")
     plt.title("Temporal convergence for advection-diffusion equation")
@@ -122,18 +188,7 @@ def plot_temporal_convergence(timesteps, l2_errors):
     plt.show()
 
 
-def calculate_convergence_order(l2_errors):
-    """Calculate the convergence order based on L2 errors."""
-    orders = []
-    for i in range(1, len(l2_errors)):
-        order = np.log(l2_errors[i - 1] / l2_errors[i]) / np.log(2)
-        orders.append(order)
-    return orders
-
-
 for dt in timesteps:
-    num_steps = int(end_time / dt)
-
     for grid_size in grid_sizes:
         mdg = create_grid(grid_size, dim)
 
@@ -146,55 +201,76 @@ for dt in timesteps:
             param = {"vector_field": vel_field, "second_order_tensor": diff}
             pp.initialize_data(sd, data, key, param)
 
-            # Identify the portions of the boundary to impose the boundary conditions
+            # with the following steps we identify the portions of the boundary
+            # to impose the boundary conditions
+            left_faces = sd.face_centers[0, :] == 0
+            right_faces = sd.face_centers[0, :] == 1
+            bottom_faces = sd.face_centers[1, :] == 0
+            top_faces = sd.face_centers[1, :] == 1
+
             bottom_nodes = sd.nodes[1, :] == 0
             top_nodes = sd.nodes[1, :] == 1
             left_nodes = sd.nodes[0, :] == 0
             right_nodes = sd.nodes[0, :] == 1
 
+            # set flags for essential and natural boundary conditions
+            nat_bc_flags = left_faces
             ess_bc_flags = np.logical_or(
-                np.logical_or(left_nodes, right_nodes),
+                np.logical_or(right_nodes, left_nodes),
                 np.logical_or(bottom_nodes, top_nodes),
             )
 
         # construct the constant local matrices
-        mass = P1.assemble_mass_matrix(sd, data)
-        adv = P1.assemble_adv_matrix(sd, data)
-        stiff = P1.assemble_stiff_matrix(sd, data)
+        mass_u = P0.assemble_mass_matrix(sd, data)
+        mass_q = RT0.assemble_mass_matrix(sd, data)
+        div = dt * pg.cell_mass(mdg) @ pg.div(mdg)
+        A = -vel_field @ mass_u
+        div_transpose = diff @ div.T
 
-        # assemble the constant global matrix
+        # assemble the saddle point problem
         # fmt: off
-        global_matrix = mass + dt*(adv + stiff)
+        spp = sps.block_array([[mass_u,               div],
+                               [A + div_transpose, mass_q]], format="csc")
         # fmt: on
 
         # get the source term and the manufactured solution
         source, solution = manufactured_solution()
 
         # get the degrees of freedom for u
-        dof_u = sd.num_nodes
+        dof_u, dof_q = div.shape
 
-        # set the essential boundary values
-        ess_bc_vals = P1.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
+        # set natural boundary values
+        nat_bc_vals = RT0.assemble_nat_bc(sd, nat_bc_func, nat_bc_flags)
+
+        # set essential boundary values
+        ess_bc_vals = P0.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
+
+        # assemble the time-independent right-hand side
+        rhs_const = np.zeros(dof_u + dof_q)
+        # rhs_const[dof_q:] += -D * nat_bc_vals
 
         # initialize the solution arrays
         sol = np.empty((num_steps + 1, dof_u), dtype=np.float64)
         sol_an = np.empty((num_steps + 1, dof_u), dtype=np.float64)
 
         # set and store initial conditions
-        u = P1.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
+        u = P0.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
         sol[0] = u
         sol_an[0] = u
 
+        # set projection operator for u
+        proj_u = P0.eval_at_cell_centers(sd)
+
         for n in range(1, num_steps + 1):
-            print(f"Grid size: {grid_size}")
-            print(f"Time step {n} of {num_steps}, dt = {dt}")
+            rhs = rhs_const.copy()
             # assemble the time-dependent right-hand side
-            rhs = (
-                dt * P1.source_term(sd, lambda X: source(X[0], X[1], n * dt)) + mass @ u
+            rhs[:dof_q] = (
+                dt * P0.source_term(sd, lambda X: source(X[0], X[1], n * dt))
+                + mass_u @ u
             )
 
             # set up the linear system
-            ls = pg.LinearSystem(global_matrix, rhs)
+            ls = pg.LinearSystem(spp, rhs)
 
             # flag the essential boundary conditions
             ls.flag_ess_bc(ess_bc_flags, ess_bc_vals)
@@ -203,22 +279,19 @@ for dt in timesteps:
             u = ls.solve()
 
             # calculate the manufactured solution
-            u_an = P1.interpolate(sd, lambda X: solution(X[0], X[1], n * dt))
+            u_an = P0.interpolate(sd, lambda X: solution(X[0], X[1], n * dt))
 
             # store the solutions
             sol[n] = u
             sol_an[n] = u_an
 
         # calculate and store the L2 error
-        l2_errors.append(P1.error_l2(sd, u, lambda X: solution(X[0], X[1], n * dt)))
+        l2_errors.append(P0.error_l2(sd, u, lambda X: solution(X[0], X[1], n * dt)))
 
         # export_data("num_sol", sol, mdg, sd)
         # export_data("ana_sol", sol_an, mdg, sd)
 
 
+# plot_spatial_convergence(grid_sizes, l2_errors)
+plot_temporal_convergence(timesteps, l2_errors)
 print("L2 errors:", l2_errors)
-
-plot_spatial_convergence(grid_sizes, l2_errors)
-# plot_temporal_convergence(timesteps, l2_errors)
-orders = calculate_convergence_order(l2_errors)
-print(orders)
