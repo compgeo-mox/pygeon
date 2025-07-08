@@ -454,6 +454,22 @@ class PwLinears(PieceWisePolynomial):
 
         return vals.ravel(order="F")
 
+    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a piece-wise function to a piecewise
+        constant function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        matr = sps.hstack([sps.diags_array(sd.cell_volumes)] * (sd.dim + 1)) / (
+            sd.dim + 1
+        )
+        return matr.tocsc()
+
     def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
         """
         Projects the P1 discretization to the P2 discretization.
