@@ -153,6 +153,20 @@ class PwLinearsTest(unittest.TestCase):
 
         self.assertTrue(np.isclose(norm_test_func, norm_quad_func))
 
+    def test_proj_to_pwconstants(self):
+        P1 = pg.PwLinears()
+        P0 = pg.PwConstants()
+
+        for dim in [1, 2, 3]:
+            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
+            sd.compute_geometry()
+
+            Proj = P1.proj_to_pwConstants(sd)
+            fun_P1 = P1.interpolate(sd, lambda x: np.sum(x))
+            fun_P0 = P0.interpolate(sd, lambda x: np.sum(x))
+
+            self.assertTrue(np.allclose(Proj @ fun_P1 - fun_P0, 0.0))
+
 
 if __name__ == "__main__":
     unittest.main()
