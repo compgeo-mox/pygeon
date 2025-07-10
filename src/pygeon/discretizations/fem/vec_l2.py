@@ -182,6 +182,20 @@ class VecPwLinears(VecPieceWisePolynomial):
         super().__init__(keyword)
         self.base_discr: pg.PwLinears = pg.PwLinears(keyword)
 
+    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a piece-wise vector function to a piecewise
+        vector constant function.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.base_discr.proj_to_pwConstants(sd)
+        return sps.block_diag([proj] * sd.dim).tocsc()
+
     def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
         """
         Projects the vector P1 discretization to the vector P2 discretization.
