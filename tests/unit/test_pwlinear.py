@@ -139,7 +139,7 @@ class PwLinearsTest(unittest.TestCase):
         sd.compute_geometry()
 
         P1 = pg.PwLinears()
-        Proj = P1.proj_to_pwQuadratics(sd)
+        Proj = P1.proj_to_higher_PwPolynomials(sd)
         M_1 = P1.assemble_mass_matrix(sd)
 
         test_func = np.arange(P1.ndof(sd))
@@ -161,7 +161,7 @@ class PwLinearsTest(unittest.TestCase):
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()
 
-            Proj = P1.proj_to_pwConstants(sd)
+            Proj = P1.proj_to_lower_PwPolynomials(sd)
             fun_P1 = P1.interpolate(sd, lambda x: np.sum(x))
             fun_P0 = P0.interpolate(sd, lambda x: np.sum(x))
 

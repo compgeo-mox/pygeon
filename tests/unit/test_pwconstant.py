@@ -215,7 +215,7 @@ class PwConstantsTest(unittest.TestCase):
             sd.compute_geometry()
 
             p0 = pg.PwConstants()
-            proj_p0 = p0.proj_to_pwLinears(sd)
+            proj_p0 = p0.proj_to_higher_PwPolynomials(sd)
             mass_p0 = p0.assemble_mass_matrix(sd)
 
             p1 = pg.PwLinears()

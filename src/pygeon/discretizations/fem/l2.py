@@ -10,9 +10,9 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class PieceWisePolynomial(pg.Discretization):
+class PwPolynomials(pg.Discretization):
     """
-    PieceWisePolynomial is a subclass of pg.Discretization that represents
+    PwPolynomials is a subclass of pg.Discretization that represents
     an abstract element wise polynomial discretization.
     """
 
@@ -193,12 +193,40 @@ class PieceWisePolynomial(pg.Discretization):
             np.ndarray: Local lumped mass matrix for piecewise polynomials.
         """
 
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a piecewise function to a piecewise
+        polynomial function.
 
-class PwConstants(PieceWisePolynomial):
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        return sps.eye_array(self.ndof(sd)).tocsc()
+
+    @abc.abstractmethod
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to +1 order discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+
+
+class PwConstants(PwPolynomials):
     """
     Discretization class for the piecewise constants.
     NB! Each degree of freedom is the integral over the cell.
     """
+
+    poly_order = 0
+    tensor_order = pg.SCALAR
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -290,7 +318,7 @@ class PwConstants(PieceWisePolynomial):
             [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
         )
 
-    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Projects the P0 discretization to the P1 discretization.
 
@@ -375,10 +403,13 @@ class PwConstants(PieceWisePolynomial):
         return np.sqrt(err / (sd.dim + 1))
 
 
-class PwLinears(PieceWisePolynomial):
+class PwLinears(PwPolynomials):
     """
     Discretization class for piecewise linear finite element method.
     """
+
+    poly_order = 1
+    tensor_order = pg.SCALAR
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -454,7 +485,7 @@ class PwLinears(PieceWisePolynomial):
 
         return vals.ravel(order="F")
 
-    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for projecting a piece-wise function to a piecewise
         constant function.
@@ -470,7 +501,7 @@ class PwLinears(PieceWisePolynomial):
         )
         return matr.tocsc()
 
-    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Projects the P1 discretization to the P2 discretization.
 
@@ -506,11 +537,14 @@ class PwLinears(PieceWisePolynomial):
         return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
 
 
-class PwQuadratics(PieceWisePolynomial):
+class PwQuadratics(PwPolynomials):
     """
     PwQuadratics is a class that represents piecewise quadratic finite element
     discretizations.
     """
+
+    poly_order = 2
+    tensor_order = pg.SCALAR
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -621,3 +655,15 @@ class PwQuadratics(PieceWisePolynomial):
             vals[c, sd.dim + 1 :] = [func(x) for x in edge_mid_pt.T]
 
         return vals.ravel(order="F")
+
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to +1 order discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+        raise NotImplementedError

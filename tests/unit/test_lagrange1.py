@@ -442,54 +442,19 @@ class Lagrange1Test(unittest.TestCase):
 
         self.assertTrue(discr.get_range_discr_class(dim) is pg.Nedelec0)
 
-    def test_proj_to_pwlinear(self):
+    def test_proj_to_pwpolynomials(self):
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()
 
             l1 = pg.Lagrange1()
-            proj_l1 = l1.proj_to_pwLinears(sd)
+            proj_l1 = l1.proj_to_PwPolynomials(sd)
             mass_l1 = l1.assemble_mass_matrix(sd)
 
             p1 = pg.PwLinears()
             mass_p1 = p1.assemble_mass_matrix(sd)
 
             diff = proj_l1.T @ mass_p1 @ proj_l1 - mass_l1
-
-            self.assertTrue(np.allclose(diff.data, 0.0))
-
-    def test_proj_to_pwconstant(self):
-        for dim in [1, 2, 3]:
-            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
-            sd.compute_geometry()
-
-            l1 = pg.Lagrange1()
-            proj_l1 = l1.proj_to_pwConstants(sd)
-            mass_l1 = l1.assemble_mass_matrix(sd)
-
-            p0 = pg.PwConstants()
-            mass_p0 = p0.assemble_mass_matrix(sd)
-
-            field = np.ones(sd.num_nodes)
-            field_p0 = proj_l1 @ field
-
-            diff = field @ mass_l1 @ field - field_p0 @ mass_p0 @ field_p0
-
-            self.assertTrue(np.isclose(diff, 0.0))
-
-    def test_proj_to_lagrange2(self):
-        for dim in [1, 2, 3]:
-            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
-            sd.compute_geometry()
-
-            l1 = pg.Lagrange1()
-            proj_l1 = l1.proj_to_lagrange2(sd)
-            mass_l1 = l1.assemble_mass_matrix(sd)
-
-            l2 = pg.Lagrange2()
-            mass_l2 = l2.assemble_mass_matrix(sd)
-
-            diff = proj_l1.T @ mass_l2 @ proj_l1 - mass_l1
 
             self.assertTrue(np.allclose(diff.data, 0.0))
 

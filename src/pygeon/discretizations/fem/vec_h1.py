@@ -51,6 +51,9 @@ class VecLagrange1(pg.VecDiscretization):
     The strain tensor follows the same approach.
     """
 
+    poly_order = 1
+    tensor_order = pg.VECTOR
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
@@ -64,7 +67,7 @@ class VecLagrange1(pg.VecDiscretization):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.Lagrange1 = pg.Lagrange1(keyword)
+        self.base_discr = pg.Lagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -393,48 +396,6 @@ class VecLagrange1(pg.VecDiscretization):
 
         return sigma[idx].T
 
-    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a vector Lagrangian function to a piecewise
-        vector linear function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.base_discr.proj_to_pwLinears(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
-    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a vector Lagrangian function to a piecewise
-        vector constant function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.base_discr.proj_to_pwConstants(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
-    def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a linear Lagrangian function to a second
-        order vector Lagrange function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.base_discr.proj_to_lagrange2(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
 
 class VecLagrange2(pg.VecDiscretization):
     """
@@ -442,6 +403,9 @@ class VecLagrange2(pg.VecDiscretization):
     the pg.VecDiscretization base class. It utilizes the pg.Lagrange2 scalar
     discretization class for its operations.
     """
+
+    poly_order = 2
+    tensor_order = pg.VECTOR
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -476,17 +440,3 @@ class VecLagrange2(pg.VecDiscretization):
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 2 in PyGeoN"
         )
-
-    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a quadratic Lagrangian function to a second
-        order vector piece-wise function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.base_discr.proj_to_pwQuadratics(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
