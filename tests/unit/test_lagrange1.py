@@ -458,5 +458,6 @@ class Lagrange1Test(unittest.TestCase):
 
             self.assertTrue(np.allclose(diff.data, 0.0))
 
+
 if __name__ == "__main__":
     unittest.main()

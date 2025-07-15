@@ -16,6 +16,9 @@ class Discretization(abc.ABC):
     Abstract class for PyGeoN discretization methods.
     """
 
+    poly_order: int
+    tensor_order: int
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the Discretization object.

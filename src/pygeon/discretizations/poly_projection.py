@@ -1,5 +1,7 @@
 from typing import Type
+
 import scipy.sparse as sps
+
 import pygeon as pg
 
 
