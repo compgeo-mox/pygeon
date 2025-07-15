@@ -352,7 +352,7 @@ class VecBDM1Test(unittest.TestCase):
 
             bdm = pg.VecBDM1()
             trace_bdm = bdm.assemble_trace_matrix(sd)
-            proj = bdm.proj_to_MatPwLinears(sd)
+            proj = bdm.proj_to_PwPolynomials(sd)
 
             check = trace_bdm - trace @ proj
             self.assertTrue(np.allclose(check.data, 0))
@@ -367,7 +367,7 @@ class VecBDM1Test(unittest.TestCase):
 
             bdm = pg.VecBDM1()
             asym_bdm = bdm.assemble_asym_matrix(sd, as_pwconstant=False)
-            proj = bdm.proj_to_MatPwLinears(sd)
+            proj = bdm.proj_to_PwPolynomials(sd)
 
             check = asym_bdm - asym @ proj
             self.assertTrue(np.allclose(check.data, 0))

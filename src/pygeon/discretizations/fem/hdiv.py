@@ -17,6 +17,9 @@ class RT0(pg.Discretization):
     The implementation of this class is inspired by the RT0 class in PorePy.
     """
 
+    poly_order = 1
+    tensor_order = pg.VECTOR
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of faces.
@@ -377,6 +380,23 @@ class RT0(pg.Discretization):
         """
         return pg.PwConstants
 
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Constructs the projection matrix from the current finite element space to the
+        VecPwLinears space.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: A sparse array in CSC format representing the projection from
+                the current space to VecPwLinears.
+        """
+        bdm1 = pg.BDM1(self.keyword)
+        proj_to_bdm1 = bdm1.proj_from_RT0(sd)
+        proj_to_poly = bdm1.proj_to_PwPolynomials(sd)
+        return proj_to_poly @ proj_to_bdm1
+
     def error_l2(
         self,
         sd: pg.Grid,
@@ -424,6 +444,9 @@ class BDM1(pg.Discretization):
     space, evaluating the solution at cell centers, interpolating a given function onto
     the grid, assembling the natural boundary condition term, and more.
     """
+
+    poly_order = 1
+    tensor_order = pg.VECTOR
 
     def ndof(self, sd: pp.Grid) -> int:
         """
@@ -810,7 +833,7 @@ class BDM1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-    def proj_to_VecPwLinears(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Constructs the projection matrix from the current finite element space to the
         VecPwLinears space.
@@ -871,6 +894,9 @@ class RT1(pg.Discretization):
     assembling mass matrices, differential matrices, evaluating basis functions,
     and interpolating functions onto the finite element space.
     """
+
+    poly_order = 2
+    tensor_order = pg.VECTOR
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -1375,7 +1401,7 @@ class RT1(pg.Discretization):
 
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
-    def proj_to_VecPwQuadratics(self, sd: pg.Grid):
+    def proj_to_PwPolynomials(self, sd: pg.Grid):
         """
         Constructs the projection matrix from the current finite element space to the
         VecPwQuadratics space.

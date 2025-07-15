@@ -24,7 +24,7 @@ class PwQuadraticsTest(unittest.TestCase):
         M = discr.assemble_mass_matrix(sd)
 
         discr_l2 = pg.Lagrange2()
-        proj = discr_l2.proj_to_pwQuadratics(sd)
+        proj = discr_l2.proj_to_PwPolynomials(sd)
         M_l2 = discr_l2.assemble_mass_matrix(sd)
 
         self.assertTrue(np.allclose((proj.T @ M @ proj - M_l2).data, 0))

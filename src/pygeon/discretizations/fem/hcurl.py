@@ -14,6 +14,9 @@ class Nedelec0(pg.Discretization):
     Each degree of freedom is the integral over a mesh edge in 3D.
     """
 
+    poly_order = 1
+    tensor_order = pg.VECTOR
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -226,6 +229,9 @@ class Nedelec1(pg.Discretization):
     Discretization class for the Nedelec of the second kind of lowest order.
     Each degree of freedom is a first moment over a mesh edge in 3D.
     """
+
+    poly_order = 1
+    tensor_order = pg.VECTOR
 
     def ndof(self, sd: pg.Grid) -> int:
         """
