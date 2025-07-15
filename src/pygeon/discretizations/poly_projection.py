@@ -1,4 +1,5 @@
 from typing import Type
+import scipy.sparse as sps
 import pygeon as pg
 
 
@@ -38,3 +39,40 @@ def get_PwPolynomials(poly_order: int, tensor_order: int) -> Type[pg.Discretizat
                 f"Unsupported polynomial order {poly_order} and tensor order"
                 "{tensor_order}."
             )
+
+
+def proj_to_PwPolynomials(
+    discr: pg.Discretization, sd: pg.Grid, poly_order: int
+) -> sps.csc_array:
+    """
+    Constructs a projection operator to piecewise polynomial spaces of a specified
+    order.
+
+    Args:
+        discr (pg.Discretization): The current discretization object.
+        sd (pg.Grid): The grid on which the projection is performed.
+        poly_order (int): The target polynomial order for the projection.
+
+    Returns:
+        sps.csc_array: A sparse matrix representing the projection operator to the
+            specified piecewise polynomial space.
+    """
+    pi = discr.proj_to_PwPolynomials(sd)
+
+    current_poly_order = discr.poly_order
+
+    while current_poly_order < poly_order:
+        poly_discr = get_PwPolynomials(current_poly_order, discr.tensor_order)(
+            discr.keyword
+        )
+        pi = poly_discr.proj_to_higher_PwPolynomials(sd) @ pi
+        current_poly_order += 1
+
+    while current_poly_order > poly_order:
+        poly_discr = get_PwPolynomials(current_poly_order, discr.tensor_order)(
+            discr.keyword
+        )
+        pi = poly_discr.proj_to_lower_PwPolynomials(sd) @ pi
+        current_poly_order -= 1
+
+    return pi

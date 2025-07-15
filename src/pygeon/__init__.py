@@ -49,7 +49,10 @@ from pygeon.discretizations.vem.h1 import VLagrange1
 from pygeon.discretizations.vem.vec_hdiv import VecVRT0
 from pygeon.discretizations.vem.vec_h1 import VecVLagrange1
 
-from pygeon.discretizations.poly_projection import get_PwPolynomials
+from pygeon.discretizations.poly_projection import (
+    get_PwPolynomials,
+    proj_to_PwPolynomials,
+)
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import (
