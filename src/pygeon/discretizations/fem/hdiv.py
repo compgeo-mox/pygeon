@@ -172,6 +172,91 @@ class RT0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the advection matrix for mixed finite elements
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for
+                scaling, in particular the second_order_tensor that is the inverse of
+                the diffusion tensor (permeability for porous media) and the velocity
+                field (advection).
+
+        Returns:
+            sps.csc_array: The advection matrix.
+        """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((sd.num_faces, sd.num_faces))
+
+        # Create unitary data, unitary diffusivity, in case not present
+        data_ = RT0.create_unitary_data(self.keyword, sd, data)
+
+        # Get dictionary for parameter storage
+        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
+        # Retrieve the inverse of diffusivity
+        D = parameter_dictionary["second_order_tensor"]
+
+        V = np.zeros((3, sd.num_cells))
+
+        if data is not None:
+            V = data[pp.PARAMETERS][self.keyword]["vector_field"]
+
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
+        nodes = nodes[: sd.dim, :]
+
+        if not data_.get("is_tangential", False):
+            # Rotate the inverse of the permeability tensor and delete last dimension
+            if sd.dim < 3:
+                D = D.copy()
+                D.rotate(R)
+                remove_dim = np.where(np.logical_not(dim))[0]
+                D.values = np.delete(D.values, (remove_dim), axis=0)
+                D.values = np.delete(D.values, (remove_dim), axis=1)
+
+        # Allocate the data to store matrix A entries
+        size = np.square(sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+            sign_loc = sd.cell_faces.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = nodes[:, opposites_loc]
+
+            Psi = self.eval_basis(coord_loc, sign_loc, sd.dim)
+
+            weight = D @ V
+
+            # Compute the H_div-advection local matrix
+            A = weight @ Psi.T / sd.cell_volumes[c]
+
+            # Save values for local matrix in the global structure
+            cols = np.concatenate(faces_loc.size * [[faces_loc]])
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
     @staticmethod
     def local_inner_product(sd: pg.Grid) -> np.ndarray:
         """

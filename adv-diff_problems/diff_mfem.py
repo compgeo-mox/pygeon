@@ -6,19 +6,20 @@ import pygeon as pg
 import sympy as sp
 import matplotlib.pyplot as plt
 import scipy.sparse as sps
+from scipy.linalg import inv
+from adv_diff_src import Advection_Diffusion
 
 """
 Solve advection-diffusion equation using Backward Euler in time,
 linearized by the L-scheme, and discretized by Mixed Finite Element Method (MFEM).
 
 PDEs:
-    ∂u/∂t + ∇·q = S
-    q - a u + D*∇u = 0
-
+    ∂u/∂t - ∇·q = S
+    q - D*∇u = 0
 
 Time discretization (Backward Euler):
     (u^{n+1} - u^n) / Δt + ∇·q^{n+1} = S
-    q^{n+1} - a u^{n+1} + D ∇u^{n+1} = 0
+    D^{-1}q^{n+1} - ∇u^{n+1} = 0
 
 Variational (weak) form: find u in V such that
 for all test functions φ_1, φ_2:
@@ -28,14 +29,13 @@ for all test functions φ_1, φ_2:
     = Δt ∫_Ω S^{n+1} φ_1 dΩ
     + ∫_Ω u^{n} φ_1 dΩ
 
-    ∫_Ω q^n+1 φ_2 dΩ
-    - ∫_Ω a · u^{n+1} φ_2 dΩ    
-    - D ∫_Ω u^n+1 ∇·φ_2 dΩ
-    = - D ∫_Γ u^n+1 (φ_2 · ν) dΓ
+    D^{-1}∫_Ω q^n+1 φ_2 dΩ  
+    - ∫_Ω u^n+1 ∇·φ_2 dΩ
+    = ∫_Γ u^n+1 (φ_2 · ν) dΓ
 
 This gives the matrix equation:
-    (M_u        Δt B) (u^n+1) = (ΔtS + Mu^n)
-    ((A - D B^T)   M_q) (q^n+1) = (-D BC     )
+    (M_u                    Δt B) (u^{n+1}) = (ΔtS + Mu^n)
+    (- B^T            D^{-1} M_q) (q^{n+1}) = -BC
 """
 
 # Paramenter
@@ -59,6 +59,8 @@ l2_errors = []
 
 P0 = pg.PwConstants(key)
 RT0 = pg.RT0(key)
+
+solver = Advection_Diffusion()
 
 
 def manufactured_solution():
@@ -99,138 +101,24 @@ def manufactured_solution():
     return source, solution
 
 
-def nat_bc_func(x):
-    """Natural boundary condition function."""
-    return inflow_rate
-
-
-def ess_bc_func(x):
-    """Essential boundary condition function."""
-    return 0.0
-
-
-def source_term(x):
-    """Source term function."""
-    return 0.0
-
-
-def init_sol_func(x):
-    """Initial condition function."""
-    return 0.0
-
-
-def diff_func(sd, u):
-    """Compute the non-linear diffusion term D(u) on grid."""
-    return u**2
-
-
-def vel_func(sd, u):
-    """Compute the non-linear advection term A(u) on grid.
-    Note: Not used"""
-    return 1.0 * np.ones(sd.num_cells)
-
-
-def create_grid(grid_size, dim):
-    """Create a structured triangle grid for the problem."""
-    sd = pp.StructuredTriangleGrid(grid_size, dim)
-
-    # convert the grid into a mixed-dimensional grid
-    mdg = pg.as_mdg(sd)
-
-    # Convert to a pygeon grid
-    pg.convert_from_pp(sd)
-    sd.compute_geometry()
-
-    return mdg
-
-
-def export_data(name, sol, mdg, sd):
-    """Export the solution data to pvd-file."""
-    output_directory = os.path.join(os.path.dirname(__file__), "adv-diff " + name)
-    # Delete the output directory, if it exisis
-    if os.path.exists(output_directory):
-        shutil.rmtree(output_directory)
-
-    save = pp.Exporter(mdg, "adv-diff", folder_name=output_directory)
-
-    proj_u = P0.eval_at_cell_centers(sd)
-
-    for n, u in enumerate(sol):
-        for sd, data in mdg.subdomains(return_data=True):
-            # post process variables
-            cell_u = proj_u @ u
-
-            pp.set_solution_values("mass", cell_u, data, time_step_index=0)
-            save.write_vtu(["mass"], time_step=n)
-
-    save.write_pvd(range(len(sol)))
-
-
-def plot_spatial_convergence(grid_sizes, l2_errors):
-    """Plot the spatial convergence of the L2 error."""
-    plt.plot(np.array(grid_sizes)[:, 0], l2_errors, marker="o")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.xlabel("Grid size")
-    plt.ylabel("L2 error")
-    plt.title("Spatial convergence for advection-diffusion equation")
-    plt.grid()
-    plt.show()
-
-
-def plot_temporal_convergence(timesteps, l2_errors):
-    """Plot the temporal convergence of the L2 error."""
-    plt.plot(np.array(timesteps), l2_errors, marker="o")
-    plt.xlabel("Time step size")
-    plt.ylabel("L2 error")
-    plt.title("Temporal convergence for advection-diffusion equation")
-    plt.grid()
-    plt.show()
-
-
 for dt in timesteps:
     for grid_size in grid_sizes:
-        mdg = create_grid(grid_size, dim)
-
-        for sd, data in mdg.subdomains(return_data=True):
-            # initialize the parameters on the grid
-            diff = pp.SecondOrderTensor(np.full(sd.num_cells, D))
-
-            vel_field = np.broadcast_to(V[:, None], (3, sd.num_cells))
-
-            param = {"vector_field": vel_field, "second_order_tensor": diff}
-            pp.initialize_data(sd, data, key, param)
-
-            # with the following steps we identify the portions of the boundary
-            # to impose the boundary conditions
-            left_faces = sd.face_centers[0, :] == 0
-            right_faces = sd.face_centers[0, :] == 1
-            bottom_faces = sd.face_centers[1, :] == 0
-            top_faces = sd.face_centers[1, :] == 1
-
-            bottom_nodes = sd.nodes[1, :] == 0
-            top_nodes = sd.nodes[1, :] == 1
-            left_nodes = sd.nodes[0, :] == 0
-            right_nodes = sd.nodes[0, :] == 1
-
-            # set flags for essential and natural boundary conditions
-            nat_bc_flags = left_faces
-            ess_bc_flags = np.logical_or(
-                np.logical_or(right_nodes, left_nodes),
-                np.logical_or(bottom_nodes, top_nodes),
-            )
+        mdg, sd, data, nat_bc_flags, ess_bc_flags = solver.create_grid(
+            grid_size, dim, D, V
+        )
 
         # construct the constant local matrices
         mass_u = P0.assemble_mass_matrix(sd, data)
         mass_q = RT0.assemble_mass_matrix(sd, data)
         div = dt * pg.cell_mass(mdg) @ pg.div(mdg)
-        A = -vel_field @ mass_u
-        div_transpose = diff @ div.T
+        D_inv = solver.inverse_second_order_tensor(
+            data.get(pp.PARAMETERS, {}).get(key, {}).get("second_order_tensor")
+        ).values
 
         # assemble the saddle point problem
         # fmt: off
-        spp = sps.block_array([[mass_u,               div],
-                               [A + div_transpose, mass_q]], format="csc")
+        spp = sps.block_array([[mass_u,            div],
+                               [-div.T, D_inv * mass_q]], format="csc")
         # fmt: on
 
         # get the source term and the manufactured solution
@@ -240,7 +128,7 @@ for dt in timesteps:
         dof_u, dof_q = div.shape
 
         # set natural boundary values
-        nat_bc_vals = RT0.assemble_nat_bc(sd, nat_bc_func, nat_bc_flags)
+        nat_bc_vals = RT0.assemble_nat_bc(sd, solver.nat_bc_func, nat_bc_flags)
 
         # set essential boundary values
         ess_bc_vals = P0.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
@@ -292,6 +180,6 @@ for dt in timesteps:
         # export_data("ana_sol", sol_an, mdg, sd)
 
 
-# plot_spatial_convergence(grid_sizes, l2_errors)
-plot_temporal_convergence(timesteps, l2_errors)
+# solver.plot_spatial_convergence(grid_sizes, l2_errors)
+solver.plot_temporal_convergence(timesteps, l2_errors)
 print("L2 errors:", l2_errors)
