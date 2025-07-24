@@ -11,6 +11,9 @@ class MatPwConstants(pg.VecPwConstants):
     A class representing the discretization using matrix piecewise constant functions.
     """
 
+    poly_order = 0
+    tensor_order = pg.MATRIX
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the matrix discretization class.
@@ -24,13 +27,16 @@ class MatPwConstants(pg.VecPwConstants):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.VecPwConstants = pg.VecPwConstants(keyword)  # type: ignore[assignment]
+        self.base_discr = pg.VecPwConstants(keyword)  # type: ignore[assignment]
 
 
 class MatPwLinears(pg.VecPwLinears):
     """
     A class representing the discretization using matrix piecewise linear functions.
     """
+
+    poly_order = 1
+    tensor_order = pg.MATRIX
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -45,7 +51,7 @@ class MatPwLinears(pg.VecPwLinears):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)  # type: ignore[assignment]
+        self.base_discr = pg.VecPwLinears(keyword)  # type: ignore[assignment]
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -141,6 +147,9 @@ class MatPwQuadratics(pg.VecPwQuadratics):
     A class representing the discretization using matrix piecewise quadratic functions.
     """
 
+    poly_order = 2
+    tensor_order = pg.MATRIX
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the matrix discretization class.
@@ -154,7 +163,7 @@ class MatPwQuadratics(pg.VecPwQuadratics):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.VecPwQuadratics = pg.VecPwQuadratics(keyword)  # type: ignore[assignment]
+        self.base_discr = pg.VecPwQuadratics(keyword)  # type: ignore[assignment]
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """

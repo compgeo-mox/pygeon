@@ -8,7 +8,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class VecPieceWisePolynomial(pg.VecDiscretization):
+class VecPwPolynomials(pg.VecDiscretization):
     """
     A class representing an abstract vector piecewise polynomial discretization.
     """
@@ -88,11 +88,42 @@ class VecPieceWisePolynomial(pg.VecDiscretization):
         """
         return np.zeros(self.ndof(sd))
 
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to +1 order discretization.
 
-class VecPwConstants(VecPieceWisePolynomial):
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+
+        """
+        proj = self.base_discr.proj_to_higher_PwPolynomials(sd)
+        return self.vectorize(sd.dim, proj)
+
+    def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to -1 order discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+
+        """
+        proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
+        return self.vectorize(sd.dim, proj)
+
+
+class VecPwConstants(VecPwPolynomials):
     """
     A class representing the discretization using vector piecewise constant functions.
     """
+
+    poly_order = 0
+    tensor_order = pg.VECTOR
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -108,19 +139,6 @@ class VecPwConstants(VecPieceWisePolynomial):
         """
         super().__init__(keyword)
         self.base_discr: pg.PwConstants = pg.PwConstants(keyword)
-
-    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Returns the projection matrix to the vector piecewise linear space.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            sps.csc_array: The projection matrix.
-        """
-        proj = self.base_discr.proj_to_pwLinears(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
 
     def error_l2(
         self,
@@ -162,10 +180,13 @@ class VecPwConstants(VecPieceWisePolynomial):
         return np.sqrt(err2)
 
 
-class VecPwLinears(VecPieceWisePolynomial):
+class VecPwLinears(VecPwPolynomials):
     """
     A class representing the discretization using vector piecewise linear functions.
     """
+
+    poly_order = 1
+    tensor_order = pg.VECTOR
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -182,38 +203,14 @@ class VecPwLinears(VecPieceWisePolynomial):
         super().__init__(keyword)
         self.base_discr: pg.PwLinears = pg.PwLinears(keyword)
 
-    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a piece-wise vector function to a piecewise
-        vector constant function.
 
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.base_discr.proj_to_pwConstants(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
-    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the vector P1 discretization to the vector P2 discretization.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            sps.csc_array: The projection matrix.
-        """
-        proj = self.base_discr.proj_to_pwQuadratics(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
-
-class VecPwQuadratics(VecPieceWisePolynomial):
+class VecPwQuadratics(VecPwPolynomials):
     """
     A class representing the discretization using vector piecewise quadratic functions.
     """
+
+    poly_order = 2
+    tensor_order = pg.VECTOR
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

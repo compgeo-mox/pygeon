@@ -206,7 +206,7 @@ class VecPwConstantsTest(unittest.TestCase):
             sd.compute_geometry()
 
             vec_p0 = pg.VecPwConstants()
-            proj_p0 = vec_p0.proj_to_pwLinears(sd)
+            proj_p0 = vec_p0.proj_to_higher_PwPolynomials(sd)
             mass_p0 = vec_p0.assemble_mass_matrix(sd)
 
             vec_p1 = pg.VecPwLinears()

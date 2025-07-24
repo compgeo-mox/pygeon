@@ -55,7 +55,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The mass matrix obtained from the discretization.
         """
         mass = self.base_discr.assemble_mass_matrix(sd, data)
-        return sps.block_diag([mass] * sd.dim).tocsc()
+        return self.vectorize(sd.dim, mass)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -68,7 +68,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The differential matrix.
         """
         diff = self.base_discr.assemble_diff_matrix(sd)
-        return sps.block_diag([diff] * sd.dim).tocsc()
+        return self.vectorize(sd.dim, diff)
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -84,7 +84,21 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The lumped mass matrix.
         """
         lumped_mass = self.base_discr.assemble_lumped_matrix(sd, data)
-        return sps.block_diag([lumped_mass] * sd.dim).tocsc()
+        return self.vectorize(sd.dim, lumped_mass)
+
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a vector function to a piecewise
+        vector space.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.base_discr.proj_to_PwPolynomials(sd)
+        return self.vectorize(sd.dim, proj)
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -116,7 +130,7 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
         P = self.base_discr.eval_at_cell_centers(sd)
-        return sps.block_diag([P] * sd.dim).tocsc()
+        return self.vectorize(sd.dim, P)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -138,3 +152,15 @@ class VecDiscretization(pg.Discretization):
             for d in np.arange(sd.dim)
         ]
         return np.hstack(nat_bc)
+
+    def vectorize(self, dim: int, matrix: sps.csc_array) -> sps.csc_array:
+        """
+        Vectorizes the given matrix by repeating it for each dimension of the grid.
+
+        Args:
+            matrix (sps.csc_array): The matrix to be vectorized.
+
+        Returns:
+            sps.csc_array: The vectorized matrix.
+        """
+        return sps.block_diag([matrix] * dim).tocsc()

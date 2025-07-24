@@ -23,7 +23,7 @@ class VecLagrange2Test(unittest.TestCase):
             sd.compute_geometry()
 
             l2 = pg.VecLagrange2()
-            proj_l2 = l2.proj_to_pwQuadratics(sd)
+            proj_l2 = l2.proj_to_PwPolynomials(sd)
             mass_l2 = l2.assemble_mass_matrix(sd)
 
             p2 = pg.VecPwQuadratics()
