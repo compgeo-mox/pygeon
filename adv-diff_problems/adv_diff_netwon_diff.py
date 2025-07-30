@@ -47,7 +47,7 @@ V = np.array([1.0, 0.0, 0.0])  # Velocity vector
 L = 1e-3  # L-scheme parameter, can be adjusted
 inflow_rate = 10.0  # Inflow rate for the boundary condition
 
-grid_sizes = [[3, 3]]  # [[5, 5], [10, 10], [20, 20], [40, 40]]  # [[100, 100]]
+grid_sizes = [[5, 5], [10, 10], [20, 20], [40, 40]]  # [[100, 100]]
 dim = [1, 1]
 num_step_list = [2**6]  #  2 ** np.arange(1, 6)
 end_time = 1
@@ -165,12 +165,14 @@ for k, num_steps in enumerate(num_step_list):
 
             for i in range(iter):
                 # calculate the non-linear diffusion term for cell center and nodes
+
                 u_cell = proj_u @ u_prev
 
                 diff_cell = solver.diff_func(sd, u_cell)
                 diff_prime_cell = solver.diff_func_prime(sd, u_cell) * u_cell
-                diff_prime_vel = solver.diff_func_prime(sd, u_cell) * (
-                    P1.assemble_diff_matrix(sd, data) @ u_prev
+
+                diff_prime_vel = solver.grad(sd, u_prev) * solver.diff_func_prime(
+                    sd, u_cell
                 )
 
                 # update the diffusion tensor in the data
@@ -192,11 +194,14 @@ for k, num_steps in enumerate(num_step_list):
                     sd,
                     data,
                     key,
-                    {"vector_field": diff_prime_vel},
+                    {
+                        "vector_field": np.vstack(
+                            (diff_prime_vel, np.zeros((1, diff_prime_vel.shape[1])))
+                        )
+                    },
                 )
-
                 # assemble the u dependent local matrices for the current iteration
-                stiff_prime_1 = P1.assemble_adv_matrix(sd, data)
+                stiff_prime_1 = P1.assemble_adv_matrix(sd, data).T
 
                 # update the diffusion tensor in the data
                 pp.initialize_data(
