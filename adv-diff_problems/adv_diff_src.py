@@ -85,15 +85,25 @@ class Advection_Diffusion:
             right_nodes = sd.nodes[0, :] == 1
 
             # set flags for essential and natural boundary conditions
-            nat_bc_flags = left_faces
+            nat_bc_flags = np.logical_or(
+                np.logical_or(right_faces, left_faces),
+                np.logical_or(bottom_faces, top_faces),
+            )
+
             ess_bc_flags = np.logical_or(
                 np.logical_or(right_nodes, left_nodes),
                 np.logical_or(bottom_nodes, top_nodes),
             )
 
-        return mdg, sd, data, nat_bc_flags, ess_bc_flags
+            ess_bc_flags_mixed = np.logical_or(right_faces, left_faces)
+
+            nat_bc_flags_mixed = np.logical_or(bottom_faces, top_faces)
+
+        # change the flags to mixed-dimensional flags for MFEM
+        return mdg, sd, data, nat_bc_flags_mixed, ess_bc_flags_mixed
 
     def inverse_second_order_tensor(self, tensor):
+        """Compute the inverse of a second-order tensor."""
         D = tensor.values
         dim, _, Nc = D.shape  # shape: (dim, dim, num_cells)
         # Reshape to (num_cells, dim, dim) to apply batch inversion
@@ -105,6 +115,7 @@ class Advection_Diffusion:
         # Transpose back to (dim, dim, Nc)
         D_vals = D_inv_reshaped.transpose(1, 2, 0)
 
+        # Fill tensor and return wrt to the dimension
         kxx = D_vals[0, 0, :]
         if dim == 1:
             return pp.SecondOrderTensor(kxx)
@@ -123,6 +134,32 @@ class Advection_Diffusion:
             return pp.SecondOrderTensor(
                 kxx, kyy=kyy, kzz=kzz, kxy=kxy, kxz=kxz, kyz=kyz
             )
+
+    def grad(self, sd, u):
+        """Compute the gradient of the u at cell centers."""
+        GradP1 = self.P1.get_range_discr_class(sd.dim)(self.key)
+
+        # Compute the gradient at cell_centers
+        grad_u = self.P1.assemble_diff_matrix(sd) @ u
+        grad_u_at_cc = GradP1.eval_at_cell_centers(sd) @ grad_u
+
+        if (
+            sd.dim == 2
+        ):  # The 2D differential is a rotated gradient, so we rotate back...
+            grad_u_at_cc = np.concatenate(
+                (
+                    -grad_u_at_cc[sd.num_cells : sd.num_cells * 2],
+                    grad_u_at_cc[: sd.num_cells],
+                )
+            )
+
+        # The gradient is one long vector, which we have to reshape
+        grad_u_at_cc = np.reshape(grad_u_at_cc, (sd.dim, -1))
+
+        # Now each column of grad_u_at_cc gives the gradient at the cell center
+        # as a d-vector
+
+        return grad_u_at_cc
 
     def export_data(self, name, sol, mdg, sd):
         """Export the solution data to pvd-file."""
@@ -144,6 +181,39 @@ class Advection_Diffusion:
                 save.write_vtu(["mass"], time_step=n)
 
         save.write_pvd(range(len(sol)))
+
+    def export_mixed_data(self, mdg, sd, name, sol_an_u, sol_an_q, sol_u, sol_q):
+        """Export the MFEM solution data to pvd-file."""
+        output_directory = os.path.join(
+            os.path.dirname(__file__), "adv-diff-mixed " + name
+        )
+        # Delete the output directory, if it exisis
+        if os.path.exists(output_directory):
+            shutil.rmtree(output_directory)
+
+        save = pp.Exporter(mdg, "adv-diff-mixed", folder_name=output_directory)
+
+        proj_u = self.P0.eval_at_cell_centers(sd)
+        proj_q = self.RT0.eval_at_cell_centers(sd)
+
+        for n, (u, u_an, q, q_an) in enumerate(zip(sol_u, sol_an_u, sol_q, sol_an_q)):
+            for sd, data in mdg.subdomains(return_data=True):
+                cell_q = (proj_q @ q).reshape((3, -1))
+                cell_u = proj_u @ u
+
+                cell_an_q = (proj_q @ q_an).reshape((3, -1))
+                cell_an_u = proj_u @ u_an
+
+                pp.set_solution_values("cell_u", cell_u, data, time_step_index=0)
+                pp.set_solution_values("cell_q", cell_q, data, time_step_index=0)
+                pp.set_solution_values("cell_an_u", cell_an_u, data, time_step_index=0)
+                pp.set_solution_values("cell_an_q", cell_an_q, data, time_step_index=0)
+
+                save.write_vtu(
+                    ["cell_u", "cell_q", "cell_an_u", "cell_an_q"], time_step=n
+                )
+
+        save.write_pvd(range(len(sol_u)))
 
     def plot_spatial_convergence(self, grid_sizes, l2_errors):
         """Plot the spatial convergence of the L2 error."""
