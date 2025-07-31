@@ -13,9 +13,8 @@ Solve advection-diffusion equation using Backward Euler in time,
 linearized by the L-scheme, and discretized by Mixed Finite Element Method (MFEM).
 
 PDEs:
-    ∂u/∂t - ∇·q = S
-    D^{-1} q + D^{-1}a u - ∇u = 0
-
+    ∂u/∂t + ∇·q = S
+    D^{-1} q - D^{-1}a u + ∇u = 0
 
 Time discretization (Backward Euler):
     (u^{n+1} - u^n) / Δt + ∇·q^{n+1} = S
@@ -29,42 +28,32 @@ for all test functions φ_1, φ_2:
     = Δt ∫_Ω S^{n+1} φ_1 dΩ
     + ∫_Ω u^{n} φ_1 dΩ
 
-    D^{-1}∫_Ω q^n+1 φ_2 dΩ
-    - D^{-1}∫_Ω a u^{n+1} φ_2 dΩ    
+    D^{-1}∫_Ω q^{n+1} φ_2 dΩ
+    - D^{-1}∫_Ω a u^{n+1} · φ_2 dΩ    
     - ∫_Ω u^n+1 ∇·φ_2 dΩ
-    = ∫_Γ u^n+1 (φ_2 · ν) dΓ
+    = - ∫_Γ u^n+1 (φ_2 · ν) dΓ
 
 This gives the matrix equation:
-    (M_u        Δt B) (u^{n+1}) = (ΔtS + Mu^n)
-    ((-D^{-1} A - B^T)   D^{-1} M_q) (q^{n+1}) = -BC
+    (M_u                       Δt B) (u^{n+1}) = (ΔtS^{n+1} + M_u u^{n})
+    ((-B^T - D^{-1} A)   D^{-1} M_q) (q^{n+1}) = - BC
 """
-# TODO
-# Store the inverse of D (to save comp. time)
-# Div is const on elements, and so is the vel. field...
-# its just mass matrix in RT0 weighted by D^-1 a (?)
-# "a u" is just the vel. field weighted by u, and u is
-# approximated by the P0 shape functions...
-# P0 is const at every cell center.
-
 
 # Paramenter
 D = 1  # Diffusion coefficient
 V = np.array([1.0, 0.0, 0.0])  # Velocity vector
-L = 1e-1  # L-scheme parameter, can be adjusted
 inflow_rate = 10.0  # Inflow rate for the boundary condition
 
-grid_sizes = [[3, 3]]  # [[10, 10], [20, 20], [40, 40], [80, 80], [160, 160]]
+grid_sizes = [[10, 10], [20, 20], [40, 40], [80, 80]]  # [[100, 100]]
 dim = [1, 1]
-timesteps = [0.001]  # [0.002, 0.001, 0.0005, 0.00025, 0.000125]
-num_steps = 50
-iter = 50  # Number of iterations for the L-scheme linearization
+num_step_list = 2 ** np.arange(1, 5)  # [2**6]
+end_time = 1
 # Relative and absolute tolerances for the non-linear solver
 abs_tol = 1e-10
 rel_tol = 1e-10
 
 key = "mass"
 
-l2_errors = []
+l2_errors = np.zeros((len(grid_sizes)))
 
 P0 = pg.PwConstants(key)
 RT0 = pg.RT0(key)
@@ -88,108 +77,149 @@ def manufactured_solution():
     uy = sp.diff(u, y)
 
     # Directional flux terms qx and qy
-    q_x = Vx * u - D * ux
-    q_y = Vy * u - D * uy
+    q_x = -D * ux + Vx * u
+    q_y = -D * uy + Vy * u
+
+    q = sp.Matrix([q_x, q_y, 0])
 
     # Compute the divergence of q
     q_div = sp.diff(q_x, x) + sp.diff(q_y, y)
 
     # Source term f from PDE residual
-    f = ut - q_div
+    f = ut + q_div
 
     # Set the velocity field values
     f = f.subs({Vx: 1.0, Vy: 0.0, D: 1.0})
+    q = q.subs({Vx: 1.0, Vy: 0.0, D: 1.0})
 
     # Simplify the source term
     f_simplified = sp.simplify(f)
 
     # Create lambdified functions for source term and solution
     source = sp.lambdify((x, y, t), f_simplified, "numpy")
-    solution = sp.lambdify((x, y, t), u, "numpy")
+    solution_u = sp.lambdify((x, y, t), u, "numpy")
+    solution_q = sp.lambdify((x, y, t), q, "numpy")
 
-    return source, solution
+    return source, solution_u, solution_q
 
 
-for dt in timesteps:
-    for grid_size in grid_sizes:
-        mdg, sd, data, nat_bc_flags, ess_bc_flags = solver.create_grid(
-            grid_size, dim, D, V
+for j, (num_steps, grid_size) in enumerate(zip(num_step_list, grid_sizes)):
+    dt = end_time / num_steps
+
+    mdg, sd, data, nat_bc_flags, ess_bc_flags = solver.create_grid(grid_size, dim, D, V)
+
+    # Inverse the diffusion tensor D
+    D_inv = solver.inverse_second_order_tensor(
+        data.get(pp.PARAMETERS, {}).get(key, {}).get("second_order_tensor")
+    )
+
+    # Initialize the second order tensor on the grid
+    pp.initialize_data(
+        sd,
+        data,
+        key,
+        {"second_order_tensor": D_inv},
+    )
+
+    # Construct the constant local matrices
+    mass_u = P0.assemble_mass_matrix(sd)
+    mass_q = RT0.assemble_mass_matrix(sd, data)
+    div = dt * pg.cell_mass(mdg) @ pg.div(mdg)
+    A = RT0.assemble_adv_matrix(sd, data)
+
+    # assemble the saddle point problem
+    # fmt: off
+    spp = sps.block_array([[mass_u,           div],
+                            [-div.T - A.T, mass_q]], format="csc")
+    # fmt: on
+
+    # get the source term and the manufactured solutions
+    source_func, solution_u, solution_q = manufactured_solution()
+
+    # get the degrees of freedom for u
+    dof_u, dof_q = div.shape
+
+    # assemble the time-independent right-hand side
+    rhs_const = np.zeros(dof_u + dof_q)
+
+    # initialize the solution arrays
+    sol_u = np.empty((num_steps + 1, dof_u), dtype=np.float64)
+    sol_q = np.empty((num_steps + 1, dof_q), dtype=np.float64)
+    sol_an_u = np.empty((num_steps + 1, dof_u), dtype=np.float64)
+    sol_an_q = np.empty((num_steps + 1, dof_q), dtype=np.float64)
+
+    # set and store initial conditions
+    u = P0.interpolate(sd, lambda X: solution_u(X[0], X[1], 0.0))
+    q = RT0.interpolate(
+        sd, lambda X: np.array(solution_q(X[0], X[1], 0.0), dtype=float)
+    )
+
+    sol_u[0] = u
+    sol_q[0] = q
+    sol_an_u[0] = u
+    sol_an_q[0] = q
+
+    for n in range(1, num_steps + 1):
+        # set essential boundary values
+        ess_bc_vals = RT0.interpolate(
+            sd, lambda X: np.array(solution_q(X[0], X[1], n * dt), dtype=float)
         )
-
-        # construct the constant local matrices
-        mass_u = P0.assemble_mass_matrix(sd, data)
-        mass_q = RT0.assemble_mass_matrix(sd, data)
-        div = dt * pg.cell_mass(mdg) @ pg.div(mdg)
-        A = RT0.assemble_adv_matrix(sd, data)
-        D_inv = solver.inverse_second_order_tensor(
-            data.get(pp.PARAMETERS, {}).get(key, {}).get("second_order_tensor")
-        )
-
-        # assemble the saddle point problem
-        # fmt: off
-        spp = sps.block_array([[mass_u,              div],
-                               [A- div.T, mass_q]], format="csc")
-        # fmt: on
-
-        # get the source term and the manufactured solution
-        source, solution = manufactured_solution()
-
-        # get the degrees of freedom for u
-        dof_u, dof_q = div.shape
 
         # set natural boundary values
-        nat_bc_vals = RT0.assemble_nat_bc(sd, solver.nat_bc_func, nat_bc_flags)
+        nat_bc_vals = RT0.assemble_nat_bc(
+            sd, lambda X: solution_u(X[0], X[1], n * dt), nat_bc_flags
+        )
 
-        # set essential boundary values
-        ess_bc_vals = P0.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
+        # get time-dependent source term
+        source = P0.source_term(sd, lambda X: source_func(X[0], X[1], n * dt))
 
-        # assemble the time-independent right-hand side
-        rhs_const = np.zeros(dof_u + dof_q)
-        # rhs_const[dof_q:] += -D * nat_bc_vals
+        # assemble the time-dependent right-hand side
+        rhs = rhs_const.copy()
+        rhs[:dof_u] += dt * source + mass_u @ u
+        rhs[-dof_q:] -= nat_bc_vals
 
-        # initialize the solution arrays
-        sol = np.empty((num_steps + 1, dof_u), dtype=np.float64)
-        sol_an = np.empty((num_steps + 1, dof_u), dtype=np.float64)
+        # set up the linear system
+        ls = pg.LinearSystem(spp, rhs)
 
-        # set and store initial conditions
-        u = P0.interpolate(sd, lambda X: solution(X[0], X[1], 0.0))
-        sol[0] = u
-        sol_an[0] = u
+        # flag the essential boundary conditions
+        full_ess_bc_flags = np.concatenate([np.zeros(dof_u, dtype=bool), ess_bc_flags])
+        full_ess_bc_vals = np.concatenate([np.zeros(dof_u), ess_bc_vals])
 
-        # set projection operator for u
-        proj_u = P0.eval_at_cell_centers(sd)
+        ls.flag_ess_bc(full_ess_bc_flags, full_ess_bc_vals)
 
-        for n in range(1, num_steps + 1):
-            rhs = rhs_const.copy()
-            # assemble the time-dependent right-hand side
-            rhs[:dof_q] = (
-                dt * P0.source_term(sd, lambda X: source(X[0], X[1], n * dt))
-                + mass_u @ u
-            )
+        # solve the problem
+        x = ls.solve()
 
-            # set up the linear system
-            ls = pg.LinearSystem(spp, rhs)
+        # extract the variables
+        u = x[:dof_u]
+        q = x[-dof_q:]
 
-            # flag the essential boundary conditions
-            ls.flag_ess_bc(ess_bc_flags, ess_bc_vals)
+        # calculate the manufactured solution
+        u_an = P0.interpolate(sd, lambda X: solution_u(X[0], X[1], n * dt))
+        q_an = RT0.interpolate(
+            sd, lambda X: np.array(solution_q(X[0], X[1], n * dt), dtype=float)
+        )
 
-            # solve the problem
-            u = ls.solve()
-
-            # calculate the manufactured solution
-            u_an = P0.interpolate(sd, lambda X: solution(X[0], X[1], n * dt))
-
-            # store the solutions
-            sol[n] = u
-            sol_an[n] = u_an
+        # store the solutions
+        sol_u[n] = u
+        sol_q[n] = q
+        sol_an_u[n] = u_an
+        sol_an_q[n] = q_an
 
         # calculate and store the L2 error
-        l2_errors.append(P0.error_l2(sd, u, lambda X: solution(X[0], X[1], n * dt)))
+        l2_errors[j] += (
+            P0.error_l2(sd, u, lambda X: solution_u(X[0], X[1], n * dt), relative=False)
+            ** 2
+            * dt
+        )
 
-        # export_data("num_sol", sol, mdg, sd)
-        # export_data("ana_sol", sol_an, mdg, sd)
+    # final L2 error
+    l2_errors[j] = np.sqrt(l2_errors[j])
 
+# Export the numerical and analytical solutions form final simulation
+solver.export_mixed_data(mdg, sd, "num_sol", sol_an_u, sol_an_q, sol_u, sol_q)
 
-# solver.plot_spatial_convergence(grid_sizes, l2_errors)
-solver.plot_temporal_convergence(timesteps, l2_errors)
+solver.plot_spatial_convergence(grid_sizes, l2_errors)
 print("L2 errors:", l2_errors)
+solver.calculate_convergence_order(l2_errors)
+# solver.plot_temporal_convergence(end_time / num_step_list, l2_errors)
