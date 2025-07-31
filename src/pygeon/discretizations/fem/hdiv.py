@@ -182,8 +182,8 @@ class RT0(pg.Discretization):
             sd (pg.Grid): Grid object or a subclass.
             data (Optional[dict]): Optional dictionary with physical parameters for
                 scaling, in particular the second_order_tensor that is the inverse of
-                the diffusion tensor (permeability for porous media) and the velocity
-                field (advection).
+                the inverse of the diffusion tensor (permeability for porous media)
+                and the velocity field (advection).
 
         Returns:
             sps.csc_array: The advection matrix.
@@ -194,33 +194,39 @@ class RT0(pg.Discretization):
 
         # Create unitary data, unitary diffusivity, in case not present
         data_ = RT0.create_unitary_data(self.keyword, sd, data)
+        V = np.zeros((3, sd.num_cells))
 
         # Get dictionary for parameter storage
         parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of diffusivity
-        D = parameter_dictionary["second_order_tensor"]
 
-        V = np.zeros((3, sd.num_cells))
+        # Retrieve the inverse of diffusivity and the velocity field
+        D_inv = parameter_dictionary["second_order_tensor"]
 
         if data is not None:
             V = data[pp.PARAMETERS][self.keyword]["vector_field"]
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
-        _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
+        c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
         nodes = nodes[: sd.dim, :]
 
         if not data_.get("is_tangential", False):
-            # Rotate the inverse of the permeability tensor and delete last dimension
+            # Rotate the inverse of the permeability tensor and the velocity field,
+            # and delete last dimension
             if sd.dim < 3:
-                D = D.copy()
-                D.rotate(R)
+                D_inv = D_inv.copy()
+                D_inv.rotate(R)
                 remove_dim = np.where(np.logical_not(dim))[0]
-                D.values = np.delete(D.values, (remove_dim), axis=0)
-                D.values = np.delete(D.values, (remove_dim), axis=1)
+                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=0)
+                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=1)
+
+                V = V.copy()
+                V = R @ V
+                remove_dim = np.where(np.logical_not(dim))[0]
+                V = np.delete(V, remove_dim, axis=0)
 
         # Allocate the data to store matrix A entries
-        size = np.square(sd.dim + 1) * sd.num_cells
+        size = (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -234,23 +240,31 @@ class RT0(pg.Discretization):
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
             opposites_loc = opposite_nodes.data[loc]
-            sign_loc = sd.cell_faces.data[loc]
 
             # get the opposite node id for each face
             coord_loc = nodes[:, opposites_loc]
 
-            Psi = self.eval_basis(coord_loc, sign_loc, sd.dim)
+            # Compute the flux reconstruction matrix
+            Psi_cell = pp.RT0.faces_to_cell(
+                c_centers[:, c],
+                coord_loc,
+                f_centers[:, faces_loc],
+                f_normals[:, faces_loc],
+                dim,
+                R,
+            )[dim, :]
 
-            weight = D @ V
+            # Compute the local weight for the local advection matrix
+            weight = D_inv.values[..., c] @ V[:, c]
 
             # Compute the H_div-advection local matrix
-            A = weight @ Psi.T / sd.cell_volumes[c]
+            A = weight @ Psi_cell
 
             # Save values for local matrix in the global structure
-            cols = np.concatenate(faces_loc.size * [[faces_loc]])
+            cols = faces_loc
             loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
+            rows_I[loc_idx] = c
+            cols_J[loc_idx] = faces_loc
             data_IJ[loc_idx] = A.ravel()
             idx += cols.size
 
