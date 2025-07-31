@@ -47,14 +47,14 @@ V = np.array([1.0, 0.0, 0.0])  # Velocity vector
 L = 1e-3  # L-scheme parameter, can be adjusted
 inflow_rate = 10.0  # Inflow rate for the boundary condition
 
-grid_sizes = [[5, 5], [10, 10], [20, 20], [40, 40]]  # [[100, 100]]
+grid_sizes = [[50, 50]]  # [[5, 5], [10, 10], [20, 20], [40, 40]]  # [[100, 100]]
 dim = [1, 1]
-num_step_list = [2**6]  #  2 ** np.arange(1, 6)
-end_time = 1
+num_step_list = [2**5]  #  2 ** np.arange(1, 6)
+end_time = 10
 iter = 50  # Number of iterations for the L-scheme linearization
 # Relative and absolute tolerances for the non-linear solver
-abs_tol = 1e-7
-rel_tol = 1e-7
+abs_tol = 1e-12  # 1e-7
+rel_tol = 1e-12  # 1e-7
 
 key = "mass"
 
@@ -152,6 +152,8 @@ for k, num_steps in enumerate(num_step_list):
         proj_u = P1.eval_at_cell_centers(sd)
 
         for n in range(1, num_steps + 1):
+            iter_error = []
+
             print(f"Grid size: {grid_size}")
             print(f"Time step {n} of {num_steps}, dt = {dt}")
             # set time-dependent source term
@@ -162,6 +164,9 @@ for k, num_steps in enumerate(num_step_list):
             rhs_fixed += dt * source_vals + mass @ u
 
             u_prev = u.copy()
+
+            # calculate the analytical solution for the current time step
+            u_an = P1.interpolate(sd, lambda X: solution(X[0], X[1], n * dt))
 
             for i in range(iter):
                 # calculate the non-linear diffusion term for cell center and nodes
@@ -233,6 +238,9 @@ for k, num_steps in enumerate(num_step_list):
                 rel_err = np.sqrt(np.sum(np.power(u - u_prev, 2)))
                 abs_err = np.sqrt(np.sum(np.power(u_prev, 2)))
 
+                err = np.sqrt(np.sum(np.power(u - u_an, 2)))
+                iter_error.append(rel_err)
+
                 # Log message with error and current iteration
                 print(
                     "Iteration #"
@@ -246,9 +254,6 @@ for k, num_steps in enumerate(num_step_list):
                 else:
                     break
 
-            # calculate the analytical solution for the current time step
-            u_an = P1.interpolate(sd, lambda X: solution(X[0], X[1], n * dt))
-
             # store the solution
             sol[n] = u_prev
             sol_an[n] = u_an
@@ -261,6 +266,17 @@ for k, num_steps in enumerate(num_step_list):
                 ** 2
                 * dt
             )
+
+            for i in range(2, len(iter_error)):
+                newton_convergence = np.log(iter_error[i] / iter_error[i - 1]) / np.log(
+                    iter_error[i - 1] / iter_error[i - 2]
+                )
+                print(
+                    (
+                        f"Newton convergence order at step {n}, "
+                        f"iteration {i}: {newton_convergence}"
+                    )
+                )
 
         # final L2 error
         l2_errors[j] = np.sqrt(l2_errors[j])
