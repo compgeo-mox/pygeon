@@ -124,12 +124,12 @@ for j, (num_steps, grid_size) in enumerate(zip(num_step_list, grid_sizes)):
     # Construct the constant local matrices
     mass_u = P0.assemble_mass_matrix(sd)
     mass_q = RT0.assemble_mass_matrix(sd, data)
-    div = dt * pg.cell_mass(mdg) @ pg.div(mdg)
+    div = pg.cell_mass(mdg) @ pg.div(mdg)
     A = RT0.assemble_adv_matrix(sd, data)
 
     # assemble the saddle point problem
     # fmt: off
-    spp = sps.block_array([[mass_u,           div],
+    spp = sps.block_array([[mass_u,           dt * div],
                             [-div.T - A.T, mass_q]], format="csc")
     # fmt: on
 
@@ -176,7 +176,7 @@ for j, (num_steps, grid_size) in enumerate(zip(num_step_list, grid_sizes)):
         # assemble the time-dependent right-hand side
         rhs = rhs_const.copy()
         rhs[:dof_u] += dt * source + mass_u @ u
-        rhs[-dof_q:] -= nat_bc_vals
+        # rhs[-dof_q:] -= nat_bc_vals
 
         # set up the linear system
         ls = pg.LinearSystem(spp, rhs)
