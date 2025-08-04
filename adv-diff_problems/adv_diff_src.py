@@ -18,6 +18,11 @@ class Advection_Diffusion:
         self.P1 = pg.Lagrange1(self.key)
         self.P0 = pg.PwConstants(self.key)
         self.RT0 = pg.RT0(self.key)
+        self.m = 4  # depth for anderson acceleration
+        self.res_prev = 0.0  # Previous residual for Anderson acceleration
+        self.x_prev = 0.0  # Previous iterate for Anderson acceleration
+        self.aa_res_diff = None  # Anderson acceleration residuals difference
+        self.aa_x_diff = None  # Anderson acceleration step difference
 
     def nat_bc_func(self, x):
         """Natural boundary condition function."""
@@ -64,6 +69,9 @@ class Advection_Diffusion:
         sd.compute_geometry()
 
         for sd, data in mdg.subdomains(return_data=True):
+            self.aa_res_diff = np.empty((self.P1.ndof(sd), 50))
+            self.aa_x_diff = np.empty((self.P1.ndof(sd), 50))
+
             # initialize the parameters on the grid
             diff = pp.SecondOrderTensor(np.full(sd.num_cells, D))
 
@@ -95,12 +103,18 @@ class Advection_Diffusion:
                 np.logical_or(bottom_nodes, top_nodes),
             )
 
-            ess_bc_flags_mixed = np.logical_or(right_faces, left_faces)
+            ess_bc_flags_mixed = np.logical_or(
+                np.logical_or(right_faces, left_faces),
+                np.logical_or(bottom_faces, top_faces),
+            )
 
-            nat_bc_flags_mixed = np.logical_or(bottom_faces, top_faces)
+            nat_bc_flags_mixed = np.logical_or(
+                np.logical_or(right_faces, left_faces),
+                np.logical_or(bottom_faces, top_faces),
+            )
 
         # change the flags to mixed-dimensional flags for MFEM
-        return mdg, sd, data, nat_bc_flags_mixed, ess_bc_flags_mixed
+        return mdg, sd, data, nat_bc_flags, ess_bc_flags
 
     def inverse_second_order_tensor(self, tensor):
         """Compute the inverse of a second-order tensor."""
@@ -160,6 +174,44 @@ class Advection_Diffusion:
         # as a d-vector
 
         return grad_u_at_cc
+
+    def anderson_acc(self, x, g, i):
+        """Calculate the Anderson acceleration weights."""
+        res = g - x
+
+        if i == 0:
+            self.x_prev = x.copy()
+            self.res_prev = res.copy()
+            return g
+
+        self.aa_res_diff[:, i] = res - self.res_prev
+
+        self.aa_x_diff[:, i] = x - self.x_prev
+
+        self.x_prev = x.copy()
+        self.res_prev = res.copy()
+
+        if i <= self.m:
+            return g
+
+        # min_(y=y_0,...,y_m_k-1)^T ||f_k - F_k y||_2,
+        # F_k = (delta f_k-m_k, ..., delta f_k-1)
+        # delta f_i = f_i+1 - f_i
+        # f_i = g(x_i) - x_i
+        F = self.aa_res_diff[:, i - self.m : i]
+        X = self.aa_x_diff[:, i - self.m : i]
+
+        # Use QR decomposition to solve the least squares problem
+        Q, R = np.linalg.qr(F)
+        y = np.linalg.solve(R, Q.T @ res)
+        # return the accelerated iterate
+        # x_i+1 = x_k + f_k - (X_k + F_k)y^(k)
+        # X_k = (delta x_k-m_k, ..., delta x_k-1)
+        # delta x_i = x_i+1 - x_i
+
+        x_acc = x + res - (X + F) @ y
+
+        return x_acc
 
     def export_data(self, name, sol, mdg, sd):
         """Export the solution data to pvd-file."""
