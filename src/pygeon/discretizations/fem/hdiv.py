@@ -1427,7 +1427,7 @@ class RT1(pg.Discretization):
 
         range_disc = pg.VecPwQuadratics()
 
-        n_dof_per_cell = 18 if sd.dim == 2 else 30
+        n_dof_per_cell = [0, 9, 18, 30][sd.dim]
         rearrange = np.reshape(np.arange(n_dof_per_cell), (3, -1)).ravel(order="F")
 
         for c in np.arange(sd.num_cells):
