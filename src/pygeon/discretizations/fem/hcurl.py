@@ -167,7 +167,7 @@ class Nedelec0(pg.Discretization):
 
             # Put in the right spot
             loc_idx = slice(idx, idx + Psi_at_centre.size)
-            rows_I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
+            rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, 6)
             cols_J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
             data_IJ[loc_idx] = Psi_at_centre.ravel()
             idx += Psi_at_centre.size
@@ -428,7 +428,9 @@ class Nedelec1(pg.Discretization):
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + Ne_basis.size)
-            rows_I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3 * c
+            rows_I[loc_idx] = np.repeat(
+                c + np.arange(3) * sd.num_cells, Ne_indices.size
+            )
             cols_J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
             data_IJ[loc_idx] = Ne_basis.ravel() / 4.0
             idx += Ne_basis.size
