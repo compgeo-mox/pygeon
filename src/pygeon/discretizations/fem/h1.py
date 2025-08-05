@@ -766,6 +766,12 @@ class Lagrange2(pg.Discretization):
 
         return sps.hstack((eval_nodes, eval_edges)).tocsc()  # type: ignore[arg-type]
 
+    def assemble_lumped_matrix(self, sd, data=None):
+        Pi = self.proj_to_PwPolynomials(sd)
+        L = pg.PwQuadratics(self.keyword).assemble_lumped_matrix(sd, data)
+
+        return Pi.T @ L @ Pi
+
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for projecting a quadratic Lagrangian function to a
