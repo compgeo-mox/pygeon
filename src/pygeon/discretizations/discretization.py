@@ -204,6 +204,19 @@ class Discretization(abc.ABC):
                 differential
         """
 
+    @abc.abstractmethod
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Returns the inclusion matrix that projects the finite element space onto
+        the lowest order piecewise polynomial space without loss of information.
+
+        Args:
+            sd (pg.Grid): the grid.
+
+        Returns:
+            sps.csc_array: The inclusion matrix.
+        """
+
     def error_l2(
         self,
         sd: pg.Grid,

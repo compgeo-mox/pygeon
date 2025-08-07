@@ -99,7 +99,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             sps.csc_array: The projection matrix.
 
         """
-        proj = self.base_discr.proj_to_higher_PwPolynomials(sd)
+        proj = self.base_discr.proj_to_higher_PwPolynomials(sd)  # type: ignore[attr-defined]
         return self.vectorize(sd.dim, proj)
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
@@ -113,7 +113,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             sps.csc_array: The projection matrix.
 
         """
-        proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
+        proj = self.base_discr.proj_to_lower_PwPolynomials(sd)  # type: ignore[attr-defined]
         return self.vectorize(sd.dim, proj)
 
 

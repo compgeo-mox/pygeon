@@ -175,6 +175,9 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        raise NotImplementedError
+
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
@@ -453,6 +456,9 @@ class Nedelec1(pg.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition.
         """
+        raise NotImplementedError
+
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         raise NotImplementedError
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:

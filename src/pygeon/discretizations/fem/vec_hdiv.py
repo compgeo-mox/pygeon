@@ -212,7 +212,7 @@ class VecHDiv(pg.VecDiscretization):
         """
         P = self.proj_to_PwPolynomials(sd)
         mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
-        asym = mat_discr.assemble_asym_matrix(sd)  # type: ignore[attr-defined]
+        asym = mat_discr.assemble_asym_matrix(sd)  # type: ignore[union-attr]
 
         return asym @ P
 

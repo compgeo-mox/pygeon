@@ -206,6 +206,9 @@ class PwPolynomials(pg.Discretization):
         """
         return sps.eye_array(self.ndof(sd)).tocsc()
 
+    def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        raise NotImplementedError
+
     @abc.abstractmethod
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """

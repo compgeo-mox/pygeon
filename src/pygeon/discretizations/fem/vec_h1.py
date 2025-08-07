@@ -137,7 +137,7 @@ class VecLagrange1(pg.VecDiscretization):
             ndarray: Local mass Hdiv matrix.
                 Shape: (num_faces_of_cell, num_faces_of_cell)
         """
-        dphi = self.base_discr.local_grads(coord, dim)
+        dphi = self.base_discr.local_grads(coord, dim)  # type: ignore[attr-defined]
         return c_volume * dphi
 
     def assemble_div_div_matrix(
@@ -262,7 +262,7 @@ class VecLagrange1(pg.VecDiscretization):
             np.ndarray: Local symmetric gradient matrix of shape
                 (num_faces_of_cell, num_faces_of_cell).
         """
-        dphi = self.base_discr.local_grads(coord, dim)
+        dphi = self.base_discr.local_grads(coord, dim)  # type: ignore[attr-defined]
         grad = spl.block_diag(*([dphi] * dim))
         return c_volume * sym @ grad
 
