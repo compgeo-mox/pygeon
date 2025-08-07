@@ -8,14 +8,14 @@ def get_coverage_percentage(file):
     return line_rate * 100
 
 
-baseline = get_coverage_percentage("baseline.xml")
+baseline = 0.95
 current = get_coverage_percentage("pr.xml")
 
 print(f"Baseline coverage: {baseline:.2f}%")
 print(f"PR coverage: {current:.2f}%")
 
 if current < baseline:
-    print("❌ Coverage has decreased!")
+    print("❌ Coverage below the mandatory level of 95%")
     exit(1)
 else:
     print("✅ Coverage maintained or improved.")
