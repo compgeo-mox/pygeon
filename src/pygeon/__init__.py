@@ -26,7 +26,7 @@ from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
 from pygeon.discretizations.fem.hdiv import RT0, BDM1, RT1
 from pygeon.discretizations.fem.h1 import Lagrange1, Lagrange2
 from pygeon.discretizations.fem.l2 import (
-    PieceWisePolynomial,
+    PwPolynomials,
     PwConstants,
     PwLinears,
     PwQuadratics,
@@ -34,6 +34,7 @@ from pygeon.discretizations.fem.l2 import (
 from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0, VecRT1
 from pygeon.discretizations.fem.vec_h1 import VecLagrange1, VecLagrange2
 from pygeon.discretizations.fem.vec_l2 import (
+    VecPwPolynomials,
     VecPwConstants,
     VecPwLinears,
     VecPwQuadratics,
@@ -48,6 +49,11 @@ from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1
 from pygeon.discretizations.vem.vec_hdiv import VecVRT0
 from pygeon.discretizations.vem.vec_h1 import VecVLagrange1
+
+from pygeon.discretizations.poly_projection import (
+    get_PwPolynomials,
+    proj_to_PwPolynomials,
+)
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import (

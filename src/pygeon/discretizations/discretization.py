@@ -16,6 +16,9 @@ class Discretization(abc.ABC):
     Abstract class for PyGeoN discretization methods.
     """
 
+    poly_order: int
+    tensor_order: int
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the Discretization object.
@@ -199,6 +202,19 @@ class Discretization(abc.ABC):
         Returns:
             pg.Discretization: The discretization class containing the range of the
                 differential
+        """
+
+    @abc.abstractmethod
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Returns the inclusion matrix that projects the finite element space onto
+        the lowest order piecewise polynomial space without loss of information.
+
+        Args:
+            sd (pg.Grid): the grid.
+
+        Returns:
+            sps.csc_array: The inclusion matrix.
         """
 
     def error_l2(

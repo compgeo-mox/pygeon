@@ -11,17 +11,11 @@ import pygeon as pg
 
 
 class VecHDiv(pg.VecDiscretization):
-    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
-        Initialize the VecHDiv class.
-
-        Args:
-            keyword (str): The keyword for the vector discretization class.
-        """
-        super().__init__(keyword)
-        self.scalar_discr: pg.Discretization
-        self.vec_discr: pg.VecDiscretization
-        self.mat_discr: pg.VecDiscretization
+    """Base class for vector-valued discretizations in the H(div) space.
+    This class provides methods for assembling mass matrices, trace matrices,
+    asymmetric matrices, and lumped matrices for vector-valued finite element
+    discretizations in the H(div) space.
+    """
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -69,7 +63,8 @@ class VecHDiv(pg.VecDiscretization):
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
-        M = self.scalar_discr.assemble_mass_matrix(sd, data_tr_space)
+        scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
+        M = scalar_discr.assemble_mass_matrix(sd, data_tr_space)
 
         # Compose all the parts and return them
         return D - B.T @ M @ B
@@ -107,9 +102,9 @@ class VecHDiv(pg.VecDiscretization):
 
         R_space: pg.Discretization
         if sd.dim == 2:
-            R_space = self.scalar_discr
+            R_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
         elif sd.dim == 3:
-            R_space = self.vec_discr
+            R_space = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)(self.keyword)
 
         R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
 
@@ -148,7 +143,8 @@ class VecHDiv(pg.VecDiscretization):
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
-        M = self.scalar_discr.assemble_lumped_matrix(sd)
+        scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
+        M = scalar_discr.assemble_lumped_matrix(sd)
         coeff = lambda_ / (2 * mu + sd.dim * lambda_)
 
         # Compose all the parts and return them
@@ -189,9 +185,9 @@ class VecHDiv(pg.VecDiscretization):
 
         R_space: pg.Discretization
         if sd.dim == 2:
-            R_space = self.scalar_discr
+            R_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
         elif sd.dim == 3:
-            R_space = self.vec_discr
+            R_space = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)(self.keyword)
 
         R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
 
@@ -214,8 +210,9 @@ class VecHDiv(pg.VecDiscretization):
             sps.csc_array: The assembled asymmetric matrix in compressed sparse column
                 format.
         """
-        P = self.proj_to_MatPwPolynomials(sd)
-        asym = self.mat_discr.assemble_asym_matrix(sd)  # type: ignore[attr-defined]
+        P = self.proj_to_PwPolynomials(sd)
+        mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
+        asym = mat_discr.assemble_asym_matrix(sd)  # type: ignore[union-attr]
 
         return asym @ P
 
@@ -234,24 +231,6 @@ class VecHDiv(pg.VecDiscretization):
             This method should be implemented in subclasses.
         """
 
-    def proj_to_MatPwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the base discretization to a matrix of piecewise polynomials.
-
-        This method constructs a block diagonal sparse matrix where each block
-        corresponds to the projection of the base discretization. The number of
-        blocks is determined by the spatial dimension of the grid.
-
-        Args:
-            sd (pg.Grid): The grid object representing the spatial discretization.
-
-        Returns:
-            sps.csc_array: A block diagonal sparse matrix in CSC format
-                containing the projections for each spatial dimension.
-        """
-        proj = self.base_discr_proj(sd)  # type: ignore[attr-defined]
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
 
 class VecBDM1(VecHDiv):
     """
@@ -261,6 +240,9 @@ class VecBDM1(VecHDiv):
     provides methods for evaluating the solution at cell centers, interpolating a given
     function onto the grid, assembling the natural boundary condition term, and more.
     """
+
+    poly_order = 1
+    tensor_order = pg.MATRIX
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -298,9 +280,6 @@ class VecBDM1(VecHDiv):
         """
         super().__init__(keyword)
         self.base_discr: pg.BDM1 = pg.BDM1(keyword)
-        self.scalar_discr: pg.PwLinears = pg.PwLinears(keyword)
-        self.vec_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)
-        self.mat_discr: pg.MatPwLinears = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -497,26 +476,19 @@ class VecBDM1(VecHDiv):
         """
         return pg.VecPwConstants
 
-    def proj_to_MatPwLinears(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the base discretization to a matrix of piecewise linear functions.
-
-        This method constructs a block diagonal sparse matrix by projecting the
-        base discretization to vector piecewise linear functions and repeating
-        the projection for each spatial dimension.
-
-        Args:
-            sd (pg.Grid): The spatial grid on which the projection is performed.
-
-        Returns:
-            scipy.sparse.csc_matrix: A block diagonal sparse matrix representing
-            the projection to piecewise linear functions for each spatial dimension.
-        """
-        proj = self.base_discr.proj_to_VecPwLinears(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
 
 class VecRT0(VecHDiv):
+    """
+    VecRT0 is a tensor-valued discretization class for the Raviart-Thomas RT0 finite
+    element, specialized for handling stress tensors in 2D and 3D.
+    This class provides methods for assembling trace and asymmetric matrices
+    for vector RT0 discretizations, as well as retrieving the appropriate range
+    discretization class.
+    """
+
+    poly_order = 1
+    tensor_order = pg.MATRIX
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT0 discretization class.
@@ -553,9 +525,6 @@ class VecRT0(VecHDiv):
         """
         super().__init__(keyword)
         self.base_discr: pg.RT0 = pg.RT0(keyword)
-        self.scalar_discr: pg.PwLinears = pg.PwLinears(keyword)
-        self.vec_discr: pg.VecPwLinears = pg.VecPwLinears(keyword)
-        self.mat_discr: pg.MatPwLinears = pg.MatPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -613,6 +582,9 @@ class VecRT1(VecHDiv):
     H(div) space, specifically using the Raviart-Thomas elements of order 1 (RT1).
     """
 
+    poly_order = 2
+    tensor_order = pg.MATRIX
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT1 discretization class.
@@ -626,10 +598,6 @@ class VecRT1(VecHDiv):
         """
         super().__init__(keyword)
         self.base_discr: pg.RT1 = pg.RT1(keyword)
-        self.scalar_discr: pg.PwQuadratics = pg.PwQuadratics(keyword)
-        self.vec_discr: pg.VecPwQuadratics = pg.VecPwQuadratics(keyword)
-        self.mat_discr: pg.MatPwQuadratics = pg.MatPwQuadratics(keyword)
-        self.base_discr_proj = self.base_discr.proj_to_VecPwQuadratics
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """

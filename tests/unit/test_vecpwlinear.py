@@ -171,7 +171,7 @@ class VecPwLinearsTest(unittest.TestCase):
         sd.compute_geometry()
 
         vec_p1 = pg.VecPwLinears()
-        P = vec_p1.proj_to_pwQuadratics(sd)
+        P = vec_p1.proj_to_higher_PwPolynomials(sd)
         M_1 = vec_p1.assemble_mass_matrix(sd)
 
         test_func = np.arange(vec_p1.ndof(sd))
@@ -193,7 +193,7 @@ class VecPwLinearsTest(unittest.TestCase):
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
             sd.compute_geometry()
 
-            Proj = P1.proj_to_pwConstants(sd)
+            Proj = P1.proj_to_lower_PwPolynomials(sd)
             fun_P1 = P1.interpolate(sd, lambda x: x)
             fun_P0 = P0.interpolate(sd, lambda x: x)
 

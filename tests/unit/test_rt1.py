@@ -141,7 +141,7 @@ class RT1Test(unittest.TestCase):
 
         disc = pg.RT1()
         M_RT = disc.assemble_mass_matrix(sd)
-        P = disc.proj_to_VecPwQuadratics(sd)
+        P = disc.proj_to_PwPolynomials(sd)
 
         quadratics = pg.VecPwQuadratics()
         M_quad = quadratics.assemble_mass_matrix(sd)
@@ -165,7 +165,7 @@ class RT1Test(unittest.TestCase):
                 M_lumped = discr.assemble_lumped_matrix(sd)
 
                 quads = pg.VecPwQuadratics()
-                P = discr.proj_to_VecPwQuadratics(sd)
+                P = discr.proj_to_PwPolynomials(sd)
                 M_q = quads.assemble_lumped_matrix(sd)
                 M_lumped2 = P.T @ M_q @ P
 

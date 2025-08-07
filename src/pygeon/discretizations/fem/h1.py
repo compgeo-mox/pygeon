@@ -15,6 +15,9 @@ class Lagrange1(pg.Discretization):
     Class representing the Lagrange1 finite element discretization.
     """
 
+    poly_order = 1
+    tensor_order = pg.SCALAR
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -232,7 +235,7 @@ class Lagrange1(pg.Discretization):
         volumes = sd.cell_nodes() @ sd.cell_volumes / (sd.dim + 1)
         return sps.diags_array(volumes).tocsc()
 
-    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for projecting a Lagrangian function to a piecewise linear
         function.
@@ -250,46 +253,6 @@ class Lagrange1(pg.Discretization):
 
         # Construct the global matrix
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a Lagrangian function to a piecewise
-        constant function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        node_cells = sd.cell_nodes().T.astype(float)
-        node_cells *= sd.cell_volumes[:, np.newaxis] / (sd.dim + 1)
-
-        # Return the global matrix
-        return sps.csc_array(node_cells)
-
-    def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a linear Lagrangian function to a second
-        order Lagrange function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        if sd.dim == 1:
-            edge_nodes = sd.cell_faces
-        elif sd.dim == 2:
-            edge_nodes = sd.face_ridges
-        elif sd.dim == 3:
-            edge_nodes = sd.ridge_peaks
-
-        edge_nodes = abs(edge_nodes) / 2  # type: ignore[assignment]
-
-        ndof = self.ndof(sd)
-        return sps.vstack((sps.eye_array(ndof), edge_nodes.T)).tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -383,6 +346,9 @@ class Lagrange2(pg.Discretization):
     """
     Class representing the Lagrange2 finite element discretization.
     """
+
+    poly_order = 2
+    tensor_order = pg.SCALAR
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -800,7 +766,26 @@ class Lagrange2(pg.Discretization):
 
         return sps.hstack((eval_nodes, eval_edges)).tocsc()  # type: ignore[arg-type]
 
-    def proj_to_pwQuadratics(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_lumped_matrix(self, sd: pg.Grid, data=None) -> sps.csc_array:
+        """
+        Assembles the lumped mass matrix for the quadratic Lagrange space.
+        This is based on the integration rule by Eggers and Radu,
+        and is not block-diagonal for this space.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+            data (dict): A dictionary containing the necessary data for assembling the
+                matrix.
+
+        Returns:
+            sps.csc_array: The lumped mass matrix.
+        """
+        Pi = self.proj_to_PwPolynomials(sd)
+        L = pg.PwQuadratics(self.keyword).assemble_lumped_matrix(sd, data)
+
+        return Pi.T @ L @ Pi
+
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for projecting a quadratic Lagrangian function to a
         piecewise quadratic function.

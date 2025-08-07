@@ -14,6 +14,9 @@ class Nedelec0(pg.Discretization):
     Each degree of freedom is the integral over a mesh edge in 3D.
     """
 
+    poly_order = 1
+    tensor_order = pg.VECTOR
+
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
@@ -172,6 +175,9 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        raise NotImplementedError
+
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
@@ -226,6 +232,9 @@ class Nedelec1(pg.Discretization):
     Discretization class for the Nedelec of the second kind of lowest order.
     Each degree of freedom is a first moment over a mesh edge in 3D.
     """
+
+    poly_order = 1
+    tensor_order = pg.VECTOR
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -447,6 +456,9 @@ class Nedelec1(pg.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition.
         """
+        raise NotImplementedError
+
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         raise NotImplementedError
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:

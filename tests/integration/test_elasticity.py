@@ -342,7 +342,7 @@ class ElasticityTestMixedRT1(unittest.TestCase):
             Ms = vec_rt1.assemble_mass_matrix(sd, data)
         Mu = vec_p1.assemble_mass_matrix(sd)
         Mr = p2.assemble_mass_matrix(sd)
-        Pi = p1.proj_to_pwQuadratics(sd)
+        Pi = p1.proj_to_higher_PwPolynomials(sd)
 
         div = Mu @ vec_rt1.assemble_diff_matrix(sd)
         asym = Pi.T @ Mr @ vec_rt1.assemble_asym_matrix(sd)
