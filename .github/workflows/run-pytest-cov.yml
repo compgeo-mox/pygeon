@@ -81,8 +81,8 @@ jobs:
     #     git checkout origin/main
     #     pip install -e .
     #     pytest --cov=pygeon --cov-report=xml:baseline.xml tests/unit tests/integration
+    #     git checkout -
 
     - name: Compare coverage
       run: |
-        git checkout -
         python compare_coverage.py
