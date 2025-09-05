@@ -28,7 +28,7 @@ class VLagrange1(pg.Lagrange1):
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Data allocation
         size = np.sum(np.square(cell_nodes.sum(0)))
@@ -226,7 +226,7 @@ class VLagrange1(pg.Lagrange1):
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Data allocation
         size = np.sum(np.square(cell_nodes.sum(0)))

@@ -116,7 +116,7 @@ class VBDM1(pg.BDM1):
         disc_VL1 = pg.VLagrange1(pg.UNITARY_DATA)
 
         tangents = sd.nodes @ sd.face_ridges
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         for cell, diam in enumerate(cell_diams):
             cell_col = np.array([cell])
