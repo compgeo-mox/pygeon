@@ -64,7 +64,7 @@ class VecVLagrange1(pg.VecDiscretization):
             sps.csc_array: The div matrix obtained from the discretization.
         """
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
@@ -166,7 +166,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         """
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
@@ -282,7 +282,7 @@ class VecVLagrange1(pg.VecDiscretization):
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Data allocation
         size = np.sum(np.square(cell_nodes.sum(0)))
