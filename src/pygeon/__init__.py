@@ -44,6 +44,7 @@ from pygeon.discretizations.fem.mat_l2 import (
     MatPwLinears,
     MatPwQuadratics,
 )
+from pygeon.discretizations.fem.mat_h1 import MatLagrange1
 
 from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1
