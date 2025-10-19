@@ -7,7 +7,7 @@ import pygeon as pg
 
 class MatLagrange1(pg.VecDiscretization):
     poly_order = 1
-    tensor_order = pg.VECTOR
+    tensor_order = pg.MATRIX
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
