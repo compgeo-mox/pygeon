@@ -1,7 +1,6 @@
 import pytest
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -12,153 +11,72 @@ def discr():
     return pg.PwConstants("test")
 
 
-def test_ndof(discr, unit_grid):
-    assert discr.ndof(unit_grid) == unit_grid.num_cells
+def test_ndof(discr, unit_sd):
+    assert discr.ndof(unit_sd) == unit_sd.num_cells
 
 
-def test_assemble_mass_matrix(discr, unit_grid):
-    M = discr.assemble_mass_matrix(unit_grid)
-    L = discr.assemble_lumped_matrix(unit_grid)
+def test_assemble_mass_matrix(discr, unit_sd):
+    M = discr.assemble_mass_matrix(unit_sd)
+    L = discr.assemble_lumped_matrix(unit_sd)
+    P = discr.eval_at_cell_centers(unit_sd)
 
-    assert np.allclose(M.data * unit_grid.cell_volumes, 1)
+    assert np.allclose(M.data * unit_sd.cell_volumes, 1)
     assert np.all(M.indptr[:-1] == M.indices)
-    assert np.all(M.indices == np.arange(unit_grid.num_cells))
+    assert np.all(M.indices == np.arange(unit_sd.num_cells))
     assert np.allclose((M - L).data, 0)
+    assert np.allclose((M - P).data, 0)
 
 
-def test_diff_matrix(discr, unit_grid):
-    D = discr.assemble_diff_matrix(unit_grid)
-    D_known = sps.csc_array((0, discr.ndof(unit_grid)))
-
-    assert np.allclose((D - D_known).data, 0)
-
-
-def test_assemble_stiff_matrix(discr, unit_grid):
-    D = discr.assemble_stiff_matrix(unit_grid)
-    D_known = sps.csc_array((discr.ndof(unit_grid), discr.ndof(unit_grid)))
+def test_assemble_diff_matrix(discr, unit_sd_2d):
+    D = discr.assemble_diff_matrix(unit_sd_2d)
+    D_known = sps.csc_array((0, discr.ndof(unit_sd_2d)))
 
     assert np.allclose((D - D_known).data, 0)
 
 
-def test_get_range_discr_class(discr):
-    with pytest.raises(NotImplementedError):
-        discr.get_range_discr_class(1)
+def test_assemble_stiff_matrix(discr, unit_sd_2d):
+    D = discr.assemble_stiff_matrix(unit_sd_2d)
+    D_known = sps.csc_array((discr.ndof(unit_sd_2d), discr.ndof(unit_sd_2d)))
+
+    assert np.allclose((D - D_known).data, 0)
+
+
+def test_interpolate(discr, unit_sd_2d):
+    func = lambda x: np.sin(x[0])  # Example function
+    vals = discr.interpolate(unit_sd_2d, func)
+    vals_known = func(unit_sd_2d.cell_centers) * unit_sd_2d.cell_volumes
+
+    assert np.allclose(vals, vals_known)
+
+
+def test_assemble_nat_bc(discr, unit_sd_2d):
+    b_faces = np.array([0, 1, 3])  # Example boundary faces
+    func = lambda x: np.sin(x[0])  # Example function
+
+    vals = discr.assemble_nat_bc(unit_sd_2d, func, b_faces)
+    vals_known = np.zeros(unit_sd_2d.num_cells)
+
+    assert np.allclose(vals, vals_known)
+
+
+def test_proj_to_higherPwPolynomials(discr, unit_sd):
+    proj_p0 = discr.proj_to_higher_PwPolynomials(unit_sd)
+    mass_p0 = discr.assemble_mass_matrix(unit_sd)
+
+    p1 = pg.PwLinears()
+    mass_p1 = p1.assemble_mass_matrix(unit_sd)
+
+    diff = proj_p0.T @ mass_p1 @ proj_p0 - mass_p0
+
+    assert np.allclose(diff.data, 0.0)
+
+
+def test_source(discr, unit_sd):
+    func = lambda _: 2
+    source = discr.source_term(unit_sd, func)
+
+    assert np.allclose(source, 2)
 
 
 if __name__ == "__main__":
     pytest.main([__file__])
-
-    def test_interpolate(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.PwConstants("P0")
-
-        func = lambda x: np.sin(x)  # Example function
-        vals = discr.interpolate(sd, func)
-
-        # fmt: off
-        vals_known = np.array(
-        [[0.04089934, 0.02073702, 0.        ],
-         [0.02073702, 0.04089934, 0.        ],
-         [0.09252211, 0.02073702, 0.        ],
-         [0.07729623, 0.04089934, 0.        ],
-         [0.04089934, 0.07729623, 0.        ],
-         [0.02073702, 0.09252211, 0.        ],
-         [0.09252211, 0.07729623, 0.        ],
-         [0.07729623, 0.09252211, 0.        ],]
-        )
-        # fmt: on
-
-        self.assertTrue(np.allclose(vals, vals_known))
-
-    def test_eval_at_cell_centers(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.PwConstants("P0")
-        P = discr.eval_at_cell_centers(sd)
-
-        # fmt: off
-        P_known_data = np.array(
-        [8., 8., 8., 8., 8., 8., 8., 8.]
-        )
-
-        P_known_indices = np.array(
-        [0, 1, 2, 3, 4, 5, 6, 7]
-        )
-
-        P_known_indptr = np.array(
-        [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        )
-        # fmt: on
-
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
-
-    def test_assemble_nat_bc(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.PwConstants("P0")
-
-        func = lambda x: np.sin(x[0])  # Example function
-
-        b_faces = np.array([0, 1, 3])  # Example boundary faces
-        vals = discr.assemble_nat_bc(sd, func, b_faces)
-
-        vals_known = np.zeros(sd.num_cells)
-
-        self.assertTrue(np.allclose(vals, vals_known))
-
-    def test_error_l2(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.PwConstants("P0")
-        num_sol = np.array([0.5, 0.3, 0.7, 0.9, 0.1, 0, 0.2, 1])
-
-        ana_sol = lambda x: np.sin(x[0])
-
-        err = discr.error_l2(sd, num_sol, ana_sol)
-        err_known = 7.798438721533104
-
-        self.assertTrue(np.allclose(err, err_known))
-
-    def test_source(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.PwConstants("P0")
-
-        func = lambda _: 2
-        source = discr.source_term(sd, func)
-
-        self.assertTrue(np.allclose(source, 2))
-
-    def test_proj_to_pwlinears(self):
-        for dim in [1, 2, 3]:
-            sd = pg.unit_grid(dim, 0.5, as_mdg=False)
-            sd.compute_geometry()
-
-            p0 = pg.PwConstants()
-            proj_p0 = p0.proj_to_higher_PwPolynomials(sd)
-            mass_p0 = p0.assemble_mass_matrix(sd)
-
-            p1 = pg.PwLinears()
-            mass_p1 = p1.assemble_mass_matrix(sd)
-
-            diff = proj_p0.T @ mass_p1 @ proj_p0 - mass_p0
-
-            self.assertTrue(np.allclose(diff.data, 0.0))

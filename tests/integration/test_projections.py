@@ -4,15 +4,6 @@ import pytest
 import pygeon as pg
 
 
-@pytest.fixture(params=[1, 2, 3])
-def sd(request):
-    dim = request.param
-    sd = pg.unit_grid(dim, 0.25, as_mdg=False)
-    sd.compute_geometry()
-
-    return sd
-
-
 @pytest.fixture(
     params=[
         pg.Lagrange1,
@@ -25,40 +16,40 @@ def sd(request):
         pg.PwQuadratics,
     ]
 )
-def disc(request):
+def discr(request):
     return request.param("test")
 
 
-def test_mass_matrix(sd, disc):
-    poly_order = disc.poly_order
-    tensor_order = disc.tensor_order
+def test_mass_matrix(unit_sd, discr):
+    poly_order = discr.poly_order
+    tensor_order = discr.tensor_order
 
-    mass = disc.assemble_mass_matrix(sd)
-    pi = pg.proj_to_PwPolynomials(disc, sd, poly_order)
+    mass = discr.assemble_mass_matrix(unit_sd)
+    pi = pg.proj_to_PwPolynomials(discr, unit_sd, poly_order)
 
     poly = pg.get_PwPolynomials(poly_order, tensor_order)()
-    poly_mass = poly.assemble_mass_matrix(sd)
+    poly_mass = poly.assemble_mass_matrix(unit_sd)
 
     diff = pi.T @ poly_mass @ pi - mass
 
     assert np.allclose(diff.data, 0)
 
 
-def test_lumped_matrix(sd, disc):
-    if isinstance(disc, pg.RT0):
+def test_lumped_matrix(unit_sd, discr):
+    if isinstance(discr, pg.RT0):
         # The RT0 lumped matrix does not coincide with the
         # one from the piecewise polynomial interpretation
         # so this test is skipped
         return
 
-    poly_order = disc.poly_order
-    tensor_order = disc.tensor_order
+    poly_order = discr.poly_order
+    tensor_order = discr.tensor_order
 
-    lumped = disc.assemble_lumped_matrix(sd)
-    pi = pg.proj_to_PwPolynomials(disc, sd, poly_order)
+    lumped = discr.assemble_lumped_matrix(unit_sd)
+    pi = pg.proj_to_PwPolynomials(discr, unit_sd, poly_order)
 
     poly = pg.get_PwPolynomials(poly_order, tensor_order)()
-    poly_lumped = poly.assemble_lumped_matrix(sd)
+    poly_lumped = poly.assemble_lumped_matrix(unit_sd)
 
     diff = pi.T @ poly_lumped @ pi - lumped
 
