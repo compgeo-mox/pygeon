@@ -19,12 +19,12 @@ class Lagrange1Test(unittest.TestCase):
         D = discr.assemble_diff_matrix(sd).todense()
         D_known = sps.csc_array((0, 1)).todense()
 
-        self.assertTrue(np.allclose(D, D_known))
+        assert np.allclose(D, D_known)
 
         P = discr.eval_at_cell_centers(sd).todense()
         P_known = sps.csc_array((1, 0)).todense()
 
-        self.assertTrue(np.allclose(P, P_known))
+        assert np.allclose(P, P_known)
 
         sd.dim = -1
         self.assertRaises(ValueError, discr.assemble_diff_matrix, sd)
@@ -56,9 +56,9 @@ class Lagrange1Test(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indptr, M_known_indptr)
+        assert np.allclose(M.indices, M_known_indices)
 
         D = discr.assemble_diff_matrix(sd)
 
@@ -76,9 +76,9 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(D.data, D_known_data))
-        self.assertTrue(np.allclose(D.indptr, D_known_indptr))
-        self.assertTrue(np.allclose(D.indices, D_known_indices))
+        assert np.allclose(D.data, D_known_data)
+        assert np.allclose(D.indptr, D_known_indptr)
+        assert np.allclose(D.indices, D_known_indices)
 
         Ml = discr.assemble_lumped_matrix(sd)
 
@@ -96,9 +96,9 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(Ml.data, Ml_known_data))
-        self.assertTrue(np.allclose(Ml.indptr, Ml_known_indptr))
-        self.assertTrue(np.allclose(Ml.indices, Ml_known_indices))
+        assert np.allclose(Ml.data, Ml_known_data)
+        assert np.allclose(Ml.indptr, Ml_known_indptr)
+        assert np.allclose(Ml.indices, Ml_known_indices)
 
         P = discr.eval_at_cell_centers(sd)
 
@@ -116,11 +116,11 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indptr, P_known_indptr)
+        assert np.allclose(P.indices, P_known_indices)
 
-        self.assertTrue(discr.get_range_discr_class(dim) is pg.PwConstants)
+        assert discr.get_range_discr_class(dim) is pg.PwConstants
 
     def test_2d(self):
         dim = 2
@@ -156,9 +156,9 @@ class Lagrange1Test(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indptr, M_known_indptr)
+        assert np.allclose(M.indices, M_known_indices)
 
         D = discr.assemble_diff_matrix(sd)
 
@@ -179,9 +179,9 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(D.data, D_known_data))
-        self.assertTrue(np.allclose(D.indptr, D_known_indptr))
-        self.assertTrue(np.allclose(D.indices, D_known_indices))
+        assert np.allclose(D.data, D_known_data)
+        assert np.allclose(D.indptr, D_known_indptr)
+        assert np.allclose(D.indices, D_known_indices)
 
         Ml = discr.assemble_lumped_matrix(sd)
 
@@ -200,9 +200,9 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(Ml.data, Ml_known_data))
-        self.assertTrue(np.allclose(Ml.indptr, Ml_known_indptr))
-        self.assertTrue(np.allclose(Ml.indices, Ml_known_indices))
+        assert np.allclose(Ml.data, Ml_known_data)
+        assert np.allclose(Ml.indptr, Ml_known_indptr)
+        assert np.allclose(Ml.indices, Ml_known_indices)
 
         P = discr.eval_at_cell_centers(sd)
 
@@ -225,11 +225,11 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indptr, P_known_indptr)
+        assert np.allclose(P.indices, P_known_indices)
 
-        self.assertTrue(discr.get_range_discr_class(dim) is pg.RT0)
+        assert discr.get_range_discr_class(dim) is pg.RT0
 
     def test_3d(self):
         dim = 3
@@ -315,9 +315,9 @@ class Lagrange1Test(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indptr, M_known_indptr)
+        assert np.allclose(M.indices, M_known_indices)
 
         D = discr.assemble_diff_matrix(sd)
 
@@ -359,9 +359,9 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(D.data, D_known_data))
-        self.assertTrue(np.allclose(D.indptr, D_known_indptr))
-        self.assertTrue(np.allclose(D.indices, D_known_indices))
+        assert np.allclose(D.data, D_known_data)
+        assert np.allclose(D.indptr, D_known_indptr)
+        assert np.allclose(D.indices, D_known_indices)
 
         Ml = discr.assemble_lumped_matrix(sd)
 
@@ -386,9 +386,9 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(Ml.data, Ml_known_data))
-        self.assertTrue(np.allclose(Ml.indptr, Ml_known_indptr))
-        self.assertTrue(np.allclose(Ml.indices, Ml_known_indices))
+        assert np.allclose(Ml.data, Ml_known_data)
+        assert np.allclose(Ml.indptr, Ml_known_indptr)
+        assert np.allclose(Ml.indices, Ml_known_indices)
 
         P = discr.eval_at_cell_centers(sd)
 
@@ -436,11 +436,11 @@ class Lagrange1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indptr, P_known_indptr)
+        assert np.allclose(P.indices, P_known_indices)
 
-        self.assertTrue(discr.get_range_discr_class(dim) is pg.Nedelec0)
+        assert discr.get_range_discr_class(dim) is pg.Nedelec0
 
     def test_proj_to_pwpolynomials(self):
         for dim in [1, 2, 3]:
@@ -456,8 +456,10 @@ class Lagrange1Test(unittest.TestCase):
 
             diff = proj_l1.T @ mass_p1 @ proj_l1 - mass_l1
 
-            self.assertTrue(np.allclose(diff.data, 0.0))
+            assert np.allclose(diff.data, 0.0)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import pytest
+
+    pytest.main()
