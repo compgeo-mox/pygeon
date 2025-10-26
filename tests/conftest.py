@@ -8,7 +8,7 @@ param_list = [(dim, is_str) for dim in range(1, 4) for is_str in [True, False]]
 def unit_grids_dict():
     grids = {}
     for dim, is_str in param_list:
-        sd = pg.unit_grid(dim, 1 / 3, structured=is_str, as_mdg=False)
+        sd = pg.unit_grid(dim, 1 / (5 - dim), structured=is_str, as_mdg=False)
         sd.compute_geometry()
         grids[dim, is_str] = sd
 
@@ -23,3 +23,8 @@ def unit_sd(unit_grids_dict, request):
 @pytest.fixture
 def unit_sd_2d(unit_grids_dict):
     return unit_grids_dict[2, False]
+
+
+@pytest.fixture
+def unit_sd_3d(unit_grids_dict):
+    return unit_grids_dict[3, False]
