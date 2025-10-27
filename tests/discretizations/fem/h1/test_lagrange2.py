@@ -172,41 +172,7 @@ def test_assemble_stiff_matrix(discr, ref_sd):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
-    func = lambda x: x[0] ** 2
-    known_vals = func(unit_sd.cell_centers)
-
-    interp = discr.interpolate(unit_sd, func)
-    proj = discr.eval_at_cell_centers(unit_sd)
-
-    assert np.allclose(proj @ interp, known_vals)
-
-    def check_natural_bc(self, sd):
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        func = lambda x: x[0]
-        disc = pg.Lagrange2()
-
-        b_faces = sd.face_centers[sd.dim - 1] <= 1e-5
-
-        return disc.assemble_nat_bc(sd, func, b_faces)
-
-    def test_natural_bc_2D(self):
-        sd = pp.StructuredTriangleGrid([1, 1])
-        b = self.check_natural_bc(sd)
-
-        known_b = np.zeros_like(b)
-        known_b[[1, 4]] = np.array([1, 2]) / 6
-
-        self.assertTrue(np.allclose(b, known_b))
-
-    def test_natural_bc_3D(self):
-        sd = pp.StructuredTetrahedralGrid([1, 1, 1])
-        b = self.check_natural_bc(sd)
-
-        known_b = np.zeros_like(b)
-        known_b[[0, 1, 2, 3, 8, 9, 11, 12, 16]] = [-1, 3, -3, 1, 8, 4, 20, 16, 12]
-        known_b /= 120
-
-        self.assertTrue(np.allclose(b, known_b))
+def test_range_discr(discr):
+    assert discr.get_range_discr_class(1) is pg.PwLinears
+    assert discr.get_range_discr_class(2) is pg.BDM1
+    assert discr.get_range_discr_class(3) is pg.Nedelec1

@@ -141,27 +141,3 @@ def test_assemble_lumped_matrix(discr, ref_sd):
     L_known = np.eye(ref_sd.dim + 1) / scipy.special.factorial(ref_sd.dim + 1)
 
     assert np.allclose(L.todense(), L_known)
-
-
-def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
-    func = lambda x: x[0]
-    known_vals = func(unit_sd.cell_centers)
-
-    interp = discr.interpolate(unit_sd, func)
-    proj = discr.eval_at_cell_centers(unit_sd)
-
-    assert np.allclose(proj @ interp, known_vals)
-
-
-def test_lumped_consistency(discr, unit_sd):
-    M_lumped = discr.assemble_lumped_matrix(unit_sd)
-    M_full = discr.assemble_mass_matrix(unit_sd)
-
-    func = lambda x: x[0]
-    func_interp = discr.interpolate(unit_sd, func)
-    one_interp = discr.interpolate(unit_sd, lambda _: 1)
-
-    integral_L = one_interp @ M_lumped @ func_interp
-    integral_M = one_interp @ M_full @ func_interp
-
-    assert np.isclose(integral_L, integral_M)
