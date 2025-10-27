@@ -1,92 +1,89 @@
 """Module contains a unit test for the Lagrangean P2 discretization."""
 
-import unittest
-
 import numpy as np
 import porepy as pp
+import pytest
 
 import pygeon as pg
 
 
-class Lagrange2Test(unittest.TestCase):
-    def test_eval_1d(self):
-        """Test the interpolation and evaluation of a quadratic in 1D"""
-        sd = pp.CartGrid([10])
-        pg.convert_from_pp(sd)
-        func = lambda x: x[0] * (1 - x[0])
-        self.interpolate_and_evaluate(sd, func)
+@pytest.fixture
+def discr():
+    return pg.Lagrange2("test")
 
-    def test_eval_2d(self):
-        """Test the interpolation and evaluation of a quadratic in 2D"""
-        sd = pg.unit_grid(2, 0.5, as_mdg=False)
-        func = lambda x: x[1] * (1 + x[0] + x[1])
-        self.interpolate_and_evaluate(sd, func)
 
-    def test_eval_3d(self):
-        """Test the interpolation and evaluation of a quadratic in 3D"""
-        sd = pg.unit_grid(3, 0.5, as_mdg=False)
-        func = lambda x: np.sum(x * (1 - x))
-        self.interpolate_and_evaluate(sd, func)
+def test_ndof(discr, unit_sd):
+    match unit_sd.dim:
+        case 1:
+            num_edges = unit_sd.num_cells
+        case 2:
+            num_edges = unit_sd.num_faces
+        case 3:
+            num_edges = unit_sd.num_ridges
 
-    def interpolate_and_evaluate(self, sd, func):
-        """For a given polynomial in the space, interpolate onto the discrete space,
-        and evaluate at cell centers"""
+    assert discr.ndof(unit_sd) == unit_sd.num_nodes + num_edges
 
-        sd.compute_geometry()
-        discr = pg.Lagrange2()
 
-        interp_func = discr.interpolate(sd, func)
-        P = discr.eval_at_cell_centers(sd)
+def test_assemble_mass_matrix(discr, ref_sd):
+    M = discr.assemble_mass_matrix(ref_sd)
 
-        evaluated = P @ interp_func
-        known_func = np.array([func(x) for x in sd.cell_centers.T])
+    match ref_sd.dim:
+        case 1:
+            M_known = (
+                np.array(
+                    [
+                        [4, -1, 2],
+                        [-1, 4, 2],
+                        [2, 2, 16],
+                    ]
+                )
+                / 30
+            )
 
-        self.assertTrue(np.allclose(evaluated, known_func))
+        case 2:
+            M_known = (
+                np.array(
+                    [
+                        [6, -1, -1, 0, 0, -4],
+                        [-1, 6, -1, 0, -4, 0],
+                        [-1, -1, 6, -4, 0, 0],
+                        [0, 0, -4, 32, 16, 16],
+                        [0, -4, 0, 16, 32, 16],
+                        [-4, 0, 0, 16, 16, 32],
+                    ]
+                )
+                / 360
+            )
+        case 3:
+            M_known = (
+                np.array(
+                    [
+                        [3.0, 0.5, 0.5, 0.5, -2.0, -2.0, -2.0, -3.0, -3.0, -3.0],
+                        [0.5, 3.0, 0.5, 0.5, -2.0, -3.0, -3.0, -2.0, -2.0, -3.0],
+                        [0.5, 0.5, 3.0, 0.5, -3.0, -2.0, -3.0, -2.0, -3.0, -2.0],
+                        [0.5, 0.5, 0.5, 3.0, -3.0, -3.0, -2.0, -3.0, -2.0, -2.0],
+                        [-2.0, -2.0, -3.0, -3.0, 16.0, 8.0, 8.0, 8.0, 8.0, 4.0],
+                        [-2.0, -3.0, -2.0, -3.0, 8.0, 16.0, 8.0, 8.0, 4.0, 8.0],
+                        [-2.0, -3.0, -3.0, -2.0, 8.0, 8.0, 16.0, 4.0, 8.0, 8.0],
+                        [-3.0, -2.0, -2.0, -3.0, 8.0, 8.0, 4.0, 16.0, 8.0, 8.0],
+                        [-3.0, -2.0, -3.0, -2.0, 8.0, 4.0, 8.0, 8.0, 16.0, 8.0],
+                        [-3.0, -3.0, -2.0, -2.0, 4.0, 8.0, 8.0, 8.0, 8.0, 16.0],
+                    ]
+                )
+                / 1260
+            )
 
-    def test_laplacian_1d(self):
-        """Solve a Laplace problem with known, quadratic solution in 1D"""
-        sd = pp.CartGrid([10], 1)
-        pg.convert_from_pp(sd)
-        self.solve_laplacian(sd)
+    assert np.allclose(M.todense(), M_known)
 
-    def test_laplacian_2d(self):
-        """Solve a Laplace problem with known, quadratic solution in 2D"""
-        sd = pg.unit_grid(2, 0.5, as_mdg=False)
-        self.solve_laplacian(sd)
 
-    def test_laplacian_3d(self):
-        """Solve a Laplace problem with known, quadratic solution in 3D"""
-        sd = pg.unit_grid(3, 0.5, as_mdg=False)
-        self.solve_laplacian(sd)
+def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
+    func = lambda x: x[0] ** 2
+    known_vals = func(unit_sd.cell_centers)
 
-    def solve_laplacian(self, sd):
-        sd.compute_geometry()
-        discr = pg.Lagrange2()
-        A = discr.assemble_stiff_matrix(sd, None)
+    interp = discr.interpolate(unit_sd, func)
+    proj = discr.eval_at_cell_centers(unit_sd)
 
-        source_func = lambda _: 1.0
-        sol_func = lambda x: np.sum(x * (1 - x)) / (2 * sd.dim)
-
-        true_sol = discr.interpolate(sd, sol_func)
-        f = discr.source_term(sd, source_func)
-
-        if sd.dim == 1:
-            bdry_edges = np.zeros(sd.num_cells, dtype=bool)
-        elif sd.dim == 2:
-            bdry_edges = sd.tags["domain_boundary_faces"]
-        elif sd.dim == 3:
-            bdry_edges = sd.tags["domain_boundary_ridges"]
-        ess_bc = np.hstack((sd.tags["domain_boundary_nodes"], bdry_edges), dtype=bool)
-
-        ess_vals = np.zeros_like(ess_bc, dtype=float)
-        ess_vals[ess_bc] = true_sol[ess_bc]
-
-        LS = pg.LinearSystem(A, f)
-        LS.flag_ess_bc(ess_bc, ess_vals)
-
-        u = LS.solve()
-
-        self.assertTrue(np.allclose(u, true_sol))
+    assert np.allclose(proj @ interp, known_vals)
 
     def check_natural_bc(self, sd):
         pg.convert_from_pp(sd)
@@ -189,7 +186,3 @@ class Lagrange2Test(unittest.TestCase):
         )
 
         self.assertTrue(np.allclose(D.todense(), D_known))
-
-
-if __name__ == "__main__":
-    unittest.main()

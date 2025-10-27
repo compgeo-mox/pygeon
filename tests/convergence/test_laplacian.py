@@ -1,0 +1,33 @@
+import pytest
+
+import numpy as np
+import pygeon as pg
+
+
+def test_laplacian_solve(unit_sd):
+    discr = pg.Lagrange2("test")
+    A = discr.assemble_stiff_matrix(unit_sd, None)
+
+    source_func = lambda _: 1.0
+    sol_func = lambda x: np.sum(x * (1 - x)) / (2 * unit_sd.dim)
+
+    true_sol = discr.interpolate(unit_sd, sol_func)
+    f = discr.source_term(unit_sd, source_func)
+
+    if unit_sd.dim == 1:
+        bdry_edges = np.zeros(unit_sd.num_cells, dtype=bool)
+    elif unit_sd.dim == 2:
+        bdry_edges = unit_sd.tags["domain_boundary_faces"]
+    elif unit_sd.dim == 3:
+        bdry_edges = unit_sd.tags["domain_boundary_ridges"]
+    ess_bc = np.hstack((unit_sd.tags["domain_boundary_nodes"], bdry_edges), dtype=bool)
+
+    ess_vals = np.zeros_like(ess_bc, dtype=float)
+    ess_vals[ess_bc] = true_sol[ess_bc]
+
+    LS = pg.LinearSystem(A, f)
+    LS.flag_ess_bc(ess_bc, ess_vals)
+
+    u = LS.solve()
+
+    assert np.allclose(u, true_sol)

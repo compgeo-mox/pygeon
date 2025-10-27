@@ -20,7 +20,7 @@ def discr(request):
     return request.param("test")
 
 
-def test_mass_matrix(unit_sd, discr):
+def test_mass_matrix(discr, unit_sd):
     poly_order = discr.poly_order
     tensor_order = discr.tensor_order
 
@@ -35,7 +35,7 @@ def test_mass_matrix(unit_sd, discr):
     assert np.allclose(diff.data, 0)
 
 
-def test_lumped_matrix(unit_sd, discr):
+def test_lumped_matrix(discr, unit_sd):
     if isinstance(discr, pg.RT0):
         # The RT0 lumped matrix does not coincide with the
         # one from the piecewise polynomial interpretation

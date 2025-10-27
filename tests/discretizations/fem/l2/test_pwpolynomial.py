@@ -52,8 +52,8 @@ def test_proj_to_higherPwPolynomials(discr, unit_sd):
     assert np.allclose(diff.data, 0.0)
 
 
-def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd):
-    func = lambda x: np.sum(x, 0) ** discr.poly_order
+def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
+    func = lambda x: x[0] ** discr.poly_order
     known_vals = func(unit_sd.cell_centers)
 
     interp = discr.interpolate(unit_sd, func)
@@ -68,7 +68,7 @@ def test_lumped_consistency(discr, unit_sd):
 
     func = lambda x: x[0] ** discr.poly_order
     func_interp = discr.interpolate(unit_sd, func)
-    one_interp = discr.interpolate(unit_sd, lambda x: 1)
+    one_interp = discr.interpolate(unit_sd, lambda _: 1)
 
     integral_L = one_interp @ M_lumped @ func_interp
     integral_M = one_interp @ M_full @ func_interp
