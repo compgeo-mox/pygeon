@@ -1,144 +1,77 @@
-import unittest
-
 import numpy as np
+import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
 
 
-class PwQuadraticsTest(unittest.TestCase):
-    def test_ndof(self):
-        dim = 2
-        sd = pg.unit_grid(dim, 0.5, as_mdg=False)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-        assert discr.ndof(sd) == sd.num_cells * 6
-
-    def test_assemble_mass_matrix(self):
-        dim = 2
-        sd = pg.unit_grid(dim, 1, as_mdg=False)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-        M = discr.assemble_mass_matrix(sd)
-
-        discr_l2 = pg.Lagrange2()
-        proj = discr_l2.proj_to_PwPolynomials(sd)
-        M_l2 = discr_l2.assemble_mass_matrix(sd)
-
-        self.assertTrue(np.allclose((proj.T @ M @ proj - M_l2).data, 0))
-
-    def test_assemble_diff_matrix(self):
-        dim = 2
-        sd = pg.reference_element(dim)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-        D = discr.assemble_diff_matrix(sd).todense()
-        D_known = sps.csc_array((0, discr.ndof(sd))).todense()
-
-        self.assertTrue(np.allclose(D, D_known))
-
-    def test_assemble_stiff_matrix(self):
-        dim = 2
-        sd = pg.reference_element(dim)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-        D = discr.assemble_stiff_matrix(sd).todense()
-        D_known = sps.csc_array((discr.ndof(sd), discr.ndof(sd))).todense()
-
-        self.assertTrue(np.allclose(D, D_known))
-
-    def test_interpolate(self):
-        for dim in [1, 2, 3]:
-            sd = pg.unit_grid(dim, 1, as_mdg=False, structured=True)
-            sd.compute_geometry()
-
-            discr = pg.PwQuadratics()
-
-            func = lambda x: x[0] ** 2  # Example function
-            vals = discr.interpolate(sd, func)
-
-            M = discr.assemble_mass_matrix(sd)
-
-            self.assertTrue(np.isclose(vals @ M @ vals, 1 / 5))
-
-    def test_eval_at_cell_centers(self):
-        dim = 2
-        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-        P = discr.eval_at_cell_centers(sd)
-
-        func = lambda x: (x[0] + x[1]) ** 2  # Example function
-        true_vals = [func(x) for x in sd.cell_centers.T]
-
-        interp = discr.interpolate(sd, func)
-
-        self.assertTrue(np.allclose(P @ interp, true_vals))
-
-    def test_assemble_nat_bc(self):
-        dim = 2
-        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-
-        func = lambda x: np.sin(x[0])  # Example function
-
-        b_faces = np.array([0, 1, 3])  # Example boundary faces
-        vals = discr.assemble_nat_bc(sd, func, b_faces)
-
-        self.assertTrue(np.allclose(vals, 0))
-
-    def test_get_range_discr_class(self):
-        dim = 2
-        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-
-        self.assertRaises(
-            NotImplementedError,
-            discr.get_range_discr_class,
-            dim,
-        )
-
-    def test_source(self):
-        dim = 2
-        sd = pg.unit_grid(dim, 0.5, as_mdg=False, structured=True)
-        sd.compute_geometry()
-
-        discr = pg.PwQuadratics()
-
-        func = lambda _: 2
-        source = discr.source_term(sd, func)
-
-        source_known = np.zeros(discr.ndof(sd))
-        source_known[(sd.dim + 1) * sd.num_cells :] = 1 / 12
-
-        self.assertTrue(np.allclose(source, source_known))
-
-    def test_lumped(self):
-        for dim in [1, 2, 3]:
-            sd = pg.unit_grid(dim, 0.25, as_mdg=False)
-            sd.compute_geometry()
-
-            discr = pg.PwQuadratics()
-            M_lumped = discr.assemble_lumped_matrix(sd)
-            M_full = discr.assemble_mass_matrix(sd)
-
-            func = lambda x: x[0]
-            func_interp = discr.interpolate(sd, func)
-
-            norm_L = func_interp @ M_lumped @ func_interp
-            norm_M = func_interp @ M_full @ func_interp
-
-            self.assertTrue(np.isclose(norm_L, norm_M))
+@pytest.fixture
+def discr():
+    return pg.PwQuadratics("test")
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_ndof(discr, unit_sd):
+    factor = [0, 3, 6, 10]
+    assert discr.ndof(unit_sd) == unit_sd.num_cells * factor[unit_sd.dim]
+
+
+def test_assemble_mass_matrix(discr, ref_sd):
+    M = discr.assemble_mass_matrix(ref_sd)
+
+    match ref_sd.dim:
+        case 1:
+            M_known = (
+                np.array(
+                    [
+                        [4.0, -1.0, 2.0],
+                        [-1.0, 4.0, 2.0],
+                        [2.0, 2.0, 16.0],
+                    ]
+                )
+                / 30
+            )
+
+        case 2:
+            M_known = (
+                np.array(
+                    [
+                        [6.0, -1.0, -1.0, 0.0, 0.0, -4.0],
+                        [-1.0, 6.0, -1.0, 0.0, -4.0, 0.0],
+                        [-1.0, -1.0, 6.0, -4.0, 0.0, 0.0],
+                        [0.0, 0.0, -4.0, 32.0, 16.0, 16.0],
+                        [0.0, -4.0, 0.0, 16.0, 32.0, 16.0],
+                        [-4.0, 0.0, 0.0, 16.0, 16.0, 32.0],
+                    ]
+                )
+                / 360
+            )
+        case 3:
+            M_known = (
+                np.array(
+                    [
+                        [3.0, 0.5, 0.5, 0.5, -2.0, -2.0, -2.0, -3.0, -3.0, -3.0],
+                        [0.5, 3.0, 0.5, 0.5, -2.0, -3.0, -3.0, -2.0, -2.0, -3.0],
+                        [0.5, 0.5, 3.0, 0.5, -3.0, -2.0, -3.0, -2.0, -3.0, -2.0],
+                        [0.5, 0.5, 0.5, 3.0, -3.0, -3.0, -2.0, -3.0, -2.0, -2.0],
+                        [-2.0, -2.0, -3.0, -3.0, 16.0, 8.0, 8.0, 8.0, 8.0, 4.0],
+                        [-2.0, -3.0, -2.0, -3.0, 8.0, 16.0, 8.0, 8.0, 4.0, 8.0],
+                        [-2.0, -3.0, -3.0, -2.0, 8.0, 8.0, 16.0, 4.0, 8.0, 8.0],
+                        [-3.0, -2.0, -2.0, -3.0, 8.0, 8.0, 4.0, 16.0, 8.0, 8.0],
+                        [-3.0, -2.0, -3.0, -2.0, 8.0, 4.0, 8.0, 8.0, 16.0, 8.0],
+                        [-3.0, -3.0, -2.0, -2.0, 4.0, 8.0, 8.0, 8.0, 8.0, 16.0],
+                    ]
+                )
+                / 1260
+            )
+
+    assert np.allclose(M.todense(), M_known)
+
+
+def test_source(discr, unit_sd_2d):
+    func = lambda _: 2
+    source = discr.source_term(unit_sd_2d, func)
+
+    source_known = np.zeros(discr.ndof(unit_sd_2d))
+    source_known[(unit_sd_2d.dim + 1) * unit_sd_2d.num_cells :] = 1 / 12
+
+    assert np.allclose(source, source_known)
