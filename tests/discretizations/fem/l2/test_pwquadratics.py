@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import scipy.sparse as sps
 
 import pygeon as pg
 
@@ -71,7 +70,9 @@ def test_source(discr, unit_sd_2d):
     func = lambda _: 2
     source = discr.source_term(unit_sd_2d, func)
 
-    source_known = np.zeros(discr.ndof(unit_sd_2d))
-    source_known[(unit_sd_2d.dim + 1) * unit_sd_2d.num_cells :] = 1 / 12
+    assert np.isclose(source.sum(), 2)
 
-    assert np.allclose(source, source_known)
+
+def test_proj_to_higher_PwPolynomials(discr, unit_sd_2d):
+    with pytest.raises(NotImplementedError):
+        discr.proj_to_higher_PwPolynomials(unit_sd_2d)

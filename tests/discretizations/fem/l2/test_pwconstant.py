@@ -38,3 +38,8 @@ def test_source(discr, unit_sd):
     source = discr.source_term(unit_sd, func)
 
     assert np.allclose(source, 2)
+
+
+def test_proj_to_lower_PwPolynomials(discr, unit_sd_2d):
+    with pytest.raises(NotImplementedError):
+        discr.proj_to_lower_PwPolynomials(unit_sd_2d)
