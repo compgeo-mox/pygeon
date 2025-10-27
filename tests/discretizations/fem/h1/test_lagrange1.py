@@ -135,9 +135,9 @@ def test_range_discr(discr):
 
 
 def test_assemble_lumped_matrix(discr, ref_sd):
-    import scipy.special
+    from math import factorial
 
     L = discr.assemble_lumped_matrix(ref_sd)
-    L_known = np.eye(ref_sd.dim + 1) / scipy.special.factorial(ref_sd.dim + 1)
+    L_known = np.eye(ref_sd.dim + 1) / factorial(ref_sd.dim + 1)
 
     assert np.allclose(L.todense(), L_known)
