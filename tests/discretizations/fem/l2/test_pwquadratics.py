@@ -71,8 +71,3 @@ def test_source(discr, unit_sd_2d):
     source = discr.source_term(unit_sd_2d, func)
 
     assert np.isclose(source.sum(), 2)
-
-
-def test_proj_to_higher_PwPolynomials(discr, unit_sd_2d):
-    with pytest.raises(NotImplementedError):
-        discr.proj_to_higher_PwPolynomials(unit_sd_2d)

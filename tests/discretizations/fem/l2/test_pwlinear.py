@@ -57,42 +57,10 @@ def test_assemble_mass_matrix(discr, ref_sd):
 
 
 def test_assemble_lumped_matrix(discr, ref_sd):
-    L = discr.assemble_lumped_matrix(ref_sd)
+    from math import factorial
 
-    match ref_sd.dim:
-        case 1:
-            L_known = (
-                np.array(
-                    [
-                        [1.0, 0.0],
-                        [0.0, 1.0],
-                    ]
-                )
-                / 2
-            )
-        case 2:
-            L_known = (
-                np.array(
-                    [
-                        [1.0, 0.0, 0.0],
-                        [0.0, 1.0, 0.0],
-                        [0.0, 0.0, 1.0],
-                    ]
-                )
-                / 6
-            )
-        case 3:
-            L_known = (
-                np.array(
-                    [
-                        [1.0, 0.0, 0.0, 0.0],
-                        [0.0, 1.0, 0.0, 0.0],
-                        [0.0, 0.0, 1.0, 0.0],
-                        [0.0, 0.0, 0.0, 1.0],
-                    ]
-                )
-                / 24
-            )
+    L = discr.assemble_lumped_matrix(ref_sd)
+    L_known = np.eye(discr.ndof(ref_sd)) / factorial(ref_sd.dim + 1)
 
     assert np.allclose(L.todense(), L_known)
 

@@ -4,6 +4,26 @@ import numpy as np
 import pygeon as pg
 
 
+@pytest.fixture(
+    params=[
+        pg.Lagrange1,
+        pg.Lagrange2,
+    ]
+)
+def discr(request):
+    return request.param("test")
+
+
+def test_laplacian_constant(discr, unit_sd):
+    A = discr.assemble_stiff_matrix(unit_sd)
+    sol_func = lambda _: 1.0
+
+    true_sol = discr.interpolate(unit_sd, sol_func)
+    res = A @ true_sol
+
+    assert np.allclose(res, 0)
+
+
 def test_laplacian_dirichlet_bcs(unit_sd):
     discr = pg.Lagrange2("test")
     A = discr.assemble_stiff_matrix(unit_sd, None)

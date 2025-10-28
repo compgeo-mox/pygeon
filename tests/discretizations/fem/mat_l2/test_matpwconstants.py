@@ -1,17 +1,8 @@
-import unittest
+import pytest
 
 import pygeon as pg
 
 
-class MatPwConstantsTest(unittest.TestCase):
-    def test_ndof(self):
-        dim = 2
-        sd = pg.reference_element(dim)
-        sd.compute_geometry()
-
-        discr = pg.MatPwConstants()
-        self.assertTrue(discr.ndof(sd) == 4)
-
-
-if __name__ == "__main__":
-    unittest.main()
+def test_ndof(ref_sd):
+    discr = pg.MatPwConstants()
+    assert discr.ndof(ref_sd) == ref_sd.dim**2

@@ -9,6 +9,12 @@ import pygeon as pg
         pg.PwConstants,
         pg.PwLinears,
         pg.PwQuadratics,
+        pg.VecPwConstants,
+        pg.VecPwLinears,
+        pg.VecPwQuadratics,
+        pg.MatPwConstants,
+        pg.MatPwLinears,
+        pg.MatPwQuadratics,
     ]
 )
 def discr(request):
@@ -39,12 +45,16 @@ def test_assemble_nat_bc(discr, unit_sd_2d):
     assert np.allclose(b, 0.0)
 
 
-@pytest.mark.parametrize("discr", [pg.PwConstants, pg.PwLinears], indirect=True)
 def test_proj_to_higherPwPolynomials(discr, unit_sd):
+    if discr.poly_order > 1:
+        with pytest.raises(NotImplementedError):
+            discr.proj_to_higher_PwPolynomials(unit_sd)
+        return
+
     proj = discr.proj_to_higher_PwPolynomials(unit_sd)
     mass = discr.assemble_mass_matrix(unit_sd)
 
-    discr_higher = pg.get_PwPolynomials(discr.poly_order + 1, 0)
+    discr_higher = pg.get_PwPolynomials(discr.poly_order + 1, discr.tensor_order)
     mass_higher = discr_higher("test").assemble_mass_matrix(unit_sd)
 
     diff = proj.T @ mass_higher @ proj - mass
@@ -53,24 +63,36 @@ def test_proj_to_higherPwPolynomials(discr, unit_sd):
 
 
 def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
-    func = lambda x: x[0] ** discr.poly_order
-    known_vals = func(unit_sd.cell_centers)
+    match discr.tensor_order:
+        case 0:
+            func = lambda x: x[0] ** discr.poly_order
+        case 1:
+            func = lambda x: x[: unit_sd.dim] ** discr.poly_order
+        case 2:
+            func = lambda x: np.tile(x[: unit_sd.dim], (unit_sd.dim, 1))
+
+    known_vals = np.vstack([func(x).ravel() for x in unit_sd.cell_centers.T]).T
 
     interp = discr.interpolate(unit_sd, func)
     proj = discr.eval_at_cell_centers(unit_sd)
 
-    assert np.allclose(proj @ interp, known_vals)
+    assert np.allclose(proj @ interp, known_vals.ravel())
 
 
 def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)
 
-    func = lambda x: x[0] ** discr.poly_order
-    func_interp = discr.interpolate(unit_sd, func)
-    one_interp = discr.interpolate(unit_sd, lambda _: 1)
+    match discr.tensor_order:
+        case 0:
+            one = lambda _: 1
+        case 1:
+            one = lambda _: np.ones(unit_sd.dim)
+        case 2:
+            one = lambda _: np.ones((unit_sd.dim, unit_sd.dim))
 
-    integral_L = one_interp @ M_lumped @ func_interp
-    integral_M = one_interp @ M_full @ func_interp
+    one_interp = discr.interpolate(unit_sd, one)
+    integral_L = M_lumped @ one_interp
+    integral_M = M_full @ one_interp
 
-    assert np.isclose(integral_L, integral_M)
+    assert np.allclose(integral_L, integral_M)
