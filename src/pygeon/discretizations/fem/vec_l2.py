@@ -1,6 +1,6 @@
 """Module for the discretizations of the vector L2 space."""
 
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -139,45 +139,6 @@ class VecPwConstants(VecPwPolynomials):
         """
         super().__init__(keyword)
         self.base_discr: pg.PwConstants = pg.PwConstants(keyword)
-
-    def error_l2(
-        self,
-        sd: pg.Grid,
-        num_sol: np.ndarray,
-        ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: bool = True,
-        etype: str = "specific",
-        data: Optional[dict] = None,
-    ) -> float:
-        """
-        Returns the l2 error computed against an analytical solution given as a
-        function.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-            num_sol (np.ndarray): Vector of the numerical solution.
-            ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
-                analytical solution.
-            relative (Optional[bool], optional): Compute the relative error or not.
-                Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to
-                "specific".
-
-        Returns:
-            float: The computed error.
-        """
-
-        err2 = 0
-        num_sol = num_sol.reshape((sd.dim, -1))
-        for d in np.arange(sd.dim):
-            ana_sol_dim = lambda x: ana_sol(x)[d]
-            num_sol_dim = num_sol[d]
-
-            err2_dim = self.base_discr.error_l2(
-                sd, num_sol_dim, ana_sol_dim, relative, etype
-            )
-            err2 += np.square(err2_dim)
-        return np.sqrt(err2)
 
 
 class VecPwLinears(VecPwPolynomials):
