@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-
+import scipy.sparse as sps
 import pygeon as pg
 
 
@@ -54,3 +54,17 @@ def test_lumped_matrix(discr, unit_sd):
     diff = pi.T @ poly_lumped @ pi - lumped
 
     assert np.allclose(diff.data, 0)
+
+
+@pytest.mark.parametrize("tensor_order", [0, 1, 2])
+def test_up_and_down_projection(tensor_order, unit_sd):
+    discr_0 = pg.get_PwPolynomials(0, tensor_order)("test")
+    discr_1 = pg.get_PwPolynomials(1, tensor_order)("test")
+
+    Pi_up = pg.proj_to_PwPolynomials(discr_0, unit_sd, 1)
+    Pi_down = pg.proj_to_PwPolynomials(discr_1, unit_sd, 0)
+
+    I = Pi_down @ Pi_up
+    I_known = sps.eye(I.shape[0])
+
+    assert np.allclose((I - I_known).data, 0)
