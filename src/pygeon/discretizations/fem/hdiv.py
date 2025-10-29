@@ -910,9 +910,6 @@ class RT1(pg.Discretization):
         """
         return sd.dim * (sd.num_faces + sd.num_cells)
 
-    def ndof_per_cell(self, dim: int) -> int:
-        return dim * (dim + 2)
-
     def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray, c: int):
         """
         Compute the local degrees of freedom (DOFs) indices for a cell.
