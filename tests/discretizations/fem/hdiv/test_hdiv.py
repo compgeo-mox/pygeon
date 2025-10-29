@@ -32,7 +32,7 @@ def test_interp_eval_constants(discr, unit_sd):
 
 
 def test_interp_eval_linears(discr, unit_sd):
-    if discr.poly_order < 2:  # Ignore RT0
+    if isinstance(discr, pg.RT0):
         return
 
     def q_linear(x):
@@ -47,7 +47,7 @@ def test_interp_eval_linears(discr, unit_sd):
 
 
 def test_norm_of_linear_function(discr, unit_sd):
-    if discr.poly_order < 2:  # Ignore RT0
+    if isinstance(discr, pg.RT0):
         return
 
     def q_linear(x):

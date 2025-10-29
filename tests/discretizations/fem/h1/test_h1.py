@@ -28,11 +28,9 @@ def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)
 
-    func = lambda x: x[0] ** discr.poly_order
-    func_interp = discr.interpolate(unit_sd, func)
     one_interp = discr.interpolate(unit_sd, lambda _: 1)
 
-    integral_L = one_interp @ M_lumped @ func_interp
-    integral_M = one_interp @ M_full @ func_interp
+    integral_L = M_lumped @ one_interp
+    integral_M = M_full @ one_interp
 
-    assert np.isclose(integral_L, integral_M)
+    assert np.allclose(integral_L, integral_M)
