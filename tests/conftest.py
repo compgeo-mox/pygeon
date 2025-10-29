@@ -52,3 +52,8 @@ def _ref_elements_dict():
 @pytest.fixture(params=range(1, 4), ids=ids)
 def ref_sd(_ref_elements_dict, request):
     return _ref_elements_dict[request.param]
+
+
+@pytest.fixture
+def ref_sd_3d(_ref_elements_dict):
+    return _ref_elements_dict[3]
