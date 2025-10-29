@@ -2,7 +2,6 @@
 
 from pygeon.utils.common_constants import *
 
-import pygeon.geometry.transformation as transformation
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
