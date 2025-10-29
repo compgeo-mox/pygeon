@@ -146,30 +146,39 @@ class MatPwLinears(pg.VecPwLinears):
     ) -> sps.csc_array:
         """
         Assembles and returns the corotational correction matrix for the matrix-valued
-        piecewise linears.
+        piecewise linears. We assume rotation to be a piecewise constant function in P0.
 
         Args:
             sd (pg.Grid): The grid.
-            rotation (np.ndarray): The rotation vector in P0.
+            rotation (np.ndarray): The rotation in P0, either a scalar field in 2D or
+                a vector field in 3D.
 
         Returns:
             sps.csc_array: The corotational correction matrix obtained from the
                 discretization.
         """
-        asym = self.assemble_asym_matrix(sd)
-
+        # Retrieve the discretization for the rotation, it depends on the dimension
         if sd.dim == 2:
             disc_rot = pg.PwConstants(self.keyword)
         else:
             disc_rot = pg.VecPwConstants(self.keyword)
 
+        # The idea is to project the rotation from P0 to P1 to be able to
+        # perform the assembly with the P1 asymmetry matrix
         proj_p1 = disc_rot.proj_to_higher_PwPolynomials(sd)
 
+        # Assemble the asymmetry matrix in P1 space
+        asym = self.assemble_asym_matrix(sd)
+
+        # Convert the rotation to the Omega tensor, which is in matrix P0 space
         omega = -asym.T @ proj_p1 @ rotation
 
+        # Assemble the multiplication matrices A*Omega and Omega*A used in the
+        # corotational correction
         A_omega = self.assemble_mult_matrix(sd, omega, right_mult=True)
         omega_A = self.assemble_mult_matrix(sd, omega, right_mult=False)
 
+        # Return the corotational correction matrix
         return A_omega - omega_A
 
     def assemble_mult_matrix(
@@ -226,6 +235,7 @@ class MatPwLinears(pg.VecPwLinears):
                 # structure
                 rows_loc, cols_loc = prod_at_dofs.nonzero()
 
+                # Save values of the local matrix in the global structure
                 loc_idx = slice(idx, idx + rows_loc.size)
                 rows_I[loc_idx] = node_dofs[cols_loc]
                 cols_J[loc_idx] = node_dofs[rows_loc]
