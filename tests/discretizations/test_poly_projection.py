@@ -54,7 +54,3 @@ def test_lumped_matrix(discr, unit_sd):
     diff = pi.T @ poly_lumped @ pi - lumped
 
     assert np.allclose(diff.data, 0)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

@@ -1,176 +1,75 @@
-import unittest
-
 import numpy as np
-import porepy as pp
-import scipy.sparse as sps
+import pytest
 
 import pygeon as pg
 
 
-class RT1Test(unittest.TestCase):
-    def test_linear_distribution_cart_1D(self):
-        N, dim = 5, 1
-        sd = pp.CartGrid([N] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd)
-
-    def test_linear_distribution_struct_2D(self):
-        N, dim = 5, 2
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd)
-
-    def test_linear_distribution_struct_3D(self):
-        N, dim = 3, 3
-        sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd)
-
-    def test_linear_distribution_unstr_2D(self):
-        N, dim = 5, 2
-        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd)
-
-    def test_linear_distribution_unstr_3D(self):
-        N, dim = 3, 3
-        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd)
-
-    def linear_distribution_test(self, sd, lumped=False):
-        discr_q = pg.RT1()
-        discr_p = pg.PwLinears()
-
-        # Provide the solution
-        def q_func(x):
-            return np.array([-1, 2, 1])
-
-        def p_func(x):
-            return -x @ q_func(x)
-
-        # assemble the saddle point problem
-        if lumped:
-            face_mass = discr_q.assemble_lumped_matrix(sd)
-        else:
-            face_mass = discr_q.assemble_mass_matrix(sd)
-        cell_mass = discr_p.assemble_mass_matrix(sd, None)
-        div = cell_mass @ discr_q.assemble_diff_matrix(sd)
-
-        spp = sps.block_array([[face_mass, -div.T], [div, None]]).tocsc()
-
-        # set the boundary conditions
-        b_faces = sd.tags["domain_boundary_faces"]
-        bc_val = -discr_q.assemble_nat_bc(sd, p_func, b_faces)
-
-        rhs = np.zeros(spp.shape[0])
-        rhs[: bc_val.size] += bc_val
-
-        # solve the problem
-        ls = pg.LinearSystem(spp, rhs)
-        x = ls.solve()
-
-        q = x[: bc_val.size]
-        p = x[-discr_p.ndof(sd) :]
-
-        known_q = discr_q.interpolate(sd, q_func)
-        known_p = discr_p.interpolate(sd, p_func)
-
-        self.assertTrue(np.allclose(p, known_p))
-        self.assertTrue(np.allclose(q, known_q))
-
-    def test_interpolation_and_evaluation(self):
-        N, dim = 3, 3
-        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
-        sd.compute_geometry()
-
-        def q_func(x):
-            return np.array([-x[1], 2 * x[0], x[2]])
-
-        discr = pg.RT1()
-        Pi = discr.eval_at_cell_centers(sd)
-        interp = discr.interpolate(sd, q_func)
-
-        q_at_cc = (Pi @ interp).reshape((3, -1))
-        q_known_at_cc = np.array([q_func(x) for x in sd.cell_centers.T]).T
-
-        self.assertTrue(np.allclose(q_at_cc, q_known_at_cc))
-
-    def test_norm_of_known_function(self):
-        N, dim = 3, 3
-        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
-        sd.compute_geometry()
-
-        def q_func(x):
-            return np.array([-x[1], 2 * x[0], x[2] - 1])
-
-        discr = pg.RT1()
-        interp = discr.interpolate(sd, q_func)
-        M = discr.assemble_mass_matrix(sd)
-
-        computed_norm = interp @ M @ interp
-
-        self.assertTrue(np.isclose(computed_norm, 2))
-
-    def test_lumped_matrix_tris(self):
-        N, dim = 5, 2
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd, lumped=True)
-
-    def test_lumped_matrix_unstr(self):
-        N, dim = 3, 3
-        sd = pg.unit_grid(dim, 1 / N, as_mdg=False)
-        sd.compute_geometry()
-
-        self.linear_distribution_test(sd, lumped=True)
-
-    def test_proj_topwquadratics(self):
-        sd = pg.unit_grid(2, 1.0, as_mdg=False, structured=True)
-        sd.compute_geometry()
-
-        disc = pg.RT1()
-        M_RT = disc.assemble_mass_matrix(sd)
-        P = disc.proj_to_PwPolynomials(sd)
-
-        quadratics = pg.VecPwQuadratics()
-        M_quad = quadratics.assemble_mass_matrix(sd)
-
-        check = M_RT - P.T @ M_quad @ P
-
-        self.assertTrue(np.allclose(check.data, 0))
-
-    def test_proj_with_lump(self):
-        for dim in [2, 3]:
-            sd_list = [
-                pg.unit_grid(dim, 1.0, as_mdg=False, structured=False),
-                pg.reference_element(dim),
-            ]
-            for sd in sd_list:
-                sd.compute_geometry()
-                key = "test"
-
-                discr = pg.RT1(key)
-
-                M_lumped = discr.assemble_lumped_matrix(sd)
-
-                quads = pg.VecPwQuadratics()
-                P = discr.proj_to_PwPolynomials(sd)
-                M_q = quads.assemble_lumped_matrix(sd)
-                M_lumped2 = P.T @ M_q @ P
-
-                self.assertTrue(np.allclose((M_lumped2 - M_lumped).data, 0))
+@pytest.fixture
+def discr():
+    return pg.RT1("test")
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_ndof(discr, unit_sd):
+    assert discr.ndof(unit_sd) == unit_sd.dim * (unit_sd.num_faces + unit_sd.num_cells)
+
+
+def test_asssemble_mass_matrix(discr, ref_sd):
+    M = discr.assemble_mass_matrix(ref_sd)
+
+    match ref_sd.dim:
+        case 1:
+            M_known = (
+                np.array(
+                    [
+                        [8, -2, 1],
+                        [-2, 8, 1],
+                        [1, 1, 2],
+                    ]
+                )
+                / 60
+            )
+        case 2:
+            M_known = (
+                np.array(
+                    [
+                        [10, -2, 1, 2, -1, 5, 0, -2],
+                        [-2, 16, 4, -1, 5, -4, 0, 1],
+                        [1, 4, 16, 2, -4, 5, 0, 1],
+                        [2, -1, 2, 10, -5, 1, 0, 2],
+                        [-1, 5, -4, -5, 22, -8, -3, -1],
+                        [5, -4, 5, 1, -8, 22, 3, -4],
+                        [0, 0, 0, 0, -3, 3, 4, -2],
+                        [-2, 1, 1, 2, -1, -4, -2, 8],
+                    ]
+                )
+                / 360
+            )
+        case 3:
+            M_known = (
+                np.array(
+                    [
+                        [24, -4, 1, -1, 6, -3, 11, -11, 6, -3, 0, 0, -2, -6, 4],
+                        [-4, 52, 8, -8, -1, 18, -10, 10, -1, 18, 0, 0, -2, 8, -3],
+                        [1, 8, 52, 8, 4, -10, 18, 0, 1, 0, 18, -10, 2, 3, -8],
+                        [-1, -8, 8, 52, -1, 0, 0, 18, -4, 10, -10, 18, -2, -3, -3],
+                        [6, -1, 4, -1, 24, -11, 3, 0, 6, 0, 3, -11, -2, 4, -6],
+                        [-3, 18, -10, 0, -11, 64, -20, 10, 0, 18, -10, 4, -7, 4, 10],
+                        [11, -10, 18, 0, 3, -20, 64, -4, 0, -10, 18, -10, 7, -10, -4],
+                        [-11, 10, 0, 18, 0, 10, -4, 64, -3, 20, -10, 18, -7, 10, -7],
+                        [6, -1, 1, -4, 6, 0, 0, -3, 24, -11, 11, -3, -2, 4, 4],
+                        [-3, 18, 0, 10, 0, 18, -10, 20, -11, 64, -4, 10, -7, 4, -7],
+                        [0, 0, 18, -10, 3, -10, 18, -10, 11, -4, 64, -20, 7, 7, -4],
+                        [0, 0, -10, 18, -11, 4, -10, 18, -3, 10, -20, 64, -7, -7, 10],
+                        [-2, -2, 2, -2, -2, -7, 7, -7, -2, -7, 7, -7, 12, -4, -4],
+                        [-6, 8, 3, -3, 4, 4, -10, 10, 4, 4, 7, -7, -4, 32, -14],
+                        [4, -3, -8, -3, -6, 10, -4, -7, 4, -7, -4, 10, -4, -14, 32],
+                    ]
+                )
+                / 1260
+            )
+
+    assert np.allclose(M.todense(), M_known)
+
+
+def test_range_discr_class(discr):
+    assert discr.get_range_discr_class(2) is pg.PwLinears

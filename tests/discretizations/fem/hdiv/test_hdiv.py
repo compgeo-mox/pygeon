@@ -1,36 +1,61 @@
-import pytest
-
 import numpy as np
+import pytest
 
 import pygeon as pg
 
 """
-Module contains tests to validate the consistency between H(div) discretizations.
+Module contains general tests for all H(div) discretizations.
 """
 
 
-def test_mass(unit_sd):
-    rt0 = pg.RT0("test")
-    M_rt0 = rt0.assemble_mass_matrix(unit_sd)
-
-    bdm1 = pg.BDM1("test")
-    M_bdm1 = bdm1.assemble_mass_matrix(unit_sd)
-    P = bdm1.proj_from_RT0(unit_sd)
-
-    difference = M_rt0 - P.T @ M_bdm1 @ P
-
-    assert np.allclose(difference.data, 0)
+@pytest.fixture(
+    params=[
+        pg.RT0,
+        pg.BDM1,
+        pg.RT1,
+    ]
+)
+def discr(request):
+    return request.param("test")
 
 
-def test_interp_eval_constants(unit_sd):
+def test_interp_eval_constants(discr, unit_sd):
     f = lambda _: np.array([2, 3, -1])
+    f_known = np.vstack([f(x) for x in unit_sd.cell_centers.T]).T
+    f_known[unit_sd.dim :, :] = 0
+    f_known = f_known.ravel()
 
-    rt0 = pg.RT0()
-    P = rt0.eval_at_cell_centers(unit_sd)
-    f_rt0 = P @ rt0.interpolate(unit_sd, f)
+    P = discr.eval_at_cell_centers(unit_sd)
+    f_interp = P @ discr.interpolate(unit_sd, f)
 
-    bdm1 = pg.BDM1()
-    P = bdm1.eval_at_cell_centers(unit_sd)
-    f_bdm1 = P @ bdm1.interpolate(unit_sd, f)
+    assert np.allclose(f_interp, f_known)
 
-    assert np.allclose(f_rt0, f_bdm1)
+
+def test_interp_eval_linears(discr, unit_sd):
+    if discr.poly_order < 2:  # Ignore RT0
+        return
+
+    def q_linear(x):
+        return x
+
+    interp_q = discr.interpolate(unit_sd, q_linear)
+    eval_q = discr.eval_at_cell_centers(unit_sd) @ interp_q
+    eval_q = np.reshape(eval_q, (3, -1))
+
+    known_q = np.array([q_linear(x) for x in unit_sd.cell_centers.T]).T
+    assert np.allclose(eval_q, known_q)
+
+
+def test_norm_of_linear_function(discr, unit_sd):
+    if discr.poly_order < 2:  # Ignore RT0
+        return
+
+    def q_linear(x):
+        return x
+
+    interp = discr.interpolate(unit_sd, q_linear)
+    M = discr.assemble_mass_matrix(unit_sd)
+
+    computed_norm = interp @ M @ interp
+
+    assert np.isclose(computed_norm, unit_sd.dim / 3)

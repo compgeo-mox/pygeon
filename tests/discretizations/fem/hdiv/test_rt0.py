@@ -11,13 +11,6 @@ def discr():
     return pg.RT0("test")
 
 
-def test_0d(discr):
-    sd = pp.PointGrid(np.zeros(3))
-
-    M = discr.assemble_mass_matrix(sd)
-    assert M.shape == (0, 0)
-
-
 def test_ndof(discr, unit_sd):
     assert discr.ndof(unit_sd) == unit_sd.num_faces
 
@@ -40,9 +33,9 @@ def test_asssemble_mass_matrix(discr, ref_sd):
             M_known = (
                 np.array(
                     [
-                        [1.0, 0.0, 0.0],
-                        [0.0, 2.0, 1.0],
-                        [0.0, 1.0, 2.0],
+                        [1, 0, 0],
+                        [0, 2, 1],
+                        [0, 1, 2],
                     ]
                 )
                 / 6
@@ -51,10 +44,10 @@ def test_asssemble_mass_matrix(discr, ref_sd):
             M_known = (
                 np.array(
                     [
-                        [6.0, -1.0, 1.0, -1.0],
-                        [-1.0, 16.0, 4.0, -4.0],
-                        [1.0, 4.0, 16.0, 4.0],
-                        [-1.0, -4.0, 4.0, 16.0],
+                        [6, -1, 1, -1],
+                        [-1, 16, 4, -4],
+                        [1, 4, 16, 4],
+                        [-1, -4, 4, 16],
                     ]
                 )
                 / 30
@@ -63,7 +56,7 @@ def test_asssemble_mass_matrix(discr, ref_sd):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_mass_matrix(discr, unit_sd):
+def test_mass_matrix_vs_pp(discr, unit_sd):
     M = discr.assemble_mass_matrix(unit_sd)
 
     discr_pp = pp.RT0("flow")
