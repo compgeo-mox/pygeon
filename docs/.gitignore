@@ -1,0 +1,10 @@
+# Sphinx build directory
+_build/
+
+# Sphinx generated files
+_autosummary/
+
+# Other common generated files
+*.pyc
+__pycache__/
+.DS_Store
