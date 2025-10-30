@@ -5,8 +5,6 @@
 
 import os
 import sys
-import tomllib
-from pathlib import Path
 from unittest.mock import MagicMock
 
 # -- Path setup --------------------------------------------------------------
@@ -37,12 +35,6 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
-# Read version from pyproject.toml
-pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-with open(pyproject_path, "rb") as f:
-    pyproject_data = tomllib.load(f)
-    release = pyproject_data["project"]["version"]
 
 project = "PyGeoN"
 copyright = "2024, Wietse M. Boon, Alessio Fumagalli"
