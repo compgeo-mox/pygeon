@@ -2,6 +2,7 @@
 ![Mypy, ruff, isort](https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml/badge.svg)
 ![Tutorials](https://github.com/compgeo-mox/pygeon/actions/workflows/check_tutorials.yml/badge.svg)
 ![CodeQL](https://github.com/compgeo-mox/pygeon/workflows/CodeQL/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/pygeon-docs/badge/?version=latest)](https://pygeon-docs.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/455087135.svg)](https://zenodo.org/badge/latestdoi/455087135)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
@@ -21,6 +22,9 @@ It might be useful to add PyGeoN to your PYTHONPATH.
 
 ## Issues
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
+
+## Documentation
+Full documentation is available on [ReadTheDocs](https://pygeon-docs.readthedocs.io/).
 
 ## Getting started
 See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).
