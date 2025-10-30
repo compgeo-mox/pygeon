@@ -17,7 +17,9 @@ REPORTS_SRC_DIR="$DOCS_DIR/reports_src"
 mkdir -p "$REPORTS_DIR"
 
 # Optional user hook: run a generator if present
-# Example: python docs/reports_src/generate_reports.py
+# Example: create docs/reports_src/generate_reports.sh and make it executable with:
+#   chmod +x docs/reports_src/generate_reports.sh
+# The script will only run if it exists and has execute permissions (-x check).
 if [[ -x "$REPORTS_SRC_DIR/generate_reports.sh" ]]; then
   echo "Running user report generator: $REPORTS_SRC_DIR/generate_reports.sh"
   (cd "$REPORTS_SRC_DIR" && ./generate_reports.sh)

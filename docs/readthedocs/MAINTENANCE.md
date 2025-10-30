@@ -44,7 +44,10 @@ This page describes how to keep the PyGeoN documentation healthy, consistent, an
 ## Adding a new report
 
 1. Place your Markdown source in `docs/reports_src/`
-2. (Optional) Add a generator at `docs/reports_src/generate_reports.sh`
+2. (Optional) Add a generator at `docs/reports_src/generate_reports.sh` and make it executable:
+   ```bash
+   chmod +x docs/reports_src/generate_reports.sh
+   ```
 3. Build docs; the report appears under the "Reports" section
 
 ## Common issues and fixes
