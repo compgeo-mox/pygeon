@@ -132,7 +132,7 @@ The documentation is automatically tested on every PR and push via GitHub Action
 make strict
 
 # Or use the detailed script
-./build_strict.sh
+./readthedocs/build_strict.sh
 ```
 
 For more details, see [`CI_REFERENCE.md`](readthedocs/CI_REFERENCE.md).
