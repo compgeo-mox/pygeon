@@ -32,7 +32,7 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        if data is None:
+        if not data:
             # If the data is not provided then use default values to build a block
             # diagonal mass matrix without the trace term
             mu = 0.5 * np.ones(sd.num_cells)
@@ -125,7 +125,7 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        if data is None:
+        if not data:
             # If the data is not provided then use default values to build a block
             # diagonal mass matrix without the trace term
             mu = 0.5
@@ -164,7 +164,7 @@ class VecHDiv(pg.VecDiscretization):
         M = self.assemble_lumped_matrix(sd, data)
 
         # Extract the data
-        if data is None:
+        if not data:
             # If the data is not provided then use default values to build a block
             # diagonal mass matrix without the trace term
             mu = 0.5
