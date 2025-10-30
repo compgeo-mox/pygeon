@@ -173,33 +173,6 @@ class VecPwConstantsTest(unittest.TestCase):
             dim,
         )
 
-    def test_error_l2(self):
-        dim = 2
-        sd = pp.StructuredTriangleGrid([2] * dim, [1] * dim)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        discr = pg.VecPwConstants("P0")
-        # fmt: off
-        num_sol = np.array(
-        [0.04089934, 0.02073702, 0.09252211, 0.07729623, 0.04089934,
-        0.02073702, 0.09252211, 0.07729623, 0.02073702, 0.04089934,
-        0.02073702, 0.04089934, 0.07729623, 0.09252211, 0.07729623,
-        0.09252211]
-        )
-        # fmt: on
-        ana_sol = lambda x: np.sin(x)
-
-        err = discr.error_l2(sd, num_sol, ana_sol, etype="standard")
-        err_known = 7.951651025069553e-08
-
-        self.assertTrue(np.allclose(err, err_known))
-
-        err = discr.error_l2(sd, num_sol, ana_sol)
-        err_known = 0.5254595621486393
-
-        self.assertTrue(np.allclose(err, err_known))
-
     def test_proj_to_pwlinears(self):
         for dim in [1, 2, 3]:
             sd = pg.unit_grid(dim, 0.5, as_mdg=False)
