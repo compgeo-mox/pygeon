@@ -174,14 +174,15 @@ class VecHDiv(pg.VecDiscretization):
             mu = data[pp.PARAMETERS][self.keyword]["mu"]
             mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
 
-        coeff_scalar = 0.25 * (1 / mu_c - 1 / mu)
+        coeff_val = 0.25 * (1 / mu_c - 1 / mu)
 
         # If coeff is a scalar, replace it by a vector so that it can be accessed per
         # cell
-        if isinstance(coeff_scalar, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff_scalar)
+        coeff: np.ndarray
+        if isinstance(coeff_val, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff_val)
         else:
-            coeff = coeff_scalar
+            coeff = np.atleast_1d(coeff_val)
 
         data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
