@@ -1,43 +1,28 @@
 Discretizations
 ===============
 
+The discretizations module provides structure-preserving discretization methods for partial differential equations.
+
 .. automodule:: pygeon.discretizations
    :members:
    :undoc-members:
    :show-inheritance:
 
-Base Classes
-------------
+Submodules
+----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   discretizations_base
-   discretizations_vec
-   discretizations_poly
+   pygeon.discretizations.discretization
+   pygeon.discretizations.vec_discretization
+   pygeon.discretizations.poly_projection
 
-Finite Element Method (FEM)
-----------------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   fem_h1
-   fem_hcurl
-   fem_hdiv
-   fem_l2
-   fem_mat_l2
-   fem_vec_h1
-   fem_vec_hdiv
-   fem_vec_l2
-
-Virtual Element Method (VEM)
------------------------------
+Subpackages
+-----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   vem_h1
-   vem_hdiv
-   vem_vec_h1
-   vem_vec_hdiv
+   pygeon.discretizations.fem
+   pygeon.discretizations.vem
