@@ -9,8 +9,8 @@ Numerics
 Submodules
 ----------
 
-.. autosummary::
-   :toctree: _autosummary
+.. toctree::
+   :maxdepth: 2
 
    pygeon.numerics.differentials
    pygeon.numerics.innerproducts

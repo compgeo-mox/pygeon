@@ -9,8 +9,8 @@ Grids
 Submodules
 ----------
 
-.. autosummary::
-   :toctree: _autosummary
+.. toctree::
+   :maxdepth: 2
 
    pygeon.grids.grid
    pygeon.grids.md_grid

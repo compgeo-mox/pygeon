@@ -9,9 +9,10 @@ Utilities
 Submodules
 ----------
 
-.. autosummary::
-   :toctree: _autosummary
+.. toctree::
+   :maxdepth: 2
 
-   pygeon.utils.common_constants
    pygeon.utils.bmat
+   pygeon.utils.common_constants
+   pygeon.utils.set_membership
    pygeon.utils.sort_points
