@@ -131,7 +131,7 @@ class VecVLagrange1(pg.VecDiscretization):
             sps.csc_array: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
-        if data is None:
+        if not data:
             labda = 1
         else:
             parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -252,7 +252,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         NOTE: Duplicate of pg.VecLagrange1.assemble_symgrad_symgrad_matrix
         """
-        if data is None:
+        if not data:
             mu = 1
         else:
             parameter_dictionary = data[pp.PARAMETERS][self.keyword]
