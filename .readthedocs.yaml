@@ -8,6 +8,13 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.12"
+  apt_packages:
+    - libglu1-mesa
+    - libgl1-mesa-glx
+    - libxrender1
+    - libxcursor1
+    - libxft2
+    - libxinerama1
   jobs:
     post_install:
       # Install the package in editable mode
