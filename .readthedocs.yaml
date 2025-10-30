@@ -12,6 +12,9 @@ build:
     post_install:
       # Install the package in editable mode
       - pip install -e .
+    pre_build:
+      # Auto-generate API documentation
+      - sphinx-apidoc -f -o docs/api src/pygeon --separate --no-toc
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
