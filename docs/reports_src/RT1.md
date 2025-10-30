@@ -39,7 +39,7 @@ we propose the following basis function
 
 More generally, we define
 
-```math
+```{math}
 \begin{align}
     \phi_i^j &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{ji} - (\varphi_j - \varphi_i) \right)
 \end{align}
@@ -49,7 +49,7 @@ where the sign is determined by whether the normal of face $j$ is outward with r
 
 For the cell degrees of freedom, we define
 
-```math
+```{math}
 \begin{align}
     \phi_k &\coloneqq \frac{1}{d |\Delta|} \varphi_k
 \end{align}
@@ -200,7 +200,7 @@ The properties concerning the degrees of freedom follow immediately. All we need
 
 this gives us
 
-```math
+```{math}
 \begin{align}
     \nabla \cdot (\varphi_j - \varphi_i) &=
     (d + 1) (\lambda_j - \lambda_i)
@@ -209,7 +209,7 @@ this gives us
 
 In turn, we have the proper generalization from the 2D case:
 
-```math
+```{math}
 \begin{align}
     \nabla \cdot \phi_i^j 
     &= \pm \frac{1}{d |\Delta|}\left( 1 - (d + 1) (\lambda_j - \lambda_i) \right) \\
