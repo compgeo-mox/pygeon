@@ -49,12 +49,12 @@ class VecHDiv(pg.VecDiscretization):
         # Save 1/(2mu) as a tensor so that it can be read by self
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
         data_self = pp.initialize_data(
-            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
+            {}, self.keyword, {"second_order_tensor": mu_tensor}
         )
 
         # Save the coefficient for the trace contribution
         coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_tr_space = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_tr_space = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
         # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_mass_matrix(sd, data_self)
@@ -98,7 +98,7 @@ class VecHDiv(pg.VecDiscretization):
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
         R_space: pg.Discretization
         if sd.dim == 2:
@@ -181,7 +181,7 @@ class VecHDiv(pg.VecDiscretization):
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
         R_space: pg.Discretization
         if sd.dim == 2:
