@@ -55,6 +55,11 @@ This removes the `_build/` directory but keeps the generated API documentation.
 
 Place any Markdown reports you generate into `docs/reports_src/` (or provide a generator `docs/reports_src/generate_reports.sh`).
 
+If you create a generator script, make sure to set execute permissions:
+```bash
+chmod +x docs/reports_src/generate_reports.sh
+```
+
 On both ReadTheDocs and local builds, `readthedocs/hooks/pre_build_reports.sh` will copy `docs/reports_src/*.md` into `docs/reports/`, which is included in the documentation under the "Reports" section.
 
 Locally you can run just the collection step with:
