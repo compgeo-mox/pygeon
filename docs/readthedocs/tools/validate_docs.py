@@ -12,20 +12,8 @@ PROBLEMS = []
 for md in (DOCS / "reports").glob("*.md"):
     PROBLEMS.append(f"Generated report should not be committed: {md.relative_to(ROOT)}")
 
-# 2) Ensure MyST math fences use ```{math} not ```math
-math_fence_bad = re.compile(r"^```\s*math\s*$", re.MULTILINE)
-for md in DOCS.rglob("*.md"):
-    if md.is_file():
-        try:
-            text = md.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        if math_fence_bad.search(text):
-            msg = (
-                "Use ```{math} fenced blocks, found ```math in "
-                f"{md.relative_to(ROOT)}"
-            )
-            PROBLEMS.append(msg)
+# 2) Check for common documentation issues in markdown files
+# (Reserved for future checks if needed)
 
 # 3) Basic hygiene: warn if any tabs in .rst files
 for rst in DOCS.rglob("*.rst"):

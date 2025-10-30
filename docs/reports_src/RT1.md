@@ -3,13 +3,13 @@
 ## 2D
 Consider $d = 2$, a triangle with nodes $\{x_0, x_1, x_2\}$, and let the tangents be given by
 
-```{math}
+```math
 \tau_{ij} = x_j - x_i
 ```
 
 Following Eggers and Radu (2020), we consider the following basis functions
 
-```{math}
+```math
 \begin{align}
     \varphi_0 &\coloneqq \lambda_0 \lambda_2 \tau_{02} + \lambda_0 \lambda_1 \tau_{01} \\
     \varphi_1 &\coloneqq \lambda_1 \lambda_0 \tau_{10} + \lambda_1 \lambda_2 \tau_{12} \\
@@ -19,7 +19,7 @@ Following Eggers and Radu (2020), we consider the following basis functions
 
 At the cell center, each $\lambda_i = \frac1{d + 1}$, so we have the following identity:
 
-```{math}
+```math
 \begin{align}
     (\varphi_0 - \varphi_1)(x_c) &= \frac{1}{(d + 1)^2}(\tau_{02} + \tau_{01} - \tau_{10} - \tau_{12}) \nonumber\\
     &= \frac{1}{(d + 1)^2}(3 \tau_{01} - (\tau_{01} + \tau_{12} + \tau_{20}))
@@ -31,7 +31,7 @@ At the cell center, each $\lambda_i = \frac1{d + 1}$, so we have the following i
 Let $\phi_i^j$ denote the basis function for the the degree of freedom at face $f_j$ and node $x_i$. Letting $x^j$ be the node opposite face $f_j$,
 we propose the following basis function
 
-```{math}
+```math
 \begin{align}
     \phi_1^0 &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{01} - (\varphi_0 - \varphi_1) \right) 
 \end{align}
@@ -39,7 +39,7 @@ we propose the following basis function
 
 More generally, we define
 
-```{math}
+```math
 \begin{align}
     \phi_i^j &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{ji} - (\varphi_j - \varphi_i) \right)
 \end{align}
@@ -49,7 +49,7 @@ where the sign is determined by whether the normal of face $j$ is outward with r
 
 For the cell degrees of freedom, we define
 
-```{math}
+```math
 \begin{align}
     \phi_k &\coloneqq \frac{1}{d |\Delta|} \varphi_k
 \end{align}
@@ -62,7 +62,7 @@ Note that $\phi_0 + \phi_1 + \phi_2 = 0$, so we can span all three with $\{\phi_
 #### Degrees of freedom
 We now show that these basis functions have the desired properties. First, we have 
 
-```{math}
+```math
     n \cdot \phi_k = 0
 ```
 
@@ -70,7 +70,7 @@ on each face because either $\phi_k = 0$ or it is tangential to the face. In tur
 
 Second, we have at the cell-centers
 
-```{math}
+```math
     \phi_i^j(x_c) = \pm \frac{1}{d |\Delta|} \left(\frac1{d + 1} \tau_{ji} - \frac{1}{d + 1}\tau_{ji} \right) = 0
 ```
 
@@ -80,7 +80,7 @@ This means that we can evaluate the degrees of freedom by considering the nodal 
 
 The divergence of the cell basis functions can be calculated as:
 
-```{math}
+```math
 \begin{align}
     \nabla \cdot \varphi_k 
     &= \nabla \cdot(\lambda_k \lambda_{k - 1} \tau_{k,k - 1} + \lambda_k \lambda_{k + 1} \tau_{k, k + 1}) \nonumber\\
@@ -93,7 +93,7 @@ The divergence of the cell basis functions can be calculated as:
 
 where $k$ is understood modulo 3. This has mean zero. For the face degrees of freedom, we compute
 
-```{math}
+```math
 \begin{align}
     \nabla \cdot \phi_i^j 
     &= \pm \frac{1}{d |\Delta|} \left(\nabla\lambda_i \cdot \tau_{ji} - \nabla \cdot(\varphi_j - \varphi_i) \right) \nonumber\\
@@ -107,7 +107,7 @@ From which we easily deduce that $\int_\Delta \nabla \cdot \phi_i^j = \pm \frac1
 
 We consider the following spatial basis functions (in order)
 
-```{math}
+```math
     \{ 
         \lambda_0, \ \lambda_1, \ \lambda_2, \ \lambda_0 \lambda_1,  \lambda_0 \lambda_2,  \lambda_1 \lambda_2 \}
 ```
@@ -116,7 +116,7 @@ Since these are the basis functions used for Lagrange2, we can fetch the inner p
 
 As is common in PyGeoN, we then create an array $\Psi$ whose rows contain the coefficents for each basis function. As an example, let us compute the row for $\phi_1^0$. We first introduce the helper functions
 
-```{math}
+```math
 \begin{align}
     \psi_0 &= 
     \begin{bmatrix} 
@@ -138,7 +138,7 @@ As is common in PyGeoN, we then create an array $\Psi$ whose rows contain the co
 These are computed by looping over the edges of the element.
 Using these, we can rapidly compute, for example
 
-```{math}
+```math
     \Psi_1^0 \coloneqq \pm \frac1{d |\Delta|}\left(
     \begin{bmatrix} 
         0 \\ \tau_{01} \\ 0 \\ 0 \\ 0 \\ 0 
@@ -149,7 +149,7 @@ Using these, we can rapidly compute, for example
 
 and for the cell-based degrees of freedom:
 
-```{math}
+```math
     \Psi_0 \coloneqq \frac{1}{d |\Delta|} \psi_0
 ```
 
@@ -157,7 +157,7 @@ and for the cell-based degrees of freedom:
 
 The three-dimensional generalization of $\varphi$ is given by
 
-```{math}
+```math
 \begin{align}
     \varphi_k &\coloneqq
     \sum_{i \ne k} \lambda_k \lambda_i \tau_{ki}
@@ -166,7 +166,7 @@ The three-dimensional generalization of $\varphi$ is given by
 
 A similar calculation as in 2D shows us that
 
-```{math}
+```math
 \begin{align}
     (\varphi_0 - \varphi_1)(x_c)
     &= \frac{1}{(d + 1)^2}(\tau_{01} + \tau_{02} + \tau_{03} - \tau_{10} - \tau_{12} - \tau_{13}) \nonumber\\
@@ -178,7 +178,7 @@ A similar calculation as in 2D shows us that
 
 so we again propose the basis functions
 
-```{math}
+```math
 \begin{align}
     \phi_i^j &\coloneqq \pm \frac{1}{d |\Delta|} \left(\lambda_1 \tau_{ji} - (\varphi_j - \varphi_i) \right) \nonumber\\
     \phi_k &\coloneqq \frac{1}{d |\Delta|} \varphi_k
@@ -189,7 +189,7 @@ The properties concerning the degrees of freedom follow immediately. All we need
 
 ### The divergence
 
-```{math}
+```math
 \begin{align}
     \nabla \cdot \varphi_k &=
     \sum_{i \ne k} \nabla \cdot \lambda_k \lambda_i \tau_{ki} \nonumber\\
@@ -200,7 +200,7 @@ The properties concerning the degrees of freedom follow immediately. All we need
 
 this gives us
 
-```{math}
+```math
 \begin{align}
     \nabla \cdot (\varphi_j - \varphi_i) &=
     (d + 1) (\lambda_j - \lambda_i)
@@ -209,7 +209,7 @@ this gives us
 
 In turn, we have the proper generalization from the 2D case:
 
-```{math}
+```math
 \begin{align}
     \nabla \cdot \phi_i^j 
     &= \pm \frac{1}{d |\Delta|}\left( 1 - (d + 1) (\lambda_j - \lambda_i) \right) \\
