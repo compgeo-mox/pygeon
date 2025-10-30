@@ -5,7 +5,7 @@
 Run this once to test locally:
 
 ```bash
-cd /home/elle/Dropbox/Work/Codes/pygeon/docs
+cd docs
 make strict
 ```
 
