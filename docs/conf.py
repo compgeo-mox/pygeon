@@ -22,6 +22,7 @@ release = "0.5.0"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
@@ -95,6 +96,10 @@ autodoc_default_options = {
 
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented"
+
+# autosummary settings
+autosummary_generate = True
+autosummary_imported_members = False
 
 # Todo extension
 todo_include_todos = True
