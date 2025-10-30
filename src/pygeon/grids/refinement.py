@@ -45,8 +45,8 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
         face_nodes (sps.csc_array): Connectivity matrix.
 
     Returns:
-    sps.csc_array: A sparse matrix representing the mapping between the faces
-        and cells, including orientation.
+        sps.csc_array: A sparse matrix representing the mapping between the faces
+            and cells, including orientation.
     """
     new_cell_inds = sd.cell_faces.copy()
     new_cell_inds.data = np.arange(new_cell_inds.nnz)

@@ -18,9 +18,10 @@ def zero_tip_dofs(
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
-        kwargs: Optional parameters
-            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        kwargs: Optional parameters:
+
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array or np.ndarray: The operator that maps the tip degrees of freedom
