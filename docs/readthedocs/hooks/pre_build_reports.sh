@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 DOCS_DIR="$REPO_ROOT/docs"
 REPORTS_DIR="$DOCS_DIR/reports"
 REPORTS_SRC_DIR="$DOCS_DIR/reports_src"
