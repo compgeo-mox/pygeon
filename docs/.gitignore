@@ -20,6 +20,10 @@ api/fem_*.rst
 # Keep hand-written API overview files
 !api/modules.rst
 
+# Generated reports copied during build
+reports/*.md
+!reports/index.rst
+
 # Other common generated files
 *.pyc
 __pycache__/

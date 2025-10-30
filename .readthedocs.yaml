@@ -20,6 +20,8 @@ build:
       # Install the package in editable mode
       - pip install -e .
     pre_build:
+      # Collect or generate markdown reports into docs/reports
+      - bash docs/hooks/pre_build_reports.sh
       # Auto-generate API documentation
       - sphinx-apidoc -f -o docs/api src/pygeon --separate --no-toc
 

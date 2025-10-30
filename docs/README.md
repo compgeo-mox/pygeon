@@ -22,7 +22,12 @@ make html
 
 The generated HTML documentation will be in `_build/html/`. Open `_build/html/index.html` in your browser.
 
-**Note**: The `make html` command automatically runs `sphinx-apidoc` to generate API documentation from your source code, so the API docs are always up-to-date with your code.
+**Note**: The `make html` command automatically:
+
+- Collects generated reports via `hooks/pre_build_reports.sh` into `docs/reports/`
+- Runs `sphinx-apidoc` to generate API documentation from your source code
+
+So your API and reports sections are always up-to-date.
 
 ### Manually Regenerate API Documentation
 
@@ -45,6 +50,19 @@ make clean
 ```
 
 This removes the `_build/` directory but keeps the generated API documentation.
+
+## Generated Reports
+
+Place any Markdown reports you generate into `docs/reports_src/` (or provide a generator `docs/reports_src/generate_reports.sh`).
+
+On both ReadTheDocs and local builds, `hooks/pre_build_reports.sh` will copy `docs/reports_src/*.md` into `docs/reports/`, which is included in the documentation under the "Reports" section.
+
+Locally you can run just the collection step with:
+
+```bash
+cd docs
+make reports
+```
 
 ## ReadTheDocs
 
