@@ -24,7 +24,7 @@ apidoc:
 # Collect/generated reports
 reports:
 	@echo "Collecting generated reports..."
-	bash hooks/pre_build_reports.sh
+	bash readthedocs/hooks/pre_build_reports.sh
 	@echo "Reports collected into reports/"
 
 # Clean build artifacts and generated API docs
