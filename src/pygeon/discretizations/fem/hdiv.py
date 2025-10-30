@@ -49,7 +49,7 @@ class RT0(pg.Discretization):
         Returns:
             dict: Dictionary with required attributes.
         """
-        if data is None:
+        if not data:
             data = {
                 pp.PARAMETERS: {keyword: {}},
                 pp.DISCRETIZATION_MATRICES: {keyword: {}},
@@ -290,7 +290,7 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        if data is None:
+        if not data:
             data = RT0.create_unitary_data(self.keyword, sd, data)
 
         # Get dictionary for parameter storage

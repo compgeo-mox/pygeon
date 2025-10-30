@@ -32,7 +32,7 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        if data is None:
+        if not data:
             # If the data is not provided then use default values to build a block
             # diagonal mass matrix without the trace term
             mu = 0.5 * np.ones(sd.num_cells)
@@ -49,12 +49,12 @@ class VecHDiv(pg.VecDiscretization):
         # Save 1/(2mu) as a tensor so that it can be read by self
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
         data_self = pp.initialize_data(
-            sd, {}, self.keyword, {"second_order_tensor": mu_tensor}
+            {}, self.keyword, {"second_order_tensor": mu_tensor}
         )
 
         # Save the coefficient for the trace contribution
         coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_tr_space = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_tr_space = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
         # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_mass_matrix(sd, data_self)
@@ -98,7 +98,7 @@ class VecHDiv(pg.VecDiscretization):
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
         R_space: pg.Discretization
         if sd.dim == 2:
@@ -125,7 +125,7 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        if data is None:
+        if not data:
             # If the data is not provided then use default values to build a block
             # diagonal mass matrix without the trace term
             mu = 0.5
@@ -164,7 +164,7 @@ class VecHDiv(pg.VecDiscretization):
         M = self.assemble_lumped_matrix(sd, data)
 
         # Extract the data
-        if data is None:
+        if not data:
             # If the data is not provided then use default values to build a block
             # diagonal mass matrix without the trace term
             mu = 0.5
@@ -174,14 +174,17 @@ class VecHDiv(pg.VecDiscretization):
             mu = data[pp.PARAMETERS][self.keyword]["mu"]
             mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
 
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
+        coeff_val = 0.25 * (1 / mu_c - 1 / mu)
 
         # If coeff is a scalar, replace it by a vector so that it can be accessed per
         # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
+        coeff: np.ndarray
+        if isinstance(coeff_val, np.ScalarType):
+            coeff = np.full(sd.num_cells, coeff_val)
+        else:
+            coeff = np.atleast_1d(coeff_val)
 
-        data_for_R = pp.initialize_data(sd, {}, self.keyword, {"weight": coeff})
+        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
         R_space: pg.Discretization
         if sd.dim == 2:
