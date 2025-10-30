@@ -67,6 +67,12 @@ Contents
 
 .. toctree::
    :maxdepth: 1
+   :caption: Reports
+
+   reports/index
+
+.. toctree::
+   :maxdepth: 1
    :caption: Additional Information
 
    contributing
