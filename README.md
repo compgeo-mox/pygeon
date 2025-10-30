@@ -24,7 +24,9 @@ It might be useful to add PyGeoN to your PYTHONPATH.
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 
 ## Documentation
-Full documentation is available on [ReadTheDocs](https://pygeon-docs.readthedocs.io/).
+- Docs website: https://pygeon-docs.readthedocs.io/
+- Reports (auto-collected): https://pygeon-docs.readthedocs.io/en/latest/reports/
+- Developer Docs (maintenance, CI, automation): https://pygeon-docs.readthedocs.io/en/latest/readthedocs/MAINTENANCE.html
 
 ## Getting started
 See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).

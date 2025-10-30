@@ -82,12 +82,9 @@ Contents
 .. toctree::
    :maxdepth: 1
    :caption: Developer Docs
+   :glob:
 
-   readthedocs/MAINTENANCE
-   readthedocs/QUICKSTART_CI
-   readthedocs/CI_REFERENCE
-   readthedocs/QUALITY_ASSURANCE
-   readthedocs/AUTO_GENERATION
+   readthedocs/*.md
 
 Indices and tables
 ==================
