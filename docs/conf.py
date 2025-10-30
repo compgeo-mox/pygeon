@@ -10,23 +10,25 @@ from unittest.mock import MagicMock
 # -- Path setup --------------------------------------------------------------
 sys.path.insert(0, os.path.abspath("../src"))
 
+
 # Mock modules that are not available on ReadTheDocs or require system libraries
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
+
 MOCK_MODULES = [
-    'vtkmodules',
-    'vtkmodules.vtkCommonCore',
-    'vtkmodules.vtkCommonDataModel',
-    'vtkmodules.vtkIOXML',
-    'vtkmodules.vtkIOLegacy',
-    'vtkmodules.util',
-    'vtkmodules.util.numpy_support',
-    'meshio',
-    'pygmsh',
-    'gmsh',
+    "vtkmodules",
+    "vtkmodules.vtkCommonCore",
+    "vtkmodules.vtkCommonDataModel",
+    "vtkmodules.vtkIOXML",
+    "vtkmodules.vtkIOLegacy",
+    "vtkmodules.util",
+    "vtkmodules.util.numpy_support",
+    "meshio",
+    "pygmsh",
+    "gmsh",
 ]
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
