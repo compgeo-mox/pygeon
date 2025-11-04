@@ -4,7 +4,7 @@ import pygeon as pg
 
 # ------------------------- Unit grids -------------------------
 param_list = [(dim, is_str) for dim in range(1, 4) for is_str in [True, False]]
-param_list = param_list[1:]
+param_list = param_list[1:]  # Remove the (1, True) entry
 ids = ["1D", "2D_struct", "2D_unstruct", "3D_struct", "3D_unstruct"]
 
 
@@ -22,6 +22,11 @@ def _unit_grids_dict():
 @pytest.fixture(params=param_list, ids=ids)
 def unit_sd(_unit_grids_dict, request):
     return _unit_grids_dict[request.param]
+
+
+@pytest.fixture
+def unit_sd_1d(_unit_grids_dict):
+    return _unit_grids_dict[1, False]
 
 
 @pytest.fixture

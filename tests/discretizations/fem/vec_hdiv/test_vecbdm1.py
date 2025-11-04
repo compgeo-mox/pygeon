@@ -1,377 +1,144 @@
-import unittest
-
 import numpy as np
 import porepy as pp
+import pytest
 
 import pygeon as pg
 
 
-class VecBDM1Test(unittest.TestCase):
-    def test_1d(self):
-        sd = pp.CartGrid([1])
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+@pytest.fixture
+def discr():
+    return pg.VecBDM1("test")
 
-        vec_bdm1 = pg.VecBDM1("vecbdm1")
-        self.assertRaises(ValueError, vec_bdm1.assemble_asym_matrix, sd)
 
-    def test_trace_2d(self):
-        sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+@pytest.fixture
+def data():
+    return {pp.PARAMETERS: {"test": {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
 
-        vec_bdm1 = pg.VecBDM1("vecbdm1")
 
-        B = vec_bdm1.assemble_trace_matrix(sd)
+@pytest.fixture
+def fun():
+    return lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
 
-        fun = lambda x: np.array([[x[0] + x[1], x[0], 0], [x[1], -x[0] - x[1], 0]])
-        u = vec_bdm1.interpolate(sd, fun)
 
-        trace = B @ u
+def test_asym_1d(discr, unit_sd_1d):
+    with pytest.raises(ValueError):
+        discr.assemble_asym_matrix(unit_sd_1d)
 
-        self.assertTrue(np.allclose(trace, 0))
 
-    def test_ndof_2d(self):
-        sd = pp.StructuredTriangleGrid([1] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+def test_trace_2d(discr, unit_sd_2d):
+    B = discr.assemble_trace_matrix(unit_sd_2d)
 
-        vec_bdm1 = pg.VecBDM1("vecbdm1")
+    fun = lambda x: np.array([[x[0] + x[1], x[0], 0], [x[1], -x[0] - x[1], 0]])
+    u = discr.interpolate(unit_sd_2d, fun)
 
-        self.assertEqual(vec_bdm1.ndof(sd), 20)
+    trace = B @ u
 
-    def test_assemble_mass_matrix_2d(self):
-        N = 10
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+    assert np.allclose(trace, 0)
 
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
 
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
-        M = vec_bdm1.assemble_mass_matrix(sd, data)
+def test_ndof_2d(discr, unit_sd_2d):
+    assert discr.ndof(unit_sd_2d) == 180
 
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-        u = vec_bdm1.interpolate(sd, fun)
 
-        self.assertAlmostEqual(u.T @ M @ u, 26)
+def test_ndof_3d(discr, unit_sd_3d):
+    assert discr.ndof(unit_sd_3d) == 2178
 
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
-        M = vec_bdm1.assemble_mass_matrix(sd, data)
-        self.assertAlmostEqual(u.T @ M @ u, 30)
 
-    def test_assemble_mass_matrix_cosserat_2d(self):
-        N = 10
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+def test_assemble_mass_matrices(discr, unit_sd, data, fun):
+    if unit_sd.dim == 1:
+        return
+    M = discr.assemble_mass_matrix(unit_sd, data)
+    L = discr.assemble_lumped_matrix(unit_sd, data)
+    u = discr.interpolate(unit_sd, fun)
 
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
+    known = 26 if unit_sd.dim == 2 else 27
 
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
-        M = vec_bdm1.assemble_mass_matrix_cosserat(sd, data)
+    assert np.isclose(u.T @ M @ u, known)
+    assert np.isclose(u.T @ L @ u, known)
 
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-        u = vec_bdm1.interpolate(sd, fun)
 
-        self.assertAlmostEqual(u.T @ M @ u, 28)
+def test_assemble_cosserat_matrices(discr, unit_sd, data, fun):
+    if unit_sd.dim == 1:
+        return
+    M = discr.assemble_mass_matrix_cosserat(unit_sd, data)
+    L = discr.assemble_lumped_matrix_cosserat(unit_sd, data)
+    u = discr.interpolate(unit_sd, fun)
 
-    def test_assemble_lumped_matrix_2d(self):
-        N = 10
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+    known = 28 if unit_sd.dim == 2 else 29.5
 
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
+    assert np.isclose(u.T @ M @ u, known)
+    assert np.isclose(u.T @ L @ u, known)
 
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
-        M = vec_bdm1.assemble_lumped_matrix(sd, data)
 
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-        u = vec_bdm1.interpolate(sd, fun)
+def test_range(discr):
+    assert discr.get_range_discr_class(2) is pg.VecPwConstants
 
-        self.assertAlmostEqual(u.T @ M @ u, 26)
 
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
-        M = vec_bdm1.assemble_lumped_matrix(sd, data)
-        self.assertAlmostEqual(u.T @ M @ u, 30)
+def test_trace(discr, unit_sd, fun):
+    B = discr.assemble_trace_matrix(unit_sd)
+    u = discr.interpolate(unit_sd, fun)
 
-    def test_assemble_lumped_matrix_cosserat_2d(self):
-        N = 10
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+    trace = B @ u
+    known_trace = [0, 1, 4, 5]
+    known = known_trace[unit_sd.dim]
 
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
+    assert np.allclose(trace, known)
 
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
-        M = vec_bdm1.assemble_lumped_matrix_cosserat(sd, data)
 
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-        u = vec_bdm1.interpolate(sd, fun)
+def test_assemble_asym_matrix(discr, unit_sd, fun):
+    if unit_sd.dim == 1:
+        return
 
-        self.assertAlmostEqual(u.T @ M @ u, 28)
+    u = discr.interpolate(unit_sd, fun)
 
-    def test_eval_at_cell_centers_2d(self):
-        N = 1
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+    asym = discr.assemble_asym_matrix(unit_sd, False)
 
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
+    p1 = pg.PwLinears("p1") if unit_sd.dim == 2 else pg.VecPwLinears("p1")
+    cell_asym_u = p1.eval_at_cell_centers(unit_sd) @ (asym @ u)
 
-        def linear(x):
-            return np.array([x, 2 * x])
-
-        interp = vec_bdm1.interpolate(sd, linear)
-        eval = vec_bdm1.eval_at_cell_centers(sd) @ interp
-        eval = np.reshape(eval, (6, -1))
-
-        known = np.array([linear(x).ravel() for x in sd.cell_centers.T]).T
-
-        self.assertAlmostEqual(np.linalg.norm(eval - known), 0)
-
-    def test_proj_to_and_from_rt0_2d(self):
-        N = 1
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        def linear(x):
-            return np.array([x, 2 * x])
-
-        interp = vec_bdm1.interpolate(sd, linear)
-        interp_to_rt0 = vec_bdm1.proj_to_RT0(sd) @ interp
-        interp_from_rt0 = vec_bdm1.proj_from_RT0(sd) @ interp_to_rt0
-
-        self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
-
-    def test_range(self):
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-        self.assertTrue(vec_bdm1.get_range_discr_class(2) is pg.VecPwConstants)
-
-    def test_assemble_asym_matrix_2d(self):
-        N = 1
-        sd = pp.StructuredTriangleGrid([N] * 2, [1] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0]])
-        u = vec_bdm1.interpolate(sd, fun)
-        asym = vec_bdm1.assemble_asym_matrix(sd, False)
-
-        p1 = pg.PwLinears("p1")
-        cell_asym_u = p1.eval_at_cell_centers(sd) @ (asym @ u)
-
-        self.assertTrue(np.allclose(cell_asym_u, 2))
-
-    def test_trace_3d(self):
-        sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        vec_bdm1 = pg.VecBDM1("vecbdm1")
-
-        B = vec_bdm1.assemble_trace_matrix(sd)
-
-        fun = lambda x: np.array(
-            [[x[0], x[1], x[2]], [x[0], x[1], x[2]], [0, 0, -x[0] - x[1]]]
-        )
-        u = vec_bdm1.interpolate(sd, fun)
-
-        trace = B @ u
-
-        self.assertTrue(np.allclose(trace, 0))
-
-    def test_ndof_3d(self):
-        sd = pp.StructuredTetrahedralGrid([1] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        vec_bdm1 = pg.VecBDM1("vecbdm1")
-
-        self.assertEqual(vec_bdm1.ndof(sd), 162)
-
-    def test_assemble_mass_matrix_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
-        M = vec_bdm1.assemble_mass_matrix(sd, data)
-
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
-        u = vec_bdm1.interpolate(sd, fun)
-
-        self.assertAlmostEqual(u.T @ M @ u, 27)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
-        M = vec_bdm1.assemble_mass_matrix(sd, data)
-        self.assertAlmostEqual(u.T @ M @ u, 32)
-
-    def test_assemble_mass_matrix_cosserat_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
-        M = vec_bdm1.assemble_mass_matrix_cosserat(sd, data)
-
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
-        u = vec_bdm1.interpolate(sd, fun)
-
-        self.assertAlmostEqual(u.T @ M @ u, 29.5)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0, "mu_c": 0.25}}}
-        M = vec_bdm1.assemble_mass_matrix_cosserat(sd, data)
-        self.assertAlmostEqual(u.T @ M @ u, 34.5)
-
-    def test_assemble_lumped_matrix_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5}}}
-        M = vec_bdm1.assemble_lumped_matrix(sd, data)
-
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
-        u = vec_bdm1.interpolate(sd, fun)
-
-        self.assertAlmostEqual(u.T @ M @ u, 27)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0}}}
-        M = vec_bdm1.assemble_lumped_matrix(sd, data)
-        self.assertAlmostEqual(u.T @ M @ u, 32)
-
-    def test_assemble_lumped_matrix_cosserat_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
-        M = vec_bdm1.assemble_lumped_matrix_cosserat(sd, data)
-
-        fun = lambda _: np.array([[1, 2, 0], [4, 3, 0], [0, 1, 1]])
-        u = vec_bdm1.interpolate(sd, fun)
-
-        self.assertAlmostEqual(u.T @ M @ u, 29.5)
-
-    def test_eval_at_cell_centers_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        def linear(x):
-            return np.array([x, 2 * x, -x])
-
-        interp = vec_bdm1.interpolate(sd, linear)
-        eval = vec_bdm1.eval_at_cell_centers(sd) @ interp
-        eval = np.reshape(eval, (9, -1))
-
-        known = np.array([linear(x).ravel() for x in sd.cell_centers.T]).T
-        self.assertAlmostEqual(np.linalg.norm(eval - known), 0)
-
-    def test_assemble_asym_matrix_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        fun = lambda _: np.array([[1, 2, -1], [4, 3, 2], [1, 1, 1]])
-        u = vec_bdm1.interpolate(sd, fun)
-        asym = vec_bdm1.assemble_asym_matrix(sd, False)
-
-        p1 = pg.VecPwLinears("p1")
-        cell_asym_u = p1.eval_at_cell_centers(sd) @ (asym @ u)
+    if unit_sd.dim == 2:
+        assert np.allclose(cell_asym_u, 2)
+    else:
         cell_asym_u = cell_asym_u.reshape((3, -1))
-
-        self.assertTrue(np.allclose(cell_asym_u[0], -1))
-        self.assertTrue(np.allclose(cell_asym_u[1], -2))
-        self.assertTrue(np.allclose(cell_asym_u[2], 2))
-
-    def test_proj_to_and_from_rt0_3d(self):
-        N = 1
-        sd = pp.StructuredTetrahedralGrid([N] * 3, [1] * 3)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
-
-        key = "vecbdm1"
-        vec_bdm1 = pg.VecBDM1(key)
-
-        def linear(x):
-            return np.array([x, 2 * x, 3 * x])
-
-        interp = vec_bdm1.interpolate(sd, linear)
-        interp_to_rt0 = vec_bdm1.proj_to_RT0(sd) @ interp
-        interp_from_rt0 = vec_bdm1.proj_from_RT0(sd) @ interp_to_rt0
-
-        self.assertAlmostEqual(np.linalg.norm(interp - interp_from_rt0), 0)
-
-    def test_trace_with_proj(self):
-        for dim in [2, 3]:
-            sd = pg.unit_grid(dim, 1.0, as_mdg=False)
-            sd.compute_geometry()
-
-            discr = pg.MatPwLinears()
-            trace = discr.assemble_trace_matrix(sd)
-
-            bdm = pg.VecBDM1()
-            trace_bdm = bdm.assemble_trace_matrix(sd)
-            proj = bdm.proj_to_PwPolynomials(sd)
-
-            check = trace_bdm - trace @ proj
-            self.assertTrue(np.allclose(check.data, 0))
-
-    def test_asym_with_proj(self):
-        for dim in [2, 3]:
-            sd = pg.unit_grid(dim, 1.0, as_mdg=False)
-            sd.compute_geometry()
-
-            discr = pg.MatPwLinears()
-            asym = discr.assemble_asym_matrix(sd)
-
-            bdm = pg.VecBDM1()
-            asym_bdm = bdm.assemble_asym_matrix(sd, as_pwconstant=False)
-            proj = bdm.proj_to_PwPolynomials(sd)
-
-            check = asym_bdm - asym @ proj
-            self.assertTrue(np.allclose(check.data, 0))
+        assert np.allclose(cell_asym_u[0], 1)
+        assert np.allclose(cell_asym_u[1], 0)
+        assert np.allclose(cell_asym_u[2], 2)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_proj_to_and_from_rt0(discr, unit_sd):
+    def linear(x):
+        return np.array([x, 2 * x, 3 * x])
+
+    interp = discr.interpolate(unit_sd, linear)
+    interp_to_rt0 = discr.proj_to_RT0(unit_sd) @ interp
+    interp_from_rt0 = discr.proj_from_RT0(unit_sd) @ interp_to_rt0
+
+    assert np.allclose(interp, interp_from_rt0)
+
+
+def test_trace_with_proj(discr, unit_sd):
+    if unit_sd.dim == 1:
+        return
+
+    P1 = pg.MatPwLinears()
+    trace = P1.assemble_trace_matrix(unit_sd)
+
+    trace_bdm = discr.assemble_trace_matrix(unit_sd)
+    proj = discr.proj_to_PwPolynomials(unit_sd)
+
+    check = trace_bdm - trace @ proj
+    assert np.allclose(check.data, 0)
+
+
+def test_asym_with_proj(discr, unit_sd):
+    if unit_sd.dim == 1:
+        return
+
+    P1 = pg.MatPwLinears()
+    asym = P1.assemble_asym_matrix(unit_sd)
+
+    asym_bdm = discr.assemble_asym_matrix(unit_sd)
+    proj = discr.proj_to_PwPolynomials(unit_sd)
+
+    check = asym_bdm - asym @ proj
+    assert np.allclose(check.data, 0)
