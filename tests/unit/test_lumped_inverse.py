@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -94,6 +95,26 @@ class LumpedInverseTest(unittest.TestCase):
 
         # Check if the solution is correct
         self.assertTrue(np.allclose(invM.toarray(), expected_invM))
+
+    def test_lumped_inv(self):
+        max_nnz = [0, 0, 52, 333]
+        for dim in [2, 3]:
+            sd = pg.reference_element(dim)
+            sd.compute_geometry()
+
+            key = "test"
+            data = {pp.PARAMETERS: {key: {"mu": 0.5, "lambda": 1.0, "mu_c": 1.0}}}
+            discr = pg.VecRT1(key)
+
+            # check for data and without data, so we use default parameters
+            for d in [data, None]:
+                L = discr.assemble_lumped_matrix_cosserat(sd, d)
+                L_inv = pg.assemble_inverse(L)
+
+                L_inv.data[np.abs(L_inv.data) < 1e-10] = 0
+                L_inv.eliminate_zeros()
+
+                self.assertTrue(L_inv.nnz <= max_nnz[dim])
 
 
 if __name__ == "__main__":
