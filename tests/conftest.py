@@ -9,7 +9,7 @@ ids = ["1D", "2D_struct", "2D_unstruct", "3D_struct", "3D_unstruct"]
 
 
 @pytest.fixture(scope="session")
-def _unit_grids_dict():
+def _unit_grids_dict() -> dict[tuple[int, bool], pg.Grid]:
     grids = {}
     for dim, is_str in param_list:
         sd = pg.unit_grid(dim, 1 / (5 - dim), structured=is_str, as_mdg=False)
@@ -20,22 +20,22 @@ def _unit_grids_dict():
 
 
 @pytest.fixture(params=param_list, ids=ids)
-def unit_sd(_unit_grids_dict, request):
+def unit_sd(_unit_grids_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
     return _unit_grids_dict[request.param]
 
 
 @pytest.fixture
-def unit_sd_1d(_unit_grids_dict):
+def unit_sd_1d(_unit_grids_dict: dict) -> pg.Grid:
     return _unit_grids_dict[1, False]
 
 
 @pytest.fixture
-def unit_sd_2d(_unit_grids_dict):
+def unit_sd_2d(_unit_grids_dict: dict) -> pg.Grid:
     return _unit_grids_dict[2, False]
 
 
 @pytest.fixture
-def unit_sd_3d(_unit_grids_dict):
+def unit_sd_3d(_unit_grids_dict: dict) -> pg.Grid:
     return _unit_grids_dict[3, False]
 
 
@@ -44,7 +44,7 @@ ids = ["{:}D".format(dim) for dim in range(1, 4)]
 
 
 @pytest.fixture(scope="session")
-def _ref_elements_dict():
+def _ref_elements_dict() -> dict[int, pg.Grid]:
     grids = {}
     for dim in range(1, 4):
         sd = pg.reference_element(dim)
@@ -55,10 +55,10 @@ def _ref_elements_dict():
 
 
 @pytest.fixture(params=range(1, 4), ids=ids)
-def ref_sd(_ref_elements_dict, request):
+def ref_sd(_ref_elements_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
     return _ref_elements_dict[request.param]
 
 
 @pytest.fixture
-def ref_sd_3d(_ref_elements_dict):
+def ref_sd_3d(_ref_elements_dict: dict) -> pg.Grid:
     return _ref_elements_dict[3]
