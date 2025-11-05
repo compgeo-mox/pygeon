@@ -1,6 +1,8 @@
+import numpy as np
 import pytest
-import pygeon as pg
+import scipy.sparse as sps
 
+import pygeon as pg
 
 # ------------------------- Unit grids -------------------------
 param_list = [(dim, is_str) for dim in range(1, 4) for is_str in [True, False]]
@@ -62,3 +64,26 @@ def ref_sd(_ref_elements_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
 @pytest.fixture
 def ref_sd_3d(_ref_elements_dict: dict) -> pg.Grid:
     return _ref_elements_dict[3]
+
+
+# ------------------------- Polygonal elements -------------------------
+@pytest.fixture(scope="session")
+def pentagon_sd() -> pg.Grid:
+    nodes = np.array([[0, 3, 3, 3.0 / 2.0, 0], [0, 0, 2, 4, 4], np.zeros(5)])
+    indptr = np.arange(0, 11, 2)
+    indices = np.roll(np.repeat(np.arange(5), 2), -1)
+    face_nodes = sps.csc_array((np.ones(10), indices, indptr))
+    cell_faces = sps.csc_array(np.ones((5, 1)))
+
+    sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
+    sd.compute_geometry()
+
+    return sd
+
+
+@pytest.fixture(scope="session")
+def octagon_sd() -> pg.Grid:
+    sd = pg.OctagonGrid([1] * 2)
+    sd.compute_geometry()
+
+    return sd
