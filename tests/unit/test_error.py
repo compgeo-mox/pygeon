@@ -22,13 +22,13 @@ class ErrorTest(unittest.TestCase):
         discr = pg.PwConstants()
 
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
-        self.assertTrue(np.isclose(err, 1))
+        assert np.isclose(err, 1)
 
         err = discr.error_l2(sd, int_sol, fun, etype="standard")
-        self.assertTrue(np.isclose(err, 0))
+        assert np.isclose(err, 0)
 
         err = discr.error_l2(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0.22435590134827893))
+        assert np.isclose(err, 0.22435590134827893)
 
     def test_1(self):
         sd = pp.StructuredTriangleGrid(2 * [3])
@@ -79,13 +79,13 @@ class ErrorTest(unittest.TestCase):
         discr = pg.RT0()
 
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
-        self.assertTrue(np.isclose(err, 1))
+        assert np.isclose(err, 1)
 
         err = discr.error_l2(sd, int_sol, fun, etype="standard")
-        self.assertTrue(np.isclose(err, 0))
+        assert np.isclose(err, 0)
 
         err = discr.error_l2(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0.06859943405700351))
+        assert np.isclose(err, 0.06859943405700351)
 
     def test_2(self):
         sd = pp.StructuredTetrahedralGrid(3 * [3])
@@ -128,10 +128,10 @@ class ErrorTest(unittest.TestCase):
         discr = pg.Nedelec0()
 
         err = discr.error_l2(sd, np.zeros_like(int_sol), fun)
-        self.assertTrue(np.isclose(err, 1))
+        assert np.isclose(err, 1)
 
         err = discr.error_l2(sd, int_sol, fun)
-        self.assertTrue(np.isclose(err, 0))
+        assert np.isclose(err, 0)
 
 
 if __name__ == "__main__":

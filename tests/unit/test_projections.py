@@ -37,9 +37,9 @@ class ProjectionsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indices, P_known_indices)
+        assert np.allclose(P.indptr, P_known_indptr)
 
     def test1(self):
         N, dim = 2, 2
@@ -128,9 +128,9 @@ class ProjectionsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indices, P_known_indices)
+        assert np.allclose(P.indptr, P_known_indptr)
 
     def test3(self):
         mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.125}
@@ -273,7 +273,7 @@ class ProjectionsUnitTest(unittest.TestCase):
         P_known = sps.csc_array((P_known_data, P_known_indices, P_known_indptr))
         P_known = R @ P_known
 
-        self.assertTrue(np.allclose((P_known - P).data, 0))
+        assert np.allclose((P_known - P).data, 0)
 
 
 if __name__ == "__main__":

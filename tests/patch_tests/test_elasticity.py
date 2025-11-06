@@ -63,11 +63,11 @@ class ElasticityTestPrimal(unittest.TestCase):
         ls.flag_ess_bc(b_nodes, u_ex)
         u = ls.solve()
 
-        self.assertTrue(np.allclose(u, u_ex))
+        assert np.allclose(u, u_ex)
 
         sigma = vec_p1.compute_stress(sd, u, data)
 
-        self.assertTrue(np.allclose(sigma, 0))
+        assert np.allclose(sigma, 0)
 
     def test_rigid_body_motion_3d(self):
         """
@@ -90,11 +90,11 @@ class ElasticityTestPrimal(unittest.TestCase):
         ls.flag_ess_bc(b_nodes, u_ex)
         u = ls.solve()
 
-        self.assertTrue(np.allclose(u, u_ex))
+        assert np.allclose(u, u_ex)
 
         sigma = vec_p1.compute_stress(sd, u, data)
 
-        self.assertTrue(np.allclose(sigma, 0))
+        assert np.allclose(sigma, 0)
 
     def test_footing_2d(self):
         """
@@ -128,11 +128,11 @@ class ElasticityTestPrimal(unittest.TestCase):
              -0.42682694, -0.36033026, -0.17899184, -0.1394673 ])
         # fmt: on
 
-        self.assertTrue(np.allclose(u, u_known))
+        assert np.allclose(u, u_known)
 
         sigma = vec_p1.compute_stress(sd, u, data)
 
-        self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
+        assert np.all(np.trace(sigma, axis1=1, axis2=2) <= 0)
 
     def test_footing_3d(self):
         """
@@ -156,11 +156,11 @@ class ElasticityTestPrimal(unittest.TestCase):
         ls.flag_ess_bc(bottom, np.zeros(vec_p1.ndof(sd)))
         u = ls.solve()
 
-        self.assertTrue(np.all(u[-sd.num_nodes :] <= 0))
+        assert np.all(u[-sd.num_nodes :] <= 0)
 
         sigma = vec_p1.compute_stress(sd, u, data)
 
-        self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
+        assert np.all(np.trace(sigma, axis1=1, axis2=2) <= 0)
 
 
 class ElasticityTestMixed(unittest.TestCase):
@@ -214,9 +214,9 @@ class ElasticityTestMixed(unittest.TestCase):
         interp = vec_p0.interpolate(sd, u_boundary)
         u_known = vec_p0.eval_at_cell_centers(sd) @ interp
 
-        self.assertTrue(np.allclose(cell_sigma, 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, -1))
+        assert np.allclose(cell_sigma, 0)
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, -1)
 
     def test_elasticity_2d(self):
         N = 3
@@ -230,14 +230,14 @@ class ElasticityTestMixed(unittest.TestCase):
 
         cell_sigma = cell_sigma.reshape((6, -1))
 
-        self.assertTrue(np.allclose(cell_sigma[0], 2))
-        self.assertTrue(np.allclose(cell_sigma[1], 0))
-        self.assertTrue(np.allclose(cell_sigma[2], 0))
-        self.assertTrue(np.allclose(cell_sigma[3], 0))
-        self.assertTrue(np.allclose(cell_sigma[4], 2))
-        self.assertTrue(np.allclose(cell_sigma[5], 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, 0))
+        assert np.allclose(cell_sigma[0], 2)
+        assert np.allclose(cell_sigma[1], 0)
+        assert np.allclose(cell_sigma[2], 0)
+        assert np.allclose(cell_sigma[3], 0)
+        assert np.allclose(cell_sigma[4], 2)
+        assert np.allclose(cell_sigma[5], 0)
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, 0)
 
     def run_elasticity_3d(self, u_boundary, N):
         sd = pg.unit_grid(3, 1 / N, as_mdg=False)
@@ -288,14 +288,14 @@ class ElasticityTestMixed(unittest.TestCase):
         interp = vec_p0.interpolate(sd, u_boundary)
         u_known = vec_p0.eval_at_cell_centers(sd) @ interp
 
-        self.assertTrue(np.allclose(cell_sigma, 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
+        assert np.allclose(cell_sigma, 0)
+        assert np.allclose(cell_u, u_known)
 
         cell_r = cell_r.reshape((3, -1))
 
-        self.assertTrue(np.allclose(cell_r[0], 1))
-        self.assertTrue(np.allclose(cell_r[1], 0))
-        self.assertTrue(np.allclose(cell_r[2], 1))
+        assert np.allclose(cell_r[0], 1)
+        assert np.allclose(cell_r[1], 0)
+        assert np.allclose(cell_r[2], 1)
 
     def test_elasticity_3d(self):
         N = 3
@@ -309,18 +309,18 @@ class ElasticityTestMixed(unittest.TestCase):
 
         cell_sigma = cell_sigma.reshape((9, -1))
 
-        self.assertTrue(np.allclose(cell_sigma[0], 2.5))
-        self.assertTrue(np.allclose(cell_sigma[1], 0))
-        self.assertTrue(np.allclose(cell_sigma[2], 0))
-        self.assertTrue(np.allclose(cell_sigma[3], 0))
-        self.assertTrue(np.allclose(cell_sigma[4], 2.5))
-        self.assertTrue(np.allclose(cell_sigma[5], 0))
-        self.assertTrue(np.allclose(cell_sigma[6], 0))
-        self.assertTrue(np.allclose(cell_sigma[7], 0))
-        self.assertTrue(np.allclose(cell_sigma[8], 2.5))
+        assert np.allclose(cell_sigma[0], 2.5)
+        assert np.allclose(cell_sigma[1], 0)
+        assert np.allclose(cell_sigma[2], 0)
+        assert np.allclose(cell_sigma[3], 0)
+        assert np.allclose(cell_sigma[4], 2.5)
+        assert np.allclose(cell_sigma[5], 0)
+        assert np.allclose(cell_sigma[6], 0)
+        assert np.allclose(cell_sigma[7], 0)
+        assert np.allclose(cell_sigma[8], 2.5)
 
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, 0))
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, 0)
 
 
 class ElasticityTestMixedRT1(unittest.TestCase):
@@ -380,15 +380,15 @@ class ElasticityTestMixedRT1(unittest.TestCase):
         interp = vec_p1.interpolate(sd, u_boundary)
         u_known = vec_p1.eval_at_cell_centers(sd) @ interp
 
-        self.assertTrue(np.allclose(cell_sigma, 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, -1))
+        assert np.allclose(cell_sigma, 0)
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, -1)
 
         cell_sigma, cell_u, cell_r, sd = self.run_elasticity_2d(u_boundary, N, True)
 
-        self.assertTrue(np.allclose(cell_sigma, 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, -1))
+        assert np.allclose(cell_sigma, 0)
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, -1)
 
     def test_elasticity_2d(self):
         N = 3
@@ -402,27 +402,27 @@ class ElasticityTestMixedRT1(unittest.TestCase):
 
         cell_sigma = cell_sigma.reshape((6, -1))
 
-        self.assertTrue(np.allclose(cell_sigma[0], 2))
-        self.assertTrue(np.allclose(cell_sigma[1], 0))
-        self.assertTrue(np.allclose(cell_sigma[2], 0))
-        self.assertTrue(np.allclose(cell_sigma[3], 0))
-        self.assertTrue(np.allclose(cell_sigma[4], 2))
-        self.assertTrue(np.allclose(cell_sigma[5], 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, 0))
+        assert np.allclose(cell_sigma[0], 2)
+        assert np.allclose(cell_sigma[1], 0)
+        assert np.allclose(cell_sigma[2], 0)
+        assert np.allclose(cell_sigma[3], 0)
+        assert np.allclose(cell_sigma[4], 2)
+        assert np.allclose(cell_sigma[5], 0)
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, 0)
 
         cell_sigma, cell_u, cell_r, sd = self.run_elasticity_2d(u_boundary, N, True)
 
         cell_sigma = cell_sigma.reshape((6, -1))
 
-        self.assertTrue(np.allclose(cell_sigma[0], 2))
-        self.assertTrue(np.allclose(cell_sigma[1], 0))
-        self.assertTrue(np.allclose(cell_sigma[2], 0))
-        self.assertTrue(np.allclose(cell_sigma[3], 0))
-        self.assertTrue(np.allclose(cell_sigma[4], 2))
-        self.assertTrue(np.allclose(cell_sigma[5], 0))
-        self.assertTrue(np.allclose(cell_u, u_known))
-        self.assertTrue(np.allclose(cell_r, 0))
+        assert np.allclose(cell_sigma[0], 2)
+        assert np.allclose(cell_sigma[1], 0)
+        assert np.allclose(cell_sigma[2], 0)
+        assert np.allclose(cell_sigma[3], 0)
+        assert np.allclose(cell_sigma[4], 2)
+        assert np.allclose(cell_sigma[5], 0)
+        assert np.allclose(cell_u, u_known)
+        assert np.allclose(cell_r, 0)
 
 
 if __name__ == "__main__":

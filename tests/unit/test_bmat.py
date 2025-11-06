@@ -38,8 +38,8 @@ class BlockMatrixTest(unittest.TestCase):
         known_row = np.array([1, 2, 3, 0])
         known_col = np.array([1, 2, 3])
 
-        self.assertTrue(np.all(known_row == row))
-        self.assertTrue(np.all(known_col == col))
+        assert np.all(known_row == row)
+        assert np.all(known_col == col)
 
     def test_replace_nones(self):
         """
@@ -59,7 +59,7 @@ class BlockMatrixTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(np.all(M_known == sps.block_array(M).toarray()))
+        assert np.all(M_known == sps.block_array(M).toarray())
 
     def test_mat_addition(self):
         """
@@ -84,9 +84,7 @@ class BlockMatrixTest(unittest.TestCase):
         M = self.create_block_mat()
         M_T = pg.bmat.transpose(M)
 
-        self.assertTrue(
-            np.all(sps.block_array(M_T).toarray() == sps.block_array(M).toarray().T)
-        )
+        assert np.all(sps.block_array(M_T).toarray() == sps.block_array(M).toarray().T)
 
 
 if __name__ == "__main__":

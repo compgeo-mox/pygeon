@@ -46,7 +46,7 @@ class LumpedInverseTest(unittest.TestCase):
 
         # Check if the solution is correct
         expected_sol = sps.linalg.spsolve(M, b)
-        self.assertTrue(np.allclose(sol, expected_sol))
+        assert np.allclose(sol, expected_sol)
 
         # Check if the shape of the solution is correct
         self.assertEqual(sol.shape, (5,))
@@ -62,7 +62,7 @@ class LumpedInverseTest(unittest.TestCase):
 
         # Check if the solution is correct
         expected_sol = sps.linalg.spsolve(M, B)
-        self.assertTrue(np.allclose(sol, expected_sol))
+        assert np.allclose(sol, expected_sol)
 
         # Check if the shape of the solution is correct
         self.assertEqual(sol.shape, (5, 3))
@@ -78,13 +78,13 @@ class LumpedInverseTest(unittest.TestCase):
 
         # Check if the solution is correct
         expected_sol = sps.linalg.spsolve(M, B.todense())
-        self.assertTrue(np.allclose(sol.toarray(), expected_sol))
+        assert np.allclose(sol.toarray(), expected_sol)
 
         # Check if the shape of the solution is correct
-        self.assertTrue(np.allclose(sol.shape, (5, 6)))
+        assert np.allclose(sol.shape, (5, 6))
 
         # Check if the solution is a sparse matrix
-        self.assertTrue(sps.issparse(sol))
+        assert sps.issparse(sol)
 
     def test_assemble_inverse(self):
         M, _, _, _ = self.setUp()
@@ -94,7 +94,7 @@ class LumpedInverseTest(unittest.TestCase):
         expected_invM = np.linalg.inv(M.toarray())
 
         # Check if the solution is correct
-        self.assertTrue(np.allclose(invM.toarray(), expected_invM))
+        assert np.allclose(invM.toarray(), expected_invM)
 
     def test_lumped_inv(self):
         max_nnz = [0, 0, 52, 333]
@@ -114,7 +114,7 @@ class LumpedInverseTest(unittest.TestCase):
                 L_inv.data[np.abs(L_inv.data) < 1e-10] = 0
                 L_inv.eliminate_zeros()
 
-                self.assertTrue(L_inv.nnz <= max_nnz[dim])
+                assert L_inv.nnz <= max_nnz[dim]
 
 
 if __name__ == "__main__":

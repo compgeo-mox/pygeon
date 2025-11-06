@@ -55,17 +55,15 @@ class VoronoiTest(unittest.TestCase):
 
         # fmt: on
 
-        self.assertTrue(np.allclose(sd.nodes, sd_nodes))
+        assert np.allclose(sd.nodes, sd_nodes)
 
-        self.assertTrue(
-            np.allclose(sd.face_nodes.data, np.ones_like(sd_face_nodes_indices))
-        )
-        self.assertTrue(np.allclose(sd.face_nodes.indptr, sd_face_nodes_indptr))
-        self.assertTrue(np.allclose(sd.face_nodes.indices, sd_face_nodes_indices))
+        assert np.allclose(sd.face_nodes.data, np.ones_like(sd_face_nodes_indices))
+        assert np.allclose(sd.face_nodes.indptr, sd_face_nodes_indptr)
+        assert np.allclose(sd.face_nodes.indices, sd_face_nodes_indices)
 
-        self.assertTrue(np.allclose(sd.cell_faces.data, sd_cell_faces_data))
-        self.assertTrue(np.allclose(sd.cell_faces.indptr, sd_cell_faces_indptr))
-        self.assertTrue(np.allclose(sd.cell_faces.indices, sd_cell_faces_indices))
+        assert np.allclose(sd.cell_faces.data, sd_cell_faces_data)
+        assert np.allclose(sd.cell_faces.indptr, sd_cell_faces_indptr)
+        assert np.allclose(sd.cell_faces.indices, sd_cell_faces_indices)
 
 
 if __name__ == "__main__":

@@ -24,10 +24,10 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.shape, (8, 8)))
-        self.assertTrue(M.data.size == 0)
-        self.assertTrue(M.indices.size == 0)
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.shape, (8, 8))
+        assert M.data.size == 0
+        assert M.indices.size == 0
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.face_stiff(mdg)
 
@@ -53,7 +53,7 @@ class StiffnessUnitTest(unittest.TestCase):
         # fmt: on
 
         M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
-        self.assertTrue((abs(M_known - M) > 1e-13).nnz == 0)
+        assert (abs(M_known - M) > 1e-13).nnz == 0
 
         M = pg.ridge_stiff(mdg)
 
@@ -75,11 +75,11 @@ class StiffnessUnitTest(unittest.TestCase):
         # fmt: on
 
         M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
-        self.assertTrue((abs(M_known - M) > 1e-13).nnz == 0)
+        assert (abs(M_known - M) > 1e-13).nnz == 0
 
         M = pg.peak_stiff(mdg)
 
-        self.assertTrue(np.allclose(M.shape, (0, 0)))
+        assert np.allclose(M.shape, (0, 0))
 
     def test_3d_simplicial(self):
         N, dim = 2, 3
@@ -99,10 +99,10 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.shape, (48, 48)))
-        self.assertTrue(M.data.size == 0)
-        self.assertTrue(M.indices.size == 0)
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.shape, (48, 48))
+        assert M.data.size == 0
+        assert M.indices.size == 0
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.face_stiff(mdg)
 
@@ -246,7 +246,7 @@ class StiffnessUnitTest(unittest.TestCase):
         # fmt: on
 
         M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
-        self.assertTrue((abs(M_known - M) > 1e-13).nnz == 0)
+        assert (abs(M_known - M) > 1e-13).nnz == 0
 
         M = pg.ridge_stiff(mdg)
 
@@ -490,7 +490,7 @@ class StiffnessUnitTest(unittest.TestCase):
         # fmt: on
 
         M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
-        self.assertTrue((abs(M_known - M) > 1e-8).nnz == 0)
+        assert (abs(M_known - M) > 1e-8).nnz == 0
 
         M = pg.peak_stiff(mdg)
 
@@ -567,7 +567,7 @@ class StiffnessUnitTest(unittest.TestCase):
         )
         # fmt: on
         M_known = sps.csc_array((M_known_data, M_known_indices, M_known_indptr))
-        self.assertTrue((abs(M_known - M) > 1e-8).nnz == 0)
+        assert (abs(M_known - M) > 1e-8).nnz == 0
 
 
 if __name__ == "__main__":

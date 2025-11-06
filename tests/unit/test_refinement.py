@@ -13,13 +13,13 @@ class RefinementTest(unittest.TestCase):
         sd = pg.barycentric_split(sd_old)
         sd.compute_geometry()
 
-        self.assertTrue(sd.num_cells == (sd.dim + 1) * sd_old.num_cells)
-        self.assertTrue(sd.num_nodes == sd_old.num_nodes + sd_old.num_cells)
+        assert sd.num_cells == (sd.dim + 1) * sd_old.num_cells
+        assert sd.num_nodes == sd_old.num_nodes + sd_old.num_cells
 
-        self.assertTrue(np.isclose(sd.cell_volumes.sum(), 1))
+        assert np.isclose(sd.cell_volumes.sum(), 1)
 
-        self.assertTrue((sd.face_ridges @ sd.cell_faces).nnz == 0)
-        self.assertTrue((sd.ridge_peaks @ sd.face_ridges).nnz == 0)
+        assert (sd.face_ridges @ sd.cell_faces).nnz == 0
+        assert (sd.ridge_peaks @ sd.face_ridges).nnz == 0
 
     def test_unit_line(self):
         self.unit_cube_test_unstr(1)

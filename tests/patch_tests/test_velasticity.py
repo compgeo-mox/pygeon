@@ -63,11 +63,11 @@ class VElasticityTestPrimal(unittest.TestCase):
         ls.flag_ess_bc(b_nodes, u_ex)
         u = ls.solve()
 
-        self.assertTrue(np.allclose(u, u_ex))
+        assert np.allclose(u, u_ex)
 
         sigma = vec_p1.compute_stress(sd, u, data)
 
-        self.assertTrue(np.allclose(sigma, 0))
+        assert np.allclose(sigma, 0)
 
     def test_footing_2d(self):
         """
@@ -101,11 +101,11 @@ class VElasticityTestPrimal(unittest.TestCase):
         -6.19678335e-01, -6.32923368e-01])
         # fmt: on
 
-        self.assertTrue(np.allclose(u, u_known))
+        assert np.allclose(u, u_known)
 
         sigma = vec_p1.compute_stress(sd, u, data)
 
-        self.assertTrue(np.all(np.trace(sigma, axis1=1, axis2=2) <= 0))
+        assert np.all(np.trace(sigma, axis1=1, axis2=2) <= 0)
 
 
 if __name__ == "__main__":

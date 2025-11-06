@@ -19,18 +19,18 @@ class DifferentialsUnitTest(unittest.TestCase):
         curl = pg.curl(sd)
         grad = pg.grad(sd)
 
-        self.assertTrue(np.allclose(div.shape, (1, 0)))
-        self.assertTrue(np.allclose(curl.shape, (0, 0)))
-        self.assertTrue(np.allclose(grad.shape, (0, 0)))
+        assert np.allclose(div.shape, (1, 0))
+        assert np.allclose(curl.shape, (0, 0))
+        assert np.allclose(grad.shape, (0, 0))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
-        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+        assert np.allclose(ext_der.shape, (0, sd.num_cells))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
-        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+        assert np.allclose(ext_der.shape, (sd.num_peaks, 0))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 5)
-        self.assertTrue(np.allclose(ext_der.shape, (0, 0)))
+        assert np.allclose(ext_der.shape, (0, 0))
 
     def test_1d(self):
         N, dim = 3, 1
@@ -53,12 +53,12 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((0, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(div.todense(), known_div))
-        self.assertTrue(np.allclose(curl.todense(), known_curl))
-        self.assertTrue(np.allclose(grad.todense(), known_grad))
+        assert np.allclose(div.todense(), known_div)
+        assert np.allclose(curl.todense(), known_curl)
+        assert np.allclose(grad.todense(), known_grad)
 
         class Dummy:
             pass
@@ -70,10 +70,10 @@ class DifferentialsUnitTest(unittest.TestCase):
         )
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
-        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+        assert np.allclose(ext_der.shape, (0, sd.num_cells))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
-        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+        assert np.allclose(ext_der.shape, (sd.num_peaks, 0))
 
     def test_2d_simplicial(self):
         N, dim = 2, 2
@@ -117,18 +117,18 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(div.todense(), known_div))
-        self.assertTrue(np.allclose(curl.todense(), known_curl))
-        self.assertTrue(np.allclose(grad.todense(), known_grad))
+        assert np.allclose(div.todense(), known_div)
+        assert np.allclose(curl.todense(), known_curl)
+        assert np.allclose(grad.todense(), known_grad)
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
-        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+        assert np.allclose(ext_der.shape, (0, sd.num_cells))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
-        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+        assert np.allclose(ext_der.shape, (sd.num_peaks, 0))
 
     def test_2d_cartesian(self):
         N, dim = 2, 2
@@ -164,18 +164,18 @@ class DifferentialsUnitTest(unittest.TestCase):
         known_grad = np.zeros((9, 0))
         # fmt: on
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(div.todense(), known_div))
-        self.assertTrue(np.allclose(curl.todense(), known_curl))
-        self.assertTrue(np.allclose(grad.todense(), known_grad))
+        assert np.allclose(div.todense(), known_div)
+        assert np.allclose(curl.todense(), known_curl)
+        assert np.allclose(grad.todense(), known_grad)
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
-        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+        assert np.allclose(ext_der.shape, (0, sd.num_cells))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
-        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+        assert np.allclose(ext_der.shape, (sd.num_peaks, 0))
 
     def test_3d_simplicial(self):
         N, dim = 2, 3
@@ -189,18 +189,18 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_simplicial_grid()
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(div.todense(), known_div))
-        self.assertTrue(np.allclose(curl.todense(), known_curl))
-        self.assertTrue(np.allclose(grad.todense(), known_grad))
+        assert np.allclose(div.todense(), known_div)
+        assert np.allclose(curl.todense(), known_curl)
+        assert np.allclose(grad.todense(), known_grad)
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
-        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+        assert np.allclose(ext_der.shape, (0, sd.num_cells))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
-        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+        assert np.allclose(ext_der.shape, (sd.num_peaks, 0))
 
     def test_3d_cartesian(self):
         N, dim = 2, 3
@@ -214,18 +214,18 @@ class DifferentialsUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._3d_single_cartesian_grid()
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(div.todense(), known_div))
-        self.assertTrue(np.allclose(curl.todense(), known_curl))
-        self.assertTrue(np.allclose(grad.todense(), known_grad))
+        assert np.allclose(div.todense(), known_div)
+        assert np.allclose(curl.todense(), known_curl)
+        assert np.allclose(grad.todense(), known_grad)
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 0)
-        self.assertTrue(np.allclose(ext_der.shape, (0, sd.num_cells)))
+        assert np.allclose(ext_der.shape, (0, sd.num_cells))
 
         ext_der = pg.numerics.differentials.exterior_derivative(sd, 4)
-        self.assertTrue(np.allclose(ext_der.shape, (sd.num_peaks, 0)))
+        assert np.allclose(ext_der.shape, (sd.num_peaks, 0))
 
     def _3d_single_simplicial_grid(self):
         # fmt: off

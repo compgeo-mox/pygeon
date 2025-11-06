@@ -29,7 +29,7 @@ class EinSteinGridTest(unittest.TestCase):
 
         # check the cell_faces
         cf_known = sps.csc_array((cf_data, cf_indices, cf_indptr))
-        self.assertTrue(np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
+        assert np.allclose(sps.find(sd.cell_faces), sps.find(cf_known))
 
         # fmt: off
         fr_indices = np.array(
@@ -47,11 +47,11 @@ class EinSteinGridTest(unittest.TestCase):
 
         # check the face_ridges
         fr_known = sps.csc_array((fr_data, fr_indices, fr_indptr))
-        self.assertTrue(np.allclose(sps.find(sd.face_ridges), sps.find(fr_known)))
+        assert np.allclose(sps.find(sd.face_ridges), sps.find(fr_known))
 
         # check the cell_volumes
         cv_kown = 0.38490017945975075
-        self.assertTrue(np.allclose(sd.cell_volumes, cv_kown))
+        assert np.allclose(sd.cell_volumes, cv_kown)
 
     def test_H1(self):
         file_name = os.path.join(self.folder, "H1.svg")
@@ -77,7 +77,7 @@ class EinSteinGridTest(unittest.TestCase):
 
         # check the cell_faces
         cf_known = sps.csc_array((cf_data, cf_indices, cf_indptr))
-        self.assertTrue(np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
+        assert np.allclose(sps.find(sd.cell_faces), sps.find(cf_known))
 
         # fmt: off
         fr_indices = np.array(
@@ -105,11 +105,11 @@ class EinSteinGridTest(unittest.TestCase):
 
         # check the face_ridges
         fr_known = sps.csc_array((fr_data, fr_indices, fr_indptr))
-        self.assertTrue(np.allclose(sps.find(sd.face_ridges), sps.find(fr_known)))
+        assert np.allclose(sps.find(sd.face_ridges), sps.find(fr_known))
 
         # check the cell_volumes
         cv_kown = 0.12568169125216347
-        self.assertTrue(np.allclose(sd.cell_volumes, cv_kown))
+        assert np.allclose(sd.cell_volumes, cv_kown)
 
     def test_H2(self):
         file_name = os.path.join(self.folder, "H2.svg")
@@ -178,7 +178,7 @@ class EinSteinGridTest(unittest.TestCase):
 
         # check the cell_faces
         cf_known = sps.csc_array((cf_data, cf_indices, cf_indptr))
-        self.assertTrue(np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
+        assert (np.allclose(sps.find(sd.cell_faces), sps.find(cf_known)))
 
         # face_ridges known data
         # fmt: off
@@ -273,11 +273,11 @@ class EinSteinGridTest(unittest.TestCase):
 
         # check the face_ridges
         fr_known = sps.csc_array((fr_data, fr_indices, fr_indptr))
-        self.assertTrue(np.allclose(sps.find(sd.face_ridges), sps.find(fr_known)))
+        assert np.allclose(sps.find(sd.face_ridges), sps.find(fr_known))
 
         # check the cell_volumes
         cv_kown = 0.023565317109780656
-        self.assertTrue(np.allclose(sd.cell_volumes, cv_kown))
+        assert np.allclose(sd.cell_volumes, cv_kown)
 
 
 if __name__ == "__main__":

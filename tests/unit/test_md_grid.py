@@ -70,9 +70,9 @@ class MDGridTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indptr, P_known_indptr)
+        assert np.allclose(P.indices, P_known_indices)
 
         P = pg.remove_tip_dofs(mdg, 0)
 
@@ -101,9 +101,9 @@ class MDGridTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indptr, P_known_indptr)
+        assert np.allclose(P.indices, P_known_indices)
 
 
 if __name__ == "__main__":

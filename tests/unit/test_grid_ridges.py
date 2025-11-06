@@ -200,9 +200,7 @@ class GridRidgesTest(unittest.TestCase):
         for mg in mdg.interfaces():
             if mg.dim == 1:
                 self.assertEqual(mg.ridge_peaks.shape, (0, 0))
-                self.assertTrue(
-                    np.all(mg.face_ridges.todense() == known_face_ridges_mg())
-                )
+                assert np.all(mg.face_ridges.todense() == known_face_ridges_mg())
 
     def known_fr_2d_cart(self):
         data = np.array(

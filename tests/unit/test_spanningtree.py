@@ -28,7 +28,7 @@ class SpanningTreeTest(unittest.TestCase):
         f = np.arange(mdg.num_subdomain_cells())
         q_f = sptr.solve(f)
 
-        self.assertTrue(np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f))
+        assert np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f)
 
     def check_pressure(self, mdg, sptr):
         """
@@ -47,7 +47,7 @@ class SpanningTreeTest(unittest.TestCase):
 
         p_sptr = sptr.solve_transpose(face_mass @ q)
 
-        self.assertTrue(np.allclose(p, p_sptr))
+        assert np.allclose(p, p_sptr)
 
     def test_cart_grid(self):
         N = 3
@@ -134,7 +134,7 @@ class SpanningTreeTest(unittest.TestCase):
             B = pg.cell_mass(mdg) @ pg.div(mdg)
             check = sps.eye_array(B.shape[0]) - B @ SI
 
-            self.assertTrue(np.allclose(check.data, 0))
+            assert np.allclose(check.data, 0)
 
     def test_for_errors(self):
         sd = pg.unit_grid(2, 0.125)
@@ -187,7 +187,7 @@ class SpanningTreeElasticityTest(unittest.TestCase):
 
         for sptr in self.sptr(mdg):
             s_f = sptr.solve(f)
-            self.assertTrue(np.allclose(B @ s_f, f))
+            assert np.allclose(B @ s_f, f)
 
     def test_elasticity_struct_tet_grid(self):
         sd = pp.StructuredTetrahedralGrid([1] * 3)
@@ -200,7 +200,7 @@ class SpanningTreeElasticityTest(unittest.TestCase):
 
         for sptr in self.sptr(mdg):
             s_f = sptr.solve(f)
-            self.assertTrue(np.allclose(B @ s_f, f))
+            assert np.allclose(B @ s_f, f)
 
     def test_elasticity_unstruct_tet_grid(self):
         sd = pg.unit_grid(3, 1.0)
@@ -213,7 +213,7 @@ class SpanningTreeElasticityTest(unittest.TestCase):
 
         for sptr in self.sptr(mdg):
             s_f = sptr.solve(f)
-            self.assertTrue(np.allclose(B @ s_f, f))
+            assert np.allclose(B @ s_f, f)
 
     def test_assemble_SI(self):
         N, dim = 3, 2
@@ -227,7 +227,7 @@ class SpanningTreeElasticityTest(unittest.TestCase):
             B = self.assemble_B(mdg)
             check = sps.eye_array(B.shape[0]) - B @ SI
 
-            self.assertTrue(np.allclose(check.data, 0))
+            assert np.allclose(check.data, 0)
 
     def test_for_errors(self):
         sd = pp.CartGrid(1, 1)
@@ -250,7 +250,7 @@ class SpanningTreeCosseratTest(unittest.TestCase):
         sptr = pg.SpanningTreeCosserat(mdg)
 
         s_f = sptr.solve(f)
-        self.assertTrue(np.allclose(B @ s_f, f))
+        assert np.allclose(B @ s_f, f)
 
     def assemble_B(self, mdg):
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
@@ -287,7 +287,7 @@ class SpanningTreeCosseratTest(unittest.TestCase):
         B = self.assemble_B(mdg)
         check = sps.eye_array(B.shape[0]) - B @ SI
 
-        self.assertTrue(np.allclose(check.data, 0))
+        assert np.allclose(check.data, 0)
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ class LevelsetGridTest(unittest.TestCase):
         new_con = sps.hstack((sps.csc_array(old_con.shape), old_con))
         con = remesh.merge_connectivities(old_con, new_con)
 
-        self.assertTrue(np.all(con.indices == np.tile(indices, 2)))
+        assert np.all(con.indices == np.tile(indices, 2))
 
     def test_create_node_loop(self):
         nodes = np.array([3, 6, 4, 7, 3, 4, 6, 7])
@@ -36,7 +36,7 @@ class LevelsetGridTest(unittest.TestCase):
 
         loop = remesh.create_oriented_node_loop(nodes, faces, orients)
 
-        self.assertTrue(np.all(loop == np.array([3, 4, 7, 6])))
+        assert np.all(loop == np.array([3, 4, 7, 6]))
 
     def test_levelset_through_node(self):
         sd = pp.StructuredTriangleGrid([5] * 2, [1] * 2)

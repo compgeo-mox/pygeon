@@ -12,7 +12,7 @@ import pygeon as pg
 
 class StandardGridTest(unittest.TestCase):
     def check_grid(self, sd, dim, boundary):
-        self.assertTrue(sd.dim == dim)
+        assert sd.dim == dim
 
         # check if the boundary faces belong to the imposed boundary
         faces = sd.tags["domain_boundary_faces"]
@@ -39,8 +39,8 @@ class StandardGridTest(unittest.TestCase):
             face_on_boundary[np.isclose(dist_faces, 0).ravel()] = True
             node_on_boundary[np.isclose(dist_nodes, 0).ravel()] = True
 
-        self.assertTrue(np.all(face_on_boundary))
-        self.assertTrue(np.all(node_on_boundary))
+        assert np.all(face_on_boundary)
+        assert np.all(node_on_boundary)
 
     def test_unit_square_mdg(self):
         mesh_size = 0.5
@@ -133,9 +133,9 @@ class StandardGridTest(unittest.TestCase):
         mesh_size = 0.5
         sd = pg.unit_grid(3, mesh_size, as_mdg=False)
 
-        self.assertTrue(np.isclose(sd.num_cells, 100))
-        self.assertTrue(np.isclose(sd.num_faces, 242))
-        self.assertTrue(np.isclose(sd.num_nodes, 45))
+        assert np.isclose(sd.num_cells, 100)
+        assert np.isclose(sd.num_faces, 242)
+        assert np.isclose(sd.num_nodes, 45)
 
 
 if __name__ == "__main__":

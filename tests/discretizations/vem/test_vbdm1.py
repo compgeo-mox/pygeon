@@ -92,9 +92,9 @@ class VBDM1Test(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indptr, M_known_indptr)
+        assert np.allclose(M.indices, M_known_indices)
 
         self.assertEqual(discr.ndof(sd), sd.dim * sd.num_faces)
 
@@ -126,9 +126,9 @@ class VBDM1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(P.data, P_known_data))
-        self.assertTrue(np.allclose(P.indptr, P_known_indptr))
-        self.assertTrue(np.allclose(P.indices, P_known_indices))
+        assert np.allclose(P.data, P_known_data)
+        assert np.allclose(P.indptr, P_known_indptr)
+        assert np.allclose(P.indices, P_known_indices)
 
         self.assertRaises(
             NotImplementedError,
@@ -156,9 +156,9 @@ class VBDM1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(D.data, D_known_data))
-        self.assertTrue(np.allclose(D.indptr, D_known_indptr))
-        self.assertTrue(np.allclose(D.indices, D_known_indices))
+        assert np.allclose(D.data, D_known_data)
+        assert np.allclose(D.indptr, D_known_indptr)
+        assert np.allclose(D.indices, D_known_indices)
 
         self.assertRaises(
             NotImplementedError,
@@ -181,7 +181,7 @@ class VBDM1Test(unittest.TestCase):
         bc_val_from_bool = -discr.assemble_nat_bc(sd, p_0, b_faces)
         bc_val = -discr.assemble_nat_bc(sd, p_0, b_faces.nonzero()[0])
 
-        self.assertTrue(np.allclose(bc_val, bc_val_from_bool))
+        assert np.allclose(bc_val, bc_val_from_bool)
 
         # fmt: off
         bc_val_known = np.array(
@@ -193,9 +193,9 @@ class VBDM1Test(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(bc_val, bc_val_known))
+        assert np.allclose(bc_val, bc_val_known)
 
-        self.assertTrue(discr.get_range_discr_class(sd.dim) is pg.PwConstants)
+        assert discr.get_range_discr_class(sd.dim) is pg.PwConstants
 
         self.assertRaises(
             NotImplementedError,

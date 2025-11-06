@@ -31,9 +31,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.face_mass(mdg)
 
@@ -58,9 +58,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.ridge_mass(mdg)
 
@@ -88,13 +88,13 @@ class InnerproductsUnitTest(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.peak_mass(mdg)
 
-        self.assertTrue(np.allclose(M.shape, (0, 0)))
+        assert np.allclose(M.shape, (0, 0))
 
         discr = pg.PwConstants("p0")
         M = pg.cell_mass(mdg, discr=discr, as_bmat=True, keyword="p0")[0, 0]
@@ -113,9 +113,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
     def test_2d_cartesian(self):
         N, dim = 2, 2
@@ -141,9 +141,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.lumped_face_mass(mdg)
 
@@ -161,9 +161,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.lumped_ridge_mass(mdg)
 
@@ -182,13 +182,13 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.lumped_peak_mass(mdg)
 
-        self.assertTrue(np.allclose(M.shape, (0, 0)))
+        assert np.allclose(M.shape, (0, 0))
 
     def test_3d_simplicial(self):
         N, dim = 2, 3
@@ -221,9 +221,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.face_mass(mdg)
 
@@ -433,9 +433,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.ridge_mass(mdg)
 
@@ -672,9 +672,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.peak_mass(mdg)
 
@@ -752,9 +752,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         # fmt: on
 
         M.sum_duplicates()
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
     def test_3d_cartesian(self):
         N, dim = 2, 3
@@ -780,9 +780,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.lumped_face_mass(mdg)
 
@@ -806,9 +806,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         M = pg.lumped_peak_mass(mdg)
 
@@ -831,9 +831,9 @@ class InnerproductsUnitTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(np.allclose(M.data, M_known_data))
-        self.assertTrue(np.allclose(M.indices, M_known_indices))
-        self.assertTrue(np.allclose(M.indptr, M_known_indptr))
+        assert np.allclose(M.data, M_known_data)
+        assert np.allclose(M.indices, M_known_indices)
+        assert np.allclose(M.indptr, M_known_indptr)
 
         self.assertRaises(ValueError, pg.numerics.innerproducts.default_discr, sd, -1)
 

@@ -21,7 +21,7 @@ class InnerProductsTest(unittest.TestCase):
             mdg.compute_geometry()
 
             cell_mass = pg.cell_mass(mdg)
-            self.assertTrue(np.allclose(cell_mass.data, float(N) ** sd.dim))
+            assert np.allclose(cell_mass.data, float(N) ** sd.dim)
 
     def test_cell_mass_simplices(self):
         N = 3
@@ -36,10 +36,8 @@ class InnerProductsTest(unittest.TestCase):
             mdg.compute_geometry()
 
             cell_mass = pg.cell_mass(mdg)
-            self.assertTrue(
-                np.allclose(
-                    cell_mass.data, (float(N) ** sd.dim) * sd.dim * (sd.dim - 1)
-                )
+            assert np.allclose(
+                cell_mass.data, (float(N) ** sd.dim) * sd.dim * (sd.dim - 1)
             )
 
     def test_symmetry(self):
@@ -50,7 +48,7 @@ class InnerProductsTest(unittest.TestCase):
 
         for n_minus_k in range(3):
             mass = pg.numerics.innerproducts.mass_matrix(mdg, n_minus_k, None)
-            self.assertTrue(np.allclose((mass - mass.T).data, 0))
+            assert np.allclose((mass - mass.T).data, 0)
 
     def test_dimensions(self):
         sd = pp.StructuredTetrahedralGrid([3] * 3, [1] * 3)
@@ -61,7 +59,7 @@ class InnerProductsTest(unittest.TestCase):
         for n_minus_k in range(1, 3):
             mass = pg.numerics.innerproducts.mass_matrix(mdg, n_minus_k, None)
             stiff = pg.numerics.stiffness.stiff_matrix(mdg, n_minus_k, None)
-            self.assertTrue(np.allclose(mass.shape, stiff.shape))
+            assert np.allclose(mass.shape, stiff.shape)
 
 
 if __name__ == "__main__":

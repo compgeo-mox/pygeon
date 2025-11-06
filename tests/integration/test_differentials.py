@@ -55,7 +55,7 @@ class DifferentialsTest(unittest.TestCase):
             diff2 = pg.numerics.differentials.exterior_derivative(grid, n_minus_k + 1)
 
             product = diff1 @ diff2
-            self.assertTrue(product.nnz == 0)
+            assert product.nnz == 0
 
     def test_stiffness_P1_3D(self):
         """
@@ -104,7 +104,7 @@ class DifferentialsTest(unittest.TestCase):
         Stiff_2 = pg.Discretization.assemble_stiff_matrix(disc, sd)
 
         diff = Stiff_1 - Stiff_2
-        self.assertTrue(np.allclose(diff.data, 0))
+        assert np.allclose(diff.data, 0)
 
     def test_cochain_property_P1_2D(self):
         sd = pg.unit_grid(2, 0.5, as_mdg=False)
@@ -144,7 +144,7 @@ class DifferentialsTest(unittest.TestCase):
         range_Diff = range_discr.assemble_diff_matrix(sd)
 
         prod = range_Diff @ Diff
-        self.assertTrue(np.allclose(prod.data, 0))
+        assert np.allclose(prod.data, 0)
 
 
 if __name__ == "__main__":

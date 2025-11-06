@@ -25,12 +25,12 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_simplicial_1_fracture()
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
-        self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
-        self.assertTrue(np.allclose(sps.find(grad), sps.find(known_grad)))
+        assert np.allclose(sps.find(div), sps.find(known_div))
+        assert np.allclose(sps.find(curl), sps.find(known_curl))
+        assert np.allclose(sps.find(grad), sps.find(known_grad))
 
     def test_2d_cartesian_1_fracture(self):
         mesh_args = {"cell_size": 0.25}
@@ -47,12 +47,12 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_cartesian_1_fracture()
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
-        self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
-        self.assertTrue(np.allclose(sps.find(grad), sps.find(known_grad)))
+        assert np.allclose(sps.find(div), sps.find(known_div))
+        assert np.allclose(sps.find(curl), sps.find(known_curl))
+        assert np.allclose(sps.find(grad), sps.find(known_grad))
 
     def test_2d_simplicial_2_fractures(self):
         mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
@@ -66,8 +66,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
         curl = pg.curl(mdg)
         grad = pg.grad(mdg)
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
     def test_2d_cartesian_2_fractures(self):
         mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
@@ -83,12 +83,12 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_2d_cartesian_2_fractures()
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
-        self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
-        self.assertTrue(np.allclose(sps.find(grad), sps.find(known_grad)))
+        assert np.allclose(sps.find(div), sps.find(known_div))
+        assert np.allclose(sps.find(curl), sps.find(known_curl))
+        assert np.allclose(sps.find(grad), sps.find(known_grad))
 
     def test_3d_simplicial_1_fracture(self):
         mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
@@ -102,8 +102,8 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
         curl = pg.curl(mdg)
         grad = pg.grad(mdg)
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
     def test_3d_cartesian_1_fracture(self):
         mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
@@ -119,12 +119,12 @@ class DifferentialsMDGUnitTest(unittest.TestCase):
 
         known_div, known_curl, known_grad = self._test_3d_cartesian_1_fracture()
 
-        self.assertTrue(np.sum(curl @ grad) == 0)
-        self.assertTrue(np.sum(div @ curl) == 0)
+        assert np.sum(curl @ grad) == 0
+        assert np.sum(div @ curl) == 0
 
-        self.assertTrue(np.allclose(sps.find(div), sps.find(known_div)))
-        self.assertTrue(np.allclose(sps.find(curl), sps.find(known_curl)))
-        self.assertTrue(np.allclose(sps.find(grad), sps.find(known_grad)))
+        assert np.allclose(sps.find(div), sps.find(known_div))
+        assert np.allclose(sps.find(curl), sps.find(known_curl))
+        assert np.allclose(sps.find(grad), sps.find(known_grad))
 
     def _test_2d_simplicial_1_fracture(self):
         # fmt: off
