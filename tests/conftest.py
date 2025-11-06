@@ -1,14 +1,14 @@
+"""
+Module containing the grids to be used in the different tests. All fixtures in this file
+are available to the tests in this directory and its subdirectories.
+"""
+
 import numpy as np
 import porepy as pp
 import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
-
-""" 
-Module containing the grids to be used in the different tests. All fixtures in this file
-are available to the tests in this directory and its subdirectories.
-"""
 
 
 # ------------------------- Unit grids -------------------------
