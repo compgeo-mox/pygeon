@@ -1,209 +1,93 @@
-"""Module contains a dummy unit test that always passes."""
-
-import unittest
-
 import numpy as np
-import porepy as pp
+import pytest
 
 import pygeon as pg
 
 
-class VBDM1Test(unittest.TestCase):
-    def test_on_cart_grid(self):
-        sd = pp.CartGrid([2] * 2)
-        pg.convert_from_pp(sd)
-        sd.compute_geometry()
+@pytest.fixture
+def discr():
+    return pg.VBDM1("test")
 
-        discr = pg.VBDM1()
 
-        M = discr.assemble_mass_matrix(sd)
+def test_ndof(discr, pentagon_sd):
+    assert discr.ndof(pentagon_sd) == 10
 
-        # fmt: off
-        M_known_data = np.array(
-        [ 0.35416667, -0.1875    , -0.1875    ,  0.27083333, -0.        ,
-        0.        ,  0.        , -0.        , -0.1875    ,  0.35416667,
-        0.27083333, -0.1875    ,  0.        , -0.        , -0.        ,
-        0.        , -0.1875    ,  0.27083333,  0.70833333, -0.375     ,
-        -0.1875    ,  0.27083333,  0.        , -0.        , -0.        ,
-        0.        , -0.        ,  0.        ,  0.        , -0.        ,
-        0.27083333, -0.1875    , -0.375     ,  0.70833333,  0.27083333,
-        -0.1875    , -0.        ,  0.        ,  0.        , -0.        ,
-        0.        , -0.        , -0.        ,  0.        , -0.1875    ,
-        0.27083333,  0.35416667, -0.1875    ,  0.        , -0.        ,
-        -0.        ,  0.        ,  0.27083333, -0.1875    , -0.1875    ,
-        0.35416667, -0.        ,  0.        ,  0.        , -0.        ,
-        0.35416667, -0.1875    , -0.1875    ,  0.27083333, -0.        ,
-        0.        ,  0.        , -0.        , -0.1875    ,  0.35416667,
-        0.27083333, -0.1875    ,  0.        , -0.        , -0.        ,
-        0.        , -0.1875    ,  0.27083333,  0.70833333, -0.375     ,
-        -0.1875    ,  0.27083333,  0.        , -0.        , -0.        ,
-        0.        , -0.        ,  0.        ,  0.        , -0.        ,
-        0.27083333, -0.1875    , -0.375     ,  0.70833333,  0.27083333,
-        -0.1875    , -0.        ,  0.        ,  0.        , -0.        ,
-        0.        , -0.        , -0.        ,  0.        , -0.1875    ,
-        0.27083333,  0.35416667, -0.1875    ,  0.        , -0.        ,
-        -0.        ,  0.        ,  0.27083333, -0.1875    , -0.1875    ,
-        0.35416667, -0.        ,  0.        ,  0.        , -0.        ,
-        -0.        ,  0.        ,  0.        , -0.        ,  0.35416667,
-        -0.1875    , -0.1875    ,  0.27083333,  0.        , -0.        ,
-        -0.        ,  0.        , -0.1875    ,  0.35416667,  0.27083333,
-        -0.1875    , -0.        ,  0.        ,  0.        , -0.        ,
-        0.35416667, -0.1875    , -0.1875    ,  0.27083333,  0.        ,
-        -0.        , -0.        ,  0.        , -0.1875    ,  0.35416667,
-        0.27083333, -0.1875    ,  0.        , -0.        , -0.        ,
-        0.        , -0.        ,  0.        ,  0.        , -0.        ,
-        -0.1875    ,  0.27083333,  0.70833333, -0.375     , -0.1875    ,
-        0.27083333, -0.        ,  0.        ,  0.        , -0.        ,
-        0.        , -0.        , -0.        ,  0.        ,  0.27083333,
-        -0.1875    , -0.375     ,  0.70833333,  0.27083333, -0.1875    ,
-        0.        , -0.        , -0.        ,  0.        , -0.        ,
-        0.        ,  0.        , -0.        , -0.1875    ,  0.27083333,
-        0.70833333, -0.375     , -0.1875    ,  0.27083333, -0.        ,
-        0.        ,  0.        , -0.        ,  0.        , -0.        ,
-        -0.        ,  0.        ,  0.27083333, -0.1875    , -0.375     ,
-        0.70833333,  0.27083333, -0.1875    ,  0.        , -0.        ,
-        -0.        ,  0.        , -0.1875    ,  0.27083333,  0.35416667,
-        -0.1875    , -0.        ,  0.        ,  0.        , -0.        ,
-        0.27083333, -0.1875    , -0.1875    ,  0.35416667,  0.        ,
-        -0.        , -0.        ,  0.        , -0.1875    ,  0.27083333,
-        0.35416667, -0.1875    , -0.        ,  0.        ,  0.        ,
-        -0.        ,  0.27083333, -0.1875    , -0.1875    ,  0.35416667])
 
-        M_known_indptr = np.array(
-        [  0,   8,  16,  30,  44,  52,  60,  68,  76,  90, 104, 112, 120,
-        128, 136, 144, 152, 166, 180, 194, 208, 216, 224, 232, 240])
+def test_mass_matrix(discr, ref_square):
+    M = discr.assemble_mass_matrix(ref_square)
 
-        M_known_indices = np.array(
-        [ 0,  1,  2,  3, 12, 13, 16, 17,  0,  1,  2,  3, 12, 13, 16, 17,  0,
-        1,  2,  3,  4,  5, 12, 13, 14, 15, 16, 17, 18, 19,  0,  1,  2,  3,
-        4,  5, 12, 13, 14, 15, 16, 17, 18, 19,  2,  3,  4,  5, 14, 15, 18,
-        19,  2,  3,  4,  5, 14, 15, 18, 19,  6,  7,  8,  9, 16, 17, 20, 21,
-        6,  7,  8,  9, 16, 17, 20, 21,  6,  7,  8,  9, 10, 11, 16, 17, 18,
-        19, 20, 21, 22, 23,  6,  7,  8,  9, 10, 11, 16, 17, 18, 19, 20, 21,
-        22, 23,  8,  9, 10, 11, 18, 19, 22, 23,  8,  9, 10, 11, 18, 19, 22,
-        23,  0,  1,  2,  3, 12, 13, 16, 17,  0,  1,  2,  3, 12, 13, 16, 17,
-        2,  3,  4,  5, 14, 15, 18, 19,  2,  3,  4,  5, 14, 15, 18, 19,  0,
-        1,  2,  3,  6,  7,  8,  9, 12, 13, 16, 17, 20, 21,  0,  1,  2,  3,
-        6,  7,  8,  9, 12, 13, 16, 17, 20, 21,  2,  3,  4,  5,  8,  9, 10,
-        11, 14, 15, 18, 19, 22, 23,  2,  3,  4,  5,  8,  9, 10, 11, 14, 15,
-        18, 19, 22, 23,  6,  7,  8,  9, 16, 17, 20, 21,  6,  7,  8,  9, 16,
-        17, 20, 21,  8,  9, 10, 11, 18, 19, 22, 23,  8,  9, 10, 11, 18, 19,
-        22, 23])
-        # fmt: on
-
-        M.sum_duplicates()
-        assert np.allclose(M.data, M_known_data)
-        assert np.allclose(M.indptr, M_known_indptr)
-        assert np.allclose(M.indices, M_known_indices)
-
-        self.assertEqual(discr.ndof(sd), sd.dim * sd.num_faces)
-
-        class Dummy:
-            pass
-
-        self.assertRaises(
-            ValueError,
-            discr.ndof,
-            Dummy(),
+    M_known = (
+        np.array(
+            [
+                [17, -9, -9, 13, 0, 0, 0, 0],
+                [-9, 17, 13, -9, 0, 0, 0, 0],
+                [-9, 13, 17, -9, 0, 0, 0, 0],
+                [13, -9, -9, 17, 0, 0, 0, 0],
+                [0, 0, 0, 0, 17, -9, -9, 13],
+                [0, 0, 0, 0, -9, 17, 13, -9],
+                [0, 0, 0, 0, -9, 13, 17, -9],
+                [0, 0, 0, 0, 13, -9, -9, 17],
+            ]
         )
+        / 48
+    )
 
-        P = discr.proj_to_VRT0(sd)
+    assert np.allclose(M.todense(), M_known)
 
-        # fmt: off
-        P_known_data = np.array(
-        [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-        0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+def test_proj_to_VRT0(discr, ref_square):
+    P = discr.proj_to_VRT0(ref_square)
+
+    P_known = (
+        np.array(
+            [
+                [1, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 1],
+            ]
         )
+        / 2
+    )
 
-        P_known_indices = np.array(
-        [ 0,  0,  1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7,  7,  8,
-        8,  9,  9, 10, 10, 11, 11]
-        )
-
-        P_known_indptr = np.array(
-        [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24]
-        )
-        # fmt: on
-
-        assert np.allclose(P.data, P_known_data)
-        assert np.allclose(P.indptr, P_known_indptr)
-        assert np.allclose(P.indices, P_known_indices)
-
-        self.assertRaises(
-            NotImplementedError,
-            discr.proj_from_RT0,
-            sd,
-        )
-
-        D = discr.assemble_diff_matrix(sd)
-
-        # fmt: off
-        D_known_data = np.array(
-        [-0.5, -0.5, -0.5,  0.5, -0.5,  0.5,  0.5,  0.5, -0.5, -0.5, -0.5,
-         0.5, -0.5,  0.5,  0.5,  0.5, -0.5, -0.5, -0.5, -0.5, -0.5,  0.5,
-        -0.5,  0.5, -0.5,  0.5, -0.5,  0.5,  0.5,  0.5,  0.5,  0.5]
-        )
-
-        D_known_indices = np.array(
-        [0, 0, 1, 0, 1, 0, 1, 1, 2, 2, 3, 2, 3, 2, 3, 3, 0, 0, 1, 1, 2, 0,
-        2, 0, 3, 1, 3, 1, 2, 2, 3, 3]
-        )
-
-        D_known_indptr = np.array(
-        [ 0,  1,  2,  4,  6,  7,  8,  9, 10, 12, 14, 15, 16, 17, 18, 19, 20,
-        22, 24, 26, 28, 29, 30, 31, 32]
-        )
-        # fmt: on
-
-        assert np.allclose(D.data, D_known_data)
-        assert np.allclose(D.indptr, D_known_indptr)
-        assert np.allclose(D.indices, D_known_indices)
-
-        self.assertRaises(
-            NotImplementedError,
-            discr.eval_at_cell_centers,
-            sd,
-        )
-
-        self.assertRaises(
-            NotImplementedError,
-            discr.interpolate,
-            sd,
-            lambda x: x,
-        )
-
-        b_faces = sd.tags["domain_boundary_faces"]
-
-        def p_0(x):
-            return x[0]
-
-        bc_val_from_bool = -discr.assemble_nat_bc(sd, p_0, b_faces)
-        bc_val = -discr.assemble_nat_bc(sd, p_0, b_faces.nonzero()[0])
-
-        assert np.allclose(bc_val, bc_val_from_bool)
-
-        # fmt: off
-        bc_val_known = np.array(
-        [-0.        , -0.        , -0.        , -0.        , -1.        ,
-        -1.        , -0.        , -0.        , -0.        , -0.        ,
-        -1.        , -1.        ,  0.33333333,  0.16666667,  0.83333333,
-         0.66666667, -0.        , -0.        , -0.        , -0.        ,
-        -0.33333333, -0.16666667, -0.83333333, -0.66666667]
-        )
-        # fmt: on
-
-        assert np.allclose(bc_val, bc_val_known)
-
-        assert discr.get_range_discr_class(sd.dim) is pg.PwConstants
-
-        self.assertRaises(
-            NotImplementedError,
-            discr.assemble_lumped_matrix,
-            sd,
-            {},
-        )
+    assert np.allclose(P.todense(), P_known)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_proj_from_RT0(discr, ref_square):
+    with pytest.raises(NotImplementedError):
+        discr.proj_from_RT0(ref_square)
+
+
+def test_diff_matrix(discr, ref_square):
+    D = discr.assemble_diff_matrix(ref_square)
+
+    D_known = np.array([[-1, -1, 1, 1, -1, -1, 1, 1]]) / 2
+    assert np.allclose(D.todense(), D_known)
+
+
+def test_eval_at_cc(discr, ref_square):
+    with pytest.raises(NotImplementedError):
+        discr.eval_at_cell_centers(ref_square)
+
+
+def test_interpolate(discr, ref_square):
+    with pytest.raises(NotImplementedError):
+        discr.interpolate(ref_square, None)
+
+
+def test_lumped(discr, ref_square):
+    with pytest.raises(NotImplementedError):
+        discr.assemble_lumped_matrix(ref_square)
+
+
+def test_assemble_nat_bc(discr, pentagon_sd):
+    fun = lambda x: x[0] + x[1]
+    faces = pentagon_sd.tags["domain_boundary_faces"]
+
+    vals = discr.assemble_nat_bc(pentagon_sd, fun, faces.nonzero()[0])
+    vals_from_bool = discr.assemble_nat_bc(pentagon_sd, fun, faces)
+
+    vals_known = np.array([6, 12, 22, 26, 31, 32, 30, 27, 16, 8]) / 12
+
+    assert np.allclose(vals, vals_known)
+    assert np.allclose(vals_from_bool, vals_known)

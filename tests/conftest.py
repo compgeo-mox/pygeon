@@ -1,4 +1,5 @@
 import numpy as np
+import porepy as pp
 import pytest
 import scipy.sparse as sps
 
@@ -84,6 +85,15 @@ def pentagon_sd() -> pg.Grid:
     cell_faces = sps.csc_array(np.ones((5, 1)))
 
     sd = pg.Grid(2, nodes, face_nodes, cell_faces, "pentagon")
+    sd.compute_geometry()
+
+    return sd
+
+
+@pytest.fixture(scope="session")
+def ref_square() -> pg.Grid:
+    sd = pp.CartGrid([1] * 2)
+    pg.convert_from_pp(sd)
     sd.compute_geometry()
 
     return sd
