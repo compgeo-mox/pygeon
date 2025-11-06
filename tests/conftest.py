@@ -4,9 +4,17 @@ import scipy.sparse as sps
 
 import pygeon as pg
 
+""" 
+Module containing the grids to be used in the different tests. All fixtures in this file
+are available to the tests in this directory and its subdirectories.
+"""
+
+
 # ------------------------- Unit grids -------------------------
+
 param_list = [(dim, is_str) for dim in range(1, 4) for is_str in [True, False]]
-param_list = param_list[1:]  # Remove the (1, True) entry
+# Remove the (1, True) entry because it's the same as (1, False)
+param_list = param_list[1:]
 ids = ["1D", "2D_struct", "2D_unstruct", "3D_struct", "3D_unstruct"]
 
 
