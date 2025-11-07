@@ -6,7 +6,7 @@ import porepy as pp
 import pygeon as pg
 
 """
-Module contains a unit tests to validate the edge length computations for grids
+Module contains tests to validate the edge length computations for grids
 """
 
 
