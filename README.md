@@ -8,6 +8,15 @@
 
 # PyGeoN: a Python package for Geo-Numerics
 
+PyGeoN is a Python library for structure-preserving numerical methods in geoscience applications. It provides finite element (FEM) and virtual element (VEM) discretizations for mixed-dimensional problems, with a focus on porous media flow and fracture networks. The library includes tools for grid generation, differential operators, and advanced solvers for coupled multi-physics simulations. 
+
+**Key Features:**
+- Simplicial, Voronoi, and polyhedral grid generation with mixed-dimensional support
+- FEM/VEM discretizations for H1, Hdiv, Hcurl, and L2 spaces
+- Structure-preserving discrete differential operators (grad, div, curl)
+- Spanning tree and Poincaré operators
+- Seamless integration with [PorePy](https://github.com/pmgbergen/porepy)
+
 ## Installation for Linux
 
 PyGeoN requires Python >= 3.12
