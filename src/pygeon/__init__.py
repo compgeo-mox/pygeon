@@ -1,31 +1,5 @@
 # isort:skip_file
 
-"""
-PyGeoN: a Python package for Geo-Numerics
-==========================================
-
-PyGeoN is a comprehensive Python library for structure-preserving numerical methods
-in geoscience applications, with a focus on mixed-dimensional modeling and porous
-media flow simulation.
-
-Main Features
--------------
-* **Grids**: Create and manipulate computational meshes including simplicial, Voronoi,
-  octagonal, and mixed-dimensional grids with support for fracture networks.
-
-* **Discretizations**: Structure-preserving finite element (FEM) and virtual element (VEM)
-  methods for H1, Hdiv, Hcurl, and L2 spaces with both scalar, vector, and matrix formulations.
-
-* **Differential Operators**: Discrete gradient, divergence, and curl operators that
-  preserve the de Rham complex structure.
-
-* **Numerics**: Advanced solvers including spanning tree, Poincaré operators,
-  and mass/stiffness matrix assembly for mixed-dimensional problems.
-
-* **PorePy Integration**: Seamless conversion between PyGeoN and PorePy data structures
-  for enhanced compatibility with the PorePy ecosystem.
-"""
-
 from pygeon.utils.common_constants import *
 
 from pygeon.grids.grid import Grid
