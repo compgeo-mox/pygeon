@@ -43,3 +43,19 @@ def test_source(discr, unit_sd):
 def test_proj_to_lower_PwPolynomials(discr, unit_sd_2d):
     with pytest.raises(NotImplementedError):
         discr.proj_to_lower_PwPolynomials(unit_sd_2d)
+
+
+def test_error_l2(discr, unit_cart_sd):
+    def fun(x):
+        return x[0] + 2 * x[1]
+
+    int_sol = discr.interpolate(unit_cart_sd, fun)
+
+    err = discr.error_l2(unit_cart_sd, np.zeros_like(int_sol), fun)
+    assert np.isclose(err, 1)
+
+    err = discr.error_l2(unit_cart_sd, int_sol, fun, etype="standard")
+    assert np.isclose(err, 0)
+
+    err = discr.error_l2(unit_cart_sd, int_sol, fun, etype="specific")
+    assert not np.isclose(err, 0)

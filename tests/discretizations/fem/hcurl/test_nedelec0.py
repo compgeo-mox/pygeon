@@ -65,3 +65,18 @@ def test_lumped_consistency(discr, ref_sd_3d):
     integral_M = M_full @ one_interp
 
     assert np.allclose(integral_L, integral_M)
+
+
+def test_error_l2(discr, unit_sd_3d):
+    def fun(x):
+        return np.array([x[0] + 2 * x[1] - x[2], 2 * x[0] - x[1], 6 * x[2]])
+
+    # fmt: off
+    int_sol = discr.interpolate(unit_sd_3d, fun)
+
+
+    err = discr.error_l2(unit_sd_3d, np.zeros_like(int_sol), fun)
+    assert np.isclose(err, 1)
+
+    err = discr.error_l2(unit_sd_3d, int_sol, fun)
+    assert np.isclose(err, 0)

@@ -70,3 +70,19 @@ def test_mass_matrix_vs_pp(discr, unit_sd):
 
 def test_range_discr_class(discr):
     assert discr.get_range_discr_class(2) is pg.PwConstants
+
+
+def test_error_l2(discr, unit_sd):
+    def fun(pt):
+        return np.array([pt[0] + 2 * pt[1], 2 * pt[0] + pt[1], 0])
+
+    int_sol = discr.interpolate(unit_sd, fun)
+
+    err = discr.error_l2(unit_sd, np.zeros_like(int_sol), fun)
+    assert np.isclose(err, 1)
+
+    err = discr.error_l2(unit_sd, int_sol, fun, etype="standard")
+    assert np.isclose(err, 0)
+
+    err = discr.error_l2(unit_sd, int_sol, fun, etype="specific")
+    assert not np.isclose(err, 0)
