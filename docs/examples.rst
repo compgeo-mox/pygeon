@@ -13,7 +13,7 @@ Basic Usage
 
 Here's a simple example of using PyGeoN:
 
-.. literalinclude:: ./docs/example_darcy.py
+.. literalinclude:: ./example_darcy.py
    :language: python
 
 Papers Using PyGeoN
