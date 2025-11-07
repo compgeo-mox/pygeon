@@ -104,11 +104,6 @@ When adding new modules or features:
 - `index.rst`, `installation.rst`, `tutorials.rst`, etc.
 - Configuration files (`conf.py`, `Makefile`, `.readthedocs.yaml`)
 
-❌ **DON'T commit** (auto-generated):
-- `api/*.rst` files (except manually curated overview pages if desired)
-- `_build/` directory
-- `_autosummary/` directory
-
 ## Style Guide
 
 - Use Google or NumPy style docstrings
@@ -149,11 +144,3 @@ The API documentation is generated automatically using `sphinx-apidoc`:
 ```bash
 sphinx-apidoc -f -o docs/api src/pygeon --separate --no-toc
 ```
-
-Options used:
-- `-f`: Overwrite existing files
-- `-o docs/api`: Output to docs/api directory
-- `--separate`: Create separate pages for each module
-- `--no-toc`: Don't create a table of contents file (we use our own)
-
-This ensures the documentation always matches your current source code!

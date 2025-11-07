@@ -13,16 +13,8 @@ Basic Usage
 
 Here's a simple example of using PyGeoN:
 
-.. code-block:: python
-
-   import pygeon as pg
-   import porepy as pp
-
-   # Create a grid
-   # ... your code here ...
-
-   # Apply PyGeoN discretizations
-   # ... your code here ...
+.. literalinclude:: ./docs/example_darcy.py
+   :language: python
 
 Advanced Examples
 -----------------
