@@ -71,6 +71,15 @@ def test_symgrad_matrix(discr, ref_sd):
     assert np.allclose(D.todense(), D_known)
 
 
+def test_compute_stress(discr, unit_sd):
+    u_fun = lambda x: np.array([0.5 - x[1], 0.5 + x[0] - x[2], 0.5 + x[1]])
+    u = discr.interpolate(unit_sd, u_fun)
+    data = {pp.PARAMETERS: {discr.keyword: {"lambda": 1, "mu": 0.5}}}
+
+    sigma = discr.compute_stress(unit_sd, u, data)
+    assert np.allclose(sigma, 0)
+
+
 def test_0d(discr):
     sd = pp.PointGrid([1] * 3)
     pg.convert_from_pp(sd)
