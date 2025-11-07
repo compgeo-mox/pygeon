@@ -16,8 +16,8 @@ def test_ndof(discr, pentagon_sd):
     assert discr.ndof(pentagon_sd) == 5
 
 
-def test_ndof_octagon(discr, octagon_sd):
-    assert discr.ndof(octagon_sd) == 12
+def test_ndof_octagon(discr, ref_octagon):
+    assert discr.ndof(ref_octagon) == 12
 
 
 def test_on_pentagon(discr, pentagon_sd):
@@ -102,32 +102,32 @@ def test_range_disc(discr):
         discr.get_range_discr_class(2)
 
 
-def test_mass_oct_grid(discr, octagon_sd):
+def test_mass_oct_grid(discr, ref_octagon):
     # Compute \int (x + y)^2
-    M = discr.assemble_mass_matrix(octagon_sd)
+    M = discr.assemble_mass_matrix(ref_octagon)
     fun = lambda x: x[0] + x[1]
 
-    interp = discr.interpolate(octagon_sd, fun)
+    interp = discr.interpolate(ref_octagon, fun)
 
     assert np.isclose(interp @ M @ interp, 7 / 6)
 
 
-def test_stiff_oct_grid(discr, octagon_sd):
-    A = discr.assemble_stiff_matrix(octagon_sd)
+def test_stiff_oct_grid(discr, ref_octagon):
+    A = discr.assemble_stiff_matrix(ref_octagon)
     fun = lambda x: x[0] + x[1]
 
-    interp = discr.interpolate(octagon_sd, fun)
+    interp = discr.interpolate(ref_octagon, fun)
 
     assert np.isclose(interp @ A @ interp, 2)
 
 
-def test_eval_and_interp(discr, octagon_sd):
+def test_eval_and_interp(discr, ref_octagon):
     # In the special case of the regular octagon grid, we can interpolate and evaluate
     # linears
 
-    P = discr.eval_at_cell_centers(octagon_sd)
+    P = discr.eval_at_cell_centers(ref_octagon)
     fun = lambda x: x[0] + x[1]
 
-    interp = discr.interpolate(octagon_sd, fun)
-    known_vals = np.array([fun(c) for c in octagon_sd.cell_centers.T])
+    interp = discr.interpolate(ref_octagon, fun)
+    known_vals = np.array([fun(c) for c in ref_octagon.cell_centers.T])
     assert np.allclose(P @ interp, known_vals)

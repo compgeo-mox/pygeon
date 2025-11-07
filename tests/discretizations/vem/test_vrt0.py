@@ -51,12 +51,12 @@ def test_assemble_nat_bc(discr, pentagon_sd):
     assert np.allclose(vals_from_bool, vals_known)
 
 
-def test_interp_and_eval(discr, octagon_sd):
+def test_interp_and_eval(discr, ref_octagon):
     func = lambda x: x
-    interp_func = discr.interpolate(octagon_sd, func)
-    eval_interp = discr.eval_at_cell_centers(octagon_sd) @ interp_func
+    interp_func = discr.interpolate(ref_octagon, func)
+    eval_interp = discr.eval_at_cell_centers(ref_octagon) @ interp_func
 
-    known_vals = np.hstack([func(c) for c in octagon_sd.cell_centers.T])
+    known_vals = np.hstack([func(c) for c in ref_octagon.cell_centers.T])
     # TODO: Change the eval_at_cc of VRT0 from pp to pg ordering
 
     assert np.allclose(eval_interp, known_vals)

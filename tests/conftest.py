@@ -37,16 +37,25 @@ def unit_sd(_unit_grids_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
 
 @pytest.fixture
 def unit_sd_1d(_unit_grids_dict: dict) -> pg.Grid:
+    """
+    1D grid of the unit line segment with 4 elements
+    """
     return _unit_grids_dict[1, False]
 
 
 @pytest.fixture
 def unit_sd_2d(_unit_grids_dict: dict) -> pg.Grid:
+    """
+    Unstructured triangle grid of the unit square
+    """
     return _unit_grids_dict[2, False]
 
 
 @pytest.fixture
 def unit_sd_3d(_unit_grids_dict: dict) -> pg.Grid:
+    """
+    Unstructured tetrahedral grid of the unit cube
+    """
     return _unit_grids_dict[3, False]
 
 
@@ -68,6 +77,31 @@ def _unit_cart_dict() -> dict[int, pg.Grid]:
 @pytest.fixture(params=[1, 2, 3], ids=["1D", "2D", "3D"])
 def unit_cart_sd(_unit_cart_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
     return _unit_cart_dict[request.param]
+
+
+# ------------------------- Unit Polygon grids -------------------------
+
+
+@pytest.fixture(scope="session")
+def _unit_poly_dict() -> dict[int, pg.Grid]:
+    grids = {}
+
+    sd = pp.CartGrid([3] * 2, [1] * 2)
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+    grids["Cartgrid"] = sd
+
+    sd = pg.OctagonGrid([3] * 2, [1] * 2)
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+    grids["Octgrid"] = sd
+
+    return grids
+
+
+@pytest.fixture(params=["Cartgrid", "Octgrid"])
+def unit_poly_sd(_unit_poly_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
+    return _unit_poly_dict[request.param]
 
 
 # ------------------------- Reference elements -------------------------
@@ -95,6 +129,15 @@ def ref_sd_3d(_ref_elements_dict: dict) -> pg.Grid:
     return _ref_elements_dict[3]
 
 
+@pytest.fixture
+def ref_sd_0d() -> pg.Grid:
+    sd = pp.PointGrid([0, 0, 0])
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    return sd
+
+
 # ------------------------- Polygonal elements -------------------------
 @pytest.fixture(scope="session")
 def pentagon_sd() -> pg.Grid:
@@ -120,7 +163,7 @@ def ref_square() -> pg.Grid:
 
 
 @pytest.fixture(scope="session")
-def octagon_sd() -> pg.Grid:
+def ref_octagon() -> pg.Grid:
     sd = pg.OctagonGrid([1] * 2)
     sd.compute_geometry()
 
