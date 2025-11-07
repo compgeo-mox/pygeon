@@ -16,11 +16,6 @@ Here's a simple example of using PyGeoN:
 .. literalinclude:: ./docs/example_darcy.py
    :language: python
 
-Advanced Examples
------------------
-
-For more advanced examples, please refer to the tutorials and test cases in the `repository <https://github.com/compgeo-mox/pygeon/tree/readthedocs/tutorials>`_.
-
 Papers Using PyGeoN
 -------------------
 
