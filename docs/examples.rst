@@ -19,7 +19,7 @@ Here's a simple example of using PyGeoN:
 Advanced Examples
 -----------------
 
-For more advanced examples, please refer to the tutorials and test cases in the repository.
+For more advanced examples, please refer to the tutorials and test cases in the `repository <https://github.com/compgeo-mox/pygeon/tree/readthedocs/tutorials>`_.
 
 Papers Using PyGeoN
 -------------------
