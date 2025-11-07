@@ -11,7 +11,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-# ------------------------- Unit grids -------------------------
+# ------------------------- Unit simplicial grids -------------------------
 
 param_list = [(dim, is_str) for dim in range(1, 4) for is_str in [True, False]]
 # Remove the (1, True) entry because it's the same as (1, False)
@@ -48,6 +48,26 @@ def unit_sd_2d(_unit_grids_dict: dict) -> pg.Grid:
 @pytest.fixture
 def unit_sd_3d(_unit_grids_dict: dict) -> pg.Grid:
     return _unit_grids_dict[3, False]
+
+
+# ------------------------- Unit Cartesian grids -------------------------
+
+
+@pytest.fixture(scope="session")
+def _unit_cart_dict() -> dict[int, pg.Grid]:
+    grids = {}
+    for dim in [1, 2, 3]:
+        sd = pp.CartGrid([5 - dim] * dim, [1] * dim)
+        pg.convert_from_pp(sd)
+        sd.compute_geometry()
+        grids[dim] = sd
+
+    return grids
+
+
+@pytest.fixture(params=[1, 2, 3], ids=["1D", "2D", "3D"])
+def unit_cart_sd(_unit_cart_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
+    return _unit_cart_dict[request.param]
 
 
 # ------------------------- Reference elements -------------------------
@@ -105,3 +125,43 @@ def octagon_sd() -> pg.Grid:
     sd.compute_geometry()
 
     return sd
+
+
+# ------------------------- Mixed-dimensional grids -------------------------
+mdg_names = ["mdg_2D", "embedded_frac_2d", "mdg_cube"]
+
+
+@pytest.fixture(scope="session")
+def _mdg_dict() -> dict[int, pg.MixedDimensionalGrid]:
+    mdg_dict = {}
+
+    mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
+
+    mdg_2, _ = pp.mdg_library.square_with_orthogonal_fractures(
+        "simplex", mesh_args, [0, 1]
+    )
+    pg.convert_from_pp(mdg_2)
+    mdg_2.compute_geometry()
+    mdg_dict["mdg_2D"] = mdg_2
+
+    end_points = np.array([0.25, 0.75])
+    mdg_frac, _ = pp.mdg_library.square_with_orthogonal_fractures(
+        "simplex", mesh_args, [0], fracture_endpoints=[end_points]
+    )
+    pg.convert_from_pp(mdg_frac)
+    mdg_frac.compute_geometry()
+    mdg_dict["embedded_frac_2d"] = mdg_frac
+
+    mdg_3, _ = pp.mdg_library.cube_with_orthogonal_fractures(
+        "simplex", mesh_args, [0, 1, 2]
+    )
+    pg.convert_from_pp(mdg_3)
+    mdg_3.compute_geometry()
+    mdg_dict["mdg_cube"] = mdg_3
+
+    return mdg_dict
+
+
+@pytest.fixture(params=mdg_names)
+def mdg(_mdg_dict: dict, request: pytest.FixtureRequest) -> pg.MixedDimensionalGrid:
+    return _mdg_dict[request.param]

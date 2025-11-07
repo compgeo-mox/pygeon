@@ -48,10 +48,8 @@ def test_convert_mixed_dimensional_grid(pp_mdg):
 
 
 def test_wrong_type():
-    sd = 5
-
     with pytest.raises(ValueError):
-        pg.as_mdg(sd)
+        pg.as_mdg(None)
 
     with pytest.raises(TypeError):
-        pg.convert_from_pp(sd)
+        pg.convert_from_pp(None)
