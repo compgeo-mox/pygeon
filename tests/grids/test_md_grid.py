@@ -20,6 +20,6 @@ def test_remove_tip_faces(mdg_embedded_frac_2d):
 
 def test_remove_tip_cells(mdg_embedded_frac_2d):
     P = pg.remove_tip_dofs(mdg_embedded_frac_2d, 0)
-    P_known = sps.eye(*P.shape)
+    P_known = sps.eye_array(*P.shape)
 
     assert np.allclose((P - P_known).data, 0)

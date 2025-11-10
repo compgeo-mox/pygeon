@@ -1,7 +1,5 @@
-import pytest
-
 import numpy as np
-import porepy as pp
+import pytest
 
 import pygeon as pg
 
@@ -24,13 +22,37 @@ def test_cell_mass_simplices(unit_sd):
     assert np.allclose(cell_mass @ interp_one, 1)
 
 
-@pytest.mark.parametrize("n_minus_k", range(3))
-def test_mass_and_stiffness(mdg, n_minus_k):
+@pytest.mark.parametrize("n_minus_k", range(0, 4))
+def test_matrix_aliases(mdg, n_minus_k):
     if n_minus_k > mdg.dim_max():
         return
 
-    mass = pg.numerics.innerproducts.mass_matrix(mdg, n_minus_k, None)
-    stiff = pg.numerics.stiffness.stiff_matrix(mdg, n_minus_k, None)
+    match n_minus_k:
+        case 0:
+            M = pg.cell_mass(mdg)
+            L = pg.lumped_cell_mass(mdg)
+            n = mdg.num_subdomain_cells()
+        case 1:
+            M = pg.face_mass(mdg)
+            L = pg.lumped_face_mass(mdg)
+            n = mdg.num_subdomain_faces()
+        case 2:
+            M = pg.ridge_mass(mdg)
+            L = pg.lumped_ridge_mass(mdg)
+            n = mdg.num_subdomain_ridges()
+        case 3:
+            M = pg.peak_mass(mdg)
+            L = pg.lumped_peak_mass(mdg)
+            n = mdg.num_subdomain_peaks()
 
-    assert np.allclose((mass - mass.T).data, 0)
-    assert np.allclose(mass.shape, stiff.shape)
+    # Symmetry and shape checks
+    assert np.allclose((M - M.T).data, 0)
+    assert np.allclose((L - L.T).data, 0)
+
+    assert M.shape == (n, n)
+    assert M.shape == L.shape
+
+
+def test_wrong_value(unit_sd_3d):
+    with pytest.raises(ValueError):
+        pg.numerics.innerproducts.default_discr(unit_sd_3d, -1)

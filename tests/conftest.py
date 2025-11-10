@@ -30,7 +30,7 @@ def _unit_grids_dict() -> dict[tuple[int, bool], pg.Grid]:
     return grids
 
 
-@pytest.fixture(params=param_list, ids=ids)
+@pytest.fixture(scope="session", params=param_list, ids=ids)
 def unit_sd(_unit_grids_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
     return _unit_grids_dict[request.param]
 
@@ -171,45 +171,60 @@ def ref_octagon() -> pg.Grid:
 
 
 # ------------------------- Mixed-dimensional grids -------------------------
-mdg_names = ["mdg_2D", "embedded_frac_2d", "mdg_cube"]
+mdg_names = ["fracs_2D", "embedded_frac_2D", "fracs_3D", "embedded_frac_3D"]
 
 
 @pytest.fixture(scope="session")
-def _mdg_dict() -> dict[int, pg.MixedDimensionalGrid]:
+def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
     mdg_dict = {}
 
     mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
 
+    # Square with two fractures
     mdg_2D, _ = pp.mdg_library.square_with_orthogonal_fractures(
         "simplex", mesh_args, [0, 1]
     )
     pg.convert_from_pp(mdg_2D)
     mdg_2D.compute_geometry()
-    mdg_dict["mdg_2D"] = mdg_2D
+    mdg_dict["fracs_2D"] = mdg_2D
 
+    # Square with one embedded fracture
     end_points = np.array([0.25, 0.75])
-    mdg_frac, _ = pp.mdg_library.square_with_orthogonal_fractures(
+    mdg_frac_2D, _ = pp.mdg_library.square_with_orthogonal_fractures(
         "simplex", mesh_args, [0], fracture_endpoints=[end_points]
     )
-    pg.convert_from_pp(mdg_frac)
-    mdg_frac.compute_geometry()
-    mdg_dict["embedded_frac_2d"] = mdg_frac
+    pg.convert_from_pp(mdg_frac_2D)
+    mdg_frac_2D.compute_geometry()
+    mdg_dict["embedded_frac_2D"] = mdg_frac_2D
 
+    # Cube with three fractures
     mdg_3D, _ = pp.mdg_library.cube_with_orthogonal_fractures(
         "simplex", mesh_args, [0, 1, 2]
     )
     pg.convert_from_pp(mdg_3D)
     mdg_3D.compute_geometry()
-    mdg_dict["mdg_cube"] = mdg_3D
+    mdg_dict["fracs_3D"] = mdg_3D
 
+    # Cube with one embedded fracture
+    fracture = pp.fracture_sets.orthogonal_fractures_3d(0.5)[2]
+    fracture.pts += 1 / 4
+    domain = pp.domains.nd_cube_domain(3, 1.0)
+    fracture_network = pp.create_fracture_network([fracture], domain)
+    mdg_frac_3D = pp.create_mdg("simplex", mesh_args, fracture_network)
+
+    pg.convert_from_pp(mdg_frac_3D)
+    mdg_frac_3D.compute_geometry()
+    mdg_dict["embedded_frac_3D"] = mdg_frac_3D
+
+    # Collect and return
     return mdg_dict
 
 
-@pytest.fixture(params=mdg_names)
+@pytest.fixture(scope="session", params=mdg_names)
 def mdg(_mdg_dict: dict, request: pytest.FixtureRequest) -> pg.MixedDimensionalGrid:
     return _mdg_dict[request.param]
 
 
 @pytest.fixture
 def mdg_embedded_frac_2d(_mdg_dict):
-    return _mdg_dict["embedded_frac_2d"]
+    return _mdg_dict["embedded_frac_2D"]

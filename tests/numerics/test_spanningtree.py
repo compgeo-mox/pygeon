@@ -1,294 +1,165 @@
 """Module contains Spanning Tree tests."""
 
-import unittest
-
 import numpy as np
-import porepy as pp
+import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
 
+spt_names = ["first_bdry", "all_bdry", "bottom", "weighted"]
 
-class SpanningTreeTest(unittest.TestCase):
-    def sptr(self, mdg):
-        sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        bottom = np.isclose(sd.face_centers[1, :], sd.face_centers[1, :].min())
-
-        return [
-            pg.SpanningTree(mdg),
-            pg.SpanningTree(mdg, "all_bdry"),
-            pg.SpanningTree(mdg, bottom),
-            pg.SpanningWeightedTrees(mdg, pg.SpanningTree, [0.25, 0.5, 0.25]),
-        ]
-
-    def check_flux(self, mdg, sptr):
-        """
-        Check whether the constructed flux balances the given mass-source
-        """
-        f = np.arange(mdg.num_subdomain_cells())
-        q_f = sptr.solve(f)
-
-        assert np.allclose(pg.cell_mass(mdg) @ pg.div(mdg) @ q_f, f)
-
-    def check_pressure(self, mdg, sptr):
-        """
-        Check whether the post-processing of the pressure is correct
-        """
-        div = pg.cell_mass(mdg) @ pg.div(mdg)
-        face_mass = pg.face_mass(mdg)
-        system = sps.block_array([[face_mass, -div.T], [div, None]]).tocsc()
-
-        f = np.ones(div.shape[0])
-        rhs = np.hstack([np.zeros(div.shape[1]), f])
-
-        x = sps.linalg.spsolve(system, rhs)
-        q = x[: div.shape[1]]
-        p = x[div.shape[1] :]
-
-        p_sptr = sptr.solve_transpose(face_mass @ q)
-
-        assert np.allclose(p, p_sptr)
-
-    def test_cart_grid(self):
-        N = 3
-        for dim in np.arange(1, 4):
-            sd = pp.CartGrid([N] * dim, [1] * dim)
-            mdg = pg.as_mdg(sd)
-            pg.convert_from_pp(mdg)
-            mdg.compute_geometry()
-
-            [self.check_flux(mdg, s) for s in self.sptr(mdg)]
-
-    def test_structured_triangle(self):
-        N, dim = 3, 2
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        for s in self.sptr(mdg):
-            self.check_flux(mdg, s)
-            self.check_pressure(mdg, s)
-
-    def test_unstructured_triangle(self):
-        sd = pg.unit_grid(2, 0.25, as_mdg=False)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        for s in self.sptr(mdg):
-            self.check_flux(mdg, s)
-            self.check_pressure(mdg, s)
-
-    def test_structured_tetra(self):
-        N, dim = 3, 3
-        sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        for s in self.sptr(mdg):
-            self.check_flux(mdg, s)
-            self.check_pressure(mdg, s)
-
-    def test_2d_mdg(self):
-        mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
-        grids = [
-            pp.mdg_library.square_with_orthogonal_fractures("simplex", mesh_args, [1]),
-            pp.mdg_library.square_with_orthogonal_fractures("simplex", mesh_args, [0]),
-            pp.mdg_library.square_with_orthogonal_fractures(
-                "simplex", mesh_args, [0, 1]
-            ),
-        ]
-
-        for g in grids:
-            mdg, _ = g
-            pg.convert_from_pp(mdg)
-            mdg.compute_geometry()
-
-            for s in self.sptr(mdg):
-                self.check_flux(mdg, s)
-                self.check_pressure(mdg, s)
-
-    def test_3d_mdg(self):
-        mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
-        mdg, _ = pp.mdg_library.cube_with_orthogonal_fractures(
-            "simplex", mesh_args, [0, 1, 2]
-        )
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        for s in self.sptr(mdg):
-            self.check_flux(mdg, s)
-            self.check_pressure(mdg, s)
-
-    def test_assemble_SI(self):
-        N, dim = 3, 2
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        for s in self.sptr(mdg):
-            SI = s.assemble_SI()
-            B = pg.cell_mass(mdg) @ pg.div(mdg)
-            check = sps.eye_array(B.shape[0]) - B @ SI
-
-            assert np.allclose(check.data, 0)
-
-    def test_for_errors(self):
-        sd = pg.unit_grid(2, 0.125)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        self.assertRaises(KeyError, pg.SpanningTree, mdg, "error_str")
-
-
-class SpanningTreeElasticityTest(unittest.TestCase):
-    def sptr(self, mdg):
-        sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        bottom = np.isclose(sd.face_centers[1, :], sd.face_centers[1, :].min())
-
-        return [
-            pg.SpanningTreeElasticity(mdg),
-            pg.SpanningTreeElasticity(mdg, "all_bdry"),
-            pg.SpanningTreeElasticity(mdg, bottom),
-            pg.SpanningWeightedTrees(mdg, pg.SpanningTreeElasticity, [0.25, 0.5, 0.25]),
-        ]
-
-    def assemble_B(self, mdg):
-        sd = mdg.subdomains(dim=mdg.dim_max())[0]
-
-        key = "tree"
-        vec_bdm1 = pg.VecBDM1(key)
-        vec_p0 = pg.VecPwConstants(key)
-
-        M_div = vec_p0.assemble_mass_matrix(sd)
-        if sd.dim == 2:
-            p0 = pg.PwConstants(key)
-            M_asym = p0.assemble_mass_matrix(sd)
-        else:
-            M_asym = M_div
 
-        div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
-        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)
-
-        return sps.vstack((-div, -asym))
+@pytest.fixture(scope="session", params=spt_names)
+def sd_and_sptr(unit_sd, request):
+    mdg = pg.as_mdg(unit_sd)
+    return create_pair(mdg, pg.SpanningTree, request.param)
 
-    def test_elasticity_tria_grid(self):
-        sd = pg.unit_grid(2, 0.125)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
-
-        B = self.assemble_B(mdg)
-        f = np.random.rand(B.shape[0])
 
-        for sptr in self.sptr(mdg):
-            s_f = sptr.solve(f)
-            assert np.allclose(B @ s_f, f)
+@pytest.fixture(scope="session", params=spt_names)
+def mdg_and_sptr(mdg, request):
+    return create_pair(mdg, pg.SpanningTree, request.param)
 
-    def test_elasticity_struct_tet_grid(self):
-        sd = pp.StructuredTetrahedralGrid([1] * 3)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
 
-        B = self.assemble_B(mdg)
-        f = np.random.rand(B.shape[0])
+def create_pair(mdg, tree_type, key):
+    match key:
+        case "first_bdry":
+            return (mdg, tree_type(mdg, "first_bdry"))
+        case "all_bdry":
+            return (mdg, tree_type(mdg, "all_bdry"))
+        case "bottom":
+            sd = mdg.subdomains(dim=mdg.dim_max())[0]
+            bottom = np.isclose(
+                sd.face_centers[sd.dim - 1, :], sd.face_centers[sd.dim - 1, :].min()
+            )
+            return (mdg, tree_type(mdg, bottom))
+        case "weighted":
+            return (
+                mdg,
+                pg.SpanningWeightedTrees(mdg, tree_type, [0.25, 0.5, 0.25]),
+            )
 
-        for sptr in self.sptr(mdg):
-            s_f = sptr.solve(f)
-            assert np.allclose(B @ s_f, f)
 
-    def test_elasticity_unstruct_tet_grid(self):
-        sd = pg.unit_grid(3, 1.0)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
+def test_spt_flow_sd(sd_and_sptr):
+    check_flow(*sd_and_sptr)
 
-        B = self.assemble_B(mdg)
-        f = np.random.rand(B.shape[0])
 
-        for sptr in self.sptr(mdg):
-            s_f = sptr.solve(f)
-            assert np.allclose(B @ s_f, f)
+def test_spt_flow_mdg(mdg_and_sptr):
+    check_flow(*mdg_and_sptr)
 
-    def test_assemble_SI(self):
-        N, dim = 3, 2
-        sd = pp.StructuredTriangleGrid([N] * dim, [1] * dim)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
 
-        for s in self.sptr(mdg):
-            SI = s.assemble_SI()
-            B = self.assemble_B(mdg)
-            check = sps.eye_array(B.shape[0]) - B @ SI
+def check_flow(mdg, sptr):
+    """
+    Check whether the constructed flux balances the given mass-source
+    """
 
-            assert np.allclose(check.data, 0)
+    source_known = np.random.rand(mdg.num_subdomain_cells())
+    p_known = np.random.rand(source_known.size)
+    div = pg.cell_mass(mdg) @ pg.div(mdg)
 
-    def test_for_errors(self):
-        sd = pp.CartGrid(1, 1)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
+    q_f = sptr.solve(source_known)
+    p_sptr = sptr.solve_transpose(div.T @ p_known)
 
-        self.assertRaises(NotImplementedError, pg.SpanningTreeElasticity, mdg)
+    assert np.allclose(div @ q_f, source_known)
+    assert np.allclose(p_known, p_sptr)
 
 
-class SpanningTreeCosseratTest(unittest.TestCase):
-    def check(self, sd):
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
+def test_assemble_SI(sd_and_sptr):
+    mdg, sptr = sd_and_sptr
+    SI = sptr.assemble_SI()
+    div = pg.cell_mass(mdg) @ pg.div(mdg)
 
-        B = self.assemble_B(mdg)
-        f = np.random.rand(B.shape[0])
+    check = sps.eye_array(div.shape[0]) - div @ SI
+    assert np.allclose(check.data, 0)
 
-        sptr = pg.SpanningTreeCosserat(mdg)
 
-        s_f = sptr.solve(f)
-        assert np.allclose(B @ s_f, f)
+def test_for_errors_in_string(unit_sd_2d):
+    mdg = pg.as_mdg(unit_sd_2d)
+    with pytest.raises(KeyError):
+        pg.SpanningTree(mdg, "error_str")
 
-    def assemble_B(self, mdg):
-        sd = mdg.subdomains(dim=mdg.dim_max())[0]
 
-        key = "tree"
-        vec_rt0 = pg.VecRT0(key)
-        vec_p0 = pg.VecPwConstants(key)
+# ---------------------------------- Elasticity ----------------------------------
 
-        M = vec_p0.assemble_mass_matrix(sd)
 
-        div = M @ vec_rt0.assemble_diff_matrix(sd)
-        asym = M @ vec_rt0.assemble_asym_matrix(sd, True)
+@pytest.fixture(scope="session", params=spt_names)
+def sd_and_sptr_elas(unit_sd, request):
+    mdg = pg.as_mdg(unit_sd)
 
-        return sps.block_array([[-div, None], [-asym, -div]]).tocsc()
+    if mdg.dim_max() == 1:
+        return mdg, None
 
-    def test_elasticity_struct_tet_grid(self):
-        sd = pp.StructuredTetrahedralGrid([1] * 3)
-        self.check(sd)
+    return create_pair(mdg, pg.SpanningTreeElasticity, request.param)
 
-    def test_elasticity_unstruct_tet_grid(self):
-        sd = pg.unit_grid(3, 1.0)
-        self.check(sd)
 
-    def test_assemble_SI(self):
-        N, dim = 2, 3
-        sd = pp.StructuredTetrahedralGrid([N] * dim, [1] * dim)
-        mdg = pg.as_mdg(sd)
-        pg.convert_from_pp(mdg)
-        mdg.compute_geometry()
+def assemble_B(mdg):
+    sd = mdg.subdomains(dim=mdg.dim_max())[0]
 
-        sptr = pg.SpanningTreeCosserat(mdg)
+    vec_bdm1 = pg.VecBDM1()
+    vec_p0 = pg.VecPwConstants()
 
-        SI = sptr.assemble_SI()
-        B = self.assemble_B(mdg)
-        check = sps.eye_array(B.shape[0]) - B @ SI
+    M_div = vec_p0.assemble_mass_matrix(sd)
+    if sd.dim == 2:
+        p0 = pg.PwConstants()
+        M_asym = p0.assemble_mass_matrix(sd)
+    else:
+        M_asym = M_div
 
-        assert np.allclose(check.data, 0)
+    div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
+    asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)
 
+    return sps.vstack((-div, -asym))
 
-if __name__ == "__main__":
-    unittest.main()
+
+def test_elasticity_spanningtree_solve(sd_and_sptr_elas):
+    mdg, sptr = sd_and_sptr_elas
+
+    if mdg.dim_max() == 1:
+        return
+
+    B = assemble_B(mdg)
+
+    f = np.random.rand(B.shape[0])
+    ur = np.random.rand(B.shape[0])
+
+    s_f = sptr.solve(f)
+    ur_sptr = sptr.solve_transpose(B.T @ ur)
+
+    assert np.allclose(B @ s_f, f)
+    assert np.allclose(ur, ur_sptr)
+
+
+def test_for_error_in_1d(unit_sd_1d):
+    mdg = pg.as_mdg(unit_sd_1d)
+
+    with pytest.raises(NotImplementedError):
+        pg.SpanningTreeElasticity(mdg)
+
+
+# ---------------------------------- Cosserat ----------------------------------
+
+
+def test_cosserat(unit_sd_3d):
+    mdg = pg.as_mdg(unit_sd_3d)
+
+    B = assemble_B_cosserat(mdg)
+    f = np.random.rand(B.shape[0])
+
+    sptr = pg.SpanningTreeCosserat(mdg)
+
+    s_f = sptr.solve(f)
+    assert np.allclose(B @ s_f, f)
+
+
+def assemble_B_cosserat(mdg):
+    sd = mdg.subdomains(dim=mdg.dim_max())[0]
+
+    key = "tree"
+    vec_rt0 = pg.VecRT0(key)
+    vec_p0 = pg.VecPwConstants(key)
+
+    M = vec_p0.assemble_mass_matrix(sd)
+
+    div = M @ vec_rt0.assemble_diff_matrix(sd)
+    asym = M @ vec_rt0.assemble_asym_matrix(sd, True)
+
+    return sps.block_array([[-div, None], [-asym, -div]]).tocsc()

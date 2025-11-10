@@ -81,27 +81,27 @@ def test_unit_cube():
 
 
 def test_triangle():
-    domain = pp.Domain(polytope=boundary)
-    sd = pg.grid_from_domain(domain, mesh_size=0.5, as_mdg=False)
-
     side_1 = np.array([[0, 1], [0, 0]])
     side_2 = np.array([[1, 0], [0, 1]])
     side_3 = np.array([[0, 0], [1, 0]])
     boundary = [side_1, side_2, side_3]
 
+    domain = pp.Domain(polytope=boundary)
+    sd = pg.grid_from_domain(domain, mesh_size=0.5, as_mdg=False)
+
     check_grid(sd, 2, boundary)
 
 
 def test_concave_pentagon():
-    domain = pp.Domain(polytope=boundary)
-    sd = pg.grid_from_domain(domain, mesh_size=0.5, as_mdg=False)
-
     side_1 = np.array([[0, 1], [0, 0]])
     side_2 = np.array([[1, 1], [0, 1]])
     side_3 = np.array([[1, 0.5], [1, 0.5]])
     side_4 = np.array([[0.5, 0], [0.5, 1]])
     side_5 = np.array([[0, 0], [1, 0]])
     boundary = [side_1, side_2, side_3, side_4, side_5]
+
+    domain = pp.Domain(polytope=boundary)
+    sd = pg.grid_from_domain(domain, mesh_size=0.5, as_mdg=False)
 
     check_grid(sd, 2, boundary)
 

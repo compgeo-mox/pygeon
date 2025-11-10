@@ -68,6 +68,6 @@ def test_up_and_down_projection(tensor_order, unit_sd):
     Pi_down = pg.proj_to_PwPolynomials(discr_1, unit_sd, 0)
 
     I = Pi_down @ Pi_up
-    I_known = sps.eye(I.shape[0])
+    I_known = sps.eye_array(I.shape[0])
 
     assert np.allclose((I - I_known).data, 0)
