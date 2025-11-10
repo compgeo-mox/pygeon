@@ -66,7 +66,7 @@ def unit_sd_3d(_unit_grids_dict: dict) -> pg.Grid:
 def _unit_cart_dict() -> dict[int, pg.Grid]:
     grids = {}
     for dim in [1, 2, 3]:
-        sd = pp.CartGrid(np.full(dim, 5 - dim), np.ones(dim))
+        sd = pp.CartGrid([5 - dim] * dim, [1] * dim)
         pg.convert_from_pp(sd)
         sd.compute_geometry()
         grids[dim] = sd
@@ -83,15 +83,15 @@ def unit_cart_sd(_unit_cart_dict: dict, request: pytest.FixtureRequest) -> pg.Gr
 
 
 @pytest.fixture(scope="session")
-def _unit_poly_dict() -> dict[str, pg.Grid]:
+def _unit_poly_dict() -> dict[int, pg.Grid]:
     grids = {}
 
-    sd = pp.CartGrid(np.full(2, 3), np.ones(2))
+    sd = pp.CartGrid([3] * 2, [1] * 2)
     pg.convert_from_pp(sd)
     sd.compute_geometry()
     grids["Cartgrid"] = sd
 
-    sd = pg.OctagonGrid(np.full(2, 3), np.ones(2))
+    sd = pg.OctagonGrid([3] * 2, [1] * 2)
     pg.convert_from_pp(sd)
     sd.compute_geometry()
     grids["Octgrid"] = sd
@@ -131,7 +131,7 @@ def ref_sd_3d(_ref_elements_dict: dict) -> pg.Grid:
 
 @pytest.fixture
 def ref_sd_0d() -> pg.Grid:
-    sd = pp.PointGrid(np.zeros(3))
+    sd = pp.PointGrid([0, 0, 0])
     pg.convert_from_pp(sd)
     sd.compute_geometry()
 
@@ -155,7 +155,7 @@ def pentagon_sd() -> pg.Grid:
 
 @pytest.fixture(scope="session")
 def ref_square() -> pg.Grid:
-    sd = pp.CartGrid(np.ones(2))
+    sd = pp.CartGrid([1] * 2)
     pg.convert_from_pp(sd)
     sd.compute_geometry()
 
@@ -164,7 +164,7 @@ def ref_square() -> pg.Grid:
 
 @pytest.fixture(scope="session")
 def ref_octagon() -> pg.Grid:
-    sd = pg.OctagonGrid(np.ones(2))
+    sd = pg.OctagonGrid([1] * 2)
     sd.compute_geometry()
 
     return sd
