@@ -180,12 +180,12 @@ def _mdg_dict() -> dict[int, pg.MixedDimensionalGrid]:
 
     mesh_args = {"cell_size": 0.5, "cell_size_fracture": 0.5}
 
-    mdg_2, _ = pp.mdg_library.square_with_orthogonal_fractures(
+    mdg_2D, _ = pp.mdg_library.square_with_orthogonal_fractures(
         "simplex", mesh_args, [0, 1]
     )
-    pg.convert_from_pp(mdg_2)
-    mdg_2.compute_geometry()
-    mdg_dict["mdg_2D"] = mdg_2
+    pg.convert_from_pp(mdg_2D)
+    mdg_2D.compute_geometry()
+    mdg_dict["mdg_2D"] = mdg_2D
 
     end_points = np.array([0.25, 0.75])
     mdg_frac, _ = pp.mdg_library.square_with_orthogonal_fractures(
@@ -195,12 +195,12 @@ def _mdg_dict() -> dict[int, pg.MixedDimensionalGrid]:
     mdg_frac.compute_geometry()
     mdg_dict["embedded_frac_2d"] = mdg_frac
 
-    mdg_3, _ = pp.mdg_library.cube_with_orthogonal_fractures(
+    mdg_3D, _ = pp.mdg_library.cube_with_orthogonal_fractures(
         "simplex", mesh_args, [0, 1, 2]
     )
-    pg.convert_from_pp(mdg_3)
-    mdg_3.compute_geometry()
-    mdg_dict["mdg_cube"] = mdg_3
+    pg.convert_from_pp(mdg_3D)
+    mdg_3D.compute_geometry()
+    mdg_dict["mdg_cube"] = mdg_3D
 
     return mdg_dict
 
@@ -208,3 +208,8 @@ def _mdg_dict() -> dict[int, pg.MixedDimensionalGrid]:
 @pytest.fixture(params=mdg_names)
 def mdg(_mdg_dict: dict, request: pytest.FixtureRequest) -> pg.MixedDimensionalGrid:
     return _mdg_dict[request.param]
+
+
+@pytest.fixture
+def mdg_embedded_frac_2d(_mdg_dict):
+    return _mdg_dict["embedded_frac_2d"]
