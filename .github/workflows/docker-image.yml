@@ -34,6 +34,5 @@ jobs:
         with:
           context: ./
           file: ./dockerfiles/Dockerfile
-          builder: ${{ steps.buildx.outputs.name }}
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/main:latest
