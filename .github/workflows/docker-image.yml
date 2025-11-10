@@ -5,6 +5,8 @@
 # Inspired by PorePy's GitHub Actions workflows:
 #
 name: Publish Docker image for main branch
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:
