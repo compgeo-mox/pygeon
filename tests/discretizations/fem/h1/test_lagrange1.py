@@ -7,15 +7,15 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr():
+def discr() -> pg.Lagrange1:
     return pg.Lagrange1("test")
 
 
-def test_ndof(discr, unit_sd):
+def test_ndof(discr: pg.Lagrange1, unit_sd: pg.Grid):
     assert discr.ndof(unit_sd) == unit_sd.num_nodes
 
 
-def test_assemble_mass_matrix(discr, ref_sd):
+def test_assemble_mass_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     M = discr.assemble_mass_matrix(ref_sd)
 
     match ref_sd.dim:
@@ -56,7 +56,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_assemble_diff_matrix(discr, ref_sd):
+def test_assemble_diff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     M = discr.assemble_diff_matrix(ref_sd)
 
     match ref_sd.dim:
@@ -89,7 +89,7 @@ def test_assemble_diff_matrix(discr, ref_sd):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_assemble_stiff_matrix(discr, ref_sd):
+def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     M = discr.assemble_stiff_matrix(ref_sd)
 
     match ref_sd.dim:
@@ -128,13 +128,13 @@ def test_assemble_stiff_matrix(discr, ref_sd):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_range_discr(discr):
+def test_range_discr(discr: pg.Lagrange1):
     assert discr.get_range_discr_class(1) is pg.PwConstants
     assert discr.get_range_discr_class(2) is pg.RT0
     assert discr.get_range_discr_class(3) is pg.Nedelec0
 
 
-def test_assemble_lumped_matrix(discr, ref_sd):
+def test_assemble_lumped_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     from math import factorial
 
     L = discr.assemble_lumped_matrix(ref_sd)

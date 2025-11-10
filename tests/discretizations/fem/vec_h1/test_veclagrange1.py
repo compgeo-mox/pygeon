@@ -1,9 +1,8 @@
 """Module contains vector Lagrangean fem tests."""
 
-import pytest
-
 import numpy as np
 import porepy as pp
+import pytest
 import scipy.sparse as sps
 
 import pygeon as pg

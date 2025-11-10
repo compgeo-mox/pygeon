@@ -1,8 +1,6 @@
+import numpy as np
 import pytest
 import scipy.sparse as sps
-
-import numpy as np
-
 
 """
 Module contains tests to validate the opposite_node computations on simplicial 

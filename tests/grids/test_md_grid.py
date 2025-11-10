@@ -1,6 +1,6 @@
 import numpy as np
-import scipy.sparse as sps
 import pytest
+import scipy.sparse as sps
 
 import pygeon as pg
 

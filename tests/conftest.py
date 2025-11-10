@@ -10,7 +10,6 @@ import scipy.sparse as sps
 
 import pygeon as pg
 
-
 # ------------------------- Unit simplicial grids -------------------------
 
 param_list = [(dim, is_str) for dim in range(1, 4) for is_str in [True, False]]

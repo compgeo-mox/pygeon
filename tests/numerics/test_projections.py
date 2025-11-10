@@ -3,7 +3,7 @@ import numpy as np
 import pygeon as pg
 
 
-def test_eval_lagrange1(unit_sd):
+def test_eval_lagrange1(unit_sd: pg.Grid):
     mdg = pg.as_mdg(unit_sd)
 
     discr = pg.Lagrange1("test")
@@ -12,7 +12,7 @@ def test_eval_lagrange1(unit_sd):
     assert np.allclose(P.data, 1 / (unit_sd.dim + 1))
 
 
-def test_eval_at_cc_pwconstants(mdg):
+def test_eval_at_cc_pwconstants(mdg: pg.MixedDimensionalGrid):
     discr = pg.PwConstants("test")
     P = pg.eval_at_cell_centers(mdg, discr)
 
