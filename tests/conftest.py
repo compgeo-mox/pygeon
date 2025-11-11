@@ -74,10 +74,9 @@ def _unit_cart_dict() -> dict[int, pg.Grid]:
             np.array([1] * dim),
         )
         pg.convert_from_pp(sd)
-        sd = cast(pg.Grid, sd)  # mypy
 
         sd.compute_geometry()
-        grids[dim] = sd
+        grids[dim] = cast(pg.Grid, sd)  # mypy
 
     return grids
 
@@ -99,10 +98,9 @@ def _unit_poly_dict() -> dict[str, pg.Grid]:
         np.array([1] * 2),
     )
     pg.convert_from_pp(sd_cart)
-    sd_cart = cast(pg.Grid, sd_cart)  # mypy
-
     sd_cart.compute_geometry()
-    grids["Cartgrid"] = sd_cart
+
+    grids["Cartgrid"] = cast(pg.Grid, sd_cart)  # mypy
 
     sd_oct = pg.OctagonGrid(
         np.array([3] * 2),
@@ -150,11 +148,9 @@ def ref_sd_0d() -> pg.Grid:
         np.array([0, 0, 0]),
     )
     pg.convert_from_pp(sd)
-    sd = cast(pg.Grid, sd)  # mypy
-
     sd.compute_geometry()
 
-    return sd
+    return cast(pg.Grid, sd)  # mypy
 
 
 # ------------------------- Polygonal elements -------------------------
@@ -178,11 +174,9 @@ def ref_square() -> pg.Grid:
         np.array([1] * 2),
     )
     pg.convert_from_pp(sd)
-    sd = cast(pg.Grid, sd)  # mypy
-
     sd.compute_geometry()
 
-    return sd
+    return cast(pg.Grid, sd)
 
 
 @pytest.fixture(scope="session")
@@ -210,10 +204,9 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
         "simplex", mesh_args, [0, 1]
     )
     pg.convert_from_pp(mdg_2D)
-    mdg_2D = cast(pg.MixedDimensionalGrid, mdg_2D)  # mypy
-
     mdg_2D.compute_geometry()
-    mdg_dict["fracs_2D"] = mdg_2D
+
+    mdg_dict["fracs_2D"] = cast(pg.MixedDimensionalGrid, mdg_2D)  # mypy
 
     # Square with one embedded fracture
     end_points = np.array([0.25, 0.75])
@@ -221,20 +214,18 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
         "simplex", mesh_args, [0], fracture_endpoints=[end_points]
     )
     pg.convert_from_pp(mdg_frac_2D)
-    mdg_frac_2D = cast(pg.MixedDimensionalGrid, mdg_frac_2D)  # mypy
-
     mdg_frac_2D.compute_geometry()
-    mdg_dict["embedded_frac_2D"] = mdg_frac_2D
+
+    mdg_dict["embedded_frac_2D"] = cast(pg.MixedDimensionalGrid, mdg_frac_2D)  # mypy
 
     # Cube with three fractures
     mdg_3D, _ = pp.mdg_library.cube_with_orthogonal_fractures(
         "simplex", mesh_args, [0, 1, 2]
     )
     pg.convert_from_pp(mdg_3D)
-    mdg_3D = cast(pg.MixedDimensionalGrid, mdg_3D)  # mypy
-
     mdg_3D.compute_geometry()
-    mdg_dict["fracs_3D"] = mdg_3D
+
+    mdg_dict["fracs_3D"] = cast(pg.MixedDimensionalGrid, mdg_3D)  # mypy
 
     # Cube with one embedded fracture
     fracture = pp.fracture_sets.orthogonal_fractures_3d(0.5)[2]
@@ -242,12 +233,10 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
     domain = pp.domains.nd_cube_domain(3, 1.0)
     fracture_network = pp.create_fracture_network([fracture], domain)
     mdg_frac_3D = pp.create_mdg("simplex", mesh_args, fracture_network)
-
     pg.convert_from_pp(mdg_frac_3D)
-    mdg_frac_3D = cast(pg.MixedDimensionalGrid, mdg_frac_3D)  # mypy
-
     mdg_frac_3D.compute_geometry()
-    mdg_dict["embedded_frac_3D"] = mdg_frac_3D
+
+    mdg_dict["embedded_frac_3D"] = cast(pg.MixedDimensionalGrid, mdg_frac_3D)  # mypy
 
     # Collect and return
     return mdg_dict
