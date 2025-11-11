@@ -1,10 +1,12 @@
+from typing import cast
+
 import numpy as np
 
 import pygeon as pg
 
 
 def test_eval_lagrange1(unit_sd: pg.Grid):
-    mdg = pg.as_mdg(unit_sd)
+    mdg = cast(pg.MixedDimensionalGrid, pg.as_mdg(unit_sd))
 
     discr = pg.Lagrange1("test")
     P = pg.eval_at_cell_centers(mdg, discr)

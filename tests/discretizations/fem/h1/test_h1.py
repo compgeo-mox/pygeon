@@ -10,11 +10,11 @@ import pygeon as pg
         pg.Lagrange2,
     ]
 )
-def discr(request: pytest.FixtureRequest) -> pg.Discretization:
+def discr(request):
     return request.param("test")
 
 
-def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
+def test_interpolate_and_evaluate(discr, unit_sd):
     func = lambda x: x[0] ** discr.poly_order
     known_vals = func(unit_sd.cell_centers)
 
@@ -24,7 +24,7 @@ def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
     assert np.allclose(proj @ interp, known_vals)
 
 
-def test_lumped_consistency(discr: pg.Discretization, unit_sd: pg.Grid):
+def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)
 
@@ -36,7 +36,7 @@ def test_lumped_consistency(discr: pg.Discretization, unit_sd: pg.Grid):
     assert np.allclose(integral_L, integral_M)
 
 
-def test_stiffness_consistency(discr: pg.Discretization, unit_sd: pg.Grid):
+def test_stiffness_consistency(discr, unit_sd):
     """Compare the implemented stiffness matrix
     to the one obtained by mapping to the range discretization"""
 
