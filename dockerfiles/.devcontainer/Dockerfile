@@ -57,9 +57,18 @@ RUN . ${HOME}/.bashrc && conda install -y jupyter
 # Expose the Jupyter Notebook port
 EXPOSE 8888
 
+ENV PYGEON_HOME=${HOME}/pygeon
+
 # Clone the repository
-RUN cd ${HOME} && git clone https://github.com/compgeo-mox/pygeon.git
-RUN cd ${HOME}/pygeon && pip install --no-cache-dir -e .
+WORKDIR ${HOME}
+RUN git clone https://github.com/compgeo-mox/pygeon.git
+RUN cd ${PYGEON_HOME} && pip install --no-cache-dir -e .
+
+# Test installation
+WORKDIR ${PYGEON_HOME}/tests
+RUN pytest
+
+WORKDIR ${HOME}
 
 # Set the default command to start the environment
 CMD [ "/bin/bash", "-c", ". activate py3" ]
