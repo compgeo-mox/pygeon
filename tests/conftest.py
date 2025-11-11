@@ -3,6 +3,8 @@ Module containing the grids to be used in the different tests. All fixtures in t
 are available to the tests in this directory and its subdirectories.
 """
 
+from typing import cast
+
 import numpy as np
 import porepy as pp
 import pytest
@@ -23,6 +25,8 @@ def _unit_grids_dict() -> dict[tuple[int, bool], pg.Grid]:
     grids = {}
     for dim, is_str in param_list:
         sd = pg.unit_grid(dim, 1 / (5 - dim), structured=is_str, as_mdg=False)
+        sd = cast(pg.Grid, sd)  # mypy
+
         sd.compute_geometry()
         grids[dim, is_str] = sd
 
@@ -70,6 +74,8 @@ def _unit_cart_dict() -> dict[int, pg.Grid]:
             np.array([1] * dim),
         )
         pg.convert_from_pp(sd)
+        sd = cast(pg.Grid, sd)  # mypy
+
         sd.compute_geometry()
         grids[dim] = sd
 
@@ -88,21 +94,22 @@ def unit_cart_sd(_unit_cart_dict: dict, request: pytest.FixtureRequest) -> pg.Gr
 def _unit_poly_dict() -> dict[str, pg.Grid]:
     grids = {}
 
-    sd = pp.CartGrid(
+    sd_cart = pp.CartGrid(
         np.array([3] * 2),
         np.array([1] * 2),
     )
-    pg.convert_from_pp(sd)
-    sd.compute_geometry()
-    grids["Cartgrid"] = sd
+    pg.convert_from_pp(sd_cart)
+    sd_cart = cast(pg.Grid, sd_cart)  # mypy
 
-    sd = pg.OctagonGrid(
+    sd_cart.compute_geometry()
+    grids["Cartgrid"] = sd_cart
+
+    sd_oct = pg.OctagonGrid(
         np.array([3] * 2),
         np.array([1] * 2),
     )
-    pg.convert_from_pp(sd)
-    sd.compute_geometry()
-    grids["Octgrid"] = sd
+    sd_oct.compute_geometry()
+    grids["Octgrid"] = sd_oct
 
     return grids
 
@@ -143,6 +150,8 @@ def ref_sd_0d() -> pg.Grid:
         np.array([0, 0, 0]),
     )
     pg.convert_from_pp(sd)
+    sd = cast(pg.Grid, sd)  # mypy
+
     sd.compute_geometry()
 
     return sd
@@ -169,6 +178,8 @@ def ref_square() -> pg.Grid:
         np.array([1] * 2),
     )
     pg.convert_from_pp(sd)
+    sd = cast(pg.Grid, sd)  # mypy
+
     sd.compute_geometry()
 
     return sd
@@ -199,6 +210,8 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
         "simplex", mesh_args, [0, 1]
     )
     pg.convert_from_pp(mdg_2D)
+    mdg_2D = cast(pg.MixedDimensionalGrid, mdg_2D)  # mypy
+
     mdg_2D.compute_geometry()
     mdg_dict["fracs_2D"] = mdg_2D
 
@@ -208,6 +221,8 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
         "simplex", mesh_args, [0], fracture_endpoints=[end_points]
     )
     pg.convert_from_pp(mdg_frac_2D)
+    mdg_frac_2D = cast(pg.MixedDimensionalGrid, mdg_frac_2D)  # mypy
+
     mdg_frac_2D.compute_geometry()
     mdg_dict["embedded_frac_2D"] = mdg_frac_2D
 
@@ -216,6 +231,8 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
         "simplex", mesh_args, [0, 1, 2]
     )
     pg.convert_from_pp(mdg_3D)
+    mdg_3D = cast(pg.MixedDimensionalGrid, mdg_3D)  # mypy
+
     mdg_3D.compute_geometry()
     mdg_dict["fracs_3D"] = mdg_3D
 
@@ -227,6 +244,8 @@ def _mdg_dict() -> dict[str, pg.MixedDimensionalGrid]:
     mdg_frac_3D = pp.create_mdg("simplex", mesh_args, fracture_network)
 
     pg.convert_from_pp(mdg_frac_3D)
+    mdg_frac_3D = cast(pg.MixedDimensionalGrid, mdg_frac_3D)  # mypy
+
     mdg_frac_3D.compute_geometry()
     mdg_dict["embedded_frac_3D"] = mdg_frac_3D
 
