@@ -11,13 +11,12 @@ WORKDIR ${HOME}
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Update the package list and install sudo
-RUN sed -i 's/^# deb/deb/' /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y \
+RUN sed -i 's/^# deb/deb/' /etc/apt/sources.list
+RUN apt-get update -y
+RUN apt-get install -y \
     wget git bash libc6 apt-utils build-essential gfortran bzip2 ca-certificates \
-    libglu1-mesa ffmpeg libsm6 libxext6 libxrender1 libxcursor1 libxft2 libfontconfig1 \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    libglu1-mesa ffmpeg libsm6 libxext6 libxrender1 libxcursor1 libxft2 libfontconfig1
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Use bash shell instead
 SHELL ["/bin/bash", "-c"]
@@ -49,12 +48,11 @@ RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkg
 
 # Create a new environment
 ENV PYTHON_VERSION=3.13
-ENV PYTHON_ENV=py3
 
-RUN conda create -y -n ${PYTHON_ENV} python=${PYTHON_VERSION}
-SHELL ["conda", "run", "-n", "${PYTHON_ENV}", "/bin/bash", "-c"]
-RUN echo "source activate ${PYTHON_ENV}" >> ${HOME}/.bashrc
-RUN source ${HOME}/.bashrc && conda install -y jupyter
+RUN conda create -y -n py3 python=${PYTHON_VERSION}
+SHELL ["conda", "run", "-n", "py3", "/bin/bash", "-c"]
+RUN echo ". activate py3" >> ${HOME}/.bashrc
+RUN . ${HOME}/.bashrc && conda install -y jupyter
 
 # Expose the Jupyter Notebook port
 EXPOSE 8888
@@ -64,4 +62,4 @@ RUN cd ${HOME} && git clone https://github.com/compgeo-mox/pygeon.git
 RUN cd ${HOME}/pygeon && pip install --no-cache-dir -e .
 
 # Set the default command to start the environment
-CMD [ "/bin/bash", "-c", "source activate ${PYTHON_ENV}" ]
+CMD [ "/bin/bash", "-c", ". activate py3" ]
