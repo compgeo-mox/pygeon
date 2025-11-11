@@ -9,16 +9,16 @@ permissions:
   contents: read
 
 on:
-  workflow_dispatch:
-    # run jobs manually
   push:
     branches:
-       - main
+       - docker
+
 
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -35,4 +35,4 @@ jobs:
           context: ./
           file: ./dockerfiles/.devcontainer/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/main:latest
+          tags: pygeon/main:latest
