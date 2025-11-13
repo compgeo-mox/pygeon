@@ -128,9 +128,12 @@ def _g_exterior_derivative(
     elif n_minus_k == 1:
         derivative = grid.cell_faces.T
     elif n_minus_k == 2:
-        derivative = grid.face_ridges.T  # type: Ignore[has-type]    elif n_minus_k == 3:
-        derivative = grid.ridge_peaks.T  # type: Ignore[has-type]    elif n_minus_k == 4:
-        derivative = sps.csc_array((grid.num_peaks, 0))  # type: Ignore[type-var, union-attr]    else:
+        derivative = grid.face_ridges.T  # type: ignore[has-type]
+    elif n_minus_k == 3:
+        derivative = grid.ridge_peaks.T  # type: ignore[has-type]
+    elif n_minus_k == 4:
+        derivative = sps.csc_array((grid.num_peaks, 0))  # type: ignore[type-var, union-attr]
+    else:
         Warning("(n - k) is not between 0 and 4")
         derivative = sps.csc_array((0, 0))
     return derivative

@@ -69,7 +69,8 @@ def remove_tip_dofs(
     Returns:
         sps.csc_array: The operator that removes the tip degrees of freedom.
     """
-    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()  # type: Ignore[union-attr]    return R[R.indices, :].tocsc()
+    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()  # type: ignore[union-attr]
+    return R[R.indices, :].tocsc()
 
 
 def get_codim_str(n_minus_k: int) -> str:
