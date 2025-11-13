@@ -118,11 +118,10 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         A function can be passed to filter subdomains and/or interfaces.
 
         Args:
-            cond: optional, predicate with a grid as input.
+            cond: Optional, predicate with a grid as input.
 
         Returns:
             int: the total number of faces of the mixed-dimensional grid.
-
         """
         if cond is None:
             cond = lambda _: True

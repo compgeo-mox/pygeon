@@ -30,7 +30,7 @@ class Poincare:
         Initializes a Poincare class
 
         Args:
-            mdg (pg.MixedDimensionalGrid): a (mixed-dimensional) grid
+            mdg (pg.MixedDimensionalGrid): A (mixed-dimensional) grid.
         """
         self.mdg = mdg
         self.dim = mdg.dim_max()
@@ -94,7 +94,7 @@ class Poincare:
         Find the node that is closest to the center of the domain.
 
         Returns:
-            int: index of the central node
+            int: index of the central node.
         """
         center = np.mean(self.top_sd.nodes, axis=1, keepdims=True)
         dists = np.linalg.norm(self.top_sd.nodes - center, axis=0)
@@ -120,11 +120,11 @@ class Poincare:
         Apply the Poincare operator
 
         Args:
-            k (int): order of the differential k-form that is input
-            f (np.ndarray): the input differential k-form
-                as an array of the degrees of freedom
+            k (int): Order of the differential k-form that is input.
+            f (np.ndarray): The input differential k-form
+                as an array of the degrees of freedom.
             solver (Optional[Callable]): The solver function to use.
-                Defaults to sps.linalg.spsolve
+                Defaults to sps.linalg.spsolve.
 
         Returns:
             np.ndarray: the image of f under the Poincaré operator, i.e. p(f)
@@ -147,9 +147,9 @@ class Poincare:
         Apply the permitted Poincaré operator for k-forms
 
         Args:
-            k (int): order of the form
-            f (np.ndarray): the input differential k-form
-                as an array of the degrees of freedom
+            k (int): Order of the form.
+            f (np.ndarray): The input differential k-form
+                as an array of the degrees of freedom.
             solver (Callable): The solver function to use.
 
         Returns:
@@ -170,8 +170,8 @@ class Poincare:
         Use the Poincaré operators to decompose f = pd(f) + dp(f)
 
         Args:
-            k (int): order of the k-form f
-            f (np.ndarray): the function to be decomposed
+            k (int): Order of the k-form f.
+            f (np.ndarray): The function to be decomposed.
 
         Returns:
             Tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
@@ -204,9 +204,9 @@ class Poincare:
         differential forms identified by the Poincare object.
 
         Args:
-            k (int): order of the k-form
-            A (sps.csc_array): the system, usually a stiffness matrix
-            b (np.ndarray): the right-hand side vector
+            k (int): Order of the k-form.
+            A (sps.csc_array): The system, usually a stiffness matrix.
+            b (np.ndarray): The right-hand side vector.
             solver (Callable): The solver function to use. Defaults to
                 sps.linalg.spsolve.
 

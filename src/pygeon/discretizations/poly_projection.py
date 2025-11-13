@@ -17,7 +17,7 @@ def get_PwPolynomials(
 
     Returns:
         Type[pg.Discretization]: The corresponding piecewise polynomial discretization
-            class.
+        class.
     """
     match (poly_order, tensor_order):
         case (0, pg.SCALAR):
@@ -59,7 +59,7 @@ def proj_to_PwPolynomials(
 
     Returns:
         sps.csc_array: A sparse matrix representing the projection operator to the
-            specified piecewise polynomial space.
+        specified piecewise polynomial space.
     """
     pi = discr.proj_to_PwPolynomials(sd)
 

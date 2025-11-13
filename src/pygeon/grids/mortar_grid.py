@@ -86,7 +86,7 @@ class MortarGrid(pp.MortarGrid):
         Assign the face-ridge and ridge-peak connectivities to the mortar grid
 
         Args:
-            sd_pair (Tuple[pp.Grid, pp.Grid]): pair of adjacent subdomains
+            sd_pair (Tuple[pp.Grid, pp.Grid]): Pair of adjacent subdomains.
 
         Returns:
             None
@@ -207,12 +207,12 @@ class MortarGrid(pp.MortarGrid):
         respects orientation.
 
         Args:
-            sd_pair (Tuple[pp.Grid, pp.Grid]): pair of adjacent subdomains
+            sd_pair (Tuple[pp.Grid, pp.Grid]): Pair of adjacent subdomains.
 
         Returns:
             sps.csc_array: A sparse matrix representing the mapping from mortar
-                cells to primary grid faces.
-                The matrix has dimensions num_primary_faces x num_mortar_cells.
+            cells to primary grid faces. The matrix has dimensions num_primary_faces x
+            num_mortar_cells.
         """
         sd_up = sd_pair[0]
         cells, faces, _ = sps.find(self.primary_to_mortar_int())  # type: ignore[arg-type]

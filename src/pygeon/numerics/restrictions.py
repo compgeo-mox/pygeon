@@ -25,7 +25,7 @@ def zero_tip_dofs(
 
     Returns:
         sps.csc_array or np.ndarray: The operator that maps the tip degrees of freedom
-            to zero.
+        to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -78,7 +78,7 @@ def get_codim_str(n_minus_k: int) -> str:
     Helper function that returns the name of the mesh entity
 
     Args:
-        n_minus_k (int): The codimension of the mesh entity
+        n_minus_k (int): The codimension of the mesh entity.
 
     Returns:
         str: The name of the mesh entity

@@ -25,7 +25,7 @@ class RT0(pg.Discretization):
         Returns the number of faces.
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
             int: the number of degrees of freedom.
@@ -53,7 +53,7 @@ class RT0(pg.Discretization):
             data = {
                 pp.PARAMETERS: {keyword: {}},
                 pp.DISCRETIZATION_MATRICES: {keyword: {}},
-            }
+            }.
 
         try:
             data[pp.PARAMETERS]
@@ -202,9 +202,9 @@ class RT0(pg.Discretization):
         Evaluate the basis functions.
 
         Args:
-            coord (np.ndarray): the coordinates of the opposite node for each face.
+            coord (np.ndarray): The coordinates of the opposite node for each face.
             sign (np.ndarray): The sign associated to each of the face of the degree of
-                freedom
+                freedom.
             dim (int): The dimension of the grid.
 
         Return:
@@ -390,7 +390,7 @@ class RT0(pg.Discretization):
 
         Returns:
             sps.csc_array: A sparse array in CSC format representing the projection from
-                the current space to VecPwLinears.
+            the current space to VecPwLinears.
         """
         bdm1 = pg.BDM1(self.keyword)
         proj_to_bdm1 = bdm1.proj_from_RT0(sd)
@@ -557,7 +557,7 @@ class BDM1(pg.Discretization):
             cell_nodes_loc (np.ndarray): The local nodes of the cell.
             faces_loc (np.ndarray): The local faces.
             return_node_ind (bool): Whether to return the local indexing of the nodes,
-                                    used in assemble_lumped_matrix
+                                    used in assemble_lumped_matrix.
 
         Returns:
             np.ndarray: The local mass matrix.
@@ -843,7 +843,7 @@ class BDM1(pg.Discretization):
 
         Returns:
             sps.csc_array: A sparse array in CSC format representing the projection from
-                the current space to VecPwLinears.
+            the current space to VecPwLinears.
         """
         size = sd.dim**2 * (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -903,7 +903,7 @@ class RT1(pg.Discretization):
         Returns the number of degrees of freedom.
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
             int: the number of degrees of freedom.
@@ -1001,7 +1001,7 @@ class RT1(pg.Discretization):
         Assembles the local inner products based on the Lagrange2 element
 
         Args:
-            dim (int): Dimension of the grid
+            dim (int): Dimension of the grid.
 
         Returns:
             np.ndarray: The local mass matrix.
@@ -1018,9 +1018,9 @@ class RT1(pg.Discretization):
         Reorders the local nodes, faces, and corresponding cell-face orientations
 
         Args:
-            cell_faces (sps.csc_array): cell_face connectivity of the grid
-            opposite_nodes (sps.csc_array): opposite nodes for each face
-            cell (int): cell index
+            cell_faces (sps.csc_array): Cell_face connectivity of the grid.
+            opposite_nodes (sps.csc_array): Opposite nodes for each face.
+            cell (int): Cell index.
 
         Returns:
             np.ndarray: The reordered local node indices
@@ -1055,14 +1055,14 @@ class RT1(pg.Discretization):
         Evaluates the basis functions at the nodes and edges of a cell.
 
         Args:
-            sd (pg.Grid): the grid
-            nodes_loc (np.ndarray): nodes of the cell
-            signs_loc (np.ndarray): cell-face orientation signs
-            volume (float): cell volume
+            sd (pg.Grid): The grid.
+            nodes_loc (np.ndarray): Nodes of the cell.
+            signs_loc (np.ndarray): Cell-face orientation signs.
+            volume (float): Cell volume.
 
         Returns:
-            np.ndarray: An array Psi in which [i, 3j : 3(j + 1)] contains
-                the values of basis function phi_i at evaluation point j
+            np.ndarray: An array Psi in which [i, 3j : 3(j + 1)] contains the values of
+            basis function phi_i at evaluation point j
         """
         dim = sd.dim
 
@@ -1118,13 +1118,13 @@ class RT1(pg.Discretization):
         Evaluates the basis functions at the center of a cell.
 
         Args:
-            sd (pg.Grid): the grid
-            nodes_loc (np.ndarray): nodes of the cell
-            volume (float): cell volume
+            sd (pg.Grid): The grid.
+            nodes_loc (np.ndarray): Nodes of the cell.
+            volume (float): Cell volume.
 
         Returns:
-            np.ndarray: A (3 x dim) array with the values of the
-                cell-based basis functions at the cell center.
+            np.ndarray: A (3 x dim) array with the values of the cell-based basis
+            functions at the cell center.
         """
         # Preallocation
         basis = np.empty((3, sd.dim))
@@ -1237,7 +1237,7 @@ class RT1(pg.Discretization):
         Assembles the local divergence matrix using local node and face ordering
 
         Args:
-            dim (int): dimension of the grid
+            dim (int): Dimension of the grid.
 
         Returns:
             np.ndarray: The local divergence matrix
@@ -1272,7 +1272,6 @@ class RT1(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-
         # The face dofs are determined as in BDM1
         interp_faces = pg.BDM1().interpolate(sd, func)
 
@@ -1347,7 +1346,6 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
             return sps.csc_array((0, 0))
@@ -1408,7 +1406,7 @@ class RT1(pg.Discretization):
 
         Returns:
             sps.csc_array: A sparse array in CSC format representing the projection from
-                the current space to VecPwQuadratics.
+            the current space to VecPwQuadratics.
         """
         # overestimate the size of a local computation
         loc_size = (

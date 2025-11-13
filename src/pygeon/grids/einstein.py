@@ -205,7 +205,7 @@ class EinSteinGrid(pg.Grid):
         Convert a string to a 2d polygon in homogeneous coordinate
 
         Args:
-            pts (str): The string representing the polygon points
+            pts (str): The string representing the polygon points.
 
         Returns:
             np.ndarray: The 2d polygon in homogeneous coordinate
@@ -220,7 +220,7 @@ class EinSteinGrid(pg.Grid):
         Convert a string to a 2d matrix in homogeneous coordinate
 
         Args:
-            mat (str): The string representation of the matrix
+            mat (str): The string representation of the matrix.
 
         Returns:
             np.ndarray: The 2d matrix in homogeneous coordinate

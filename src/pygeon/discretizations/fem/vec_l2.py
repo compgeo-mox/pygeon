@@ -28,7 +28,7 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Returns:
             np.ndarray: An array containing the local DOFs of the specified cell,
-                adjusted for the vector-valued nature of the discretization.
+            adjusted for the vector-valued nature of the discretization.
         """
         if ambient_dim == -1:
             ambient_dim = sd.dim
@@ -97,7 +97,6 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The projection matrix.
-
         """
         proj = self.base_discr.proj_to_higher_PwPolynomials(sd)  # type: ignore[attr-defined]
         return self.vectorize(sd.dim, proj)
@@ -111,7 +110,6 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The projection matrix.
-
         """
         proj = self.base_discr.proj_to_lower_PwPolynomials(sd)  # type: ignore[attr-defined]
         return self.vectorize(sd.dim, proj)
