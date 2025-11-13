@@ -96,8 +96,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
                 pp.initialize_data(
                     {},
                     pg.UNITARY_DATA,
-                    {"second_order_tensor": perm},
-                )
+                    {"second_order_tensor": Perm},                )
             )
 
         for _, data in self.interfaces(return_data=True):
@@ -121,12 +120,10 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             cond: Optional, predicate with a grid as input.
 
         Returns:
-            int: the total number of faces of the mixed-dimensional grid.
-        """
+            int: The total number of faces of the mixed-dimensional grid.        """
         if cond is None:
             cond = lambda _: True
-        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int)  # type: ignore[arg-type]
-
+        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int)  # type: Ignore[arg-type]
     def num_subdomain_ridges(
         self, cond: Optional[Callable[[pg.Grid], bool]] = None
     ) -> int:
@@ -144,8 +141,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         if cond is None:
             cond = lambda _: True
         return np.sum(
-            [sd.num_ridges for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
-            dtype=int,
+            [sd.num_ridges for sd in self.subdomains() if cond(sd)],  # type: Ignore[attr-defined,arg-type]            dtype=int,
         )
 
     def num_subdomain_peaks(
@@ -165,8 +161,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         if cond is None:
             cond = lambda _: True
         return np.sum(
-            [sd.num_peaks for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
-            dtype=int,
+            [sd.num_peaks for sd in self.subdomains() if cond(sd)],  # type: Ignore[attr-defined,arg-type]            dtype=int,
         )
 
     def tag_leafs(self) -> None:

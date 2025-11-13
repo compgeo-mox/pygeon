@@ -196,9 +196,8 @@ class Lagrange1(pg.Discretization):
             dim (int): Dimension of the problem.
 
         Returns:
-            np.ndarray: local stiffness matrix of (dim+1, dim+1) shape.
+            np.ndarray: Local stiffness matrix of (dim+1, dim+1) shape.
         """
-
         dphi = self.local_grads(coord, dim)
 
         return c_volume * dphi.T @ K @ dphi
@@ -431,9 +430,8 @@ class Lagrange2(pg.Discretization):
             dim (int): The dimension of the simplex.
 
         Returns:
-            np.ndarray: the local mass matrix.
+            np.ndarray: The local mass matrix.
         """
-
         # Helper constants
         n_edges = self.num_edges_per_cell(dim)
         eye = np.eye(dim + 1)
@@ -474,7 +472,7 @@ class Lagrange2(pg.Discretization):
                 prod_i lambda_i ^ alpha_i.
 
         Returns:
-            np.ndarray: the inner products of the monomials on a simplex with measure 1.
+            np.ndarray: The inner products of the monomials on a simplex with measure 1.
         """
         n_monomials = expnts.shape[1]
         mass = np.empty((n_monomials, n_monomials))
@@ -495,7 +493,7 @@ class Lagrange2(pg.Discretization):
                 expressed as prod_i lambda_i ^ alpha_i.
 
         Returns:
-            float: the integral of the monomial on a simplex with measure 1.
+            float: The integral of the monomial on a simplex with measure 1.
         """
         alphas = alphas.astype(int)
         dim = len(alphas) - 1
@@ -513,9 +511,8 @@ class Lagrange2(pg.Discretization):
             dim (int): Dimension.
 
         Returns:
-            int: the number of adjacent edges.
+            int: The number of adjacent edges.
         """
-
         return dim * (dim + 1) // 2
 
     def get_local_edge_nodes(self, dim: int) -> np.ndarray:
@@ -526,10 +523,9 @@ class Lagrange2(pg.Discretization):
             dim (int): Dimension.
 
         Returns:
-            np.ndarray: row i contains the local indices of the nodes connected to the
+            np.ndarray: Row i contains the local indices of the nodes connected to the
             edge with local index i.
         """
-
         n_nodes = dim + 1
         n_edges = self.num_edges_per_cell(dim)
         e_nodes = np.empty((n_edges, 2), int)
@@ -551,10 +547,9 @@ class Lagrange2(pg.Discretization):
             e_nodes (np.ndarray): The local edge-node connectivity.
 
         Returns:
-            np.ndarray: the gradient of basis function i at node j is in elements
-            [i, 3 * (j:j + 1)].
+            np.ndarray: The gradient of basis function i at node j is in elements
+            [i, 3 * (j:J + 1)].
         """
-
         # the gradient of our basis functions are given by
         # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
         # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)

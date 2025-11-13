@@ -28,7 +28,7 @@ class RT0(pg.Discretization):
             sd (pg.Grid): Grid, or a subclass.
 
         Returns:
-            int: the number of degrees of freedom.
+            int: The number of degrees of freedom.
         """
         return sd.num_faces
 
@@ -184,7 +184,7 @@ class RT0(pg.Discretization):
             sd (pg.Grid): The grid object containing the discretization information.
 
         Returns:
-            np.ndarray: local inner product matrix.
+            np.ndarray: Local inner product matrix.
         """
         size = sd.dim * (sd.dim + 1)
         M = np.zeros((size, size))
@@ -906,7 +906,7 @@ class RT1(pg.Discretization):
             sd (pg.Grid): Grid, or a subclass.
 
         Returns:
-            int: the number of degrees of freedom.
+            int: The number of degrees of freedom.
         """
         return sd.dim * (sd.num_faces + sd.num_cells)
 

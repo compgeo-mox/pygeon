@@ -322,7 +322,7 @@ class Grid(pp.Grid):
                 Defaults to False.
 
         Returns:
-            sps.csc_array: the index k of the opposite node is in the entry (face, cell)
+            sps.csc_array: The index k of the opposite node is in the entry (face, cell)
         """
         if recompute or not hasattr(self, "opposite_nodes"):
             cell_nodes = self.cell_nodes()

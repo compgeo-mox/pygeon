@@ -128,7 +128,7 @@ class VecVLagrange1(pg.VecDiscretization):
                 Defaults to None.
 
         Returns:
-            sps.csc_array: sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained
+            sps.csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained
             from the discretization.
         """
         if not data:

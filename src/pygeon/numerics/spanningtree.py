@@ -239,8 +239,7 @@ class SpanningTree:
             f (np.ndarray): Mass source, integrated against PwConstants.
 
         Returns:
-            np.ndarray: the post-processed flux field
-        """
+            np.ndarray: The post-processed flux field        """
         return self.expand @ self.system_splu.solve(f)
 
     def assemble_SI(self) -> sps.sparray:
@@ -268,10 +267,8 @@ class SpanningTree:
                               minus boundary terms.
 
         Returns:
-            np.ndarray: the post-processed pressure field
-        """
-        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")  # type: ignore[call-overload]
-
+            np.ndarray: The post-processed pressure field        """
+        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")  # type: Ignore[call-overload]
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None, **kwargs
     ):
@@ -444,8 +441,7 @@ class SpanningTreeElasticity(SpanningTree):
         """
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        self.expand = self.compute_expand(sd, flagged_faces)  # type: ignore[arg-type]
-
+        self.expand = self.compute_expand(sd, flagged_faces)  # type: Ignore[arg-type]
         # Save the sparse LU decomposition of the system
         self.system = self.compute_system(sd)  # type: ignore[arg-type]
         self.system_splu = sps.linalg.splu(self.system)

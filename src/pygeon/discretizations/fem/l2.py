@@ -473,7 +473,7 @@ class PwLinears(PwPolynomials):
             func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         cell_nodes = sd.cell_nodes()
         vals = np.zeros((sd.num_cells, sd.dim + 1))
@@ -633,7 +633,7 @@ class PwQuadratics(PwPolynomials):
                 freedom.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         lagrange2 = pg.Lagrange2(self.keyword)
         edge_nodes = lagrange2.get_local_edge_nodes(sd.dim)

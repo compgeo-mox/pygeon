@@ -143,8 +143,7 @@ class Discretization(abc.ABC):
             func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
-        """
+            np.ndarray: The values of the degrees of freedom        """
 
     @abc.abstractmethod
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
