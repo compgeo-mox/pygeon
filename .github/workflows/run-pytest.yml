@@ -72,10 +72,7 @@ jobs:
         pip install .
         pip freeze
 
-    - name: unit tests
+    - name: Pytest
       if: ${{always()}}
-      run: pytest tests/unit
+      run: pytest tests -m "not tutorials"
 
-    - name: integration tests
-      if: ${{always()}}
-      run: pytest tests/integration

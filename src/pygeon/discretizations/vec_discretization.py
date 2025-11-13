@@ -45,7 +45,7 @@ class VecDiscretization(pg.Discretization):
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for the lowest order Lagrange element.
+        Assembles and returns the mass matrix.
 
         Args:
             sd (pg.Grid): The grid.
@@ -68,6 +68,21 @@ class VecDiscretization(pg.Discretization):
             sps.csc_array: The differential matrix.
         """
         diff = self.base_discr.assemble_diff_matrix(sd)
+        return self.vectorize(sd.dim, diff)
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: Optional[dict] = None
+    ) -> sps.csc_array:
+        """
+        Assembles the stiffness matrix.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_array: The differential matrix.
+        """
+        diff = self.base_discr.assemble_stiff_matrix(sd, data)
         return self.vectorize(sd.dim, diff)
 
     def assemble_lumped_matrix(

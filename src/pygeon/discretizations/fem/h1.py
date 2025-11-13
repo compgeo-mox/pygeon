@@ -895,14 +895,12 @@ class Lagrange2(pg.Discretization):
                 edges = sd.face_ridges.indices[loc]
 
                 # Swap ordering so that edge 0 is opposite node 2
-                edges = np.roll(edges, -1)[::-1]
-
-                # Check whether each edge is opposite
-                # the appropriate node in loc_n
                 check = sd.face_nodes[:, [face] * 3].astype(bool) - edge_nodes[
                     :, edges
                 ].astype(bool)
-                assert np.all(loc_n[::-1] == check.indices)
+                edges = edges[np.argsort(check.indices)]
+
+                assert not np.any(edge_nodes[loc_n, edges])
 
             # Evaluate f at the nodes and edges
             f_vals = np.empty(sd.dim + len(edges))

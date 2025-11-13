@@ -39,7 +39,12 @@ where = ["src"]
 # Testing.
 [tool.pytest.ini_options]
 python_files = "tests/*.py"
-addopts = "--cov=src/pygeon --cov-report term-missing -p no:warnings"
+addopts = [
+    "--cov=src/pygeon",
+    "--cov-report=term-missing",
+    "-p", "no:warnings",
+    "-m", "not tutorials"
+]
 
 # Static analysis.
 [tool.ruff]
