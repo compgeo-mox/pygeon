@@ -11,7 +11,7 @@ import pygeon as pg
 
 
 class VoronoiGrid(pg.Grid):
-    """docstring for VoronoiGrid."""
+    """Voronoi grid implementation."""
 
     def __init__(self, num_pts=None, vrt=None, **kwargs) -> None:
         """

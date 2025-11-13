@@ -25,9 +25,10 @@ def div(
 
     Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array. The divergence operator.
@@ -43,9 +44,10 @@ def curl(
 
     Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array. The curl operator.
@@ -61,9 +63,10 @@ def grad(
 
     Args:
         grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array. The gradient operator.

@@ -24,9 +24,9 @@ class OctagonGrid(pg.Grid):
         Constructor for the 2D octagonal grid.
 
         Args:
-            nx (np.ndarray): number of cells in the x and y directions
-            physdims (np.ndarray or dict): the physical dimensions, either
-                as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax"
+            nx (np.ndarray): Number of cells in the x and y directions.
+            physdims (np.ndarray or dict): The physical dimensions, either
+                as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax".
             name (str): Name of grid.
         """
         if physdims is None:

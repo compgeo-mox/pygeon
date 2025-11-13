@@ -26,7 +26,6 @@ class PwPolynomials(pg.Discretization):
 
         Returns:
             int: The number of degrees of freedom.
-
         """
         return sd.num_cells * self.ndof_per_cell(sd)
 
@@ -121,7 +120,6 @@ class PwPolynomials(pg.Discretization):
 
         Returns:
             sps.csc_array: The differential matrix.
-
         """
         return sps.csc_array((0, self.ndof(sd)))
 
@@ -471,11 +469,11 @@ class PwLinears(PwPolynomials):
         Interpolates a function onto the finite element space
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
-            func (Callable): a function that returns the function values at coordinates
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         cell_nodes = sd.cell_nodes()
         vals = np.zeros((sd.num_cells, sd.dim + 1))
@@ -630,12 +628,12 @@ class PwQuadratics(PwPolynomials):
         Interpolates a function onto the finite element space
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
-            func (Callable): a function that returns the function values at degrees of
-                freedom
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): A function that returns the function values at degrees of
+                freedom.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         lagrange2 = pg.Lagrange2(self.keyword)
         edge_nodes = lagrange2.get_local_edge_nodes(sd.dim)

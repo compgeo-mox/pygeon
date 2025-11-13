@@ -125,7 +125,6 @@ class SpanningTree:
         Raises:
             KeyError: if starting_faces does not have the right type
         """
-
         if isinstance(starting_faces, str):
             # Extract top-dimensional domain
             bdry_face_tags = np.hstack(
@@ -187,7 +186,7 @@ class SpanningTree:
 
         Returns:
             sps.csc_array: The computed spanning tree as a compressed sparse column
-                matrix.
+            matrix.
         """
         incidence = self.div @ self.div.T
 
@@ -240,18 +239,20 @@ class SpanningTree:
             f (np.ndarray): Mass source, integrated against PwConstants.
 
         Returns:
-            np.ndarray: the post-processed flux field
+            np.ndarray: The post-processed flux field
         """
         return self.expand @ self.system_splu.solve(f)
 
     def assemble_SI(self) -> sps.sparray:
         """
         Assembles the operator S_I as a sparse array.
-        NOTE: This will be slow for large systems.
-        If you only need the action of S_I, consider using self.solve() instead.
 
         Returns:
             sps.sparray: S_I, a right inverse of the B-operator
+
+        Notes:
+            This will be slow for large systems. If you only need the action of S_I,
+            consider using self.solve() instead.
         """
         identity = np.eye(self.system.shape[0])
         inv_system = self.system_splu.solve(identity)
@@ -267,7 +268,7 @@ class SpanningTree:
                               minus boundary terms.
 
         Returns:
-            np.ndarray: the post-processed pressure field
+            np.ndarray: The post-processed pressure field
         """
         return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")  # type: ignore[call-overload]
 
@@ -283,9 +284,9 @@ class SpanningTree:
                 visualization.
 
         Optional Args
-            draw_grid (bool): Plot the grid
-            draw_tree (bool): Plot the tree spanning the cells
-            draw_cotree (bool): Plot the tree spanning the nodes
+            draw_grid (bool): Plot the grid.
+            draw_tree (bool): Plot the tree spanning the cells.
+            draw_cotree (bool): Plot the tree spanning the nodes.
             start_color (str): Color of the "starting" cells, next to the boundary
         """
         import matplotlib.pyplot as plt
@@ -444,7 +445,6 @@ class SpanningTreeElasticity(SpanningTree):
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
         self.expand = self.compute_expand(sd, flagged_faces)  # type: ignore[arg-type]
-
         # Save the sparse LU decomposition of the system
         self.system = self.compute_system(sd)  # type: ignore[arg-type]
         self.system_splu = sps.linalg.splu(self.system)
@@ -681,7 +681,7 @@ class SpanningWeightedTrees:
         weights: np.ndarray,
         starting_faces: Optional[np.ndarray] = None,
     ) -> None:
-        """Constructor of the class
+        """Constructor of the class.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.

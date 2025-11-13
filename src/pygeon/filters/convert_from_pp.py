@@ -59,7 +59,7 @@ def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> pp.MixedDimensionalGr
 
     Raises:
         ValueError: If the input grid object is neither a pp.MixedDimensionalGrid nor a
-            pp.Grid.
+        pp.Grid.
     """
     if isinstance(sd, pp.MixedDimensionalGrid):
         return sd

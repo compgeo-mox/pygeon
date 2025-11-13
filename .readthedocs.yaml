@@ -1,0 +1,44 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.12"
+  apt_packages:
+    - libglu1-mesa
+    - libgl1-mesa-glx
+    - libxrender1
+    - libxcursor1
+    - libxft2
+    - libxinerama1
+  jobs:
+    post_install:
+      # Install the package in editable mode
+      - pip install -e .
+    pre_build:
+      # Collect or generate markdown reports into docs/reports
+      - bash docs/readthedocs/hooks/pre_build_reports.sh
+      # Auto-generate API documentation
+      - sphinx-apidoc -f -o docs/api src/pygeon --separate --no-toc
+
+# Build documentation in the "docs/" directory with Sphinx
+sphinx:
+  configuration: docs/conf.py
+  fail_on_warning: false
+
+# Optionally build your docs in additional formats such as PDF and ePub
+formats:
+  - pdf
+  - epub
+
+# Optional but recommended, declare the Python requirements required
+# to build your documentation
+python:
+  install:
+    - requirements: docs/requirements.txt
+    - method: pip
+      path: .

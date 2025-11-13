@@ -28,7 +28,6 @@ class Nedelec0(pg.Discretization):
 
         Returns:
             int: The number of degrees of freedom.
-
         """
         return sd.num_ridges
 
@@ -370,7 +369,6 @@ class Nedelec1(pg.Discretization):
 
         Returns:
             np.ndarray: The interpolated values.
-
         """
         tangents = sd.nodes @ sd.ridge_peaks
 
@@ -396,7 +394,7 @@ class Nedelec1(pg.Discretization):
 
         Returns:
             sps.csc_array: The global matrices constructed from the basis functions
-                evaluated at the cell centers.
+            evaluated at the cell centers.
         """
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.

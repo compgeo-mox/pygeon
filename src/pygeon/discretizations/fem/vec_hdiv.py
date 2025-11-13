@@ -211,7 +211,7 @@ class VecHDiv(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The assembled asymmetric matrix in compressed sparse column
-                format.
+            format.
         """
         P = self.proj_to_PwPolynomials(sd)
         mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
@@ -471,11 +471,11 @@ class VecBDM1(VecHDiv):
         Returns the discretization class that contains the range of the differential
 
         Args:
-            dim (int): The dimension of the range
+            dim (int): The dimension of the range.
 
         Returns:
             pg.Discretization: The discretization class containing the range of the
-                differential
+            differential
         """
         return pg.VecPwConstants
 
@@ -596,6 +596,7 @@ class VecRT1(VecHDiv):
         Args:
             keyword (str): The keyword for the vector discretization class.
                 Default is pg.UNITARY_DATA.
+
         Returns:
             None
         """
@@ -617,7 +618,7 @@ class VecRT1(VecHDiv):
 
         Returns:
             sps.csc_array: A sparse matrix in compressed sparse column (CSC) format
-                representing the trace operator.
+            representing the trace operator.
         """
         # overestimate the size of a local computation
         loc_size = (

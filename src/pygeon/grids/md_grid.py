@@ -118,11 +118,10 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         A function can be passed to filter subdomains and/or interfaces.
 
         Args:
-            cond: optional, predicate with a grid as input.
+            cond: Optional, predicate with a grid as input.
 
         Returns:
-            int: the total number of faces of the mixed-dimensional grid.
-
+            int: The total number of faces of the mixed-dimensional grid.
         """
         if cond is None:
             cond = lambda _: True
@@ -146,7 +145,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             cond = lambda _: True
         return np.sum(
             [sd.num_ridges for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
-            dtype=int,
         )
 
     def num_subdomain_peaks(

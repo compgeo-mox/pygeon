@@ -21,9 +21,10 @@ def eval_at_cell_centers(
     Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         discr (pg.Discretization): The discretization used for the evaluation.
-        kwargs (dict): Optional parameters.
-            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default is False.
+        kwargs (dict): Optional parameters:
+
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default is False.
 
     Returns:
         sps.csc_array or sps.block_array: The operator that evaluates the solution in

@@ -288,11 +288,11 @@ class Grid(pp.Grid):
 
         Args:
             return_subsimplices (bool, optional): Whether to return the sub-simplices.
-                                                    Defaults to False.
+                Defaults to False.
 
         Returns:
             sps.csc_array: The computed subvolumes with each entry [node, cell]
-                describing the signed measure of the associated sub-volume
+            describing the signed measure of the associated sub-volume
         """
         sub_simplices = sps.csc_array(self.cell_faces.copy().astype(float))
 
@@ -319,10 +319,10 @@ class Grid(pp.Grid):
 
         Args:
             recompute (bool, optional): Whether to recompute the opposite nodes.
-                                        Defaults to False.
+                Defaults to False.
 
         Returns:
-            sps.csc_array: the index k of the opposite node is in the entry (face, cell)
+            sps.csc_array: The index k of the opposite node is in the entry (face, cell)
         """
         if recompute or not hasattr(self, "opposite_nodes"):
             cell_nodes = self.cell_nodes()

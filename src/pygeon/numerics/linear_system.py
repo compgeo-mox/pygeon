@@ -13,8 +13,8 @@ class LinearSystem:
     and reduces the system appropriately before solving.
 
     Attributes:
-        A (sps.csc_array, n x n): The left-hand side matrix
-        b (np.array-like): The right-hand side vector
+        A (sps.csc_array, n x n): The left-hand side matrix.
+        b (np.array-like): The right-hand side vector.
         is_dof (np.array, bool): Determines whether an entry is a degree of freedom.
             If False then it will be overwritten by an essential bc.
         ess_vals (np.array, (n, )): The values of the essential bcs.
