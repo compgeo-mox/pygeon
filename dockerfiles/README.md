@@ -1,17 +1,23 @@
-# PyGeoN Docker Setup
+# PyGeoN Docker
 
-This directory contains Docker configurations for PyGeoN development.
+[![Image Size](https://img.shields.io/docker/image-size/pygeon/main/latest)](https://hub.dockerin)
 
-## Using Docker Directly
-
-Build the Docker image:
+## Usage
+Pull the image:
 ```bash
-docker build -t pygeon:latest -f dockerfiles/Dockerfile .
+docker pull pygeon/main
 ```
 
 Run a container:
 ```bash
-docker run -it --rm pygeon:latest
+docker run -it --rm pygeon
+```
+
+## Using Docker Directly
+
+Build the image:
+```bash
+docker build -t pygeon -f dockerfiles/Dockerfile .
 ```
 
 ## Using VS Code Dev Containers
