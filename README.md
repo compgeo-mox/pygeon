@@ -24,7 +24,7 @@ PyGeoN is also available through a Docker image. The image of the main branch be
 ```bash
 docker pull pygeon/main
 ```
-More details can be found [here](https://github.com/compgeo-mox/pygeon/dockerfiles/README.md), docker image is hosted on Docker Hub [here](https://hub.docker.com/r/pygeon/main).
+More details can be found [here](https://github.com/compgeo-mox/pygeon/tree/docker/dockerfiles), docker image is hosted on Docker Hub [here](https://hub.docker.com/r/pygeon/main).
 
 
 ## Issues
