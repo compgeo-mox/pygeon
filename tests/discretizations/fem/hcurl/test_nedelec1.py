@@ -1,4 +1,4 @@
-"""Module contains Nedelec unit tests."""
+"""Module contains specific tests for the Nedelec 1 discretization."""
 
 import numpy as np
 import pytest

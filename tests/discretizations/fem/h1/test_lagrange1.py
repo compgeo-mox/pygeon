@@ -1,4 +1,4 @@
-"""Module contains a unit test for the Lagrangean P1 discretization."""
+"""Module contains specific tests for the Lagrangean L1 discretization."""
 
 import numpy as np
 import pytest

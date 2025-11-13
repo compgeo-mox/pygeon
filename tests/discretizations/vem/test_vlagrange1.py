@@ -1,4 +1,4 @@
-"""Module contains virtual Lagrangean tests."""
+"""Module contains specific tests for the virtual Lagrangean L1 discretization."""
 
 import numpy as np
 import pytest

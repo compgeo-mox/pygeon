@@ -1,3 +1,5 @@
+"""Module contains general tests for all discretizations."""
+
 import numpy as np
 import pytest
 

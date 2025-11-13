@@ -1,14 +1,11 @@
+"""Module to test the mixed formulations of elasticity."""
+
 import numpy as np
 import porepy as pp
 import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
-
-""" 
-Module to test the mixed formulations of elasticity. Instead of solving the full saddle
-point problems, we check if a known distribution is a solution.
-"""
 
 
 @pytest.fixture

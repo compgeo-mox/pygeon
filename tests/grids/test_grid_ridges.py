@@ -1,14 +1,10 @@
+"""Module contains tests to validate the computation of ridges."""
+
 import numpy as np
 import porepy as pp
-import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
-
-"""
-Module contains tests to validate the computation of ridges (co-dimension 2 from 
-a cell).
-"""
 
 
 def test_grid_0d(ref_sd_0d):

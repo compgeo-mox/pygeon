@@ -1,4 +1,4 @@
-"""Module contains vector Lagrangean fem tests."""
+"""Module contains specific tests for the vector Lagrangean L1 discretization."""
 
 import numpy as np
 import porepy as pp

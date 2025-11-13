@@ -1,3 +1,5 @@
+"""Module contains general tests for all vector H(div) discretizations."""
+
 import numpy as np
 import porepy as pp
 import pytest

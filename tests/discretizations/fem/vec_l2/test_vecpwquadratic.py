@@ -1,3 +1,5 @@
+"""Module contains specific tests for the vector P2 discretization."""
+
 import numpy as np
 import pytest
 import scipy.linalg as spla

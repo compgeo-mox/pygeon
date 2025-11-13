@@ -1,4 +1,4 @@
-"""Module contains vector Lagrangean2 fem tests."""
+"""Module contains specific tests for the vector Lagrangean L2 discretization."""
 
 import pytest
 

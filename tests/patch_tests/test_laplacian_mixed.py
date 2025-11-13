@@ -1,12 +1,10 @@
+"""Module contains tests to validate the consistency between H(div) discretizations."""
+
 import numpy as np
 import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
-
-"""
-Module contains tests to validate the consistency between H(div) discretizations.
-"""
 
 
 @pytest.fixture(

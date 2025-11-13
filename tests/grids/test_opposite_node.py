@@ -1,11 +1,8 @@
+"""Module contains tests to validate the opposite_node computations on simplicial grids."""
+
 import numpy as np
 import pytest
 import scipy.sparse as sps
-
-"""
-Module contains tests to validate the opposite_node computations on simplicial 
-grids.
-"""
 
 
 def test_opposite_nodes(unit_sd):

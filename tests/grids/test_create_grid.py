@@ -1,10 +1,7 @@
-"""
-Module contains a unit test for the standard grid computation.
-"""
+"""Module contains a unit test for the standard grid computation."""
 
 import numpy as np
 import porepy as pp
-import pytest
 
 import pygeon as pg
 

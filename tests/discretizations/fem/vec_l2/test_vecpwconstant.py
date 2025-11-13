@@ -1,3 +1,5 @@
+"""Module contains specific tests for the vector P0 discretization."""
+
 import numpy as np
 import pytest
 

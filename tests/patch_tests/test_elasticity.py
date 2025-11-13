@@ -1,3 +1,5 @@
+"""Module to test the primal formulations of elasticity."""
+
 import numpy as np
 import porepy as pp
 import pytest

@@ -1,3 +1,5 @@
+"""Module contains tests to validate the Laplacian computation."""
+
 import numpy as np
 import pytest
 

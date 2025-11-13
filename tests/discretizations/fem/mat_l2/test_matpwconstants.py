@@ -1,4 +1,4 @@
-import pytest
+"""Module contains specific tests for the matrix P0 discretization."""
 
 import pygeon as pg
 

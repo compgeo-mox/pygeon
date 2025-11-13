@@ -1,3 +1,5 @@
+"""Module contains specific tests for the RT0 discretization."""
+
 import numpy as np
 import porepy as pp
 import pytest

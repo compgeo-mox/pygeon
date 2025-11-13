@@ -1,11 +1,9 @@
+"""Module contains tests to validate the inner products."""
+
 import numpy as np
 import pytest
 
 import pygeon as pg
-
-""" 
-Module contains tests to validate the inner products.
-"""
 
 
 def test_cell_mass_cart(unit_cart_sd):

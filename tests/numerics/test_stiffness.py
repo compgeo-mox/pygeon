@@ -1,3 +1,5 @@
+"""Module contains tests to validate the stiffness matrices."""
+
 import numpy as np
 import pytest
 

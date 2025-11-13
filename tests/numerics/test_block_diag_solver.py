@@ -1,3 +1,5 @@
+"""Module contains tests to validate the block diagonal solver."""
+
 import numpy as np
 import porepy as pp
 import pytest

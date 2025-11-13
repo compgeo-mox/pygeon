@@ -1,5 +1,6 @@
+"""Module contains tests to validate the barycentric split on simplicial grids."""
+
 import numpy as np
-import pytest
 
 import pygeon as pg
 

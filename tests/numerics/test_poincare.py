@@ -1,3 +1,5 @@
+"""Module contains tests to validate the Poincare operator."""
+
 import numpy as np
 import pytest
 

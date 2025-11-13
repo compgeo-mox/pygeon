@@ -1,3 +1,5 @@
+"""Module contains tests to validate the level set."""
+
 import numpy as np
 import porepy as pp
 import pytest

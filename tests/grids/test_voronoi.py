@@ -1,5 +1,6 @@
+"""Module contains tests to validate the voronoi grids."""
+
 import numpy as np
-import pytest
 import scipy.sparse as sps
 
 import pygeon as pg

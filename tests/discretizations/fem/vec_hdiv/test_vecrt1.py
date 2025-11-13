@@ -1,5 +1,5 @@
-import numpy as np
-import porepy as pp
+"""Module contains specific tests for the vector RT1 discretization."""
+
 import pytest
 
 import pygeon as pg

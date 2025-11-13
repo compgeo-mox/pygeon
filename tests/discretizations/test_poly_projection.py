@@ -1,3 +1,5 @@
+"""Module contains general tests for polynomials projection."""
+
 import numpy as np
 import pytest
 import scipy.sparse as sps

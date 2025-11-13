@@ -1,3 +1,5 @@
+"""Module contains general tests for all H1 discretizations."""
+
 import numpy as np
 import pytest
 

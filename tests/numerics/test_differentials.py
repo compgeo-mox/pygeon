@@ -1,10 +1,8 @@
+"""Module contains tests to validate the differential operators."""
+
 import numpy as np
 
 import pygeon as pg
-
-"""
-Module contains tests to validate the differential operators.
-"""
 
 # It's not straightforward to concatenate parameterized fixtures, so we define a test
 # for each fixture.

@@ -1,3 +1,5 @@
+"""Module contains specific tests for the virtual RT0 discretization."""
+
 import numpy as np
 import pytest
 

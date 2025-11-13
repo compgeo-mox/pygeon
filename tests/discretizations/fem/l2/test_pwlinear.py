@@ -1,5 +1,6 @@
+"""Module contains specific tests for the P1 discretization."""
+
 import numpy as np
-import porepy as pp
 import pytest
 
 import pygeon as pg

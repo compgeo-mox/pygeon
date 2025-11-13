@@ -1,3 +1,5 @@
+"""Module contains specific tests for the vector RT0 discretization."""
+
 import pytest
 
 import pygeon as pg

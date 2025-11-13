@@ -1,12 +1,9 @@
+"""Module contains tests to validate the edge length computations for grids."""
+
 import numpy as np
 import porepy as pp
-import pytest
 
 import pygeon as pg
-
-"""
-Module contains tests to validate the edge length computations for grids
-"""
 
 
 def test_grid_0d(ref_sd_0d):

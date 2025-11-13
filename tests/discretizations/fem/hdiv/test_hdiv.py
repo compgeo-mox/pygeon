@@ -1,11 +1,9 @@
+"""Module contains general tests for all H(div) discretizations."""
+
 import numpy as np
 import pytest
 
 import pygeon as pg
-
-"""
-Module contains general tests for all H(div) discretizations.
-"""
 
 
 @pytest.fixture(

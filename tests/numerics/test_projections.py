@@ -1,3 +1,5 @@
+"""Module contains tests to validate the projections."""
+
 from typing import cast
 
 import numpy as np

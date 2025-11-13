@@ -1,4 +1,4 @@
-"""Module contains BDM1 tests."""
+"""Module contains specific tests for the BDM1 discretization."""
 
 import numpy as np
 import pytest
