@@ -19,6 +19,14 @@ pip install -e .
 avoid the `-e` if you do not want the editable version.
 It might be useful to add PyGeoN to your PYTHONPATH.
 
+## Docker
+PyGeoN is also available through a Docker image. The image of the main branch be obtained by
+```bash
+docker pull pygeon/main
+```
+More details can be found [here](https://github.com/compgeo-mox/pygeon/tree/docker/dockerfiles), docker image is hosted on Docker Hub [here](https://hub.docker.com/r/pygeon/main).
+
+
 ## Issues
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 
