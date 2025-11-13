@@ -64,7 +64,7 @@ WORKDIR ${HOME}
 RUN git clone https://github.com/compgeo-mox/pygeon.git
 RUN cd ${PYGEON_HOME} && pip install --no-cache-dir -e .
 
-# Test installation
+# Test installation by running pytest
 WORKDIR ${PYGEON_HOME}/tests
 RUN pytest
 
