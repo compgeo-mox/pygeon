@@ -47,7 +47,8 @@ def ridge_stiff(
     **kwargs,
 ) -> sps.csc_array:
     """
-    Compute the stiffness matrix for discretization defined on the ridges of a (MD-)grid.
+    Compute the stiffness matrix for discretization defined on the ridges of a
+    (MD-)grid.
 
     Args:
         mdg (pp.MixedDimensionalGrid).

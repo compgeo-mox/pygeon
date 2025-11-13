@@ -160,7 +160,8 @@ def mass_matrix(
             the differential.
         discr (pp discretization object).
         data (dict): The data object associated to the grid.
-        local_matrix (function): Function that generates the local mass matrix on a grid.
+        local_matrix (function): Function that generates the local mass matrix on a
+            grid.
         kwargs: Optional parameters:
 
             - as_bmat: In case of mixed-dimensional, return the matrix as sparse

@@ -53,7 +53,7 @@ class RT0(pg.Discretization):
             data = {
                 pp.PARAMETERS: {keyword: {}},
                 pp.DISCRETIZATION_MATRICES: {keyword: {}},
-            }.
+            }
 
         try:
             data[pp.PARAMETERS]
