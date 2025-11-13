@@ -65,7 +65,8 @@ class Poincare:
         This function only gets called in 3D.
 
         Returns:
-            np.ndarray: Boolean array with flagged edges        """
+            np.ndarray: Boolean array with flagged edges
+        """
         grad = pg.grad(self.mdg)
         incidence = grad.T @ grad
 
@@ -93,7 +94,8 @@ class Poincare:
         Find the node that is closest to the center of the domain.
 
         Returns:
-            int: Index of the central node.        """
+            int: Index of the central node.
+        """
         center = np.mean(self.top_sd.nodes, axis=1, keepdims=True)
         dists = np.linalg.norm(self.top_sd.nodes - center, axis=0)
 
@@ -104,7 +106,8 @@ class Poincare:
         Flag all the nodes in the top-dim domain, except for the first node
 
         Returns:
-            np.ndarray: Boolean array with flagged nodes        """
+            np.ndarray: Boolean array with flagged nodes
+        """
         flagged_nodes = np.ones(self.top_sd.num_nodes, dtype=bool)
         flagged_nodes[0] = False
 
@@ -124,7 +127,8 @@ class Poincare:
                 Defaults to sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)        """
+            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)
+        """
         # Nodes to the constants
         if k == 0:
             return np.full_like(f, np.mean(f))
@@ -149,7 +153,8 @@ class Poincare:
             solver (Callable): The solver function to use.
 
         Returns:
-            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)        """
+            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)
+        """
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
 
@@ -169,7 +174,8 @@ class Poincare:
             f (np.ndarray): The function to be decomposed.
 
         Returns:
-            Tuple[np.ndarray]: The decomposition of f as (dp(f), pd(f))        """
+            Tuple[np.ndarray]: The decomposition of f as (dp(f), pd(f))
+        """
         n_minus_k = self.dim - k
 
         if k == self.dim:  # then df = 0
@@ -205,8 +211,8 @@ class Poincare:
                 sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The solution        """
-
+            np.ndarray: The solution
+        """
         LS = pg.LinearSystem(A, b)
         LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
 

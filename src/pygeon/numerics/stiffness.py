@@ -94,7 +94,8 @@ def stiff_matrix(
             the differential.
         discr (pp discretization object).
         data (dict): The data object associated to the grid.
-        local_matrix (function): Function that generates the local mass matrix on a grid.
+        local_matrix (function): Function that generates the local mass matrix on a
+            grid.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs
