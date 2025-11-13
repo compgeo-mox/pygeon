@@ -68,6 +68,7 @@ RUN cd ${PYGEON_HOME} && pip install --no-cache-dir -e .
 WORKDIR ${PYGEON_HOME}/tests
 RUN pytest
 
+# Return to the home folder
 WORKDIR ${HOME}
 
 # Set the default command to start the environment
