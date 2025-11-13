@@ -71,5 +71,5 @@ RUN pytest
 # Return to the home folder
 WORKDIR ${HOME}
 
-# Set the default command to start the environment
+# Set the default command to start the conda environment
 CMD [ "/bin/bash", "-c", ". activate py3" ]
