@@ -1,4 +1,5 @@
-"""Module contains tests to validate the opposite_node computations on simplicial grids."""
+"""Module contains tests to validate the opposite_node computations on simplicial
+grids."""
 
 import numpy as np
 import pytest

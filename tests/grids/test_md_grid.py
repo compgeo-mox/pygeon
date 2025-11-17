@@ -1,4 +1,5 @@
-"""Module contains tests to validate geometrical computations of mixed-dimensional grid."""
+"""Module contains tests to validate geometrical computations of mixed-dimensional
+grid."""
 
 import numpy as np
 import scipy.sparse as sps
