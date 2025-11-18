@@ -156,7 +156,7 @@ class VecLagrange1(pg.VecDiscretization):
             csc_array: sparse (sd.num_nodes, sd.num_nodes)
                 Div-div matrix obtained from the discretization.
         """
-        if data is None:
+        if not data:
             labda = 1
         else:
             parameter_dictionary = data[pp.PARAMETERS][self.keyword]
@@ -284,7 +284,7 @@ class VecLagrange1(pg.VecDiscretization):
                 (sd.num_nodes, sd.num_nodes).
                 The matrix obtained from the discretization.
         """
-        if data is None:
+        if not data:
             mu = 1
         else:
             parameter_dictionary = data[pp.PARAMETERS][self.keyword]
