@@ -41,7 +41,7 @@ More details can be found [here](https://github.com/compgeo-mox/pygeon/tree/dock
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
 
 ## Documentation
-- Docs website: https://pygeon-docs.readthedocs.io/
+Docs website: https://pygeon-docs.readthedocs.io/
 
 ## Getting started
 See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).
