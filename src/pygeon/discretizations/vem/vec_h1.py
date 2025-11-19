@@ -37,6 +37,12 @@ class VecVLagrange1(pg.VecDiscretization):
     The strain tensor follows the same approach.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.

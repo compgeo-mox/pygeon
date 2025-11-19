@@ -13,6 +13,12 @@ class VLagrange1(pg.Lagrange1):
     Discretization class for the virtual Lagrange1 method.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
