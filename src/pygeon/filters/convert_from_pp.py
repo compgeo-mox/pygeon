@@ -16,6 +16,7 @@ def convert_from_pp(
 
     Args:
         obj: The object to be converted. It can be one of the following types:
+
             - pp.Grid: Convert to pg.Grid.
             - pp.MortarGrid: Convert to pg.MortarGrid.
             - pp.MixedDimensionalGrid: Convert to pg.MixedDimensionalGrid.

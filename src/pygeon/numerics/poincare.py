@@ -16,13 +16,6 @@ class Poincare:
     that satisfy pd + dp = I
     with d the exterior derivative, following
     the construction from https://arxiv.org/abs/2410.08830
-
-    Attributes:
-        mdg (pg.MixedDimensionalGrid): The (mixed-dimensional) grid.
-        dim (int): The ambient dimension.
-        top_sd (int): The top-dimensional subdomain.
-        bar_spaces (list): List of boolean arrays indicating subspaces on
-            which the exterior derivative is invertible.
     """
 
     def __init__(self, mdg: pg.MixedDimensionalGrid) -> None:

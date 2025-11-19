@@ -41,7 +41,7 @@ class VecLagrange1(pg.VecDiscretization):
              [sigma_yx, sigma_yy, sigma_yz],
              [sigma_zx, sigma_zy, sigma_zz]]
 
-    where its vectorized structure of lenght 9 is given by
+    where its vectorized structure of length 9 is given by
 
     sigma = [sigma_xx, sigma_xy, sigma_xz,
              sigma_yx, sigma_yy, sigma_yz,
@@ -52,7 +52,10 @@ class VecLagrange1(pg.VecDiscretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -404,7 +407,10 @@ class VecLagrange2(pg.VecDiscretization):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

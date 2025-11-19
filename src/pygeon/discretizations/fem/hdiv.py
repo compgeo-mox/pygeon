@@ -18,7 +18,10 @@ class RT0(pg.Discretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -446,7 +449,10 @@ class BDM1(pg.Discretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pp.Grid) -> int:
         """
@@ -896,7 +902,10 @@ class RT1(pg.Discretization):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """

@@ -17,47 +17,6 @@ class Grid(pp.Grid):
     """
     Grid class represents a geometric grid object, in addition to the pp.Grid class it
     implements the following attributes and methods.
-
-    Attributes:
-        num_peaks (int): Number of peaks in the grid.
-        num_ridges (int): Number of ridges in the grid.
-        face_ridges (scipy.sparse.csc_array): Connectivity between each face and ridge.
-        ridge_peaks (scipy.sparse.csc_array): Connectivity between each ridge and peak.
-        tags (dict): Tags for entities in the grid.
-        edge_lengths (numpy.ndarray): The lengths of the one-dimensional edges.
-        mesh_size (float): The typical mesh size.
-
-    Methods:
-        compute_geometry():
-            Defines grid entities of codim 2 and 3.
-
-        compute_ridges():
-            Computes the ridges of the grid.
-
-        _compute_ridges_01d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to
-            a grid of dimension 0 or 1.
-
-        _compute_ridges_2d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to
-            a grid of dimension 2.
-
-        _compute_ridges_3d():
-            Assigns the number of ridges, number of peaks, and connectivity matrices to
-            a grid of dimension 3.
-
-        tag_ridges():
-            Tags the peaks and ridges of the grid located on fracture tips.
-
-        compute_subvolumes(return_subsimplices=False):
-            Computes the subvolumes of the grid.
-
-        compute_edge_lengths():
-            Computes the lengths of the one-dimensional edges.
-
-        compute_mesh_size():
-            Computes the mesh size as the mean of the edge lengths.
-
     """
 
     def __init__(self, *args, **kwargs) -> None:

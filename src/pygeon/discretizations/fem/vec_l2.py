@@ -121,7 +121,10 @@ class VecPwConstants(VecPwPolynomials):
     """
 
     poly_order = 0
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -145,7 +148,10 @@ class VecPwLinears(VecPwPolynomials):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -169,7 +175,10 @@ class VecPwQuadratics(VecPwPolynomials):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

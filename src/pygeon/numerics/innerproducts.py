@@ -18,8 +18,8 @@ def cell_mass(
     Compute the mass matrix for the piecewise constants on a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_cells x num_cells
@@ -34,8 +34,8 @@ def face_mass(
     Compute the mass matrix for discretization defined on the faces of a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp.RT0 or pp.MVEM).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg.RT0 or pg.MVEM).
 
     Returns:
         sps.csc_array, num_faces x num_faces
@@ -50,8 +50,8 @@ def ridge_mass(
     Compute the mass matrix for discretization defined on the ridges of a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_ridges x num_ridges
@@ -66,8 +66,8 @@ def peak_mass(
     Compute the mass matrix for discretization defined on the peaks of a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_peaks x num_peaks
@@ -107,10 +107,10 @@ def _sd_mass_matrix(
     Compute the mass matrix on a single grid.
 
     Args:
-        sd (pp.Grid).
+        sd (pg.Grid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
+        discr (pg discretization object).
         data (dict): The data object associated to the grid.
 
     Returns:
@@ -155,10 +155,10 @@ def mass_matrix(
     Compute the mass matrix on a mixed-dimensional grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
+        discr (pg discretization object).
         data (dict): The data object associated to the grid.
         local_matrix (function): Function that generates the local mass matrix on a
             grid.
@@ -225,8 +225,8 @@ def lumped_cell_mass(
     Compute the lumped mass matrix for the piecewise constants on a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_cells x num_cells
@@ -242,8 +242,8 @@ def lumped_face_mass(
     (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp.RT0 or pp.MVEM).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg.RT0 or pg.MVEM).
 
     Returns:
         sps.csc_array, num_faces x num_faces
@@ -259,8 +259,8 @@ def lumped_ridge_mass(
     (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_ridges x num_ridges
@@ -276,8 +276,8 @@ def lumped_peak_mass(
     (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_peaks x num_peaks
@@ -295,10 +295,10 @@ def lumped_mass_matrix(
     Compute the mass-lumped mass matrix on a mixed-dimensional grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
+        discr (pg discretization object).
         kwargs: Optional parameters:
 
             - as_bmat: In case of mixed-dimensional, return the matrix as sparse
@@ -321,10 +321,10 @@ def _sd_lumped_mass(
     Compute the mass-lumped mass matrix on a single grid.
 
     Args:
-        sd (pp.Grid).
+        sd (pg.Grid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
+        discr (pg discretization object).
         data (dict): The data object associated to the grid.
 
     Returns:

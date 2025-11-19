@@ -227,7 +227,10 @@ class PwConstants(PwPolynomials):
     """
 
     poly_order = 0
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -410,7 +413,10 @@ class PwLinears(PwPolynomials):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -545,7 +551,10 @@ class PwQuadratics(PwPolynomials):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """

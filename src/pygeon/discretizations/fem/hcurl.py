@@ -15,7 +15,10 @@ class Nedelec0(pg.Discretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -233,7 +236,10 @@ class Nedelec1(pg.Discretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """

@@ -3,7 +3,6 @@
 from typing import Union
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -24,7 +23,7 @@ def div(
     Compute the divergence.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
         kwargs: Optional parameters:
 
             - as_bmat: In case of mixed-dimensional, return the matrix as sparse
@@ -43,7 +42,7 @@ def curl(
     Compute the curl.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
         kwargs: Optional parameters:
 
             - as_bmat: In case of mixed-dimensional, return the matrix as sparse
@@ -62,7 +61,7 @@ def grad(
     Compute the gradient.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
         kwargs: Optional parameters:
 
             - as_bmat: In case of mixed-dimensional, return the matrix as sparse
@@ -87,23 +86,23 @@ def exterior_derivative(
     order n - k.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
 
     Returns:
         sps.csc_array. The differential operator.
     """
-    if isinstance(grid, (pp.Grid, pp.MortarGrid)):
+    if isinstance(grid, (pg.Grid, pg.MortarGrid)):
         return _g_exterior_derivative(grid, n_minus_k, **kwargs)
 
-    elif isinstance(grid, pp.MixedDimensionalGrid):
+    elif isinstance(grid, pg.MixedDimensionalGrid):
         return _mdg_exterior_derivative(grid, n_minus_k, **kwargs)
 
     else:
         raise TypeError(
-            "Input needs to be of type pp.Grid, pp.MortarGrid, or "
-            "pp.MixedDimensionalGrid"
+            "Input needs to be of type pg.Grid, pg.MortarGrid, or "
+            "pg.MixedDimensionalGrid"
         )
 
 
@@ -116,7 +115,7 @@ def _g_exterior_derivative(
     Compute the exterior derivative on a grid.
 
     Args:
-        grid (pp.Grid or pp.MortarGrid): The grid.
+        grid (pg.Grid or pg.MortarGrid): The grid.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
 
@@ -146,7 +145,7 @@ def _mdg_exterior_derivative(
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
     Args:
-        grid (pp.MixedDimensionalGrid): The grid bucket.
+        grid (pg.MixedDimensionalGrid): The grid bucket.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
         kwargs: Optional parameters
