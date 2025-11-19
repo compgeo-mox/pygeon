@@ -105,7 +105,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
-        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int)  # type: ignore[arg-type]
+        return sum([sd.num_faces for sd in self.subdomains() if cond(sd)])
 
     def num_subdomain_ridges(
         self, cond: Optional[Callable[[pg.Grid], bool]] = None
@@ -143,10 +143,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
-        return np.sum(
-            [sd.num_peaks for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
-            dtype=int,
-        )
+        return sum([sd.num_peaks for sd in self.subdomains() if cond(sd)])
 
     def tag_leafs(self) -> None:
         """
