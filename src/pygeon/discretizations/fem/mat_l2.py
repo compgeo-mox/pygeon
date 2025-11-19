@@ -181,6 +181,21 @@ class MatPwLinears(pg.VecPwLinears):
         # Return the corotational correction matrix
         return A_omega - omega_A
 
+    def assemble_advected_term(self, sd: pg.Grid, grad_v: np.ndarray) -> sps.csc_array:
+        """
+        Assemble the advected term matrix for the finite element discretization, meaning
+        a term of the form grad(v) * A, where A is the matrix field being discretized
+        and v is the advection velocity field.
+
+        Args:
+            sd (pg.Grid): The grid on which to assemble the matrix.
+            grad_v (np.ndarray): The gradient of the advection velocity field.
+
+        Returns:
+            sps.csc_array: A matrix representing the discretized advected term.
+        """
+        return self.assemble_mult_matrix(sd, grad_v, False)
+
     def assemble_mult_matrix(
         self, sd: pg.Grid, mult_mat: np.ndarray, right_mult: bool
     ) -> sps.csc_array:
