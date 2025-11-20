@@ -1,5 +1,7 @@
 """Module to test the mixed formulations of elasticity."""
 
+from typing import Tuple
+
 import numpy as np
 import porepy as pp
 import pytest
@@ -51,7 +53,7 @@ def setup_elasticity_natural_bcs(
     sd: pg.Grid,
     u_boundary: np.ndarray,
     use_lumped: bool,
-) -> 
+) -> Tuple[sps.csc_matrix, np.ndarray]:
     data = {pp.PARAMETERS: {Sigma_h.keyword: {"mu": 0.5, "lambda": 0.5}}}
 
     if use_lumped:
