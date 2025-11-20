@@ -1,5 +1,7 @@
 """Module contains tests to validate the consistency between H(div) discretizations."""
 
+from typing import Tuple
+
 import numpy as np
 import pytest
 import scipy.sparse as sps
@@ -15,7 +17,9 @@ import pygeon as pg
     ],
     ids=["RT0", "BDM1", "RT1"],
 )
-def discr(request):
+def discr(
+    request: pytest.FixtureRequest,
+) -> Tuple[pg.Discretization, pg.Discretization]:
     Disc_q, Disc_p = request.param
     return Disc_q("test"), Disc_p("test")
 

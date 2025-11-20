@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-
-import pygeon as pg
 
 
 def test_face_areas(ref_octagon):

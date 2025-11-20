@@ -8,7 +8,7 @@ import pygeon as pg
 # for each fixture.
 
 
-def check_cochain_property(sd):
+def check_cochain_property(sd: pg.Grid):
     grad = pg.grad(sd)
     curl = pg.curl(sd)
     div = pg.div(sd)

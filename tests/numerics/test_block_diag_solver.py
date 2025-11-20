@@ -9,7 +9,7 @@ import pygeon as pg
 
 
 @pytest.fixture()
-def M_sparse():
+def M_sparse() -> sps.csc_array:
     # Create a sparse matrix M
     M = np.array(
         [
@@ -24,7 +24,7 @@ def M_sparse():
 
 
 @pytest.fixture()
-def B_sparse():
+def B_sparse() -> sps.csc_array:
     B = np.array(
         [
             [0, 1, 0, 0, 0, 0],
@@ -38,12 +38,12 @@ def B_sparse():
 
 
 @pytest.fixture()
-def b_vector():
+def b_vector() -> np.ndarray:
     return np.array([1, 2, 3, 0, 1])
 
 
 @pytest.fixture()
-def b_matrix(b_vector):
+def b_matrix(b_vector: np.ndarray) -> np.ndarray:
     return np.tile(b_vector, (3, 1)).T
 
 

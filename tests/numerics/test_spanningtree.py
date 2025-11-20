@@ -1,5 +1,7 @@
 """Module contains Spanning Tree tests."""
 
+from typing import Tuple
+
 import numpy as np
 import pytest
 import scipy.sparse as sps
@@ -10,17 +12,23 @@ spt_names = ["first_bdry", "all_bdry", "bottom", "weighted"]
 
 
 @pytest.fixture(scope="session", params=spt_names)
-def sd_and_sptr(unit_sd, request):
+def sd_and_sptr(
+    unit_sd: pg.Grid, request: pytest.FixtureRequest
+) -> Tuple[pg.MixedDimensionalGrid, pg.SpanningWeightedTrees]:
     mdg = pg.as_mdg(unit_sd)
     return create_pair(mdg, pg.SpanningTree, request.param)
 
 
 @pytest.fixture(scope="session", params=spt_names)
-def mdg_and_sptr(mdg, request):
+def mdg_and_sptr(
+    mdg: pg.MixedDimensionalGrid, request: pytest.FixtureRequest
+) -> Tuple[pg.MixedDimensionalGrid, pg.SpanningWeightedTrees]:
     return create_pair(mdg, pg.SpanningTree, request.param)
 
 
-def create_pair(mdg, tree_type, key):
+def create_pair(
+    mdg: pg.MixedDimensionalGrid, tree_type: pg.SpanningTree, key: str
+) -> Tuple[pg.MixedDimensionalGrid, pg.SpanningWeightedTrees]:
     match key:
         case "first_bdry":
             return (mdg, tree_type(mdg, "first_bdry"))

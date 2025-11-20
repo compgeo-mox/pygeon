@@ -7,7 +7,7 @@ import pygeon as pg
 
 
 @pytest.fixture(scope="session")
-def poin(unit_sd):
+def poin(unit_sd: pg.Grid) -> pg.Poincare:
     mdg = pg.as_mdg(unit_sd)
     return pg.Poincare(mdg)
 

@@ -12,7 +12,7 @@ import pygeon as pg
         pg.Lagrange2,
     ]
 )
-def discr(request):
+def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 

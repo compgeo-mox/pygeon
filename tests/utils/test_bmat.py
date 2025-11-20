@@ -8,7 +8,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def block_mat():
+def block_mat() -> np.ndarray:
     """
     Creates a single block matrix for testing
     """

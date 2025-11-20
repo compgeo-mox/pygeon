@@ -9,7 +9,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def _spaces_dict():
+def _spaces_dict() -> dict:
     key = "test"
 
     space_dict = {}
@@ -35,16 +35,23 @@ def _spaces_dict():
 
 
 @pytest.fixture(params=["BDM1-P0", "BDM1-L1", "RT1-L1"])
-def spaces(_spaces_dict: dict, request: pytest.FixtureRequest):
+def spaces(_spaces_dict: dict, request: pytest.FixtureRequest) -> pg.Discretization:
     return _spaces_dict[request.param]
 
 
 @pytest.fixture(params=[False, True], ids=["Full", "Lumped"])
-def use_lumped(request: pytest.FixtureRequest):
+def use_lumped(request: pytest.FixtureRequest) -> bool:
     return request.param
 
 
-def setup_elasticity_natural_bcs(Sigma_h, U_h, R_h, sd, u_boundary, use_lumped):
+def setup_elasticity_natural_bcs(
+    Sigma_h: pg.Discretization,
+    U_h: pg.Discretization,
+    R_h: pg.Discretization,
+    sd: pg.Grid,
+    u_boundary: np.ndarray,
+    use_lumped: bool,
+) -> 
     data = {pp.PARAMETERS: {Sigma_h.keyword: {"mu": 0.5, "lambda": 0.5}}}
 
     if use_lumped:

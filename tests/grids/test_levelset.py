@@ -9,19 +9,19 @@ import pygeon as pg
 import pygeon.grids.levelset_remesh as remesh
 
 
-def line_at_y80(x):
+def line_at_y80(x: np.ndarray) -> float:
     return x[1] - 0.80
 
 
-def line_at_x55(x):
+def line_at_x55(x: np.ndarray) -> float:
     return x[0] - 0.55
 
 
-def circle_at_0505(x):
+def circle_at_0505(x: np.ndarray) -> float:
     return 0.41 - np.linalg.norm(x - np.array([0.5, 0.5, 0]))
 
 
-def circle_at_0808(x):
+def circle_at_0808(x: np.ndarray) -> float:
     return 0.51 - np.linalg.norm(x - np.array([0.8, 0.8, 0]))
 
 
