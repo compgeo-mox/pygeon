@@ -6,7 +6,7 @@ import porepy as pp
 import pygeon as pg
 
 
-def check_grid(sd, dim, boundary):
+def check_grid(sd: pg.Grid, dim: int, boundary: np.ndarray):
     assert sd.dim == dim
 
     # check if the boundary faces belong to the imposed boundary

@@ -13,7 +13,7 @@ import pygeon as pg
         pg.RT1,
     ]
 )
-def discr(request):
+def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 

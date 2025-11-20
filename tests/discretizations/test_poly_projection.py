@@ -19,7 +19,7 @@ import pygeon as pg
         pg.PwQuadratics,
     ]
 )
-def discr(request):
+def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 

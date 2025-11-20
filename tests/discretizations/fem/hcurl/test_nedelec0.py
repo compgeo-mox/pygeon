@@ -7,7 +7,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr():
+def discr() -> pg.Nedelec0:
     return pg.Nedelec0("test")
 
 

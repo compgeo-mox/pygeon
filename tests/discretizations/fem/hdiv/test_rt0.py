@@ -8,7 +8,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr():
+def discr() -> pg.RT0:
     return pg.RT0("test")
 
 

@@ -8,7 +8,7 @@ import pygeon as pg
 
 
 @pytest.fixture()
-def pp_mdg():
+def pp_mdg() -> pg.MixedDimensionalGrid:
     mesh_args = {"cell_size": 0.25, "cell_size_fracture": 0.125}
     x_endpoints = [np.array([0, 0.5])]
     mdg, _ = pp.mdg_library.square_with_orthogonal_fractures(

@@ -8,7 +8,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr():
+def discr() -> pg.VecPwQuadratics:
     return pg.VecPwQuadratics("test")
 
 

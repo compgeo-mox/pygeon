@@ -6,7 +6,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr():
+def discr() -> pg.VecRT1:
     return pg.VecRT1("test")
 
 
