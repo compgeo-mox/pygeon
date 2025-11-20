@@ -58,7 +58,7 @@ class Nedelec0(pg.Discretization):
 
         cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -152,7 +152,7 @@ class Nedelec0(pg.Discretization):
 
         cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -287,7 +287,7 @@ class Nedelec1(pg.Discretization):
         cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
         ridge_peaks = sd.ridge_peaks
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
@@ -409,7 +409,7 @@ class Nedelec1(pg.Discretization):
         cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
         ridge_peaks = sd.ridge_peaks
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its ridges and
             # determine the location of the dof
             loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
