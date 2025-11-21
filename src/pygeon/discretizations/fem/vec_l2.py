@@ -13,6 +13,8 @@ class VecPwPolynomials(pg.VecDiscretization):
     A class representing an abstract vector piecewise polynomial discretization.
     """
 
+    base_discr: pg.PwPolynomials  # To please mypy
+
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
     ) -> np.ndarray:
@@ -35,7 +37,7 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         n_base = self.base_discr.ndof(sd)
 
-        dof_base = self.base_discr.local_dofs_of_cell(sd, c)  # type: ignore[attr-defined]
+        dof_base = self.base_discr.local_dofs_of_cell(sd, c)
         shift = np.repeat(n_base * np.arange(ambient_dim), dof_base.size)
 
         dof_base = np.tile(dof_base, ambient_dim)
@@ -56,7 +58,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             int: The total number of degrees of freedom per cell.
         """
-        return self.base_discr.ndof_per_cell(sd) * sd.dim  # type: ignore[attr-defined]
+        return self.base_discr.ndof_per_cell(sd) * sd.dim
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -99,7 +101,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             sps.csc_array: The projection matrix.
 
         """
-        proj = self.base_discr.proj_to_higher_PwPolynomials(sd)  # type: ignore[attr-defined]
+        proj = self.base_discr.proj_to_higher_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
@@ -113,7 +115,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             sps.csc_array: The projection matrix.
 
         """
-        proj = self.base_discr.proj_to_lower_PwPolynomials(sd)  # type: ignore[attr-defined]
+        proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
 
 

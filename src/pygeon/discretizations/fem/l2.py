@@ -397,7 +397,7 @@ class PwConstants(PwPolynomials):
         """
         cell_nodes = sd.cell_nodes()
         err = 0
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
             diff = int_sol[nodes_loc] - num_sol[c]
@@ -480,7 +480,7 @@ class PwLinears(PwPolynomials):
         cell_nodes = sd.cell_nodes()
         vals = np.zeros((sd.num_cells, sd.dim + 1))
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
 
@@ -528,7 +528,7 @@ class PwLinears(PwPolynomials):
         cols_J = np.empty((sd.num_cells, vals.size), dtype=int)
         data_IJ = np.tile(vals, (sd.num_cells, 1))
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             dofs_p1 = p1.local_dofs_of_cell(sd, c)
             dofs_p2 = p2.local_dofs_of_cell(sd, c)
 
@@ -643,7 +643,7 @@ class PwQuadratics(PwPolynomials):
         cell_nodes = sd.cell_nodes()
         vals = np.empty((sd.num_cells, self.ndof_per_cell(sd)))
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
 
