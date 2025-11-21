@@ -304,7 +304,7 @@ class VecBDM1(VecHDiv):
         opposite_nodes = sd.compute_opposite_nodes()
         scalar_ndof = self.base_discr.ndof(sd)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
@@ -390,7 +390,7 @@ class VecBDM1(VecHDiv):
         opposite_nodes = sd.compute_opposite_nodes()
         ndof_scalar = self.base_discr.ndof(sd)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
@@ -635,7 +635,7 @@ class VecRT1(VecHDiv):
         scalar_ndof = self.base_discr.ndof(sd)
         edges_nodes_per_cell = sd.dim + 1 + sd.dim * (sd.dim + 1) // 2
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             nodes_loc, faces_loc, signs_loc = self.base_discr.reorder_faces(
                 sd.cell_faces, opposite_nodes, c
             )

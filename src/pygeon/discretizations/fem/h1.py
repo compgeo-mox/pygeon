@@ -55,7 +55,7 @@ class Lagrange1(pg.Discretization):
         cell_nodes = sd.cell_nodes()
         local_mass = self.assemble_local_mass(sd.dim)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
@@ -136,7 +136,7 @@ class Lagrange1(pg.Discretization):
 
         cell_nodes = sd.cell_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
 
@@ -402,7 +402,7 @@ class Lagrange2(pg.Discretization):
         opposite_nodes = sd.compute_opposite_nodes()
         local_mass = self.assemble_local_mass(sd.dim)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
             faces = opposite_nodes.indices[loc]
             nodes = opposite_nodes.data[loc]
@@ -641,7 +641,7 @@ class Lagrange2(pg.Discretization):
         local_mass = pg.BDM1.local_inner_product(sd.dim)
         e_nodes = self.get_local_edge_nodes(sd.dim)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
             faces = opposite_nodes.indices[loc]
             nodes = opposite_nodes.data[loc]
@@ -764,7 +764,7 @@ class Lagrange2(pg.Discretization):
 
         eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
 
-        return sps.hstack((eval_nodes, eval_edges)).tocsc()  # type: ignore[arg-type]
+        return sps.hstack((eval_nodes, eval_edges)).tocsc()
 
     def assemble_lumped_matrix(self, sd: pg.Grid, data=None) -> sps.csc_array:
         """
@@ -814,7 +814,7 @@ class Lagrange2(pg.Discretization):
         data_IJ = np.ones(size)
         idx = 0
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
             faces = opposite_nodes.indices[loc]
             edges = self.get_edge_dof_indices(sd, c, faces)
