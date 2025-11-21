@@ -7,7 +7,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr():
+def discr() -> pg.PwLinears:
     return pg.PwLinears("test")
 
 
