@@ -1,6 +1,6 @@
 """Module for the MixedDimensionalGrid class."""
 
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 import numpy as np
 import porepy as pp
@@ -50,8 +50,9 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             sd.compute_geometry()
 
         for intf in self.interfaces():
+            intf = cast(pg.MortarGrid, intf)
             sd_pair = self.interface_to_subdomain_pair(intf)
-            intf.compute_geometry(sd_pair)  # type: ignore[call-arg]
+            intf.compute_geometry(cast(tuple[pg.Grid, pg.Grid], sd_pair))
 
         self.tag_leafs()
 
@@ -90,7 +91,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             )
 
     def num_subdomain_faces(
-        self, cond: Optional[Callable[[pg.Grid], bool]] = None
+        self, cond: Optional[Callable[[pp.Grid], bool]] = None
     ) -> int:
         """
         Compute the total number of faces of the mixed-dimensional grid.
@@ -105,7 +106,10 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
-        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)], dtype=int)  # type: ignore[arg-type]
+
+        return np.sum([sd.num_faces for sd in self.subdomains() if cond(sd)]).astype(
+            int
+        )
 
     def num_subdomain_ridges(
         self, cond: Optional[Callable[[pg.Grid], bool]] = None
@@ -123,9 +127,14 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
+
         return np.sum(
-            [sd.num_ridges for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
-        )
+            [
+                sd.num_ridges
+                for pp_sd in self.subdomains()
+                if (sd := cast(pg.Grid, pp_sd)) and cond(sd)
+            ]
+        ).astype(int)
 
     def num_subdomain_peaks(
         self, cond: Optional[Callable[[pg.Grid], bool]] = None
@@ -143,10 +152,14 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         if cond is None:
             cond = lambda _: True
+
         return np.sum(
-            [sd.num_peaks for sd in self.subdomains() if cond(sd)],  # type: ignore[attr-defined,arg-type]
-            dtype=int,
-        )
+            [
+                sd.num_peaks
+                for pp_sd in self.subdomains()
+                if (sd := cast(pg.Grid, pp_sd)) and cond(sd)
+            ]
+        ).astype(int)
 
     def tag_leafs(self) -> None:
         """
@@ -161,25 +174,31 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             None
         """
         for sd in self.subdomains():
+            sd = cast(pg.Grid, sd)
+
             # Tag the faces that correspond to a cell in a codim 1 domain
             sd.tags["leaf_faces"] = sd.tags["tip_faces"] + sd.tags["fracture_faces"]
 
             # Initialize the other tags
-            sd.tags["leaf_ridges"] = np.zeros(sd.num_ridges, dtype=bool)  # type: ignore[attr-defined]
-            sd.tags["leaf_peaks"] = np.zeros(sd.num_peaks, dtype=bool)  # type: ignore[attr-defined]
+            sd.tags["leaf_ridges"] = np.zeros(sd.num_ridges, dtype=bool)
+            sd.tags["leaf_peaks"] = np.zeros(sd.num_peaks, dtype=bool)
 
         for intf in self.interfaces():
+            intf = cast(pg.MortarGrid, intf)
+
             # Tag the ridges that correspond to a cell in a codim 2 domain
             if intf.dim >= 1:
                 sd_up, sd_down = self.interface_to_subdomain_pair(intf)
                 sd_up.tags["leaf_ridges"] += (
-                    abs(intf.face_ridges) @ sd_down.tags["leaf_faces"]  # type: ignore[attr-defined]
+                    abs(intf.face_ridges) @ sd_down.tags["leaf_faces"]
                 ).astype("bool")
 
         for intf in self.interfaces():
+            intf = cast(pg.MortarGrid, intf)
+
             # Tag the peaks that correspond to a codim 3 domain
             if intf.dim >= 2:
                 sd_up, sd_down = self.interface_to_subdomain_pair(intf)
                 sd_up.tags["leaf_peaks"] += (
-                    abs(intf.ridge_peaks) @ sd_down.tags["leaf_ridges"]  # type: ignore[attr-defined]
+                    abs(intf.ridge_peaks) @ sd_down.tags["leaf_ridges"]
                 ).astype("bool")

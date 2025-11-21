@@ -56,6 +56,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
+    base_discr: pg.Lagrange1  # To please mypy
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -102,7 +103,7 @@ class VecLagrange1(pg.VecDiscretization):
         cell_nodes = sd.cell_nodes()
         # shift to comply with the ordering convention of (x, y, z) components
         shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
 
@@ -140,7 +141,7 @@ class VecLagrange1(pg.VecDiscretization):
             ndarray: Local mass Hdiv matrix. Shape: (num_faces_of_cell,
             num_faces_of_cell)
         """
-        dphi = self.base_discr.local_grads(coord, dim)  # type: ignore[attr-defined]
+        dphi = self.base_discr.local_grads(coord, dim)
         return c_volume * dphi
 
     def assemble_div_div_matrix(
@@ -223,7 +224,7 @@ class VecLagrange1(pg.VecDiscretization):
         cell_nodes = sd.cell_nodes()
         # shift to comply with the ordering convention of (x, y, z) components
         shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its nodes
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
 
@@ -265,7 +266,7 @@ class VecLagrange1(pg.VecDiscretization):
             np.ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell,
             num_faces_of_cell).
         """
-        dphi = self.base_discr.local_grads(coord, dim)  # type: ignore[attr-defined]
+        dphi = self.base_discr.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
         return c_volume * sym @ grad
 

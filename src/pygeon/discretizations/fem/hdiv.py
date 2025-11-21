@@ -150,7 +150,7 @@ class RT0(pg.Discretization):
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
@@ -192,7 +192,7 @@ class RT0(pg.Discretization):
         size = sd.dim * (sd.dim + 1)
         M = np.zeros((size, size))
 
-        for it in np.arange(0, size, sd.dim):
+        for it in range(0, size, sd.dim):
             M += np.diagflat(np.ones(size - it), it)
 
         M += M.T
@@ -249,7 +249,7 @@ class RT0(pg.Discretization):
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
@@ -520,7 +520,7 @@ class BDM1(pg.Discretization):
 
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
@@ -569,10 +569,10 @@ class BDM1(pg.Discretization):
             np.ndarray: The local mass matrix.
         """
         fn = sd.face_nodes
-        nodes = np.empty((sd.dim + 1, sd.dim), int)
+        nodes_per_face = np.empty((sd.dim + 1, sd.dim), int)
         for ind, face in enumerate(faces_loc):
-            nodes[ind] = fn.indices[fn.indptr[face] : fn.indptr[face + 1]]
-        nodes = nodes.ravel(order="F")
+            nodes_per_face[ind] = fn.indices[fn.indptr[face] : fn.indptr[face + 1]]
+        nodes = nodes_per_face.ravel(order="F")
 
         node_ind = np.repeat(np.arange(sd.dim + 1), sd.dim)
 
@@ -676,7 +676,7 @@ class BDM1(pg.Discretization):
 
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
@@ -808,7 +808,7 @@ class BDM1(pg.Discretization):
 
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
@@ -861,7 +861,7 @@ class BDM1(pg.Discretization):
 
         shift = pg.PwLinears().ndof(sd) * np.tile(np.arange(3), sd.dim + 1)
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces and
             # determine the location of the dof
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
@@ -977,7 +977,7 @@ class RT1(pg.Discretization):
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             nodes_loc, faces_loc, signs_loc = self.reorder_faces(
                 sd.cell_faces, opposite_nodes, c
             )
@@ -1169,7 +1169,7 @@ class RT1(pg.Discretization):
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             nodes_loc = np.sort(opposite_nodes.data[loc])
@@ -1212,7 +1212,7 @@ class RT1(pg.Discretization):
 
         range_disc = pg.PwLinears()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             _, faces_loc, signs_loc = self.reorder_faces(
                 sd.cell_faces, opposite_nodes, c
             )
@@ -1288,7 +1288,7 @@ class RT1(pg.Discretization):
         interp_cells = np.zeros(sd.dim * sd.num_cells)
         cell_nodes = sd.cell_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
 
@@ -1380,7 +1380,7 @@ class RT1(pg.Discretization):
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             nodes_loc = np.sort(opposite_nodes.data[loc])
@@ -1434,7 +1434,7 @@ class RT1(pg.Discretization):
         n_dof_per_cell = [0, 9, 18, 30][sd.dim]
         rearrange = np.reshape(np.arange(n_dof_per_cell), (3, -1)).ravel(order="F")
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             nodes_loc, faces_loc, signs_loc = self.reorder_faces(
                 sd.cell_faces, opposite_nodes, c
             )

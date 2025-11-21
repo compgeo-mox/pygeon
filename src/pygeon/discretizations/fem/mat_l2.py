@@ -84,7 +84,7 @@ class MatPwLinears(pg.VecPwLinears):
 
         range_disc = pg.PwLinears()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc_dofs = self.local_dofs_of_cell(sd, c)[mask]
 
             ran_dofs = range_disc.local_dofs_of_cell(sd, c)
@@ -132,7 +132,7 @@ class MatPwLinears(pg.VecPwLinears):
             rearrange = np.arange(12).reshape((3, 4))
             rearrange = rearrange[[2, 1, 2, 0, 1, 0]].ravel()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc_dofs = self.local_dofs_of_cell(sd, c)[mask]
             ran_dofs = range_disc.local_dofs_of_cell(sd, c)[rearrange]
 
@@ -198,7 +198,7 @@ class MatPwQuadratics(pg.VecPwQuadratics):
         elif sd.dim == 3:
             mask = np.hstack((np.arange(10), np.arange(40, 50), np.arange(80, 90)))
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc_dofs = self.local_dofs_of_cell(sd, c)[mask]
 
             ran_dofs = range_disc.local_dofs_of_cell(sd, c)
@@ -246,7 +246,7 @@ class MatPwQuadratics(pg.VecPwQuadratics):
             rearrange = np.arange(3 * num_int_points).reshape((3, -1))
             rearrange = rearrange[[2, 1, 2, 0, 1, 0]].ravel()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             loc_dofs = self.local_dofs_of_cell(sd, c)[mask]
             ran_dofs = range_disc.local_dofs_of_cell(sd, c)[rearrange]
 
