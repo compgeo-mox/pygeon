@@ -19,10 +19,11 @@ def grid_from_domain(
     Args:
         domain (pp.Domain): The domain of the grid.
         mesh_size (float): The desired mesh size for the grid.
-        **kwargs: Additional options for creating the grid.
-            mesh_size_min (float): The minimum mesh size. Default is mesh_size / 10.
-            as_mdg (bool): If True, return the grid as a pg.MixedDimensionalGrid.
-                           If False, return the grid as a pg.Grid.
+        **kwargs: Additional options for creating the grid:
+
+            - mesh_size_min (float): The minimum mesh size. Default is mesh_size / 10.
+            - as_mdg (bool): If True, return the grid as a pg.MixedDimensionalGrid.
+              If False, return the grid as a pg.Grid.
 
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
@@ -60,7 +61,8 @@ def grid_from_boundary_pts(
     Args:
         pts (np.ndarray): The ordered points representing the boundary.
         mesh_size (float): The desired mesh size.
-        **kwargs: Additional options. The following options are available:
+        **kwargs: Additional options:
+
             - mesh_size_min (float): The minimum mesh size. Default is mesh_size.
             - as_mdg (bool): Return the grid as a mixed-dimensional grid.
 
@@ -86,9 +88,10 @@ def unit_grid(
     Args:
         dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
-        kwargs: Additional options. The following options are available:
+        kwargs: Additional options:
+
             - mesh_size_min (float): The minimum mesh size. Default is the same as
-                mesh_size.
+              mesh_size.
             - as_mdg (bool): If True, return the grid as a mixed-dimensional grid.
             - structured (bool): If True, create a structured grid.
 

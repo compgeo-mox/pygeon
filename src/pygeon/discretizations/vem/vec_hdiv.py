@@ -6,6 +6,17 @@ import pygeon as pg
 
 
 class VecVRT0(pg.VecDiscretization):
+    """
+    VecVRT0 is a tensor-valued discretization class for the virtual Raviart-Thomas RT0
+    element.
+    """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.MATRIX
+    """Matrix-valued discretization"""
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector virtual RT0 discretization class.

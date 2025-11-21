@@ -1,0 +1,30 @@
+# Sphinx build directory
+_build/
+
+# Sphinx auto-generated files
+_autosummary/
+api/_autosummary/
+
+# Auto-generated API documentation (created by sphinx-apidoc)
+# These are generated automatically during builds, so we don't commit them
+api/pygeon*.rst
+api/*_h1.rst
+api/*_hdiv.rst
+api/*_hcurl.rst
+api/*_l2.rst
+api/*_vec*.rst
+api/discretizations_*.rst
+api/vem_*.rst
+api/fem_*.rst
+
+# Keep hand-written API overview files
+!api/modules.rst
+
+# Generated reports copied during build
+reports/*.md
+!reports/index.rst
+
+# Other common generated files
+*.pyc
+__pycache__/
+.DS_Store

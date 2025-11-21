@@ -16,13 +16,6 @@ class Poincare:
     that satisfy pd + dp = I
     with d the exterior derivative, following
     the construction from https://arxiv.org/abs/2410.08830
-
-    Attributes:
-        mdg (pg.MixedDimensionalGrid): The (mixed-dimensional) grid.
-        dim (int): The ambient dimension.
-        top_sd (int): The top-dimensional subdomain.
-        bar_spaces (list): List of boolean arrays indicating subspaces on
-            which the exterior derivative is invertible.
     """
 
     def __init__(self, mdg: pg.MixedDimensionalGrid) -> None:
@@ -30,7 +23,7 @@ class Poincare:
         Initializes a Poincare class
 
         Args:
-            mdg (pg.MixedDimensionalGrid): a (mixed-dimensional) grid
+            mdg (pg.MixedDimensionalGrid): A (mixed-dimensional) grid.
         """
         self.mdg = mdg
         self.dim = mdg.dim_max()
@@ -65,7 +58,7 @@ class Poincare:
         This function only gets called in 3D.
 
         Returns:
-            np.ndarray: boolean array with flagged edges
+            np.ndarray: Boolean array with flagged edges
         """
         grad = pg.grad(self.mdg)
         incidence = grad.T @ grad
@@ -94,7 +87,7 @@ class Poincare:
         Find the node that is closest to the center of the domain.
 
         Returns:
-            int: index of the central node
+            int: Index of the central node.
         """
         center = np.mean(self.top_sd.nodes, axis=1, keepdims=True)
         dists = np.linalg.norm(self.top_sd.nodes - center, axis=0)
@@ -106,7 +99,7 @@ class Poincare:
         Flag all the nodes in the top-dim domain, except for the first node
 
         Returns:
-            np.ndarray: boolean array with flagged nodes
+            np.ndarray: Boolean array with flagged nodes
         """
         flagged_nodes = np.ones(self.top_sd.num_nodes, dtype=bool)
         flagged_nodes[0] = False
@@ -120,14 +113,14 @@ class Poincare:
         Apply the Poincare operator
 
         Args:
-            k (int): order of the differential k-form that is input
-            f (np.ndarray): the input differential k-form
-                as an array of the degrees of freedom
+            k (int): Order of the differential k-form that is input.
+            f (np.ndarray): The input differential k-form
+                as an array of the degrees of freedom.
             solver (Optional[Callable]): The solver function to use.
-                Defaults to sps.linalg.spsolve
+                Defaults to sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: the image of f under the Poincaré operator, i.e. p(f)
+            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)
         """
         # Nodes to the constants
         if k == 0:
@@ -147,13 +140,13 @@ class Poincare:
         Apply the permitted Poincaré operator for k-forms
 
         Args:
-            k (int): order of the form
-            f (np.ndarray): the input differential k-form
-                as an array of the degrees of freedom
+            k (int): Order of the form.
+            f (np.ndarray): The input differential k-form
+                as an array of the degrees of freedom.
             solver (Callable): The solver function to use.
 
         Returns:
-            np.ndarray: the image of f under the Poincaré operator, i.e. p(f)
+            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)
         """
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
@@ -170,11 +163,11 @@ class Poincare:
         Use the Poincaré operators to decompose f = pd(f) + dp(f)
 
         Args:
-            k (int): order of the k-form f
-            f (np.ndarray): the function to be decomposed
+            k (int): Order of the k-form f.
+            f (np.ndarray): The function to be decomposed.
 
         Returns:
-            Tuple[np.ndarray]: the decomposition of f as (dp(f), pd(f))
+            Tuple[np.ndarray]: The decomposition of f as (dp(f), pd(f))
         """
         n_minus_k = self.dim - k
 
@@ -204,16 +197,15 @@ class Poincare:
         differential forms identified by the Poincare object.
 
         Args:
-            k (int): order of the k-form
-            A (sps.csc_array): the system, usually a stiffness matrix
-            b (np.ndarray): the right-hand side vector
+            k (int): Order of the k-form.
+            A (sps.csc_array): The system, usually a stiffness matrix.
+            b (np.ndarray): The right-hand side vector.
             solver (Callable): The solver function to use. Defaults to
                 sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: the solution
+            np.ndarray: The solution
         """
-
         LS = pg.LinearSystem(A, b)
         LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
 

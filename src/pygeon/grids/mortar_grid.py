@@ -20,34 +20,6 @@ class MortarGrid(pp.MortarGrid):
     """
     A class representing a mortar grid, which is used for the discretization of
     interfaces between subdomains in a numerical simulation.
-
-    Attributes:
-        cell_faces (scipy.sparse.csc_array): The connectivity between cells of the
-            secondary grid and faces of the primary grid.
-        face_ridges (scipy.sparse.csc_array): The connectivities between
-            high-dimensional ridges and low-dimensional faces in the mortar grid.
-        ridge_peaks (scipy.sparse.csc_array): The connectivities between
-            high-dimensional peaks and low-dimensional ridges in the mortar grid.
-        signed_mortar_to_primary (scipy.sparse.csc_array): The mapping from mortar cells
-            to the faces of the primary grid that respects orientation.
-
-    Methods:
-        __init__(*args, **kwargs):
-            Initialize a new instance of the MortarGrid class.
-
-        compute_geometry(sd_pair):
-            Computes the geometry of the MortarGrid.
-
-        compute_ridges(sd_pair):
-            Assign the face-ridge and ridge-peak connectivities to the mortar grid.
-
-        assign_signed_mortar_to_primary(sd_pair):
-            Compute the mapping from mortar cells to the faces of the primary grid that
-            respects orientation.
-
-        assign_cell_faces():
-            Assign the connectivity between cells of the secondary grid and faces of the
-            primary grid.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -86,7 +58,7 @@ class MortarGrid(pp.MortarGrid):
         Assign the face-ridge and ridge-peak connectivities to the mortar grid
 
         Args:
-            sd_pair (Tuple[pp.Grid, pp.Grid]): pair of adjacent subdomains
+            sd_pair (Tuple[pp.Grid, pp.Grid]): Pair of adjacent subdomains.
 
         Returns:
             None
@@ -207,12 +179,12 @@ class MortarGrid(pp.MortarGrid):
         respects orientation.
 
         Args:
-            sd_pair (Tuple[pp.Grid, pp.Grid]): pair of adjacent subdomains
+            sd_pair (Tuple[pp.Grid, pp.Grid]): Pair of adjacent subdomains.
 
         Returns:
             sps.csc_array: A sparse matrix representing the mapping from mortar
-                cells to primary grid faces.
-                The matrix has dimensions num_primary_faces x num_mortar_cells.
+            cells to primary grid faces. The matrix has dimensions num_primary_faces x
+            num_mortar_cells.
         """
         sd_up = sd_pair[0]
         cells, faces, _ = sps.find(self.primary_to_mortar_int())  # type: ignore[arg-type]

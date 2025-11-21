@@ -18,13 +18,14 @@ def zero_tip_dofs(
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
-        kwargs: Optional parameters
-            as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        kwargs: Optional parameters:
+
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array or np.ndarray: The operator that maps the tip degrees of freedom
-            to zero.
+        to zero.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -77,7 +78,7 @@ def get_codim_str(n_minus_k: int) -> str:
     Helper function that returns the name of the mesh entity
 
     Args:
-        n_minus_k (int): The codimension of the mesh entity
+        n_minus_k (int): The codimension of the mesh entity.
 
     Returns:
         str: The name of the mesh entity

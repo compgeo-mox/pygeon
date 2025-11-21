@@ -54,7 +54,7 @@ class Discretization(abc.ABC):
         In this case number of nodes.
 
         Args
-            sd: grid, or a subclass.
+            sd: Grid, or a subclass.
 
         Returns
             ndof: the number of degrees of freedom.
@@ -139,11 +139,11 @@ class Discretization(abc.ABC):
         Interpolates a function onto the finite element space
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
-            func (Callable): a function that returns the function values at coordinates
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom
         """
 
     @abc.abstractmethod
@@ -197,11 +197,11 @@ class Discretization(abc.ABC):
         Returns the discretization class that contains the range of the differential
 
         Args:
-            dim (int): The dimension of the range
+            dim (int): The dimension of the range.
 
         Returns:
             pg.Discretization: The discretization class containing the range of the
-                differential
+            differential
         """
 
     @abc.abstractmethod
@@ -211,7 +211,7 @@ class Discretization(abc.ABC):
         the lowest order piecewise polynomial space without loss of information.
 
         Args:
-            sd (pg.Grid): the grid.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The inclusion matrix.
