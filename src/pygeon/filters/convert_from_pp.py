@@ -16,6 +16,7 @@ def convert_from_pp(
 
     Args:
         obj: The object to be converted. It can be one of the following types:
+
             - pp.Grid: Convert to pg.Grid.
             - pp.MortarGrid: Convert to pg.MortarGrid.
             - pp.MixedDimensionalGrid: Convert to pg.MixedDimensionalGrid.
@@ -59,7 +60,7 @@ def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> pp.MixedDimensionalGr
 
     Raises:
         ValueError: If the input grid object is neither a pp.MixedDimensionalGrid nor a
-            pp.Grid.
+        pp.Grid.
     """
     if isinstance(sd, pp.MixedDimensionalGrid):
         return sd

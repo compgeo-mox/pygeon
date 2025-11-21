@@ -37,6 +37,12 @@ class VecVLagrange1(pg.VecDiscretization):
     The strain tensor follows the same approach.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
@@ -128,8 +134,8 @@ class VecVLagrange1(pg.VecDiscretization):
                 Defaults to None.
 
         Returns:
-            sps.csc_array: sparse (sd.num_nodes, sd.num_nodes)
-                Div-div matrix obtained from the discretization.
+            sps.csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained
+            from the discretization.
         """
         if not data:
             labda = 1
@@ -163,7 +169,6 @@ class VecVLagrange1(pg.VecDiscretization):
             - The method computes the symgrad local matrix for each cell and saves
               the values in the global structure.
             - Finally, the method constructs the global matrices using the saved values.
-
         """
         cell_nodes = sd.cell_nodes()
         cell_diams = sd.cell_diameters()
@@ -246,11 +251,11 @@ class VecVLagrange1(pg.VecDiscretization):
                 None.
 
         Returns:
-            sps.csc_array: Sparse symgrad-symgrad matrix of shape
-                (sd.num_nodes, sd.num_nodes).
-                The matrix obtained from the discretization.
+            sps.csc_array: Sparse symgrad-symgrad matrix of shape (sd.num_nodes,
+            sd.num_nodes). The matrix obtained from the discretization.
 
-        NOTE: Duplicate of pg.VecLagrange1.assemble_symgrad_symgrad_matrix
+        Notes:
+            Duplicate of pg.VecLagrange1.assemble_symgrad_symgrad_matrix
         """
         if not data:
             mu = 1
@@ -341,7 +346,8 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The differential matrix.
 
-        NOTE: Duplicate of pg.VecLagrange1.assemble_diff_matrix
+        Notes:
+            Duplicate of pg.VecLagrange1.assemble_diff_matrix
         """
         div = self.assemble_div_matrix(sd)
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -380,11 +386,11 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Returns:
             Discretization: The discretization class that contains the range of
-                the differential.
+            the differential.
 
         Raises:
             NotImplementedError: There is no range discretization for the vector
-                Lagrangian 1 in PyGeoN.
+            Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector VLagrangian 1 in PyGeoN"
@@ -408,7 +414,8 @@ class VecVLagrange1(pg.VecDiscretization):
         Returns:
             ndarray: The stress tensor.
 
-        NOTE: Duplicate of pg.VecLagrange1.compute_stress
+        Notes:
+            Duplicate of pg.VecLagrange1.compute_stress
         """
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)

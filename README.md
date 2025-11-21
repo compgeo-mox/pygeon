@@ -2,10 +2,20 @@
 ![Mypy, ruff, isort](https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml/badge.svg)
 ![Tutorials](https://github.com/compgeo-mox/pygeon/actions/workflows/check_tutorials.yml/badge.svg)
 ![CodeQL](https://github.com/compgeo-mox/pygeon/workflows/CodeQL/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/pygeon-docs/badge/?version=latest)](https://pygeon-docs.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/455087135.svg)](https://zenodo.org/badge/latestdoi/455087135)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # PyGeoN: a Python package for Geo-Numerics
+
+PyGeoN is a Python library for structure-preserving numerical methods in geoscience applications. It provides finite element (FEM) and virtual element (VEM) discretizations for mixed-dimensional problems, with a focus on porous media flow and fracture networks. The library includes tools for grid generation, differential operators, and advanced solvers for coupled multi-physics simulations. 
+
+**Key Features:**
+- Simplicial, Voronoi, and polyhedral grid generation with mixed-dimensional support
+- FEM/VEM discretizations for H1, Hdiv, Hcurl, and L2 spaces
+- Structure-preserving discrete differential operators (grad, div, curl)
+- Spanning tree and Poincaré operators
+- Seamless integration with [PorePy](https://github.com/pmgbergen/porepy)
 
 ## Installation for Linux
 
@@ -29,6 +39,9 @@ More details can be found [here](https://github.com/compgeo-mox/pygeon/tree/dock
 
 ## Issues
 Create an [issue](https://github.com/compgeo-mox/pygeon/issues).
+
+## Documentation
+Docs website: https://pygeon-docs.readthedocs.io/
 
 ## Getting started
 See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).

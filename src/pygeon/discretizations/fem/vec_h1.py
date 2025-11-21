@@ -41,7 +41,7 @@ class VecLagrange1(pg.VecDiscretization):
              [sigma_yx, sigma_yy, sigma_yz],
              [sigma_zx, sigma_zy, sigma_zz]]
 
-    where its vectorized structure of lenght 9 is given by
+    where its vectorized structure of length 9 is given by
 
     sigma = [sigma_xx, sigma_xy, sigma_xz,
              sigma_yx, sigma_yy, sigma_yz,
@@ -52,7 +52,10 @@ class VecLagrange1(pg.VecDiscretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
     base_discr: pg.Lagrange1  # To please mypy
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -135,8 +138,8 @@ class VecLagrange1(pg.VecDiscretization):
             dim (int): Dimension of the cell.
 
         Returns:
-            ndarray: Local mass Hdiv matrix.
-                Shape: (num_faces_of_cell, num_faces_of_cell)
+            ndarray: Local mass Hdiv matrix. Shape: (num_faces_of_cell,
+            num_faces_of_cell)
         """
         dphi = self.base_discr.local_grads(coord, dim)
         return c_volume * dphi
@@ -154,8 +157,8 @@ class VecLagrange1(pg.VecDiscretization):
                 Defaults to None.
 
         Returns:
-            csc_array: sparse (sd.num_nodes, sd.num_nodes)
-                Div-div matrix obtained from the discretization.
+            csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained from
+            the discretization.
         """
         if not data:
             labda = 1
@@ -260,8 +263,8 @@ class VecLagrange1(pg.VecDiscretization):
             sym (np.ndarray): Symmetric matrix.
 
         Returns:
-            np.ndarray: Local symmetric gradient matrix of shape
-                (num_faces_of_cell, num_faces_of_cell).
+            np.ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell,
+            num_faces_of_cell).
         """
         dphi = self.base_discr.local_grads(coord, dim)
         grad = spl.block_diag(*([dphi] * dim))
@@ -281,9 +284,8 @@ class VecLagrange1(pg.VecDiscretization):
                 None.
 
         Returns:
-            sps.csc_array: Sparse symgrad-symgrad matrix of shape
-                (sd.num_nodes, sd.num_nodes).
-                The matrix obtained from the discretization.
+            sps.csc_array: Sparse symgrad-symgrad matrix of shape (sd.num_nodes,
+            sd.num_nodes). The matrix obtained from the discretization.
         """
         if not data:
             mu = 1
@@ -344,11 +346,11 @@ class VecLagrange1(pg.VecDiscretization):
 
         Returns:
             Discretization: The discretization class that contains the range of
-                the differential.
+            the differential.
 
         Raises:
             NotImplementedError: If there is no range discretization for the vector
-                Lagrangian 1 in PyGeoN.
+            Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
@@ -406,7 +408,10 @@ class VecLagrange2(pg.VecDiscretization):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -431,12 +436,12 @@ class VecLagrange2(pg.VecDiscretization):
             dim (int): The dimension of the range.
 
         Returns:
-            Discretization: The discretization class that contains the range of
-                the differential.
+            Discretization: The discretization class that contains the range of the
+            differential.
 
         Raises:
             NotImplementedError: If there is no range discretization for the vector
-                Lagrangian 2 in PyGeoN.
+            Lagrangian 2 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 2 in PyGeoN"

@@ -16,6 +16,12 @@ class VRT0(pg.RT0):
     Each degree of freedom is the integral over a mesh face.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the MVEM class.
@@ -85,6 +91,12 @@ class VBDM1(pg.BDM1):
     assembling the differential matrix, evaluating at cell centers, interpolating
     a function, assembling the natural boundary condition term, and more.
     """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
@@ -181,7 +193,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -214,7 +226,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -233,7 +245,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -301,6 +313,6 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            overridden in a subclass.
         """
         raise NotImplementedError

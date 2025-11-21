@@ -30,7 +30,7 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Returns:
             np.ndarray: An array containing the local DOFs of the specified cell,
-                adjusted for the vector-valued nature of the discretization.
+            adjusted for the vector-valued nature of the discretization.
         """
         if ambient_dim == -1:
             ambient_dim = sd.dim
@@ -99,7 +99,6 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The projection matrix.
-
         """
         proj = self.base_discr.proj_to_higher_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
@@ -113,7 +112,6 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The projection matrix.
-
         """
         proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
@@ -125,7 +123,10 @@ class VecPwConstants(VecPwPolynomials):
     """
 
     poly_order = 0
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -149,7 +150,10 @@ class VecPwLinears(VecPwPolynomials):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -173,7 +177,10 @@ class VecPwQuadratics(VecPwPolynomials):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

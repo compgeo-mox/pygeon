@@ -140,8 +140,8 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
 
     Returns:
         np.ndarray: The solution to the system of equations. If b is a 1D array, the
-            solution will also be returned as a 1D array. If b is a 2D array, the
-            solution will be returned as a 2D array.
+        solution will also be returned as a 1D array. If b is a 2D array, the
+        solution will be returned as a 2D array.
     """
     # If b is a 1D array, convert it to a 2D column vector
     # This is necessary for the solver to work correctly

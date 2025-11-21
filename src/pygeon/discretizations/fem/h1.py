@@ -16,7 +16,10 @@ class Lagrange1(pg.Discretization):
     """
 
     poly_order = 1
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -82,7 +85,7 @@ class Lagrange1(pg.Discretization):
 
         Returns:
             np.ndarray: Local mass matrix of shape (num_nodes_of_cell,
-                num_nodes_of_cell).
+            num_nodes_of_cell).
         """
 
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
@@ -190,15 +193,14 @@ class Lagrange1(pg.Discretization):
         Compute the local stiffness matrix for P1.
 
         Args:
-            K (np.ndarray): permeability of the cell of (dim, dim) shape.
-            c_volume (np.ndarray): scalar cell volume.
-            coord (np.ndarray): coordinates of the cell vertices of (dim+1, dim) shape.
-            dim (int): dimension of the problem.
+            K (np.ndarray): Permeability of the cell of (dim, dim) shape.
+            c_volume (np.ndarray): Scalar cell volume.
+            coord (np.ndarray): Coordinates of the cell vertices of (dim+1, dim) shape.
+            dim (int): Dimension of the problem.
 
         Returns:
-            np.ndarray: local stiffness matrix of (dim+1, dim+1) shape.
+            np.ndarray: Local stiffness matrix of (dim+1, dim+1) shape.
         """
-
         dphi = self.local_grads(coord, dim)
 
         return c_volume * dphi.T @ K @ dphi
@@ -284,7 +286,7 @@ class Lagrange1(pg.Discretization):
 
         Returns:
             np.ndarray: An array containing the interpolated values at each node of the
-                grid.
+            grid.
         """
         return np.array([func(x) for x in sd.nodes.T])
 
@@ -296,13 +298,13 @@ class Lagrange1(pg.Discretization):
         (u, func)_Gamma with u a test function in Lagrange1
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain
+            sd (pg.Grid): The grid object representing the computational domain.
             func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
-                the 'natural' boundary condition
-            b_faces (np.ndarray): The array of boundary faces
+                the 'natural' boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
-            np.ndarray: The assembled 'natural' boundary condition values
+            np.ndarray: The assembled 'natural' boundary condition values.
         """
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
@@ -348,7 +350,10 @@ class Lagrange2(pg.Discretization):
     """
 
     poly_order = 2
+    """Polynomial degree of the basis functions"""
+
     tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -431,9 +436,8 @@ class Lagrange2(pg.Discretization):
             dim (int): The dimension of the simplex.
 
         Returns:
-            np.ndarray: the local mass matrix.
+            np.ndarray: The local mass matrix.
         """
-
         # Helper constants
         n_edges = self.num_edges_per_cell(dim)
         eye = np.eye(dim + 1)
@@ -469,13 +473,12 @@ class Lagrange2(pg.Discretization):
         Compute the inner products of all monomials up to degree 2
 
         Args:
-            expnts (np.ndarray): each column is an array of exponents
+            expnts (np.ndarray): Each column is an array of exponents
                 alpha_i of the monomial expressed as
                 prod_i lambda_i ^ alpha_i.
 
         Returns:
-            np.ndarray: the inner products of the monomials
-                on a simplex with measure 1.
+            np.ndarray: The inner products of the monomials on a simplex with measure 1.
         """
         n_monomials = expnts.shape[1]
         mass = np.empty((n_monomials, n_monomials))
@@ -492,11 +495,11 @@ class Lagrange2(pg.Discretization):
         Vermolen and Segal (2018).
 
         Args:
-            alphas (np.ndarray): array of exponents alpha_i of the monomial
-                expressed as prod_i lambda_i ^ alpha_i
+            alphas (np.ndarray): Array of exponents alpha_i of the monomial
+                expressed as prod_i lambda_i ^ alpha_i.
 
         Returns:
-            float: the integral of the monomial on a simplex with measure 1
+            float: The integral of the monomial on a simplex with measure 1.
         """
         alphas = alphas.astype(int)
         dim = len(alphas) - 1
@@ -511,12 +514,11 @@ class Lagrange2(pg.Discretization):
         Compute the number of edges of a simplex of a given dimension.
 
         Args:
-            dim (int): dimension
+            dim (int): Dimension.
 
         Returns:
-            int: the number of adjacent edges
+            int: The number of adjacent edges.
         """
-
         return dim * (dim + 1) // 2
 
     def get_local_edge_nodes(self, dim: int) -> np.ndarray:
@@ -524,13 +526,12 @@ class Lagrange2(pg.Discretization):
         Lists the local edge-node connectivity in the cell
 
         Args:
-            dim (int): dimension
+            dim (int): Dimension.
 
         Returns:
-            np.ndarray: row i contains the local indices of the
-                nodes connected to the edge with local index i
+            np.ndarray: Row i contains the local indices of the nodes connected to the
+            edge with local index i.
         """
-
         n_nodes = dim + 1
         n_edges = self.num_edges_per_cell(dim)
         e_nodes = np.empty((n_edges, 2), int)
@@ -548,14 +549,13 @@ class Lagrange2(pg.Discretization):
         Evaluates the gradients of the basis functions at the nodes
 
         Args:
-            dphi (np.ndarray): Gradients of the P1 basis functions
-            e_nodes (np.ndarray): The local edge-node connectivity
+            dphi (np.ndarray): Gradients of the P1 basis functions.
+            e_nodes (np.ndarray): The local edge-node connectivity.
 
         Returns:
-            np.ndarray: the gradient of basis function i at node j is
-                in elements [i, 3 * (j:j + 1)]
+            np.ndarray: The gradient of basis function i at node j is in elements
+            [i, 3 * (j:J + 1)].
         """
-
         # the gradient of our basis functions are given by
         # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
         # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
@@ -583,12 +583,12 @@ class Lagrange2(pg.Discretization):
         to the local numbering of the edges.
 
         Args:
-            sd (pg.Grid): The grid
-            cell (int): The cell index
-            faces (np.ndarray): Face indices of the cell
+            sd (pg.Grid): The grid.
+            cell (int): The cell index.
+            faces (np.ndarray): Face indices of the cell.
 
         Returns:
-            np.ndarray: Indices of the edge degrees of freedom
+            np.ndarray: Indices of the edge degrees of freedom.
         """
 
         if sd.dim == 1:
@@ -839,7 +839,7 @@ class Lagrange2(pg.Discretization):
 
         Returns:
             np.ndarray: An array containing the interpolated values at each node of the
-                grid.
+            grid.
         """
         if sd.dim == 0:
             edge_coords = np.empty(0)
@@ -862,13 +862,13 @@ class Lagrange2(pg.Discretization):
         (func, u)_Gamma with u a test function in Lagrange2
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain
+            sd (pg.Grid): The grid object representing the computational domain.
             func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
-                the 'natural' boundary condition
-            b_faces (np.ndarray): The array of boundary faces
+                the 'natural' boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
-            np.ndarray: The assembled 'natural' boundary condition values
+            np.ndarray: The assembled 'natural' boundary condition values.
         """
         # In 1D, we reuse the code from P1
         if sd.dim == 1:

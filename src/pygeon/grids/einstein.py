@@ -70,12 +70,12 @@ class EinSteinGrid(pg.Grid):
         Returns:
             Tuple[np.ndarray, sps.csc_array, sps.csc_array]:
             A tuple containing the following:
-                - coords (np.ndarray):
-                    The rescaled points of the polygons in the unit square.
-                - cell_faces (sps.csc_array):
-                    The sparse matrix representing the cell-face relations.
-                - face_nodes (sps.csc_array):
-                    The sparse matrix representing the face-nodes relations.
+                - coords (np.ndarray): The rescaled points of the polygons in the unit
+                square.
+                - cell_faces (sps.csc_array): The sparse matrix representing the
+                cell-face relations.
+                - face_nodes (sps.csc_array): The sparse matrix representing the
+                face-nodes relations.
         """
         # rescale the points of the polygons to be in the unit square
         all_pts = self.rescale()
@@ -163,11 +163,11 @@ class EinSteinGrid(pg.Grid):
         Returns:
             Tuple[dict, dict, tuple]: A tuple containing three elements:
                 - poly_dict: A dictionary mapping polygon IDs to their corresponding
-                    polygons.
+                polygons.
                 - trans_dict: A dictionary mapping transformation IDs to a
-                    list of transformations.
+                list of transformations.
                 - use_info: A tuple containing the ID and transformation matrix of
-                    the root use element.
+                the root use element.
         """
         root = ET.parse(file_name).getroot()[0]
         tag_str = r"{http://www.w3.org/1999/xlink}href"
@@ -205,7 +205,7 @@ class EinSteinGrid(pg.Grid):
         Convert a string to a 2d polygon in homogeneous coordinate
 
         Args:
-            pts (str): The string representing the polygon points
+            pts (str): The string representing the polygon points.
 
         Returns:
             np.ndarray: The 2d polygon in homogeneous coordinate
@@ -220,7 +220,7 @@ class EinSteinGrid(pg.Grid):
         Convert a string to a 2d matrix in homogeneous coordinate
 
         Args:
-            mat (str): The string representation of the matrix
+            mat (str): The string representation of the matrix.
 
         Returns:
             np.ndarray: The 2d matrix in homogeneous coordinate

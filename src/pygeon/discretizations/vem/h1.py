@@ -13,6 +13,12 @@ class VLagrange1(pg.Lagrange1):
     Discretization class for the virtual Lagrange1 method.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: Optional[dict] = None
     ) -> sps.csc_array:
@@ -114,7 +120,6 @@ class VLagrange1(pg.Lagrange1):
         Returns:
             np.ndarray: The system matrix G.
         """
-
         G = sd.cell_volumes[cell] / (diam**2) * np.eye(3)
         G[0, 0] = 1
         G[0, 1:] = (
@@ -288,6 +293,6 @@ class VLagrange1(pg.Lagrange1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            overridden in a subclass.
         """
         raise NotImplementedError
