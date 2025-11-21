@@ -93,16 +93,16 @@ def exterior_derivative(
     Returns:
         sps.csc_array. The differential operator.
     """
-    if isinstance(grid, (pg.Grid, pg.MortarGrid)):
+    if isinstance(grid, (pp.Grid, pp.MortarGrid)):
         return _g_exterior_derivative(grid, n_minus_k, **kwargs)
 
-    elif isinstance(grid, pg.MixedDimensionalGrid):
+    elif isinstance(grid, pp.MixedDimensionalGrid):
         return _mdg_exterior_derivative(grid, n_minus_k, **kwargs)
 
     else:
         raise TypeError(
-            "Input needs to be of type pg.Grid, pg.MortarGrid, or "
-            "pg.MixedDimensionalGrid"
+            "Input needs to be of type pp.Grid, pp.MortarGrid, or "
+            "pp.MixedDimensionalGrid"
         )
 
 
