@@ -164,6 +164,7 @@ class MatPwLinears(pg.VecPwLinears):
                 discretization.
         """
         # Retrieve the discretization for the rotation, it depends on the dimension
+        disc_rot: pg.Discretization
         if sd.dim == 2:
             disc_rot = pg.PwConstants(self.keyword)
         else:
@@ -235,7 +236,7 @@ class MatPwLinears(pg.VecPwLinears):
             # left multiplication: mult_mat @ A
             oper_str = "ijk,pi->pjk"
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # Get the local degrees of freedom for the cell ordered column wise
             loc_dofs = self.local_dofs_of_cell(sd, c).reshape((-1, sd.dim + 1))
 

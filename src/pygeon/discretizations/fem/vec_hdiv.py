@@ -93,11 +93,11 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        if not data:
+        if data is None:
             # If the data is not provided then use default value for mu
             mu = 0.5 * np.ones(sd.num_cells)
 
-            data_ = {pp.PARAMETERS: {self.keyword: {}}}
+            data_: dict = {pp.PARAMETERS: {self.keyword: {}}}
             data_[pp.PARAMETERS][self.keyword]["mu"] = mu
         else:
             data_ = data.copy()
