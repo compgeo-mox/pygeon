@@ -1,5 +1,7 @@
 """Module for the discretizations of the vector L2 space."""
 
+from __future__ import annotations
+
 from typing import Callable, Type
 
 import numpy as np
@@ -13,7 +15,7 @@ class VecPwPolynomials(pg.VecDiscretization):
     A class representing an abstract vector piecewise polynomial discretization.
     """
 
-    base_discr: pg.PwPolynomials | pg.VecPwPolynomials  # To please mypy
+    base_discr: pg.PwPolynomials | pg.VecPwPolynomials
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1

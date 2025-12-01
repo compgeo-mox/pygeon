@@ -1,6 +1,6 @@
 """Grid class for the pygeon package."""
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 import porepy as pp
@@ -240,7 +240,7 @@ class Grid(pp.Grid):
         self.tags["domain_boundary_ridges"] = bd_ridges.astype(bool)
 
     def compute_subvolumes(
-        self, return_subsimplices: Optional[bool] = False
+        self, return_subsimplices: bool = False
     ) -> Tuple[sps.csc_array, sps.csc_array] | sps.csc_array:
         """
         Compute the subvolumes of the grid.

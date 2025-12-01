@@ -1,7 +1,7 @@
 """Module for the discretizations of the H(div) space."""
 
 import abc
-from typing import Optional, Type, cast
+from typing import Type, cast
 
 import numpy as np
 import porepy as pp
@@ -18,7 +18,7 @@ class VecHDiv(pg.VecDiscretization):
     """
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1, which is given by
@@ -113,14 +113,14 @@ class VecHDiv(pg.VecDiscretization):
         return M + asym.T @ R_mass @ asym
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -156,7 +156,7 @@ class VecHDiv(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.

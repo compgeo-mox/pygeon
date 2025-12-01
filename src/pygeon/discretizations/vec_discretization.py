@@ -1,6 +1,6 @@
 """Module for the vector discretization class."""
 
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import scipy.sparse as sps
@@ -42,14 +42,14 @@ class VecDiscretization(pg.Discretization):
         return self.base_discr.ndof(sd) * sd.dim
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly.
+            data (dict | None): Optional data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -71,7 +71,7 @@ class VecDiscretization(pg.Discretization):
         return self.vectorize(sd.dim, diff)
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix.
@@ -86,14 +86,14 @@ class VecDiscretization(pg.Discretization):
         return self.vectorize(sd.dim, diff)
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Dictionary with physical parameters for scaling.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
             sps.csc_array: The lumped mass matrix.

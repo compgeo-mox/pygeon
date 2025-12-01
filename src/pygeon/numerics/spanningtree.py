@@ -1,6 +1,6 @@
 """Module for spanning tree computation."""
 
-from typing import Optional, Type, cast
+from typing import Type, cast
 
 import numpy as np
 import porepy as pp
@@ -235,14 +235,14 @@ class SpanningTree:
         return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
-        self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None, **kwargs
+        self, mdg: pg.MixedDimensionalGrid, fig_name: str | None = None, **kwargs
     ):
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
 
         Args:
             mdg (pg.MixedDimensionalGrid) The object representing the grid.
-            fig_name (Optional[str], optional). The name of the figure file to save the
+            fig_name (str). The name of the figure file to save the
                 visualization.
 
         Optional Args
@@ -594,7 +594,7 @@ class SpanningWeightedTrees:
         mdg: pg.MixedDimensionalGrid,
         spt: Type[SpanningTree],
         weights: np.ndarray,
-        starting_faces: Optional[np.ndarray] = None,
+        starting_faces: np.ndarray | None = None,
     ) -> None:
         """Constructor of the class.
 
@@ -603,7 +603,7 @@ class SpanningWeightedTrees:
             spt (object): The spanning tree object to use.
             weights (np.ndarray): The weights to impose for each spanning tree, they
                 need to sum to 1.
-            starting_faces (Optional[np.ndarray]): The set of starting faces, if not
+            starting_faces (np.ndarray): The set of starting faces, if not
                 specified equi-distributed boundary faces are selected.
         """
         if starting_faces is None:

@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -93,9 +93,7 @@ def merge_connectivities(
     )
 
 
-def create_new_entity_map(
-    cut_entities: np.ndarray, offset: Optional[int] = 0
-) -> sps.csc_array:
+def create_new_entity_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_array:
     """
     Creates a mapping matrix of size n_new x n_old in which
     (i_new, i_old) = 1 if i_new is a new entity placed on i_old.
@@ -118,9 +116,7 @@ def create_new_entity_map(
     )
 
 
-def create_splitting_map(
-    cut_entities: np.ndarray, offset: Optional[int] = 0
-) -> sps.csc_array:
+def create_splitting_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_array:
     """
     Creates a mapping matrix of size n_new x n_old in which
     (i_new, i_old) = 1 if i_new is a new entity from a splitting of i_old.

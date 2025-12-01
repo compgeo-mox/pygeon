@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Literal, Optional, Tuple, Type, overload
+from typing import Callable, Literal, Tuple, Type, overload
 
 import numpy as np
 import porepy as pp
@@ -37,7 +37,7 @@ class RT0(pg.Discretization):
 
     @staticmethod
     def create_unitary_data(
-        keyword: str, sd: pg.Grid, data: Optional[dict] = None
+        keyword: str, sd: pg.Grid, data: dict | None = None
     ) -> dict:
         """
         Updates data such that it has all the necessary components for pp.RT0, if the
@@ -97,14 +97,14 @@ class RT0(pg.Discretization):
         return data
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
+            data (dict | None): Optional dictionary with physical parameters for
                 scaling, in particular the second_order_tensor that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
@@ -279,14 +279,14 @@ class RT0(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
+            data (dict | None): Optional dictionary with physical parameters for
                 scaling. In particular the second_order_tensor that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
@@ -407,7 +407,7 @@ class RT0(pg.Discretization):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
         etype: str = "specific",
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
@@ -418,9 +418,9 @@ class RT0(pg.Discretization):
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
                 analytical solution.
-            relative (Optional[bool], optional): Compute the relative error or not.
+            relative (bool): Compute the relative error or not.
                 Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to
+            etype (str): Type of error computed. Defaults to
                 "specific".
 
         Returns:
@@ -490,14 +490,14 @@ class BDM1(pg.Discretization):
         return loc_ind
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid for which the mass matrix is assembled.
-            data (Optional[dict]): Additional data for the assembly process.
+            data (dict | None): Additional data for the assembly process.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -796,14 +796,14 @@ class BDM1(pg.Discretization):
         return pg.PwConstants
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -956,14 +956,14 @@ class RT1(pg.Discretization):
         return np.hstack((loc_face, loc_cell))
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
+            data (dict | None): Optional dictionary with physical parameters for
                 scaling, in particular the second_order_tensor that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
@@ -1360,7 +1360,7 @@ class RT1(pg.Discretization):
         return pg.PwLinears
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid,
@@ -1368,7 +1368,7 @@ class RT1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.

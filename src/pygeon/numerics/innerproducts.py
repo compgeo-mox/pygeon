@@ -1,6 +1,6 @@
 """This module contains functions for computing the inner-products operators."""
 
-from typing import Callable, Optional, cast
+from typing import Callable, cast
 
 import numpy as np
 import porepy as pp
@@ -12,7 +12,7 @@ import pygeon as pg
 
 
 def cell_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the mass matrix for the piecewise constants on a (MD-)grid.
@@ -28,7 +28,7 @@ def cell_mass(
 
 
 def face_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the mass matrix for discretization defined on the faces of a (MD-)grid.
@@ -44,7 +44,7 @@ def face_mass(
 
 
 def ridge_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the mass matrix for discretization defined on the ridges of a (MD-)grid.
@@ -60,7 +60,7 @@ def ridge_mass(
 
 
 def peak_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the mass matrix for discretization defined on the peaks of a (MD-)grid.
@@ -99,8 +99,8 @@ def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
 def _sd_mass_matrix(
     sd: pg.Grid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
-    data: Optional[dict] = None,
+    discr: pg.Discretization | None = None,
+    data: dict | None = None,
     **kwargs,
 ) -> sps.csc_array:
     """
@@ -147,7 +147,7 @@ def local_matrix(
 def mass_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
+    discr: pg.Discretization | None = None,
     local_matrix: Callable = local_matrix,
     **kwargs,
 ) -> sps.csc_array | np.ndarray:
@@ -221,7 +221,7 @@ def mass_matrix(
 
 
 def lumped_cell_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for the piecewise constants on a (MD-)grid.
@@ -237,7 +237,7 @@ def lumped_cell_mass(
 
 
 def lumped_face_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for discretization defined on the faces of a
@@ -254,7 +254,7 @@ def lumped_face_mass(
 
 
 def lumped_ridge_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for discretization defined on the ridges of a
@@ -271,7 +271,7 @@ def lumped_ridge_mass(
 
 
 def lumped_peak_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for discretization defined on the peaks of a
@@ -290,7 +290,7 @@ def lumped_peak_mass(
 def lumped_mass_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
+    discr: pg.Discretization | None = None,
     **kwargs,
 ) -> sps.csc_array | np.ndarray:
     """
@@ -315,8 +315,8 @@ def lumped_mass_matrix(
 def _sd_lumped_mass(
     sd: pg.Grid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
-    data: Optional[dict] = None,
+    discr: pg.Discretization | None = None,
+    data: dict | None = None,
     **kwargs,
 ) -> sps.csc_array:
     """

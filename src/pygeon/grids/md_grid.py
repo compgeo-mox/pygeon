@@ -1,6 +1,6 @@
 """Module for the MixedDimensionalGrid class."""
 
-from typing import Callable, Optional, cast
+from typing import Callable, cast
 
 import numpy as np
 import porepy as pp
@@ -91,16 +91,14 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
                 )
             )
 
-    def num_subdomain_faces(
-        self, cond: Optional[Callable[[pp.Grid], bool]] = None
-    ) -> int:
+    def num_subdomain_faces(self, cond: Callable[[pp.Grid], bool] | None = None) -> int:
         """
         Compute the total number of faces of the mixed-dimensional grid.
 
         A function can be passed to filter subdomains and/or interfaces.
 
         Args:
-            cond: Optional, predicate with a grid as input.
+            cond: Callable, predicate with a grid as input.
 
         Returns:
             int: The total number of faces of the mixed-dimensional grid.
@@ -113,7 +111,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         )
 
     def num_subdomain_ridges(
-        self, cond: Optional[Callable[[pg.Grid], bool]] = None
+        self, cond: Callable[[pg.Grid], bool] | None = None
     ) -> int:
         """
         Compute the total number of ridges in the mixed-dimensional grid.
@@ -121,7 +119,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         A function can be passed to filter subdomains and/or interfaces.
 
         Args:
-            cond: Optional. A predicate function that takes a grid as input.
+            cond: Callable. A predicate function that takes a grid as input.
 
         Returns:
             int: The total number of ridges in the mixed-dimensional grid.
@@ -137,16 +135,14 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             ]
         ).astype(int)
 
-    def num_subdomain_peaks(
-        self, cond: Optional[Callable[[pg.Grid], bool]] = None
-    ) -> int:
+    def num_subdomain_peaks(self, cond: Callable[[pg.Grid], bool] | None = None) -> int:
         """
         Compute the total number of peaks in the mixed-dimensional grid.
 
         A function can be passed to filter subdomains and/or interfaces.
 
         Args:
-            cond: Optional. A predicate function that takes a grid as input.
+            cond: Callable. A predicate function that takes a grid as input.
 
         Returns:
             int: The total number of peaks in the mixed-dimensional grid.

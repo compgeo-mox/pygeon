@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -62,28 +62,28 @@ class Discretization(abc.ABC):
 
     @abc.abstractmethod
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Dictionary with physical parameters for scaling.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
             sps.csc_array: The mass matrix.
         """
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Dictionary with physical parameters for scaling.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
             sps.csc_array: The lumped mass matrix.
@@ -104,7 +104,7 @@ class Discretization(abc.ABC):
         """
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix.
@@ -119,7 +119,7 @@ class Discretization(abc.ABC):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Optional data dictionary. Defaults to None.
+            data (dict | None): Optional data dictionary. Defaults to None.
 
         Returns:
             sps.csc_array: The stiffness matrix.
@@ -224,7 +224,7 @@ class Discretization(abc.ABC):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
         etype: str = "standard",
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
