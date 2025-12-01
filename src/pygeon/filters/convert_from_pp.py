@@ -1,6 +1,6 @@
 """Conversion from porepy to pygeon."""
 
-from typing import overload, cast
+from typing import cast, overload
 
 import porepy as pp
 import scipy.sparse as sps
