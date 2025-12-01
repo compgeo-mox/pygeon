@@ -6,7 +6,7 @@ import types
 
 import nbformat
 import pytest
-from nbconvert import NotebookExporter
+from nbconvert import ScriptExporter
 from nbconvert.preprocessors import Preprocessor
 
 TUTORIAL_FILENAMES = glob.glob("tutorials/*.ipynb")
@@ -37,7 +37,7 @@ def test_run_tutorials(tutorial_path: str):
 
     # --- Convert notebook to script with IgnoreCommentPreprocessor ---
     nb = nbformat.read(tutorial_path, as_version=4)
-    exporter = NotebookExporter()
+    exporter = ScriptExporter()
     exporter.register_preprocessor(IgnoreCommentPreprocessor, enabled=True)
     body, _ = exporter.from_notebook_node(nb)
 
