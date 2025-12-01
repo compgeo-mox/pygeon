@@ -83,7 +83,4 @@ jobs:
     - name: Check tutorials
       if: ${{always()}}
       run: |
-        export PYVISTA_OFF_SCREEN=true
-        export PYVISTA_USE_PANEL=false
-        export DISPLAY=""
         pytest tests -m tutorials
