@@ -24,7 +24,8 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 dependencies = [
-    "porepy[development,testing] @ git+https://github.com/pmgbergen/porepy.git@develop"
+    "porepy[development,testing] @ git+https://github.com/pmgbergen/porepy.git@develop",
+    "pyvista"
 ]
 
 # Information for the build system.
