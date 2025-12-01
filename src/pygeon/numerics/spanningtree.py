@@ -1,6 +1,6 @@
 """Module for spanning tree computation."""
 
-from typing import Optional, Type, Union, cast
+from typing import Optional, Type, cast
 
 import numpy as np
 import porepy as pp
@@ -18,14 +18,14 @@ class SpanningTree:
     def __init__(
         self,
         mdg: pg.MixedDimensionalGrid,
-        starting_faces: Union[str, np.ndarray, int] = "first_bdry",
+        starting_faces: str | np.ndarray | int = "first_bdry",
     ) -> None:
         """
         Initializes a SpanningTree object.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
-            starting_faces (Union[np.ndarray, int, str], optional):
+            starting_faces (np.ndarray | int | str):
                 - "first_bdry" (default): Choose the first boundary face.
                 - "all_bdry": Choose all boundary faces.
                 - np.array or int: Indices of the starting faces.
@@ -68,7 +68,7 @@ class SpanningTree:
     def find_starting_faces(
         self,
         mdg: pg.MixedDimensionalGrid,
-        starting_faces: Union[str, np.ndarray, int],
+        starting_faces: str | np.ndarray | int,
     ) -> np.ndarray:
         """
         Find the starting face for the spanning tree.

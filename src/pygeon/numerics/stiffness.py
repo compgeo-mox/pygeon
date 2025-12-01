@@ -1,6 +1,6 @@
 """This module contains functions for computing the stiffness operators."""
 
-from typing import Optional, Union
+from typing import Optional
 
 import scipy.sparse as sps
 
@@ -82,7 +82,7 @@ def peak_stiff(
 def stiff_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
-    discr: Union[pg.Discretization, None],
+    discr: pg.Discretization | None,
     **kwargs,
 ) -> sps.csc_array:
     """
@@ -92,7 +92,7 @@ def stiff_matrix(
         mdg (pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
+        discr (pg discretization object).
         data (dict): The data object associated to the grid.
         local_matrix (function): Function that generates the local mass matrix on a
             grid.

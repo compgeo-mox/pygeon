@@ -1,7 +1,5 @@
 """Module for the octagon grid."""
 
-from typing import Optional, Union
-
 import numpy as np
 import scipy.sparse as sps
 
@@ -17,8 +15,8 @@ class OctagonGrid(pg.Grid):
     def __init__(
         self,
         nx: np.ndarray,
-        physdims: Optional[Union[dict, np.ndarray]] = None,
-        name: Optional[str] = "Octagon grid",
+        physdims: dict | np.ndarray | None = None,
+        name: str = "Octagon grid",
     ) -> None:
         """
         Constructor for the 2D octagonal grid.
@@ -43,15 +41,13 @@ class OctagonGrid(pg.Grid):
 
         super().__init__(2, nodes, face_nodes, cell_faces, name)
 
-    def compute_nodes(
-        self, nx: np.ndarray, physdims: Union[dict, np.ndarray]
-    ) -> np.ndarray:
+    def compute_nodes(self, nx: np.ndarray, physdims: dict | np.ndarray) -> np.ndarray:
         """
         Compute the nodes of an octagon grid.
 
         Args:
             nx (np.ndarray): Number of grid points in each dimension.
-            physdims (Union[dict, np.ndarray]): Physical dimensions of the grid.
+            physdims (dict| np.ndarray): Physical dimensions of the grid.
 
         Returns:
             np.ndarray: Array of node coordinates.
@@ -93,7 +89,7 @@ class OctagonGrid(pg.Grid):
         return nodes
 
     def rescale_nodes(
-        self, nodes: np.ndarray, nx: np.ndarray, physdims: Union[dict, np.ndarray]
+        self, nodes: np.ndarray, nx: np.ndarray, physdims: dict | np.ndarray
     ) -> np.ndarray:
         """
         Rescales the given nodes based on the physical dimensions and grid size.
@@ -101,7 +97,7 @@ class OctagonGrid(pg.Grid):
         Args:
             nodes (np.ndarray): The array of nodes to be rescaled.
             nx (np.ndarray): The grid size in each dimension.
-            physdims (Union[dict, np.ndarray]): The physical dimensions of the grid.
+            physdims (dict| np.ndarray): The physical dimensions of the grid.
 
         Returns:
             np.ndarray: The rescaled nodes.

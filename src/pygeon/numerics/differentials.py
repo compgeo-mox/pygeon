@@ -1,6 +1,6 @@
 """This module contains functions for computing the differential operators."""
 
-from typing import Union, cast
+from typing import cast
 
 import numpy as np
 import porepy as pp
@@ -18,7 +18,7 @@ Acknowledgements:
 
 
 def div(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
 ) -> sps.csc_array:
     """
     Compute the divergence.
@@ -37,7 +37,7 @@ def div(
 
 
 def curl(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
 ) -> sps.csc_array:
     """
     Compute the curl.
@@ -56,7 +56,7 @@ def curl(
 
 
 def grad(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
 ) -> sps.csc_array:
     """
     Compute the gradient.
@@ -78,7 +78,7 @@ def grad(
 
 
 def exterior_derivative(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid,
     n_minus_k: int,
     **kwargs,
 ) -> sps.csc_array:
@@ -108,7 +108,7 @@ def exterior_derivative(
 
 
 def _g_exterior_derivative(
-    grid: Union[pg.Grid, pg.MortarGrid],
+    grid: pg.Grid | pg.MortarGrid,
     n_minus_k: int,
     **kwargs,
 ) -> sps.csc_array:
