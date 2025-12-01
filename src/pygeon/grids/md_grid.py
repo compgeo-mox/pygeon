@@ -52,7 +52,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         for intf in self.interfaces():
             intf = cast(pg.MortarGrid, intf)
             sd_pair = self.interface_to_subdomain_pair(intf)
-            intf.compute_geometry(cast(tuple[pg.Grid, pg.Grid], sd_pair))
+            intf.assign_sd_pair(cast(tuple[pg.Grid, pg.Grid], sd_pair))
+            intf.compute_geometry()
 
         self.tag_leafs()
 

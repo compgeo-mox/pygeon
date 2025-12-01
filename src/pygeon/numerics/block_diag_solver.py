@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sps
-import scipy.sparse.csgraph as csgraph  # type: ignore[import-untyped]
+import scipy.sparse.csgraph as csgraph
 
 
 def assemble_inverse(M: sps.csc_array, rtol: Optional[float] = 1e-10) -> sps.csc_array:
@@ -45,7 +45,7 @@ def assemble_inverse(M: sps.csc_array, rtol: Optional[float] = 1e-10) -> sps.csc
         indices = np.where(labels == patch)[0]
 
         # Create a submatrix for the connected component
-        submat = M_lil[np.ix_(indices, indices)].toarray()  # type: ignore[index]
+        submat = M_lil[np.ix_(indices, indices)].toarray()
         inv_submat = np.linalg.inv(submat)
 
         # Store the inverse in the corresponding positions
@@ -114,7 +114,7 @@ def block_diag_solver(
             continue
 
         # Create a dense submatrix for the connected component
-        sub_M = M_lil[np.ix_(rows, rows)].toarray()  # type: ignore[index]
+        sub_M = M_lil[np.ix_(rows, rows)].toarray()
 
         # Solve the dense system and distribute to the solution matrix
         sol[np.ix_(rows, cols)] = scipy.linalg.solve(

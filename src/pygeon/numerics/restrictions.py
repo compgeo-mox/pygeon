@@ -1,6 +1,6 @@
 """This module contains functions that compute restriction operators."""
 
-from typing import Union
+from typing import Union, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -48,12 +48,10 @@ def zero_tip_dofs(
             )
 
     pg.bmat.replace_nones_with_zeros(is_tip_dof)
-    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof).tocsc()  # type: ignore[call-overload]
+    return is_tip_dof if as_bmat else sps.block_array(is_tip_dof).tocsc()
 
 
-def remove_tip_dofs(
-    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
-) -> sps.csc_array:
+def remove_tip_dofs(mdg: pg.MixedDimensionalGrid, n_minus_k: int) -> sps.csc_array:
     """
     Compute the operator that removes the tip degrees of freedom.
 
@@ -69,7 +67,8 @@ def remove_tip_dofs(
     Returns:
         sps.csc_array: The operator that removes the tip degrees of freedom.
     """
-    R = zero_tip_dofs(mdg, n_minus_k, **kwargs).tocsr()  # type: ignore[union-attr]
+    R = zero_tip_dofs(mdg, n_minus_k)
+    R = cast(sps.sparray, R).tocsr()
     return R[R.indices, :].tocsc()
 
 

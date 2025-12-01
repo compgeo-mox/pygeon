@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Optional, Tuple, Type, Union
+from typing import Callable, Literal, Optional, Tuple, Type, overload
 
 import numpy as np
 import porepy as pp
@@ -532,7 +532,7 @@ class BDM1(pg.Discretization):
             weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
 
             # Compute the inner products
-            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]  # type: ignore[union-attr]
+            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
             loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
 
@@ -547,13 +547,31 @@ class BDM1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    @overload
+    def eval_basis_at_node(
+        self,
+        sd: pg.Grid,
+        opposites: np.ndarray,
+        faces_loc: np.ndarray,
+        return_node_ind: Literal[True],
+    ) -> Tuple[np.ndarray, np.ndarray]: ...
+
+    @overload
+    def eval_basis_at_node(
+        self,
+        sd: pg.Grid,
+        opposites: np.ndarray,
+        faces_loc: np.ndarray,
+        return_node_ind: Literal[False] = False,
+    ) -> np.ndarray: ...
+
     def eval_basis_at_node(
         self,
         sd: pg.Grid,
         opposites: np.ndarray,
         faces_loc: np.ndarray,
         return_node_ind: bool = False,
-    ) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray] | np.ndarray:
         """
         Compute the local basis function for the BDM1 finite element space.
 
@@ -871,7 +889,7 @@ class BDM1(pg.Discretization):
             Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             # Extract indices of local dofs
             loc_dofs = self.local_dofs_of_cell(sd, faces_loc)

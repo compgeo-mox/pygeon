@@ -1,6 +1,6 @@
 """This module contains functions for creating projection operators."""
 
-from typing import Union
+from typing import Union, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -41,7 +41,8 @@ def eval_at_cell_centers(
 
     # Local mass matrices
     for nn_sd, sd in enumerate(mdg.subdomains()):
-        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)  # type: ignore[arg-type]
+        sd = cast(pg.Grid, sd)
+        bmat_sd[nn_sd, nn_sd] = discr.eval_at_cell_centers(sd)
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
-    return bmat_sd if as_bmat else sps.block_array(bmat_sd).tocsc()  # type: ignore[call-overload]
+    return bmat_sd if as_bmat else sps.block_array(bmat_sd).tocsc()

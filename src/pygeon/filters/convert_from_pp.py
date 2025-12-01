@@ -1,6 +1,6 @@
 """Conversion from porepy to pygeon."""
 
-from typing import Union
+from typing import overload, cast
 
 import porepy as pp
 import scipy.sparse as sps
@@ -8,9 +8,21 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
+@overload
+def convert_from_pp(obj: pp.Grid) -> pg.Grid: ...
+
+
+@overload
+def convert_from_pp(obj: pp.MortarGrid) -> pg.MortarGrid: ...
+
+
+@overload
+def convert_from_pp(obj: pp.MixedDimensionalGrid) -> pg.MixedDimensionalGrid: ...
+
+
 def convert_from_pp(
-    obj: Union[pp.Grid, pp.MortarGrid, pp.MixedDimensionalGrid],
-) -> None:
+    obj: pp.Grid | pp.MortarGrid | pp.MixedDimensionalGrid,
+) -> pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid:
     """
     Convert an object from the PorePy library to the PyGeoN  library.
 
@@ -26,8 +38,10 @@ def convert_from_pp(
     """
     if isinstance(obj, pp.Grid):
         obj.__class__ = pg.Grid
+        obj = cast(pg.Grid, obj)
     elif isinstance(obj, pp.MortarGrid):
         obj.__class__ = pg.MortarGrid
+        obj = cast(pg.MortarGrid, obj)
     elif isinstance(obj, pp.MixedDimensionalGrid):
         # convert all the subdomains and interfaces
         for sd in obj.subdomains():
@@ -36,6 +50,7 @@ def convert_from_pp(
             convert_from_pp(intf)
 
         obj.__class__ = pg.MixedDimensionalGrid
+        obj = cast(pg.MixedDimensionalGrid, obj)
         if hasattr(obj, "initialize_data"):
             obj.initialize_data()
     else:
@@ -46,8 +61,10 @@ def convert_from_pp(
         obj.face_nodes = sps.csc_array(obj.face_nodes)
         obj.cell_faces = sps.csc_array(obj.cell_faces)
 
+    return obj
 
-def as_mdg(sd: Union[pp.MixedDimensionalGrid, pp.Grid]) -> pp.MixedDimensionalGrid:
+
+def as_mdg(sd: pp.MixedDimensionalGrid | pp.Grid) -> pp.MixedDimensionalGrid:
     """
     Convert a grid object to a mixed-dimensional grid (MDG) object.
 

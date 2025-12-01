@@ -1,7 +1,7 @@
 """Module for the discretizations of the H1 space."""
 
 from math import factorial
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, Type, cast
 
 import numpy as np
 import porepy as pp
@@ -873,7 +873,9 @@ class Lagrange2(pg.Discretization):
         # In 1D, we reuse the code from P1
         if sd.dim == 1:
             # NOTE we pass self so that ndof() is taken from P2, not P1
-            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces)  # type: ignore[arg-type]
+            return Lagrange1.assemble_nat_bc(
+                cast(pg.Lagrange1, self), sd, func, b_faces
+            )
 
         # 2D and 3D
         if b_faces.dtype == "bool":

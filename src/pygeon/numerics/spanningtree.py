@@ -1,6 +1,6 @@
 """Module for spanning tree computation."""
 
-from typing import Optional, Type, Union
+from typing import Optional, Type, Union, cast
 
 import numpy as np
 import porepy as pp
@@ -129,11 +129,11 @@ class SpanningTree:
         This cell will be used as the root of the tree.
         """
         outside_cell = np.zeros((1, self.div.shape[1]))
-        outside_cell[0, self.starting_faces] = -np.sum(  # type: ignore[call-overload]
+        outside_cell[0, self.starting_faces] = -np.sum(
             self.div[:, self.starting_faces], axis=0
         )
 
-        self.div = sps.vstack([self.div, outside_cell]).tocsc()  # type: ignore[list-item]
+        self.div = sps.vstack([self.div, outside_cell]).tocsc()
 
     def remove_outside_cell(self) -> None:
         """
@@ -232,7 +232,7 @@ class SpanningTree:
         Returns:
             np.ndarray: The post-processed pressure field
         """
-        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")  # type: ignore[call-overload]
+        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
         self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None, **kwargs
@@ -252,7 +252,7 @@ class SpanningTree:
             start_color (str): Color of the "starting" cells, next to the boundary
         """
         import matplotlib.pyplot as plt
-        import networkx as nx  # type: ignore
+        import networkx as nx
 
         assert mdg.dim_max() == 2
         sd_top = mdg.subdomains()[0]
@@ -320,7 +320,7 @@ class SpanningTree:
 
             # Add connections from the roots to the starting faces
             num_bdry = len(self.starting_faces)
-            bdry_graph = sps.diags_array(  # type: ignore[call-overload]
+            bdry_graph = sps.diags_array(
                 np.ones(num_bdry),
                 num_bdry,
                 shape=(2 * num_bdry, 2 * num_bdry),
@@ -391,9 +391,10 @@ class SpanningTreeElasticity(SpanningTree):
         """
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        self.expand = self.compute_expand(sd, flagged_faces)  # type: ignore[arg-type]
+        sd = cast(pg.Grid, sd)
+        self.expand = self.compute_expand(sd, flagged_faces)
         # Save the sparse LU decomposition of the system
-        self.system = self.compute_system(sd)  # type: ignore[arg-type]
+        self.system = self.compute_system(sd)
         self.system_splu = sps.linalg.splu(self.system)
 
     def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
@@ -574,7 +575,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         div = M @ vec_rt0.assemble_diff_matrix(sd)
         asym = M @ vec_rt0.assemble_asym_matrix(sd, True)
 
-        B = sps.block_array([[-div, None], [-asym, -div]]).tocsc()  # type: ignore[list-item]
+        B = sps.block_array([[-div, None], [-asym, -div]]).tocsc()
 
         # create the solution operator
         return B @ self.expand

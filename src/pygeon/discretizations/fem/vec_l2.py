@@ -13,7 +13,7 @@ class VecPwPolynomials(pg.VecDiscretization):
     A class representing an abstract vector piecewise polynomial discretization.
     """
 
-    base_discr: pg.PwPolynomials  # To please mypy
+    base_discr: pg.PwPolynomials | pg.VecPwPolynomials  # To please mypy
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
@@ -141,7 +141,7 @@ class VecPwConstants(VecPwPolynomials):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.PwConstants = pg.PwConstants(keyword)
+        self.base_discr = pg.PwConstants(keyword)
 
 
 class VecPwLinears(VecPwPolynomials):
@@ -168,7 +168,7 @@ class VecPwLinears(VecPwPolynomials):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.PwLinears = pg.PwLinears(keyword)
+        self.base_discr = pg.PwLinears(keyword)
 
 
 class VecPwQuadratics(VecPwPolynomials):
@@ -195,4 +195,4 @@ class VecPwQuadratics(VecPwPolynomials):
             None
         """
         super().__init__(keyword)
-        self.base_discr: pg.PwQuadratics = pg.PwQuadratics(keyword)
+        self.base_discr = pg.PwQuadratics(keyword)

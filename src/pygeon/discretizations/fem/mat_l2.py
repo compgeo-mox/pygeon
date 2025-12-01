@@ -30,7 +30,7 @@ class MatPwConstants(pg.VecPwConstants):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.VecPwConstants(keyword)  # type: ignore[assignment]
+        self.base_discr = pg.VecPwConstants(keyword)
 
 
 class MatPwLinears(pg.VecPwLinears):
@@ -57,7 +57,7 @@ class MatPwLinears(pg.VecPwLinears):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.VecPwLinears(keyword)  # type: ignore[assignment]
+        self.base_discr = pg.VecPwLinears(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -118,16 +118,18 @@ class MatPwLinears(pg.VecPwLinears):
         data_IJ = np.empty(size)
         idx = 0
 
+        range_disc: pg.PwLinears | pg.VecPwLinears
+
         if sd.dim == 2:
             mask = np.arange(3, 9)
             loc_data = np.repeat([-1, 1], 3)
-            range_disc = pg.PwLinears()  # type: ignore[assignment]
+            range_disc = pg.PwLinears()
             rearrange = np.tile(np.arange(range_disc.ndof_per_cell(sd)), 2)
 
         elif sd.dim == 3:
             mask = np.hstack((np.arange(4, 16), np.arange(20, 32)))
             loc_data = np.repeat([-1, 1, 1, -1, -1, 1], 4)
-            range_disc = pg.VecPwLinears()  # type: ignore[assignment]
+            range_disc = pg.VecPwLinears()
 
             rearrange = np.arange(12).reshape((3, 4))
             rearrange = rearrange[[2, 1, 2, 0, 1, 0]].ravel()
@@ -172,7 +174,7 @@ class MatPwQuadratics(pg.VecPwQuadratics):
             None
         """
         super().__init__(keyword)
-        self.base_discr = pg.VecPwQuadratics(keyword)  # type: ignore[assignment]
+        self.base_discr = pg.VecPwQuadratics(keyword)
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -232,16 +234,18 @@ class MatPwQuadratics(pg.VecPwQuadratics):
         data_IJ = np.empty(size)
         idx = 0
 
+        range_disc: pg.PwQuadratics | pg.VecPwQuadratics
+
         if sd.dim == 2:
             mask = np.arange(6, 18)
             loc_data = np.repeat([-1, 1], num_int_points)
-            range_disc = pg.PwQuadratics()  # type: ignore[assignment]
+            range_disc = pg.PwQuadratics()
             rearrange = np.tile(np.arange(range_disc.ndof_per_cell(sd)), 2)
 
         elif sd.dim == 3:
             mask = np.hstack((np.arange(10, 40), np.arange(50, 80)))
             loc_data = np.repeat([-1, 1, 1, -1, -1, 1], num_int_points)
-            range_disc = pg.VecPwQuadratics()  # type: ignore[assignment]
+            range_disc = pg.VecPwQuadratics()
 
             rearrange = np.arange(3 * num_int_points).reshape((3, -1))
             rearrange = rearrange[[2, 1, 2, 0, 1, 0]].ravel()

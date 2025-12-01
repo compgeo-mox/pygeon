@@ -1,6 +1,6 @@
 """This module contains functions for computing the inner-products operators."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, cast
 
 import numpy as np
 import porepy as pp
@@ -193,6 +193,8 @@ def mass_matrix(
     trace_contribution = kwargs.get("trace_contribution", True)
     if n_minus_k == 1 and trace_contribution:
         for intf, d_intf in mdg.interfaces(return_data=True):
+            intf = cast(pg.MortarGrid, intf)
+
             # Get the node number of the upper-dimensional neighbor
             sd = mdg.interface_to_subdomain_pair(intf)[0]
             nn_sd = mdg.subdomains().index(sd)
@@ -201,9 +203,9 @@ def mass_matrix(
             kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
 
             bmat_mg[nn_sd, nn_sd] += (
-                intf.signed_mortar_to_primary  # type: ignore[attr-defined]
+                intf.signed_mortar_to_primary
                 @ sps.diags_array(1.0 / intf.cell_volumes / kn)
-                @ intf.signed_mortar_to_primary.T  # type: ignore[attr-defined]
+                @ intf.signed_mortar_to_primary.T
             )
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
