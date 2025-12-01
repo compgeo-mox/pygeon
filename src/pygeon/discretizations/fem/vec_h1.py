@@ -1,6 +1,6 @@
 """Module for the discretizations of the vector H1 space."""
 
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import porepy as pp
@@ -145,7 +145,7 @@ class VecLagrange1(pg.VecDiscretization):
         return c_volume * dphi
 
     def assemble_div_div_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the div-div matrix operator for the lowest order
@@ -153,7 +153,7 @@ class VecLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Additional data, the Lame' parameter lambda.
+            data (dict | None): Additional data, the Lame' parameter lambda.
                 Defaults to None.
 
         Returns:
@@ -271,7 +271,7 @@ class VecLagrange1(pg.VecDiscretization):
         return c_volume * sym @ grad
 
     def assemble_symgrad_symgrad_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
@@ -280,7 +280,7 @@ class VecLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to
+            data (dict | None): Additional data, the Lame' parameter mu. Defaults to
                 None.
 
         Returns:
@@ -318,14 +318,14 @@ class VecLagrange1(pg.VecDiscretization):
         return sps.block_array([[symgrad], [div]]).tocsc()
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the global stiffness matrix for the finite element method.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
-            data (Optional[dict]): Additional data required for the assembly process.
+            data (dict | None): Additional data required for the assembly process.
 
         Returns:
             sps.csc_array: The assembled global stiffness matrix.

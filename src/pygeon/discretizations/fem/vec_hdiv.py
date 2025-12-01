@@ -1,7 +1,7 @@
 """Module for the discretizations of the H(div) space."""
 
 import abc
-from typing import Optional, Type
+from typing import Type, cast
 
 import numpy as np
 import porepy as pp
@@ -18,7 +18,7 @@ class VecHDiv(pg.VecDiscretization):
     """
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1, which is given by
@@ -113,14 +113,14 @@ class VecHDiv(pg.VecDiscretization):
         return M + asym.T @ R_mass @ asym
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -156,7 +156,7 @@ class VecHDiv(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -215,7 +215,8 @@ class VecHDiv(pg.VecDiscretization):
         """
         P = self.proj_to_PwPolynomials(sd)
         mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
-        asym = mat_discr.assemble_asym_matrix(sd)  # type: ignore[union-attr]
+        mat_discr = cast(pg.MatPwLinears | pg.MatPwQuadratics, mat_discr)
+        asym = mat_discr.assemble_asym_matrix(sd)
 
         return asym @ P
 
@@ -318,7 +319,7 @@ class VecBDM1(VecHDiv):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -404,7 +405,7 @@ class VecBDM1(VecHDiv):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             for ind in ind_list:
                 Psi_v_copy = Psi_v.copy()
@@ -656,7 +657,7 @@ class VecRT1(VecHDiv):
 
             # Get all the components of the basis at nodes and edges
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             # Get the indices for the local face and cell degrees of freedom
             loc_face = np.hstack([faces_loc] * sd.dim)

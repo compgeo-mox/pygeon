@@ -1,7 +1,7 @@
 """Module for the discretizations of the H1 space."""
 
 from math import factorial
-from typing import Callable, Optional, Type
+from typing import Callable, Type, cast
 
 import numpy as np
 import porepy as pp
@@ -35,14 +35,14 @@ class Lagrange1(pg.Discretization):
         return sd.num_nodes
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the mass matrix for the lowest order Lagrange element
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -92,7 +92,7 @@ class Lagrange1(pg.Discretization):
         return M / ((dim + 1) * (dim + 2))
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the finite element method.
@@ -222,14 +222,14 @@ class Lagrange1(pg.Discretization):
         return invQ[1:, :]
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix for the finite element method.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped mass matrix.
@@ -379,14 +379,14 @@ class Lagrange2(pg.Discretization):
         return sd.num_nodes + num_edges
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the mass matrix for the second order Lagrange element
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The mass matrix.
@@ -610,7 +610,7 @@ class Lagrange2(pg.Discretization):
         return edges + sd.num_nodes
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the P2 finite element method.
@@ -873,7 +873,9 @@ class Lagrange2(pg.Discretization):
         # In 1D, we reuse the code from P1
         if sd.dim == 1:
             # NOTE we pass self so that ndof() is taken from P2, not P1
-            return Lagrange1.assemble_nat_bc(self, sd, func, b_faces)  # type: ignore[arg-type]
+            return Lagrange1.assemble_nat_bc(
+                cast(pg.Lagrange1, self), sd, func, b_faces
+            )
 
         # 2D and 3D
         if b_faces.dtype == "bool":

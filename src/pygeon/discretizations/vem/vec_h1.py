@@ -1,6 +1,6 @@
 """Module for the discretizations of the H1 space."""
 
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import porepy as pp
@@ -122,7 +122,7 @@ class VecVLagrange1(pg.VecDiscretization):
         return sd.cell_volumes[cell] * proj[1:] / diam
 
     def assemble_div_div_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the div-div matrix operator for the lowest order
@@ -130,7 +130,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Additional data, the Lame' parameter lambda.
+            data (dict | None): Additional data, the Lame' parameter lambda.
                 Defaults to None.
 
         Returns:
@@ -238,7 +238,7 @@ class VecVLagrange1(pg.VecDiscretization):
         return sd.cell_volumes[cell] * sym @ grad / diam
 
     def assemble_symgrad_symgrad_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
@@ -247,7 +247,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to
+            data (dict | None): Additional data, the Lame' parameter mu. Defaults to
                 None.
 
         Returns:
@@ -273,14 +273,14 @@ class VecVLagrange1(pg.VecDiscretization):
         return symgrad.T @ tensor_mass @ symgrad
 
     def assemble_penalisation_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the penalisation matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The penalisation matrix obtained from the discretization.
@@ -355,14 +355,14 @@ class VecVLagrange1(pg.VecDiscretization):
         return sps.block_array([[symgrad], [div]]).tocsc()
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the global stiffness matrix for the finite element method.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
-            data (Optional[dict]): Additional data required for the assembly process.
+            data (dict | None): Additional data required for the assembly process.
 
         Returns:
             sps.csc_array: The assembled global stiffness matrix.

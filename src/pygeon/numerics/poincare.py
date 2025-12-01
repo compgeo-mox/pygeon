@@ -116,7 +116,7 @@ class Poincare:
             k (int): Order of the differential k-form that is input.
             f (np.ndarray): The input differential k-form
                 as an array of the degrees of freedom.
-            solver (Optional[Callable]): The solver function to use.
+            solver (Callable): The solver function to use.
                 Defaults to sps.linalg.spsolve.
 
         Returns:
