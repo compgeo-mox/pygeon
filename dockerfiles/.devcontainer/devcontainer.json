@@ -24,14 +24,16 @@
                 "ms-toolsai.jupyter-renderers",
                 "ms-toolsai.vscode-jupyter-cell-tags",
                 "ms-toolsai.jupyter-keymap",
-                "charliermarsh.ruff"
+                "charliermarsh.ruff",
+                "tomoki1207.pdf"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "python",
                 "terminal.integrated.shell.linux": "/bin/bash",
                 "editor.defaultFormatter": "charliermarsh.ruff",
                 "notebook.formatOnSave.enabled": true,
-                "notebook.defaultFormatter": "charliermarsh.ruff"
+                "notebook.defaultFormatter": "charliermarsh.ruff",
+                "terminal.integrated.defaultProfile.linux": "bash"
             }
         }
     }
