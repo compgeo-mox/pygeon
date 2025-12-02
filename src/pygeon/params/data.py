@@ -1,3 +1,5 @@
+from typing import overload, Literal
+
 import numpy as np
 import porepy as pp
 
@@ -14,8 +16,32 @@ data_default = {
 }
 
 
+@overload
 def get_cell_data(
-    sd: pg.Grid, data: dict, keyword: str, param: str, tensor_order: int = pg.SCALAR
+    sd: pg.Grid,
+    data: dict | None,
+    keyword: str,
+    param: str,
+    tensor_order: Literal[1],
+) -> pp.SecondOrderTensor: ...
+
+
+@overload
+def get_cell_data(
+    sd: pg.Grid,
+    data: dict | None,
+    keyword: str,
+    param: str,
+    tensor_order: Literal[0] = 0,
+) -> np.ndarray: ...
+
+
+def get_cell_data(
+    sd: pg.Grid,
+    data: dict | None,
+    keyword: str,
+    param: str,
+    tensor_order: int = pg.SCALAR,
 ) -> np.ndarray | pp.SecondOrderTensor:
     """
     Retrieve cell data from a grid with appropriate formatting based on tensor order.
