@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: pip install bibtexparser
 
-      - name: Generate README
+      - name: Generate papers.rst
         run: python docs/update_papers.py
 
       - name: Commit and push changes
