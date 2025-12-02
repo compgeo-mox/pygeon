@@ -33,7 +33,8 @@ class IgnoreCommentPreprocessor(Preprocessor):
         if first.startswith("# NBIGNORE"):
             # Signal that this cell should be skipped by returning an empty source
             # We'll mark it with a special metadata flag so the caller can drop it.
-            # Alternatively we'll return a sentinel in resources, but here we set metadata.
+            # Alternatively we'll return a sentinel in resources, but here we set
+            # metadata.
             cell.metadata["nb_ignored_by_comment"] = True
             # return an empty cell (we'll filter later)
             cell.source = ""
