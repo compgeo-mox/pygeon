@@ -10,7 +10,7 @@ concurrency:
   group: update-papers
   cancel-in-progress: false
 jobs:
-  build-readme:
+  update-papers-rst:
     runs-on: ubuntu-latest
     permissions:
       contents: write
