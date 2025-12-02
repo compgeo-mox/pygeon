@@ -1,9 +1,13 @@
-# tests/run_tutorials.py  (replace your current file with this)
+# tests/test_tutorials.py  (replace your current file with this)
 import glob
 import os
 import sys
 
-import nbformat
+try:
+    import nbformat
+except ModuleNotFoundError:
+    nbformat = None
+
 import pytest
 from nbconvert import ScriptExporter
 from nbconvert.preprocessors import Preprocessor
