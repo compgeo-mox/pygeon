@@ -9,3 +9,5 @@ VECTOR = 1
 
 MATRIX = 2
 """2-order tensor (matrix/tensor field)"""
+
+LAME_LAMBDA = "lame_lambda"
