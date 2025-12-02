@@ -6,6 +6,9 @@ on:
       - docs/papers.bib
       - docs/update_papers.py
 
+concurrency:
+  group: update-papers
+  cancel-in-progress: false
 jobs:
   build-readme:
     runs-on: ubuntu-latest
