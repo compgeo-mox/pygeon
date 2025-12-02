@@ -82,4 +82,5 @@ jobs:
 
     - name: Check tutorials
       if: ${{always()}}
-      run: pytest tests -m tutorials
+      run: |
+        pytest tests -m tutorials
