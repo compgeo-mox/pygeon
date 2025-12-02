@@ -64,7 +64,6 @@ This page lists academic papers and research that use PyGeoN.
 
 """
     static_footer = """
-
 Citing PyGeoN
 -------------
 
