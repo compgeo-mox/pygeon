@@ -9,7 +9,7 @@ sys.path.append(str(Path(__file__).parent.resolve()))
 
 
 def apa_format_rst(entry):
-    authors = entry.get("author", "").replace("\n", " ")
+    authors = entry.get("author", "").replace("\n", " ").replace("{", "").replace("}", "")
     authors = "; ".join(a.strip() for a in authors.split(" and "))
 
     year = entry.get("year", "n.d.")
