@@ -78,7 +78,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
                 pp.initialize_data(
                     {},
                     pg.UNITARY_DATA,
-                    {"second_order_tensor": perm},
+                    {pg.SECOND_ORDER_TENSOR: perm},
                 )
             )
 

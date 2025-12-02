@@ -105,22 +105,13 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        # Get dictionary for parameter storage
-        K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", K)
-            )
-        else:
-            data = {"is_tangential": True}
+        K = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
-        if not data.get("is_tangential", False):
+        if not data or not data.get("is_tangential", False):
             # Rotate the permeability tensor and delete last dimension
             if sd.dim < 3:
                 K = K.copy()
@@ -619,7 +610,9 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The stiffness matrix.
         """
-        sot = pg.get_cell_data(sd, data, self.keyword, "second_order_tensor", pg.VECTOR)
+        sot = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)

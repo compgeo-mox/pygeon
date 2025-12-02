@@ -38,7 +38,7 @@ class VecHDiv(pg.VecDiscretization):
         # Save 1/(2mu) as a tensor so that it can be read by self
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
         data_self = pp.initialize_data(
-            {}, self.keyword, {"second_order_tensor": mu_tensor}
+            {}, self.keyword, {pg.SECOND_ORDER_TENSOR: mu_tensor}
         )
 
         # Save the coefficient for the trace contribution
@@ -80,7 +80,8 @@ class VecHDiv(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
+        weight = 0.25 * (1 / mu_c - 1 / mu)
+        data_ = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
         if sd.dim == 2:
             R_tensor_order = pg.SCALAR
@@ -89,10 +90,8 @@ class VecHDiv(pg.VecDiscretization):
         else:
             raise ValueError
 
-        data_for_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
-
         R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
-        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
+        R_mass = R_space.assemble_mass_matrix(sd, data_)
 
         asym = self.assemble_asym_matrix(sd)
 
@@ -114,20 +113,25 @@ class VecHDiv(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
+        weight_M = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        weight_D = 1 / (2 * mu)
+
         # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_lumped_matrix(sd)
+        data_D = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight_D})
+        D = super().assemble_lumped_matrix(sd, data_D)
 
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
+        data_M = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight_M})
+
         scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
-        M = scalar_discr.assemble_lumped_matrix(sd)
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+        M = scalar_discr.assemble_lumped_matrix(sd, data_M)
 
         # Compose all the parts and return them
-        return (D - coeff * B.T @ M @ B) / (2 * mu)
+        return D - B.T @ M @ B
 
     def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
@@ -145,7 +149,7 @@ class VecHDiv(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
+        weight = 0.25 * (1 / mu_c - 1 / mu)
 
         if sd.dim == 2:
             R_tensor_order = pg.SCALAR
@@ -154,10 +158,10 @@ class VecHDiv(pg.VecDiscretization):
         else:
             raise ValueError
 
-        data_for_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
+        data_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
         R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
-        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
+        R_mass = R_space.assemble_lumped_matrix(sd, data_R)
 
         asym = self.assemble_asym_matrix(sd)
 
