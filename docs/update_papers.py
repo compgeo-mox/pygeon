@@ -12,7 +12,7 @@ def apa_format_rst(entry):
     authors = "; ".join(a.strip() for a in authors.split(" and "))
 
     year = entry.get("year", "n.d.")
-    title = entry.get("title", "").rstrip(".")
+    title = entry.get("title", "").replace("{", "").replace("}", "").rstrip(".")
     journal = entry.get("journal", entry.get("booktitle", ""))
 
     doi = entry.get("doi")
