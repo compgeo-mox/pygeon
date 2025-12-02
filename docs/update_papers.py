@@ -81,7 +81,7 @@ If you have published work using PyGeoN, we'd love to add it to our list!
 Please submit a pull request to add your paper to the papers list.
 """
 
-    new_content = f"{static_header}\n{papers_section}\n{static_footer}"
+    new_content = f"{static_header}{papers_section}\n{static_footer}"
     readme_path.write_text(new_content, encoding="utf-8")
     print("papers.rst updated.")
 
