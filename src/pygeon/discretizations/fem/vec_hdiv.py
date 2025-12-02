@@ -82,14 +82,16 @@ class VecHDiv(pg.VecDiscretization):
 
         coeff = 0.25 * (1 / mu_c - 1 / mu)
 
+        if sd.dim == 2:
+            R_tensor_order = pg.SCALAR
+        elif sd.dim == 3:
+            R_tensor_order = pg.VECTOR
+        else:
+            raise ValueError
+
         data_for_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)(self.keyword)
-
+        R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
         R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
 
         asym = self.assemble_asym_matrix(sd)
@@ -143,16 +145,18 @@ class VecHDiv(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
-        coeff_val = 0.25 * (1 / mu_c - 1 / mu)
+        coeff = 0.25 * (1 / mu_c - 1 / mu)
+
+        if sd.dim == 2:
+            R_tensor_order = pg.SCALAR
+        elif sd.dim == 3:
+            R_tensor_order = pg.VECTOR
+        else:
+            raise ValueError
 
         data_for_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
-        R_space: pg.Discretization
-        if sd.dim == 2:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
-        elif sd.dim == 3:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)(self.keyword)
-
+        R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
         R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
 
         asym = self.assemble_asym_matrix(sd)
