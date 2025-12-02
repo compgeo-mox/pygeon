@@ -1,6 +1,7 @@
 # isort:skip_file
 
 from pygeon.utils.common_constants import *
+from pygeon.params.data import get_cell_data
 
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
