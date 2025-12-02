@@ -8,60 +8,73 @@ try:
     import nbformat
     from nbconvert import ScriptExporter
     from nbconvert.preprocessors import Preprocessor
+
+    HAVE_NBCONVERT = True
+
 except ModuleNotFoundError:
     nbformat = None
     ScriptExporter = None
     Preprocessor = None
+    HAVE_NBCONVERT = False
 
 import pytest
 
 TUTORIAL_FILENAMES = glob.glob("tutorials/*.ipynb")
 
+if HAVE_NBCONVERT:
 
-class IgnoreCommentPreprocessor(Preprocessor):
-    """
-    Remove any code cell whose first non-empty line starts with '# NBIGNORE'.
+    class IgnoreCommentPreprocessor(Preprocessor):
+        """
+        Remove any code cell whose first non-empty line starts with '# NBIGNORE'.
 
-    Implementing preprocess_cell is often more reliable for exporters,
-    and we'll also call preprocess explicitly as an extra guarantee.
-    """
+        Implementing preprocess_cell is often more reliable for exporters,
+        and we'll also call preprocess explicitly as an extra guarantee.
+        """
 
-    def preprocess_cell(self, cell, resources, index):
-        # Only act on code cells
-        if cell.cell_type != "code":
+        def preprocess_cell(self, cell, resources, index):
+            # Only act on code cells
+            if cell.cell_type != "code":
+                return cell, resources
+
+            # find first non-empty line
+            lines = [ln for ln in cell.source.splitlines() if ln.strip() != ""]
+            if not lines:
+                return cell, resources
+
+            first = lines[0].lstrip()
+            if first.startswith("# NBIGNORE"):
+                # Signal that this cell should be skipped by returning an empty source
+                # We'll mark it with a special metadata flag so the caller can drop it.
+                # Alternatively we'll return a sentinel in resources, but here we set
+                # metadata.
+                cell.metadata["nb_ignored_by_comment"] = True
+                # return an empty cell (we'll filter later)
+                cell.source = ""
             return cell, resources
 
-        # find first non-empty line
-        lines = [ln for ln in cell.source.splitlines() if ln.strip() != ""]
-        if not lines:
-            return cell, resources
+        def preprocess(self, nb, resources):
+            # run preprocess_cell on all cells and filter out marked ones
+            new_cells = []
+            for index, cell in enumerate(nb.cells):
+                cell, resources = self.preprocess_cell(cell, resources, index)
+                # exclude cells either explicitly marked, or now empty code cells
+                if cell.cell_type == "code" and cell.metadata.get(
+                    "nb_ignored_by_comment"
+                ):
+                    # skip it
+                    continue
+                if cell.cell_type == "code" and cell.source.strip() == "":
+                    # skip empty code cells (safe to drop)
+                    continue
+                new_cells.append(cell)
+            nb.cells = new_cells
+            return nb, resources
+else:
 
-        first = lines[0].lstrip()
-        if first.startswith("# NBIGNORE"):
-            # Signal that this cell should be skipped by returning an empty source
-            # We'll mark it with a special metadata flag so the caller can drop it.
-            # Alternatively we'll return a sentinel in resources, but here we set
-            # metadata.
-            cell.metadata["nb_ignored_by_comment"] = True
-            # return an empty cell (we'll filter later)
-            cell.source = ""
-        return cell, resources
+    class IgnoreCommentPreprocessor:
+        """Dummy class when nbconvert is not available."""
 
-    def preprocess(self, nb, resources):
-        # run preprocess_cell on all cells and filter out marked ones
-        new_cells = []
-        for index, cell in enumerate(nb.cells):
-            cell, resources = self.preprocess_cell(cell, resources, index)
-            # exclude cells either explicitly marked, or now empty code cells
-            if cell.cell_type == "code" and cell.metadata.get("nb_ignored_by_comment"):
-                # skip it
-                continue
-            if cell.cell_type == "code" and cell.source.strip() == "":
-                # skip empty code cells (safe to drop)
-                continue
-            new_cells.append(cell)
-        nb.cells = new_cells
-        return nb, resources
+        pass
 
 
 def edit_imports(filename: str):
