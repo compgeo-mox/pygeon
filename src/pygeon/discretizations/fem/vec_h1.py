@@ -164,7 +164,7 @@ class VecLagrange1(pg.VecDiscretization):
             labda = 1
         else:
             parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            labda = parameter_dictionary.get("lambda", 1)
+            labda = parameter_dictionary.get(pg.LAME_LAMBDA, 1)
 
         p0 = pg.PwConstants(self.keyword)
 
@@ -291,7 +291,7 @@ class VecLagrange1(pg.VecDiscretization):
             mu = 1
         else:
             parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            mu = parameter_dictionary.get("mu", 1)
+            mu = parameter_dictionary.get(pg.LAME_MU, 1)
 
         coeff = 2 * mu
         p0 = pg.PwConstants(self.keyword)
@@ -369,7 +369,8 @@ class VecLagrange1(pg.VecDiscretization):
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
             data (dict): Data for the computation including the Lame parameters accessed
-                with the keys "lambda" and "mu". Both float and np.ndarray are accepted.
+                with the keys pg.LAME_LAMBDA and pg.LAME_MU.
+                Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.
@@ -383,8 +384,8 @@ class VecLagrange1(pg.VecDiscretization):
 
         # retrieve Lamé parameters
         parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        mu = parameter_dictionary["mu"]
-        labda = parameter_dictionary["lambda"]
+        mu = parameter_dictionary[pg.LAME_MU]
+        labda = parameter_dictionary[pg.LAME_LAMBDA]
 
         # compute the two terms and split on each component
         sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))

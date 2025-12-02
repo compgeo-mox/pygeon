@@ -39,8 +39,8 @@ class VecHDiv(pg.VecDiscretization):
             lambda_ = np.zeros(sd.num_cells)
         else:
             # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+            mu = data[pp.PARAMETERS][self.keyword][pg.LAME_MU]
+            lambda_ = data[pp.PARAMETERS][self.keyword][pg.LAME_LAMBDA]
 
         # If mu is a scalar, replace it by a vector so that it can be accessed per cell
         if isinstance(mu, np.ScalarType):
@@ -54,7 +54,7 @@ class VecHDiv(pg.VecDiscretization):
 
         # Save the coefficient for the trace contribution
         coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
-        data_tr_space = pp.initialize_data({}, self.keyword, {"weight": coeff})
+        data_tr_space = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
         # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_mass_matrix(sd, data_self)
@@ -88,8 +88,8 @@ class VecHDiv(pg.VecDiscretization):
         M = self.assemble_mass_matrix(sd, data)
 
         # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+        mu = data[pp.PARAMETERS][self.keyword][pg.LAME_MU]
+        mu_c = data[pp.PARAMETERS][self.keyword][pg.LAME_MU_COSSERAT]
 
         coeff = 0.25 * (1 / mu_c - 1 / mu)
 
@@ -98,7 +98,7 @@ class VecHDiv(pg.VecDiscretization):
         if isinstance(coeff, np.ScalarType):
             coeff = np.full(sd.num_cells, coeff)
 
-        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
+        data_for_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
         R_space: pg.Discretization
         if sd.dim == 2:
@@ -132,8 +132,8 @@ class VecHDiv(pg.VecDiscretization):
             lambda_ = 0.0
         else:
             # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+            mu = data[pp.PARAMETERS][self.keyword][pg.LAME_MU]
+            lambda_ = data[pp.PARAMETERS][self.keyword][pg.LAME_LAMBDA]
 
         # Assemble the block diagonal mass matrix for the base discretization class
         D = super().assemble_lumped_matrix(sd)
@@ -171,8 +171,8 @@ class VecHDiv(pg.VecDiscretization):
             mu_c = 0.5
         else:
             # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+            mu = data[pp.PARAMETERS][self.keyword][pg.LAME_MU]
+            mu_c = data[pp.PARAMETERS][self.keyword][pg.LAME_MU_COSSERAT]
 
         coeff_val = 0.25 * (1 / mu_c - 1 / mu)
 
@@ -184,7 +184,7 @@ class VecHDiv(pg.VecDiscretization):
         else:
             coeff = np.atleast_1d(coeff_val)
 
-        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
+        data_for_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
         R_space: pg.Discretization
         if sd.dim == 2:

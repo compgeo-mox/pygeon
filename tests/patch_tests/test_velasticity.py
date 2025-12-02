@@ -8,7 +8,7 @@ import pygeon as pg
 
 def test_rigid_body_motion_VLagrange1(unit_poly_sd):
     discr = pg.VecVLagrange1("test")
-    data = {pp.PARAMETERS: {discr.keyword: {"lambda": 1, "mu": 0.5}}}
+    data = {pp.PARAMETERS: {discr.keyword: {pg.LAME_LAMBDA: 1, pg.LAME_MU: 0.5}}}
     A = discr.assemble_stiff_matrix(unit_poly_sd, data)
 
     ess_dofs = np.hstack(
@@ -30,7 +30,7 @@ def test_rigid_body_motion_VLagrange1(unit_poly_sd):
 
 def test_footing_problem(unit_poly_sd):
     discr = pg.VecVLagrange1("test")
-    data = {pp.PARAMETERS: {discr.keyword: {"lambda": 1, "mu": 0.5}}}
+    data = {pp.PARAMETERS: {discr.keyword: {pg.LAME_LAMBDA: 1, pg.LAME_MU: 0.5}}}
     A = discr.assemble_stiff_matrix(unit_poly_sd, data)
 
     bottom = np.hstack(

@@ -8,7 +8,7 @@ import pygeon as pg
 
 def test_rigid_body_motion_Lagrange1(unit_sd):
     discr = pg.VecLagrange1("test")
-    data = {pp.PARAMETERS: {discr.keyword: {"lambda": 1, "mu": 0.5}}}
+    data = {pp.PARAMETERS: {discr.keyword: {pg.LAME_LAMBDA: 1, pg.LAME_MU: 0.5}}}
     A = discr.assemble_stiff_matrix(unit_sd, data)
 
     ess_dofs = np.hstack([unit_sd.tags["domain_boundary_nodes"]] * unit_sd.dim)
@@ -33,7 +33,7 @@ def test_footing_problem(unit_sd):
         return
 
     discr = pg.VecLagrange1("test")
-    data = {pp.PARAMETERS: {discr.keyword: {"lambda": 1, "mu": 0.5}}}
+    data = {pp.PARAMETERS: {discr.keyword: {pg.LAME_LAMBDA: 1, pg.LAME_MU: 0.5}}}
     A = discr.assemble_stiff_matrix(unit_sd, data)
 
     bottom = np.hstack([np.isclose(unit_sd.nodes[unit_sd.dim - 1, :], 0)] * unit_sd.dim)

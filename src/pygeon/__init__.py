@@ -1,7 +1,6 @@
 # isort:skip_file
 
 from pygeon.utils.common_constants import *
-from pygeon.params.data import get_cell_data
 
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
@@ -18,6 +17,8 @@ from pygeon.grids.create_grid import (
     reference_element,
 )
 from pygeon.grids.refinement import barycentric_split
+
+from pygeon.params.data import get_cell_data
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.vec_discretization import VecDiscretization

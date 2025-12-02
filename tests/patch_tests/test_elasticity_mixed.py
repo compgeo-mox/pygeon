@@ -54,7 +54,7 @@ def setup_elasticity_natural_bcs(
     u_boundary: np.ndarray,
     use_lumped: bool,
 ) -> Tuple[sps.csc_matrix, np.ndarray]:
-    data = {pp.PARAMETERS: {Sigma_h.keyword: {"mu": 0.5, "lambda": 0.5}}}
+    data = {pp.PARAMETERS: {Sigma_h.keyword: {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 0.5}}}
 
     if use_lumped:
         Ms = Sigma_h.assemble_lumped_matrix(sd, data)
