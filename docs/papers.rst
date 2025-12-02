@@ -3,6 +3,8 @@ Papers Using PyGeoN
 
 This page lists academic papers and research that use PyGeoN.
 
+Publications
+------------
 2025
 ----
 - Boon, Wietse M.; Franco, Nicola R.; Fumagalli, Alessio (2025). *Neural network solvers for parametrized elasticity problems that conserve linear and angular momentum*. Computer Methods in Applied Mechanics and Engineering.
@@ -20,7 +22,6 @@ This page lists academic papers and research that use PyGeoN.
 - Boon, Wietse M.; Fumagalli, Alessio (2023). *A Reduced Basis Method for Darcy flow systems that ensures local mass conservation by using exact discrete complexes*. Journal of Scientific Computing.
   DOI: `https://doi.org/https://doi.org/10.1007/s10915-023-02119-3 <https://doi.org/https://doi.org/10.1007/s10915-023-02119-3>`_
   Repo: `Link <https://github.com/compgeo-mox/conservative_rom>`_
-
 
 Citing PyGeoN
 -------------
