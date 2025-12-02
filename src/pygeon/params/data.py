@@ -22,8 +22,7 @@ def get_cell_data(
     data: dict | None,
     keyword: str,
     param: str,
-    tensor_order: Literal[1],
-) -> pp.SecondOrderTensor: ...
+) -> np.ndarray: ...
 
 
 @overload
@@ -32,8 +31,8 @@ def get_cell_data(
     data: dict | None,
     keyword: str,
     param: str,
-    tensor_order: Literal[0] = 0,
-) -> np.ndarray: ...
+    tensor_order: int,
+) -> pp.SecondOrderTensor: ...
 
 
 def get_cell_data(
