@@ -3,7 +3,6 @@ Papers Using PyGeoN
 
 This page lists academic papers and research that use PyGeoN.
 
-
 2025
 ----
 - Boon, Wietse M.; Franco, Nicola R.; Fumagalli, Alessio (2025). *Neural network solvers for parametrized elasticity problems that conserve linear and angular momentum*. Computer Methods in Applied Mechanics and Engineering.
@@ -18,7 +17,6 @@ This page lists academic papers and research that use PyGeoN.
 - Boon, Wietse M.; Fumagalli, Alessio; Scotti, Anna (2023). *Mixed and multipoint finite element methods for rotation-based poroelasticity*. SIAM Journal on Numerical Analysis.
   DOI: `https://doi.org/10.1137/22M154329X <https://doi.org/10.1137/22M154329X>`_
   Repo: `Link <https://github.com/compgeo-mox/rotation_based_biot>`_
-
 
 
 Citing PyGeoN
