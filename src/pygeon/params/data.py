@@ -15,7 +15,7 @@ data_default = {
 
 
 def get_cell_data(
-    sd: pg.Grid, data: dict, key: str, param: str, tensor_order: int = pg.SCALAR
+    sd: pg.Grid, data: dict, keyword: str, param: str, tensor_order: int = pg.SCALAR
 ) -> np.ndarray | pp.SecondOrderTensor:
     """
     Retrieve cell data from a grid with appropriate formatting based on tensor order.
@@ -24,7 +24,7 @@ def get_cell_data(
         sd (pg.Grid): The grid object containing cell information.
         data (dict): Dictionary containing parameter data. If None, default values from
             data_default dictionary is used.
-        key (str): The key to access the parameter dictionary within
+        keyword (str): The key to access the parameter dictionary within
             data[pp.PARAMETERS].
         param (str): The parameter name to retrieve from the data dictionary.
         tensor_order (int): The tensor order of the data. Default is pg.SCALAR.
@@ -40,12 +40,12 @@ def get_cell_data(
         data_default[param]. Scalar values are automatically broadcast to match the
         number of cells in the grid.
     """
-    # Handle None data by using an empty dictionary
-    if data is None:
+    # Handle empty or None data by using an empty dictionary
+    if not data:
         data_key = {}
     else:
         # Extract the parameter dictionary for the given key
-        data_key = data[pp.PARAMETERS][key]
+        data_key = data[pp.PARAMETERS][keyword]
 
     # Get the parameter value, falling back to default if not found
     value = data_key.get(param, data_default[param])
