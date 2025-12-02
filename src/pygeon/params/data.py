@@ -1,4 +1,4 @@
-from typing import overload, Literal
+from typing import overload
 
 import numpy as np
 import porepy as pp
