@@ -1,4 +1,4 @@
-# tests/test_tutorials.py  (replace your current file with this)
+# tests/test_tutorials.py
 import glob
 import os
 import sys
