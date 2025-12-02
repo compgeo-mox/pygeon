@@ -3,6 +3,7 @@ import glob
 import os
 import sys
 
+# Try to import nbconvert and nbformat; if not available, set to None to skip tests.
 try:
     import nbformat
     from nbconvert import ScriptExporter
