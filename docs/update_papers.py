@@ -33,7 +33,13 @@ def build_publication_section(entries):
         year = entry.get("year", "Unknown")
         papers_by_year[year].append(entry)
 
-    sorted_years = sorted(papers_by_year.keys(), reverse=True)
+    def year_sort_key(year):
+        try:
+            # Sort numeric years as integers (descending), "Unknown" (or non-numeric) at the end
+            return (0, -int(year))
+        except ValueError:
+            return (1, year)
+    sorted_years = sorted(papers_by_year.keys(), key=year_sort_key)
 
     lines = []
     for year in sorted_years:
