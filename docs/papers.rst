@@ -3,20 +3,17 @@ Papers Using PyGeoN
 
 This page lists academic papers and research that use PyGeoN.
 
-Publications
-------------
-<!-- BEGIN_PAPERS -->
 
 2023
 ----
-- Boon, Wietse M.; Fumagalli, Alessio (2023). *A multipoint vorticity mixed finite element method for incompressible Stokes flow*. Applied Mathematics Letters. `https://doi.org/10.1016/j.aml.2022.108498 <https://doi.org/10.1016/j.aml.2022.108498>`_
-- Boon, Wietse M.; Fumagalli, Alessio; Scotti, Anna (2023). *Mixed and multipoint finite element methods for rotation-based poroelasticity*. SIAM Journal on Numerical Analysis. `https://doi.org/10.1137/22M154329X <https://doi.org/10.1137/22M154329X>`_
+- Boon, Wietse M.; Fumagalli, Alessio (2023). *A multipoint vorticity mixed finite element method for incompressible Stokes flow*. Applied Mathematics Letters.
+  DOI: `https://doi.org/10.1016/j.aml.2022.108498 <https://doi.org/10.1016/j.aml.2022.108498>`_
+  Repo: `Link <https://github.com/compgeo-mox/three_fields_stokes>`_
+- Boon, Wietse M.; Fumagalli, Alessio; Scotti, Anna (2023). *Mixed and multipoint finite element methods for rotation-based poroelasticity*. SIAM Journal on Numerical Analysis.
+  DOI: `https://doi.org/10.1137/22M154329X <https://doi.org/10.1137/22M154329X>`_
+  Repo: `Link <https://github.com/compgeo-mox/rotation_based_biot>`_
 
-<!-- END_PAPERS -->
 
-For a complete and up-to-date list of papers using PyGeoN, please visit:
-
-`Papers using PyGeoN <https://github.com/compgeo-mox/.github/blob/main/profile/papers.rst>`_
 
 Citing PyGeoN
 -------------
@@ -31,4 +28,4 @@ Contributing Your Paper
 -----------------------
 
 If you have published work using PyGeoN, we'd love to add it to our list! 
-Please submit a pull request to add your paper to the `papers list <https://github.com/compgeo-mox/.github/blob/main/profile/papers.rst>`_.
+Please submit a pull request to add your paper to the papers list.

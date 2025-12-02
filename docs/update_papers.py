@@ -19,14 +19,13 @@ def apa_format_rst(entry):
     doi = entry.get("doi")
     url = entry.get("url")
 
+    lines = [f"{authors} ({year}). *{title}*. {journal}."]
     if doi:
-        link = f"`https://doi.org/{doi} <https://doi.org/{doi}>`_"
-    elif url:
-        link = f"`Link <{url}>`_"
-    else:
-        link = ""
+        lines.append(f"  DOI: `https://doi.org/{doi} <https://doi.org/{doi}>`_")
+    if url:
+        lines.append(f"  Repo: `Link <{url}>`_")
 
-    return f"{authors} ({year}). *{title}*. {journal}. {link}".strip()
+    return "\n".join(lines)
 
 
 def build_publication_section(entries):
@@ -63,15 +62,8 @@ def main():
 
 This page lists academic papers and research that use PyGeoN.
 
-Publications
-------------
-<!-- BEGIN_PAPERS -->
 """
-    static_footer = """<!-- END_PAPERS -->
-
-For a complete and up-to-date list of papers using PyGeoN, please visit:
-
-`Papers using PyGeoN <https://github.com/compgeo-mox/.github/blob/main/profile/papers.rst>`_
+    static_footer = """
 
 Citing PyGeoN
 -------------
@@ -86,7 +78,7 @@ Contributing Your Paper
 -----------------------
 
 If you have published work using PyGeoN, we'd love to add it to our list! 
-Please submit a pull request to add your paper to the `papers list <https://github.com/compgeo-mox/.github/blob/main/profile/papers.rst>`_.
+Please submit a pull request to add your paper to the papers list.
 """
 
     new_content = f"{static_header}\n{papers_section}\n{static_footer}"
