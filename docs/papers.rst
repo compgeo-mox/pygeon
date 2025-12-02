@@ -17,6 +17,9 @@ This page lists academic papers and research that use PyGeoN.
 - Boon, Wietse M.; Fumagalli, Alessio; Scotti, Anna (2023). *Mixed and multipoint finite element methods for rotation-based poroelasticity*. SIAM Journal on Numerical Analysis.
   DOI: `https://doi.org/10.1137/22M154329X <https://doi.org/10.1137/22M154329X>`_
   Repo: `Link <https://github.com/compgeo-mox/rotation_based_biot>`_
+- Boon, Wietse M.; Fumagalli, Alessio (2023). *A Reduced Basis Method for Darcy flow systems that ensures local mass conservation by using exact discrete complexes*. Journal of Scientific Computing.
+  DOI: `https://doi.org/https://doi.org/10.1007/s10915-023-02119-3 <https://doi.org/https://doi.org/10.1007/s10915-023-02119-3>`_
+  Repo: `Link <https://github.com/compgeo-mox/conservative_rom>`_
 
 
 Citing PyGeoN
