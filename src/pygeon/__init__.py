@@ -4,8 +4,8 @@ from pygeon.utils.common_constants import *
 
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
-from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.mortar_grid import MortarGrid
+from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.octagon import OctagonGrid
 from pygeon.grids.voronoi import VoronoiGrid
 from pygeon.grids.einstein import EinSteinGrid

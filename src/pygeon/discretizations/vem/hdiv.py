@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import porepy as pp
@@ -39,14 +39,14 @@ class VRT0(pg.RT0):
         self.ref_discr = pp.MVEM
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
+            data (dict | None): Optional dictionary with physical parameters for
                 scaling.
 
         Returns:
@@ -99,14 +99,14 @@ class VBDM1(pg.BDM1):
     """Vector-valued discretization"""
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for the Virtual Element Method (VEM).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -299,14 +299,14 @@ class VBDM1(pg.BDM1):
         return dof
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid for which the lumped matrix is assembled.
-            data (Optional[dict]): Optional data required for the assembly.
+            data (dict | None): Optional data required for the assembly.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.

@@ -1,6 +1,6 @@
 """Module for the discretizations of the H1 space."""
 
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -20,14 +20,14 @@ class VLagrange1(pg.Lagrange1):
     """Scalar-valued discretization"""
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The sparse mass matrix obtained from the discretization.
@@ -217,14 +217,14 @@ class VLagrange1(pg.Lagrange1):
         return D
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the stiffness matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The stiffness matrix obtained from the discretization.

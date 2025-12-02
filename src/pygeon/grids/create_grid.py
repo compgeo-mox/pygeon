@@ -1,7 +1,7 @@
 """Create grids from various sources."""
 
 import inspect
-from typing import Union
+from typing import cast
 
 import numpy as np
 import porepy as pp
@@ -12,7 +12,7 @@ import pygeon as pg
 
 def grid_from_domain(
     domain: pp.Domain, mesh_size: float, **kwargs
-) -> Union[pg.Grid, pg.MixedDimensionalGrid]:
+) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a grid from a domain with a specified mesh size.
 
@@ -44,16 +44,17 @@ def grid_from_domain(
     # Create the mesh
     mdg = frac_net.mesh(mesh_kwargs, **sub_kwargs)
 
-    pg.convert_from_pp(mdg)
+    mdg = pg.convert_from_pp(mdg)
     if as_mdg:
-        return mdg  # type: ignore[return-value]
+        return mdg
     else:
-        return mdg.subdomains(dim=mdg.dim_max())[0]  # type: ignore[return-value]
+        sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        return cast(pg.Grid, sd)
 
 
 def grid_from_boundary_pts(
     pts: np.ndarray, mesh_size: float, **kwargs
-) -> Union[pg.Grid, pg.MixedDimensionalGrid]:
+) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a 2D grid from a set of nodes, where portions of the boundary of the grid
     are constructed from subsequent nodes, with a given mesh size.
@@ -81,7 +82,7 @@ def grid_from_boundary_pts(
 
 def unit_grid(
     dim: int, mesh_size: float, **kwargs
-) -> Union[pg.Grid, pg.MixedDimensionalGrid]:
+) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a unit square or cube grid with a given mesh size.
 
@@ -100,17 +101,19 @@ def unit_grid(
     """
     if dim == 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)
+        sd: pp.Grid
         if dim == 1:
             sd = pp.CartGrid(num, np.ones(1))
         elif dim == 2:
-            sd = pp.StructuredTriangleGrid(num, np.ones(dim))  # type: ignore[assignment]
+            sd = pp.StructuredTriangleGrid(num, np.ones(dim))
         else:
-            sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))  # type: ignore[assignment]
-        pg.convert_from_pp(sd)
+            sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))
+        sd = pg.convert_from_pp(sd)
 
         if kwargs.get("as_mdg", True):
-            return pp.meshing.subdomains_to_mdg([[sd]])  # type: ignore[return-value]
-        return sd  # type: ignore[return-value]
+            mdg = pg.as_mdg(sd)
+            return pg.convert_from_pp(mdg)
+        return sd
 
     bbox = {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0}
     if dim == 3:
@@ -133,7 +136,7 @@ def reference_element(dim: int) -> pg.Grid:
     if dim == 1:
         sd = unit_grid(1, 1, as_mdg=False)
         sd.name = "reference_segment"
-        return sd  # type: ignore[return-value]
+        return cast(pg.Grid, sd)
     elif dim == 2:
         nodes = np.eye(3, k=1)
 
