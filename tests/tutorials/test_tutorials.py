@@ -5,12 +5,14 @@ import sys
 
 try:
     import nbformat
+    from nbconvert import ScriptExporter
+    from nbconvert.preprocessors import Preprocessor
 except ModuleNotFoundError:
     nbformat = None
+    ScriptExporter = None
+    Preprocessor = None
 
 import pytest
-from nbconvert import ScriptExporter
-from nbconvert.preprocessors import Preprocessor
 
 TUTORIAL_FILENAMES = glob.glob("tutorials/*.ipynb")
 
