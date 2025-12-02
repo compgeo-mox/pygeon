@@ -5,7 +5,6 @@ from pathlib import Path
 import bibtexparser
 
 # Ensure script directory is on the path
-sys.path.append(str(Path(__file__).parent.resolve()))
 
 
 def apa_format_rst(entry):
