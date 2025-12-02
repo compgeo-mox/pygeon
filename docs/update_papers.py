@@ -51,8 +51,20 @@ def main():
     bib_path = root / "papers.bib"
     readme_path = root / "papers.rst"
 
-    with open(bib_path) as f:
-        db = bibtexparser.load(f)
+    try:
+        with open(bib_path, encoding="utf-8") as f:
+            try:
+                db = bibtexparser.load(f)
+            except Exception as e:
+                print(f"Error: Failed to parse '{bib_path}'. Is the BibTeX syntax valid?")
+                print(f"Details: {e}")
+                sys.exit(1)
+    except FileNotFoundError:
+        print(f"Error: '{bib_path}' not found. Please ensure the file exists.")
+        sys.exit(1)
+    except OSError as e:
+        print(f"Error: Could not read '{bib_path}': {e}")
+        sys.exit(1)
 
     papers_section = build_publication_section(db.entries)
 
