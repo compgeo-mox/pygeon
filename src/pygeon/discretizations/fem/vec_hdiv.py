@@ -149,8 +149,6 @@ class VecHDiv(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
-        weight = 0.25 * (1 / mu_c - 1 / mu)
-
         if sd.dim == 2:
             R_tensor_order = pg.SCALAR
         elif sd.dim == 3:
@@ -158,6 +156,7 @@ class VecHDiv(pg.VecDiscretization):
         else:
             raise ValueError
 
+        weight = 0.25 * (1 / mu_c - 1 / mu)
         data_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
         R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
@@ -241,7 +240,7 @@ class VecBDM1(VecHDiv):
                  [sigma_yx, sigma_yy, sigma_yz],
                  [sigma_zx, sigma_zy, sigma_zz]]
 
-        where its vectorized structure of lenght 9 is given by
+        where its vectorized structure of length 9 is given by
 
         sigma = [sigma_xx, sigma_xy, sigma_xz,
                  sigma_yx, sigma_yy, sigma_yz,
@@ -334,7 +333,6 @@ class VecBDM1(VecHDiv):
         Returns:
             sps.csc_array: The asymmetric matrix obtained from the discretization.
         """
-
         # overestimate the size
         size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
         rows_I = np.empty(size, dtype=int)

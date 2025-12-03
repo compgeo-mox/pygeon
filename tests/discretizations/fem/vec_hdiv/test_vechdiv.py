@@ -20,11 +20,8 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
 
 @pytest.fixture
 def data():
-    return {
-        pp.PARAMETERS: {
-            "test": {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 0.5, pg.LAME_MU_COSSERAT: 0.25}
-        }
-    }
+    params = {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 0.5, pg.LAME_MU_COSSERAT: 0.25}
+    return pp.initialize_data({}, "test", params)
 
 
 @pytest.fixture

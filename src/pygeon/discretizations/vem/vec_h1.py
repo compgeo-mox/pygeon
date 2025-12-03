@@ -257,18 +257,12 @@ class VecVLagrange1(pg.VecDiscretization):
         Notes:
             Duplicate of pg.VecLagrange1.assemble_symgrad_symgrad_matrix
         """
-        if not data:
-            mu = 1
-        else:
-            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            mu = parameter_dictionary.get(pg.LAME_MU, 1)
-
-        coeff = 2 * mu
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         p0 = pg.PwConstants(self.keyword)
 
         symgrad = self.assemble_symgrad_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
-        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim)).tocsc()
+        tensor_mass = sps.block_diag([2 * mu * mass] * np.square(sd.dim)).tocsc()
 
         return symgrad.T @ tensor_mass @ symgrad
 
@@ -426,13 +420,16 @@ class VecVLagrange1(pg.VecDiscretization):
         proj = p0.eval_at_cell_centers(sd)
 
         # retrieve Lamé parameters
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        mu = parameter_dictionary[pg.LAME_MU]
-        labda = parameter_dictionary[pg.LAME_LAMBDA]
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
+
+        # create diagonal matrices for Lamé parameters
+        diag_mu = sps.diags_array(np.repeat(mu, np.square(sd.dim)))
+        diag_lambda = sps.diags_array(lambda_)
 
         # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += labda * div @ u
+        sigma = np.array(np.split(2 * diag_mu @ symgrad @ u, np.square(sd.dim)))
+        sigma[:: (sd.dim + 1)] += diag_lambda @ div @ u
 
         # compute the actual dofs
         sigma = sigma @ proj
