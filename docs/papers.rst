@@ -13,6 +13,9 @@ Publications
 - Boon, Wietse Marijn; Fumagalli, Alessio; Nordbotten, Jan Martin; Yotov, Ivan (2025). *Multipoint stress mixed finite element methods for the linear Cosserat equations*. .
   DOI: `https://doi.org/10.48550/arXiv.2511.06861 <https://doi.org/10.48550/arXiv.2511.06861>`_
   Repo: `Link <https://github.com/compgeo-mox/cosserat>`_
+- Boon, Wietse M.; Franco, Nicola R.; Fumagalli, Alessio; Zunino, Paolo (2025). *Deep learning based reduced order modeling of Darcy flow systems with local mass conservation*. International Journal for Numerical Methods in Engineering.
+  DOI: `https://doi.org/10.48550/arXiv.2311.14554 <https://doi.org/10.48550/arXiv.2311.14554>`_
+  Repo: `Link <https://github.com/compgeo-mox/conservative_ml>`_
 
 2024
 ----
