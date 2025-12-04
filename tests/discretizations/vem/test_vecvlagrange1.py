@@ -35,30 +35,6 @@ def test_zero_penalization_on_triangles(discr, unit_sd_2d):
     assert np.allclose(P.data, 0)
 
 
-def setup(sd):
-    pg.convert_from_pp(sd)
-    sd.compute_geometry()
-
-    discr = pg.VecVLagrange1()
-    M = discr.assemble_mass_matrix_elasticity(sd)
-
-    div = discr.assemble_div_matrix(sd)
-    symgrad = discr.assemble_symgrad_matrix(sd)
-
-    div_div = discr.assemble_div_div_matrix(sd)
-    symgrad_symgrad = discr.assemble_symgrad_symgrad_matrix(sd)
-
-    pen = discr.assemble_penalisation_matrix(sd)
-    pen.data[abs(pen.data) < 1e-10] = 0
-
-    diff = discr.assemble_diff_matrix(sd)
-
-    stiff = discr.assemble_stiff_matrix(sd)
-    stiff.data[abs(stiff.data) < 1e-10] = 0
-
-    return M, div, symgrad, div_div, symgrad_symgrad, pen, diff, stiff, discr
-
-
 def test_assemble_mass(discr, ref_square):
     M = discr.assemble_mass_matrix(ref_square)
 
