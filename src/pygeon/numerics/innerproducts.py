@@ -200,7 +200,7 @@ def mass_matrix(
             nn_sd = mdg.subdomains().index(sd)
 
             # Local mortar mass matrix
-            kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
+            kn = pg.get_cell_data(intf, d_intf, keyword, pg.NORMAL_DIFFUSIVITY)
 
             bmat_mg[nn_sd, nn_sd] += (
                 intf.signed_mortar_to_primary

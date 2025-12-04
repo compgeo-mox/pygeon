@@ -30,3 +30,7 @@ permeability"""
 WEIGHT = "weight"
 """Keyword used to identify weight data in discretizations, not covered by other 
 keywords"""
+
+NORMAL_DIFFUSIVITY = "normal_diffusivity"
+"""Keyword used to identify normal diffusivity data across interfaces in 
+mixed-dimensional discretizations"""

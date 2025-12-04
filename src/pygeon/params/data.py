@@ -13,6 +13,7 @@ data_default = {
     pg.LAME_MU: 0.5,  # Second Lamé parameter (shear modulus)
     pg.LAME_MU_COSSERAT: 0.5,  # Cosserat shear modulus for micropolar materials
     pg.WEIGHT: 1,  # Default weight/scaling factor
+    pg.NORMAL_DIFFUSIVITY: 1,  # Default normal diffusivity across interfaces
 }
 
 
