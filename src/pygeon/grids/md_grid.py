@@ -29,7 +29,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             None
         """
         super(MixedDimensionalGrid, self).__init__(*args, **kwargs)
-        self.initialize_data()
 
     def compute_geometry(self) -> None:
         """
@@ -56,40 +55,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
             intf.compute_geometry()
 
         self.tag_leafs()
-
-    def initialize_data(self) -> None:
-        """
-        Initializes the data for the multi-dimensional grid.
-
-        This method initializes the data for each subdomain and interface
-        in the multi-dimensional grid.
-        It sets the parameters and discretization matrices for each subdomain and
-        interface.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        for sd, data in self.subdomains(return_data=True):
-            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data.update(
-                pp.initialize_data(
-                    {},
-                    pg.UNITARY_DATA,
-                    {pg.SECOND_ORDER_TENSOR: perm},
-                )
-            )
-
-        for _, data in self.interfaces(return_data=True):
-            data.update(
-                pp.initialize_data(
-                    {},
-                    pg.UNITARY_DATA,
-                    {"normal_diffusivity": 1.0},
-                )
-            )
 
     def num_subdomain_faces(self, cond: Callable[[pp.Grid], bool] | None = None) -> int:
         """
