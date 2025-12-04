@@ -58,7 +58,7 @@ class PwPolynomials(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Computes the mass matrix for piecewise elements
+        Computes the mass matrix for piecewise polynomials.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
