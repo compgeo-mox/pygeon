@@ -69,6 +69,9 @@ def get_cell_data(
     # Handle empty or None data by using an empty dictionary
     if not data:
         data_key = {}
+    elif pp.PARAMETERS not in data or keyword not in data[pp.PARAMETERS]:
+        # Handle missing PARAMETERS or keyword by using an empty dictionary
+        data_key = {}
     else:
         # Extract the parameter dictionary for the given key
         data_key = data[pp.PARAMETERS][keyword]
