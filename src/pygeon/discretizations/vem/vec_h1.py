@@ -137,18 +137,14 @@ class VecVLagrange1(pg.VecDiscretization):
             sps.csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained
             from the discretization.
         """
-        if not data:
-            labda = 1
-        else:
-            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            labda = parameter_dictionary.get(pg.LAME_LAMBDA, 1)
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
         p0 = pg.PwConstants(self.keyword)
 
         div = self.assemble_div_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
 
-        return div.T @ (labda * mass) @ div
+        return div.T @ (lambda_ * mass) @ div
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
