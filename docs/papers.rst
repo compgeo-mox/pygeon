@@ -10,6 +10,14 @@ Publications
 - Boon, Wietse M.; Franco, Nicola R.; Fumagalli, Alessio (2025). *Neural network solvers for parametrized elasticity problems that conserve linear and angular momentum*. Computer Methods in Applied Mechanics and Engineering.
   DOI: `https://doi.org/10.1016/j.cma.2025.117759 <https://doi.org/10.1016/j.cma.2025.117759>`_
   Repo: `Link <https://github.com/compgeo-mox/conservative_ml_elasticity>`_
+- Boon, Wietse Marijn; Fumagalli, Alessio; Nordbotten, Jan Martin; Yotov, Ivan (2025). *Multipoint stress mixed finite element methods for the linear Cosserat equations*. .
+  DOI: `https://doi.org/10.48550/arXiv.2511.06861 <https://doi.org/10.48550/arXiv.2511.06861>`_
+  Repo: `Link <https://github.com/compgeo-mox/cosserat>`_
+
+2024
+----
+- Gatti, Federico; Bressan, Andrea; Fumagalli, Alessio; Gallipoli, Domenico; Lalicata, Leonardo Maria; Pittaluga, Simone; Tamellini, Lorenzo (2024). *Two Nitsche-based mixed finite element discretizations for the seepage problem in Richards' equation*. Computer Methods in Applied Mechanics and Engineering.
+  DOI: `https://doi.org/10.1016/j.cma.2024.117368 <https://doi.org/10.1016/j.cma.2024.117368>`_
 
 2023
 ----
