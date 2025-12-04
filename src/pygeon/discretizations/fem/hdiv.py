@@ -228,14 +228,14 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        inv_k = pg.get_cell_data(
+        inv_K = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
         )
 
         h_perp = np.zeros(sd.num_faces)
         for face, cell in zip(*sd.cell_faces.nonzero()):
             dist = sd.face_centers[:, face] - sd.cell_centers[:, cell]
-            h_perp_loc = dist.T @ inv_k.values[:, :, cell] @ dist
+            h_perp_loc = dist.T @ inv_K.values[:, :, cell] @ dist
             norm_dist = np.linalg.norm(dist)
             h_perp[face] += h_perp_loc / norm_dist if norm_dist else 0
 
