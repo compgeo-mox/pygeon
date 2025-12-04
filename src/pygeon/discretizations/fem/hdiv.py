@@ -35,67 +35,6 @@ class RT0(pg.Discretization):
         """
         return sd.num_faces
 
-    @staticmethod
-    def create_unitary_data(
-        keyword: str, sd: pg.Grid, data: dict | None = None
-    ) -> dict:
-        """
-        Updates data such that it has all the necessary components for pp.RT0, if the
-        second order tensor is not present, it is set to the identity. It represents
-        the inverse of the diffusion tensor (permeability for porous media).
-
-        Args:
-            keyword (str): The keyword for the discretization.
-            sd (pg.Grid): Grid object or a subclass.
-            data (dict): Dictionary object or None.
-
-        Returns:
-            dict: Dictionary with required attributes.
-        """
-        if not data:
-            data = {
-                pp.PARAMETERS: {keyword: {}},
-                pp.DISCRETIZATION_MATRICES: {keyword: {}},
-            }
-
-        try:
-            data[pp.PARAMETERS]
-        except KeyError:
-            data.update({pp.PARAMETERS: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]
-        except KeyError:
-            data[pp.PARAMETERS].update({keyword: {}})
-
-        try:
-            data[pp.PARAMETERS]
-        except KeyError:
-            data.update({pp.PARAMETERS: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]
-        except KeyError:
-            data[pp.PARAMETERS].update({keyword: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]["second_order_tensor"]
-        except KeyError:
-            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {}})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES][keyword]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {keyword: {}}})
-
-        return data
-
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
