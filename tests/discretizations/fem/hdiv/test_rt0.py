@@ -65,10 +65,7 @@ def test_mass_matrix_vs_pp(discr, unit_sd):
     perm = pg.get_cell_data(
         unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
     )
-    data = {
-        pp.PARAMETERS: {discr.keyword: {pg.SECOND_ORDER_TENSOR: perm}},
-        pp.DISCRETIZATION_MATRICES: {discr.keyword: {}},
-    }
+    data = pp.initialize_data({}, discr.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
     discr_pp.discretize(unit_sd, data)
 
@@ -87,10 +84,7 @@ def test_eval_at_cc_vs_pp(discr, unit_sd):
     perm = pg.get_cell_data(
         unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
     )
-    data = {
-        pp.PARAMETERS: {discr.keyword: {pg.SECOND_ORDER_TENSOR: perm}},
-        pp.DISCRETIZATION_MATRICES: {discr.keyword: {}},
-    }
+    data = pp.initialize_data({}, discr.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
     discr_pp.discretize(unit_sd, data)
     P_pp = data[pp.DISCRETIZATION_MATRICES][discr_pp.keyword][discr_pp.vector_proj_key]

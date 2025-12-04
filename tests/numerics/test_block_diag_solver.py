@@ -102,11 +102,9 @@ def test_assemble_inverse(M_sparse):
     "data",
     [
         None,
-        {
-            pp.PARAMETERS: {
-                "test": {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 1.0, pg.LAME_MU_COSSERAT: 1.0}
-            }
-        },
+        pp.initialize_data(
+            {}, "test", {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 1.0, pg.LAME_MU_COSSERAT: 1.0}
+        ),
     ],
 )
 def test_lumped_inv_cosserat(ref_sd, data):
