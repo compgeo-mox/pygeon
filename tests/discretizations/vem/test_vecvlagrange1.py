@@ -142,7 +142,7 @@ def test_assemble_symgradsymgrad(discr, ref_square):
                 [-1, -1, 1, 1, -3, -1, 1, 3],
             ]
         )
-        / 4
+        / 8
     )
 
     assert np.allclose(symgradsymgrad.todense(), symgradsymgrad_known)
