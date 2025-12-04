@@ -40,7 +40,7 @@ def setup(sd):
     sd.compute_geometry()
 
     discr = pg.VecVLagrange1()
-    M = discr.assemble_mass_matrix(sd)
+    M = discr.assemble_mass_matrix_elasticity(sd)
 
     div = discr.assemble_div_matrix(sd)
     symgrad = discr.assemble_symgrad_matrix(sd)
@@ -106,8 +106,7 @@ def test_assemble_symgrad(discr, ref_square):
 
 
 def test_assemble_divdiv(discr, ref_square):
-    data = pp.initialize_data({}, discr.keyword, {pg.LAME_LAMBDA: 1})
-    divdiv = discr.assemble_div_div_matrix(ref_square, data)
+    divdiv = discr.assemble_div_div_matrix(ref_square)
     divdiv_known = (
         np.array(
             [

@@ -59,9 +59,9 @@ def setup_elasticity_natural_bcs(
     )
 
     if use_lumped:
-        Ms = Sigma_h.assemble_lumped_matrix(sd, data)
+        Ms = Sigma_h.assemble_lumped_matrix_elasticity(sd, data)
     else:
-        Ms = Sigma_h.assemble_mass_matrix(sd, data)
+        Ms = Sigma_h.assemble_mass_matrix_elasticity(sd, data)
     Mu = U_h.assemble_mass_matrix(sd)
 
     Pi = pg.proj_to_PwPolynomials(R_h, sd, Sigma_h.poly_order)
