@@ -55,16 +55,14 @@ class VRT0(pg.RT0):
         perm = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
         )
-        data_ = {
-            pp.PARAMETERS: {self.keyword: {pg.SECOND_ORDER_TENSOR: perm}},
-            pp.DISCRETIZATION_MATRICES: {self.keyword: {}},
-        }
+        data = data if data is not None else {}
+        data = pp.initialize_data(data, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
-        discr.discretize(sd, data_)
+        discr.discretize(sd, data)
 
-        M = data_[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
+        M = data[pp.DISCRETIZATION_MATRICES][discr.keyword][discr.mass_matrix_key]
         return M.tocsc()
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
@@ -78,10 +76,7 @@ class VRT0(pg.RT0):
             sps.csc_array: The evaluation matrix.
         """
         perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
-        data = {
-            pp.PARAMETERS: {self.keyword: {pg.SECOND_ORDER_TENSOR: perm}},
-            pp.DISCRETIZATION_MATRICES: {self.keyword: {}},
-        }
+        data = pp.initialize_data({}, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)
