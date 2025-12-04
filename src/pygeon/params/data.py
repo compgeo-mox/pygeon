@@ -9,7 +9,7 @@ import pygeon as pg
 # in the data dictionary
 data_default = {
     pg.SECOND_ORDER_TENSOR: 1,  # Default permeability/conductivity tensor value
-    pg.LAME_LAMBDA: 0,  # First Lamé parameter (bulk modulus related)
+    pg.LAME_LAMBDA: 1,  # First Lamé parameter (bulk modulus related)
     pg.LAME_MU: 0.5,  # Second Lamé parameter (shear modulus)
     pg.LAME_MU_COSSERAT: 0.5,  # Cosserat shear modulus for micropolar materials
     pg.WEIGHT: 1,  # Default weight/scaling factor
@@ -76,6 +76,7 @@ def get_cell_data(
         number of cells in the grid.
     """
     # Handle empty or None data by using an empty dictionary
+    data_key: dict
     if not data:
         data_key = {}
     elif pp.PARAMETERS not in data or keyword not in data[pp.PARAMETERS]:
