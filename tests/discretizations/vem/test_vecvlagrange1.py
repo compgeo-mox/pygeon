@@ -2,6 +2,7 @@
 discretization."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
@@ -105,7 +106,8 @@ def test_assemble_symgrad(discr, ref_square):
 
 
 def test_assemble_divdiv(discr, ref_square):
-    divdiv = discr.assemble_div_div_matrix(ref_square)
+    data = {pp.PARAMETERS: {discr.keyword: {pg.LAME_LAMBDA: 1}}}
+    divdiv = discr.assemble_div_div_matrix(ref_square, data)
     divdiv_known = (
         np.array(
             [

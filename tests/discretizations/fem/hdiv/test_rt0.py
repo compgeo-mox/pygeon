@@ -60,11 +60,21 @@ def test_asssemble_mass_matrix(discr, ref_sd):
 def test_mass_matrix_vs_pp(discr, unit_sd):
     M = discr.assemble_mass_matrix(unit_sd)
 
-    discr_pp = pp.RT0("flow")
-    data = pg.RT0.create_unitary_data(discr_pp.keyword, unit_sd)
+    discr_pp = pp.RT0(discr.keyword)
+
+    perm = pg.get_cell_data(
+        unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+    )
+    data = {
+        pp.PARAMETERS: {discr.keyword: {pg.SECOND_ORDER_TENSOR: perm}},
+        pp.DISCRETIZATION_MATRICES: {discr.keyword: {}},
+    }
+
     discr_pp.discretize(unit_sd, data)
 
-    M_pp = data[pp.DISCRETIZATION_MATRICES]["flow"][discr_pp.mass_matrix_key].tocsc()
+    M_pp = data[pp.DISCRETIZATION_MATRICES][discr.keyword][
+        discr_pp.mass_matrix_key
+    ].tocsc()
 
     assert np.allclose((M - M_pp).data, 0)
 
@@ -72,8 +82,16 @@ def test_mass_matrix_vs_pp(discr, unit_sd):
 def test_eval_at_cc_vs_pp(discr, unit_sd):
     P = discr.eval_at_cell_centers(unit_sd)
 
-    data = pg.RT0.create_unitary_data(discr.keyword, unit_sd, None)
     discr_pp = pp.RT0(discr.keyword)
+
+    perm = pg.get_cell_data(
+        unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+    )
+    data = {
+        pp.PARAMETERS: {discr.keyword: {pg.SECOND_ORDER_TENSOR: perm}},
+        pp.DISCRETIZATION_MATRICES: {discr.keyword: {}},
+    }
+
     discr_pp.discretize(unit_sd, data)
     P_pp = data[pp.DISCRETIZATION_MATRICES][discr_pp.keyword][discr_pp.vector_proj_key]
 
