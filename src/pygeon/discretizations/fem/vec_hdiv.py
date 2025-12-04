@@ -17,7 +17,7 @@ class VecHDiv(pg.VecDiscretization):
     discretizations in the H(div) space.
     """
 
-    def assemble_mass_matrix(
+    def assemble_mass_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
@@ -74,7 +74,7 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        M = self.assemble_mass_matrix(sd, data)
+        M = self.assemble_mass_matrix_elasticity(sd, data)
 
         # Extract the data
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
@@ -97,7 +97,7 @@ class VecHDiv(pg.VecDiscretization):
 
         return M + asym.T @ R_mass @ asym
 
-    def assemble_lumped_matrix(
+    def assemble_lumped_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
@@ -144,7 +144,7 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        M = self.assemble_lumped_matrix(sd, data)
+        M = self.assemble_lumped_matrix_elasticity(sd, data)
 
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
