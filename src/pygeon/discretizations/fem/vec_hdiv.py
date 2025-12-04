@@ -21,7 +21,7 @@ class VecHDiv(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1, which is given by
+        Assembles and returns the elasticity inner product matrix, which is given by
         (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
         with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
 
@@ -45,8 +45,8 @@ class VecHDiv(pg.VecDiscretization):
         coeff = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
         data_tr_space = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_self)
+        # Assemble the block diagonal mass matrix
+        D = self.assemble_mass_matrix(sd, data_self)
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
@@ -60,16 +60,15 @@ class VecHDiv(pg.VecDiscretization):
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
-        inner product, which is given by (A sigma, tau) where
+        Assembles and returns the Cosserat inner product, which is given by (A sigma,
+        tau) where
         A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
                   + skw(sigma) / (2 mu_c)
         with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
         mu_c the coupling Lamé modulus.
 
         Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            sd (pg.Grid): The grid. data (dict): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -118,7 +117,7 @@ class VecHDiv(pg.VecDiscretization):
 
         # Assemble the block diagonal mass matrix for the base discretization class
         data_D = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight_D})
-        D = super().assemble_lumped_matrix(sd, data_D)
+        D = self.assemble_lumped_matrix(sd, data_D)
 
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
