@@ -36,8 +36,17 @@ def get_cell_data(
 ) -> pp.SecondOrderTensor: ...
 
 
+@overload
 def get_cell_data(
-    sd: pg.Grid,
+    sd: pg.MortarGrid,
+    data: dict | None,
+    keyword: str,
+    param: str,
+) -> np.ndarray: ...
+
+
+def get_cell_data(
+    sd: pg.Grid | pg.MortarGrid,
     data: dict | None,
     keyword: str,
     param: str,
@@ -47,7 +56,7 @@ def get_cell_data(
     Retrieve cell data from a grid with appropriate formatting based on tensor order.
 
     Args:
-        sd (pg.Grid): The grid object containing cell information.
+        sd (pg.Grid | pg.MortarGrid): The grid object containing cell information.
         data (dict): Dictionary containing parameter data. If None, default values from
             data_default dictionary is used.
         keyword (str): The key to access the parameter dictionary within
