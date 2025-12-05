@@ -103,7 +103,7 @@ class VBDM1(pg.BDM1):
     """Vector-valued discretization"""
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for the Virtual Element Method (VEM).

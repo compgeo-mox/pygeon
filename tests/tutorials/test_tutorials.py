@@ -31,7 +31,7 @@ if HAVE_NBCONVERT:
         and we'll also call preprocess explicitly as an extra guarantee.
         """
 
-        def preprocess_cell(self, cell, resources, index):
+        def preprocess_cell(self, cell, resources, _index):
             # Only act on code cells
             if cell.cell_type != "code":
                 return cell, resources

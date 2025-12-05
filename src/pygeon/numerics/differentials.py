@@ -110,7 +110,7 @@ def exterior_derivative(
 def _g_exterior_derivative(
     grid: pg.Grid | pg.MortarGrid,
     n_minus_k: int,
-    **kwargs,
+    **_kwargs,
 ) -> sps.csc_array:
     """
     Compute the exterior derivative on a grid.
