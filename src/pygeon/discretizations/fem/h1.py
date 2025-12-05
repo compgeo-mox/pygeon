@@ -555,7 +555,7 @@ class Lagrange2(pg.Discretization):
         Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
 
         # edge dofs
-        n_edges = self.num_edges_per_cell(n_nodes - 1)
+        n_edges = self.num_edges_per_cell(int(n_nodes - 1))
         Psi_edges = np.zeros((n_edges, 3 * n_nodes))
 
         for ind, (e0, e1) in enumerate(e_nodes):
