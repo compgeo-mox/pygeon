@@ -550,17 +550,17 @@ class Lagrange2(pg.Discretization):
         # nodal dofs
         n_nodes = dphi.shape[1]
         Psi_nodes = np.zeros((n_nodes, 3 * n_nodes))
-        for ind in np.arange(n_nodes):
-            Psi_nodes[ind, 3 * ind : 3 * (ind + 1)] = 4 * dphi[:, ind]
+        for ind_n in np.arange(n_nodes):
+            Psi_nodes[ind_n, 3 * ind_n : 3 * (ind_n + 1)] = 4 * dphi[:, ind_n]
         Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
 
         # edge dofs
-        n_edges = self.num_edges_per_cell(int(n_nodes - 1))
+        n_edges = self.num_edges_per_cell(n_nodes - 1)
         Psi_edges = np.zeros((n_edges, 3 * n_nodes))
 
-        for ind, (e0, e1) in enumerate(e_nodes):
-            Psi_edges[ind, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
-            Psi_edges[ind, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
+        for ind_e, (e0, e1) in enumerate(e_nodes):
+            Psi_edges[ind_e, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
+            Psi_edges[ind_e, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
 
         return np.vstack((Psi_nodes, Psi_edges))
 
