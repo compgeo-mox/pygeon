@@ -375,15 +375,12 @@ class VecLagrange1(pg.VecDiscretization):
 
         # retrieve Lamé parameters
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        mu = np.tile(mu, np.square(sd.dim))
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
-        # create diagonal matrices for Lamé parameters
-        diag_mu = sps.diags_array(np.tile(mu, np.square(sd.dim)))
-        diag_lambda = sps.diags_array(lambda_)
-
         # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * diag_mu @ symgrad @ u, np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += diag_lambda @ div @ u
+        sigma = np.array(np.split(2 * mu * (symgrad @ u), np.square(sd.dim)))
+        sigma[:: (sd.dim + 1)] += lambda_ * (div @ u)
 
         # compute the actual dofs
         sigma = sigma @ proj
