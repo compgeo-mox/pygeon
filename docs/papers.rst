@@ -17,13 +17,15 @@ Publications
   DOI: `https://doi.org/10.48550/arXiv.2311.14554 <https://doi.org/10.48550/arXiv.2311.14554>`_
   Repo: `Link <https://github.com/compgeo-mox/conservative_ml>`_
 - Boon, Wietse M; Kraus, Johannes; Luber, Tom\'a\vs; Lymbery, Maria (2025). *Fitted norm preconditioners for the Hodge Laplacian in mixed form*. arXiv preprint arXiv:2507.23586.
+  DOI: `https://doi.org/10.48550/arXiv.2507.23586 <https://doi.org/10.48550/arXiv.2507.23586>`_
   Repo: `Link <https://github.com/wmboon/preconditioning_HodgeLaplace>`_
 
 2024
 ----
 - Gatti, Federico; Bressan, Andrea; Fumagalli, Alessio; Gallipoli, Domenico; Lalicata, Leonardo Maria; Pittaluga, Simone; Tamellini, Lorenzo (2024). *Two Nitsche-based mixed finite element discretizations for the seepage problem in Richards' equation*. Computer Methods in Applied Mechanics and Engineering.
   DOI: `https://doi.org/10.1016/j.cma.2024.117368 <https://doi.org/10.1016/j.cma.2024.117368>`_
-- Boon, Wietse M (2024). *Solvers for mixed finite element problems using Poincar$\backslash$'e operators based on spanning trees*. arXiv preprint arXiv:2410.08830.
+- Boon, Wietse M (2024). *Solvers for mixed finite element problems using Poincaré operators based on spanning trees*. arXiv preprint arXiv:2410.08830.
+  DOI: `https://doi.org/10.48550/arXiv.2410.08830 <https://doi.org/10.48550/arXiv.2410.08830>`_
   Repo: `Link <https://github.com/wmboon/poincare>`_
 
 2023
