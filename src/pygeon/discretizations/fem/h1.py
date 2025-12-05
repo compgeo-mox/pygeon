@@ -751,7 +751,9 @@ class Lagrange2(pg.Discretization):
 
         return sps.hstack((eval_nodes, eval_edges)).tocsc()
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_array:
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix for the quadratic Lagrange space.
         This is based on the integration rule by Eggers and Radu,
@@ -759,8 +761,8 @@ class Lagrange2(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the
-                matrix.
+            data (dict | None): A dictionary containing the necessary data for
+                assembling the matrix.
 
         Returns:
             sps.csc_array: The lumped mass matrix.
