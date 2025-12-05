@@ -35,67 +35,6 @@ class RT0(pg.Discretization):
         """
         return sd.num_faces
 
-    @staticmethod
-    def create_unitary_data(
-        keyword: str, sd: pg.Grid, data: dict | None = None
-    ) -> dict:
-        """
-        Updates data such that it has all the necessary components for pp.RT0, if the
-        second order tensor is not present, it is set to the identity. It represents
-        the inverse of the diffusion tensor (permeability for porous media).
-
-        Args:
-            keyword (str): The keyword for the discretization.
-            sd (pg.Grid): Grid object or a subclass.
-            data (dict): Dictionary object or None.
-
-        Returns:
-            dict: Dictionary with required attributes.
-        """
-        if not data:
-            data = {
-                pp.PARAMETERS: {keyword: {}},
-                pp.DISCRETIZATION_MATRICES: {keyword: {}},
-            }
-
-        try:
-            data[pp.PARAMETERS]
-        except KeyError:
-            data.update({pp.PARAMETERS: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]
-        except KeyError:
-            data[pp.PARAMETERS].update({keyword: {}})
-
-        try:
-            data[pp.PARAMETERS]
-        except KeyError:
-            data.update({pp.PARAMETERS: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]
-        except KeyError:
-            data[pp.PARAMETERS].update({keyword: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]["second_order_tensor"]
-        except KeyError:
-            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {}})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES][keyword]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {keyword: {}}})
-
-        return data
-
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -105,7 +44,7 @@ class RT0(pg.Discretization):
         Args:
             sd (pg.Grid): Grid object or a subclass.
             data (dict | None): Optional dictionary with physical parameters for
-                scaling, in particular the second_order_tensor that is the inverse of
+                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
         Returns:
@@ -115,20 +54,16 @@ class RT0(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
-        # create unitary data, unitary permeability, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
         nodes = nodes[: sd.dim, :]
 
-        if not data_.get("is_tangential", False):
+        if not data or not data.get("is_tangential", False):
             # Rotate the inverse of the permeability tensor and delete last dimension
             if sd.dim < 3:
                 inv_K = inv_K.copy()
@@ -287,19 +222,15 @@ class RT0(pg.Discretization):
         Args:
             sd (pg.Grid): Grid object or a subclass.
             data (dict | None): Optional dictionary with physical parameters for
-                scaling. In particular the second_order_tensor that is the inverse of
+                scaling. In particular the pg.SECOND_ORDER_TENSOR that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        if not data:
-            data = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of the permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         h_perp = np.zeros(sd.num_faces)
         for face, cell in zip(*sd.cell_faces.nonzero()):
@@ -510,13 +441,9 @@ class BDM1(pg.Discretization):
 
         M = self.local_inner_product(sd.dim)
 
-        inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            inv_K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", inv_K)
-            )
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -816,13 +743,9 @@ class BDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            inv_K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", inv_K)
-            )
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -964,7 +887,7 @@ class RT1(pg.Discretization):
         Args:
             sd (pg.Grid): Grid object or a subclass.
             data (dict | None): Optional dictionary with physical parameters for
-                scaling, in particular the second_order_tensor that is the inverse of
+                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
         Returns:
@@ -974,13 +897,9 @@ class RT1(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_array((0, 0))
 
-        # create unitary data, unitary permeability, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         # Allocate the data to store matrix A entries
         size = np.square(sd.dim * (sd.dim + 2)) * sd.num_cells
@@ -1380,13 +1299,9 @@ class RT1(pg.Discretization):
         bdm1 = pg.BDM1(self.keyword)
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
-        # create unitary data, unitary permeability, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         # Allocate the data to store matrix P entries
         size = sd.dim * sd.dim * sd.num_cells

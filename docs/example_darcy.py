@@ -1,7 +1,7 @@
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
-import porepy as pp
 import pygeon as pg
 
 # creation of the grid
@@ -25,7 +25,7 @@ data = {}
 # unitary permeability tensor
 inv_perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
 parameters = {
-    "second_order_tensor": inv_perm,
+    pg.SECOND_ORDER_TENSOR: inv_perm,
 }
 pp.initialize_data(sd, data, key, parameters)
 
