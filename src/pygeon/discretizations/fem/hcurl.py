@@ -35,7 +35,7 @@ class Nedelec0(pg.Discretization):
         return sd.num_ridges
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
@@ -177,11 +177,14 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
-    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, _sd: pg.Grid) -> sps.csc_array:
         raise NotImplementedError
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        self,
+        _sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition matrix for the given grid and function.
@@ -196,7 +199,7 @@ class Nedelec0(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -255,7 +258,7 @@ class Nedelec1(pg.Discretization):
         return 2 * sd.num_ridges
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix for the given grid and data.
@@ -270,7 +273,7 @@ class Nedelec1(pg.Discretization):
         raise NotImplementedError
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
@@ -446,7 +449,10 @@ class Nedelec1(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        self,
+        _sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition for the given grid, function, and
@@ -462,10 +468,10 @@ class Nedelec1(pg.Discretization):
         """
         raise NotImplementedError
 
-    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, _sd: pg.Grid) -> sps.csc_array:
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

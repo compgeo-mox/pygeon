@@ -116,7 +116,7 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((0, self.ndof(sd)))
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
@@ -131,7 +131,10 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        self,
+        sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition vector, equal to zero.
@@ -147,7 +150,7 @@ class PwPolynomials(pg.Discretization):
         """
         return np.zeros(self.ndof(sd))
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class for the range of the differential.
 
@@ -200,7 +203,7 @@ class PwPolynomials(pg.Discretization):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_higher_PwPolynomials(self, _sd: pg.Grid) -> sps.csc_array:
         """
         Projects the discretization to +1 order discretization.
 
@@ -224,7 +227,7 @@ class PwConstants(PwPolynomials):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_cell(self, _sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell.
 
@@ -236,7 +239,7 @@ class PwConstants(PwPolynomials):
         """
         return 1
 
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
+    def assemble_local_mass(self, _dim: int) -> np.ndarray:
         """
         Computes the local mass matrix for piecewise constants
 
@@ -345,7 +348,7 @@ class PwConstants(PwPolynomials):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
         etype: str = "specific",
-        data: dict | None = None,
+        _data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a

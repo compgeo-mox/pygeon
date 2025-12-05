@@ -223,7 +223,7 @@ class Discretization(abc.ABC):
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
-        etype: str = "standard",
+        _etype: str = "standard",
         data: dict | None = None,
     ) -> float:
         """

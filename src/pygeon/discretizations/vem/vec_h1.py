@@ -263,7 +263,7 @@ class VecVLagrange1(pg.VecDiscretization):
         return symgrad.T @ tensor_mass @ symgrad
 
     def assemble_penalisation_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the penalisation matrix.

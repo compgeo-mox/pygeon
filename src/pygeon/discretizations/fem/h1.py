@@ -35,7 +35,7 @@ class Lagrange1(pg.Discretization):
         return sd.num_nodes
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the mass matrix for the lowest order Lagrange element
@@ -213,7 +213,7 @@ class Lagrange1(pg.Discretization):
         return invQ[1:, :]
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix for the finite element method.
@@ -531,7 +531,7 @@ class Lagrange2(pg.Discretization):
 
         return e_nodes
 
-    def eval_grads_at_nodes(self, dphi, e_nodes) -> np.ndarray:
+    def eval_grads_at_nodes(self, dphi: np.ndarray, e_nodes: np.ndarray) -> np.ndarray:
         """
         Evaluates the gradients of the basis functions at the nodes
 
@@ -564,7 +564,9 @@ class Lagrange2(pg.Discretization):
 
         return np.vstack((Psi_nodes, Psi_edges))
 
-    def get_edge_dof_indices(self, sd, cell, faces) -> np.ndarray:
+    def get_edge_dof_indices(
+        self, sd: pg.Grid, cell: int, faces: np.ndarray
+    ) -> np.ndarray:
         """
         Finds the indices for the edge degrees of freedom that correspond
         to the local numbering of the edges.
@@ -749,7 +751,7 @@ class Lagrange2(pg.Discretization):
 
         return sps.hstack((eval_nodes, eval_edges)).tocsc()
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data=None) -> sps.csc_array:
+    def assemble_lumped_matrix(self, sd: pg.Grid, data: dict = None) -> sps.csc_array:
         """
         Assembles the lumped mass matrix for the quadratic Lagrange space.
         This is based on the integration rule by Eggers and Radu,

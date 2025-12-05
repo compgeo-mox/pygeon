@@ -436,7 +436,7 @@ class VecBDM1(VecHDiv):
         proj = self.base_discr.proj_from_RT0(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -537,7 +537,7 @@ class VecRT0(VecHDiv):
         proj = vec_bdm1.proj_from_RT0(sd)
         return vec_bdm1.assemble_asym_matrix(sd, as_pwconstant) @ proj
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -650,7 +650,7 @@ class VecRT1(VecHDiv):
         # Construct the global matrices
         return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

@@ -302,7 +302,7 @@ class RT0(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -338,7 +338,7 @@ class RT0(pg.Discretization):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
         etype: str = "specific",
-        data: dict | None = None,
+        _data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
@@ -710,7 +710,7 @@ class BDM1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -1266,7 +1266,7 @@ class RT1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
