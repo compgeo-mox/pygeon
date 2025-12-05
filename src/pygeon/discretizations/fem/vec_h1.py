@@ -378,7 +378,7 @@ class VecLagrange1(pg.VecDiscretization):
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
         # create diagonal matrices for Lamé parameters
-        diag_mu = sps.diags_array(np.repeat(mu, np.square(sd.dim)))
+        diag_mu = sps.diags_array(np.tile(mu, np.square(sd.dim)))
         diag_lambda = sps.diags_array(lambda_)
 
         # compute the two terms and split on each component
