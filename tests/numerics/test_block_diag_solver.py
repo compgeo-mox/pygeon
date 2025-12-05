@@ -99,7 +99,13 @@ def test_assemble_inverse(M_sparse):
 
 
 @pytest.mark.parametrize(
-    "data", [None, {pp.PARAMETERS: {"test": {"mu": 0.5, "lambda": 1.0, "mu_c": 1.0}}}]
+    "data",
+    [
+        None,
+        pp.initialize_data(
+            {}, "test", {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 1.0, pg.LAME_MU_COSSERAT: 1.0}
+        ),
+    ],
 )
 def test_lumped_inv_cosserat(ref_sd, data):
     if ref_sd.dim == 1:

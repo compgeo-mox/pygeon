@@ -58,7 +58,7 @@ class PwPolynomials(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Computes the mass matrix for piecewise linears
+        Computes the mass matrix for piecewise polynomials.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -69,13 +69,9 @@ class PwPolynomials(pg.Discretization):
         """
         local_mass = self.assemble_local_mass(sd.dim)
 
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
-
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
         diag_weight = sps.diags_array(sd.cell_volumes * weight)
+
         M = sps.kron(local_mass, diag_weight)
         M.eliminate_zeros()
 
@@ -96,13 +92,9 @@ class PwPolynomials(pg.Discretization):
         """
         local_mass = self.assemble_local_lumped_mass(sd.dim)
 
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
-
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
         diag_weight = sps.diags_array(sd.cell_volumes * weight)
+
         M = sps.kron(local_mass, diag_weight).tocsc()
         M.eliminate_zeros()
 

@@ -54,12 +54,14 @@ def setup_elasticity_natural_bcs(
     u_boundary: np.ndarray,
     use_lumped: bool,
 ) -> Tuple[sps.csc_matrix, np.ndarray]:
-    data = {pp.PARAMETERS: {Sigma_h.keyword: {"mu": 0.5, "lambda": 0.5}}}
+    data = pp.initialize_data(
+        {}, Sigma_h.keyword, {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 0.5}
+    )
 
     if use_lumped:
-        Ms = Sigma_h.assemble_lumped_matrix(sd, data)
+        Ms = Sigma_h.assemble_lumped_matrix_elasticity(sd, data)
     else:
-        Ms = Sigma_h.assemble_mass_matrix(sd, data)
+        Ms = Sigma_h.assemble_mass_matrix_elasticity(sd, data)
     Mu = U_h.assemble_mass_matrix(sd)
 
     Pi = pg.proj_to_PwPolynomials(R_h, sd, Sigma_h.poly_order)
