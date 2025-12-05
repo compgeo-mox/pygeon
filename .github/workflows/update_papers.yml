@@ -1,0 +1,45 @@
+name: Update papers.rst from papers.bib
+
+on:
+  push:
+    paths:
+      - docs/papers.bib
+      - docs/update_papers.py
+
+jobs:
+  update-papers-rst:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install bibtexparser
+
+      - name: Generate papers.rst
+        run: python docs/update_papers.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet docs/papers.rst; then
+            git add docs/papers.rst
+            git commit -m "Update papers.rst from papers.bib"
+            git push
+          else
+            echo "No changes"
+          fi
+
