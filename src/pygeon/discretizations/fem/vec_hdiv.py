@@ -67,7 +67,7 @@ class VecHDiv(pg.VecDiscretization):
         return D - B.T @ M @ B
 
     def assemble_deviator_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for vector BDM1 for an incompressible
