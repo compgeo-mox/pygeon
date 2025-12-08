@@ -24,12 +24,12 @@ class Lagrange1(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes.
+        In this case, the number of nodes.
 
-        Args
+        Args:
             sd: grid, or a subclass.
 
-        Returns
+        Returns:
             ndof: the number of degrees of freedom.
         """
         return sd.num_nodes
@@ -349,13 +349,13 @@ class Lagrange2(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes plus the number of edges,
+        In this case, the number of nodes plus the number of edges,
         where edges are one-dimensional mesh entities.
 
-        Args
+        Args:
             sd: grid, or a subclass.
 
-        Returns
+        Returns:
             ndof: the number of degrees of freedom.
         """
         if sd.dim == 0:
