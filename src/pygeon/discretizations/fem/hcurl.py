@@ -42,7 +42,7 @@ class Nedelec0(pg.Discretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass, with geometry fields computed.
-            data (dict | None): Dictionary to store the data. See self.matrix_rhs
+            _data (dict | None): Dictionary to store the data. See self.matrix_rhs
                 for required contents.
 
         Returns:
@@ -190,9 +190,9 @@ class Nedelec0(pg.Discretization):
         Assembles the natural boundary condition matrix for the given grid and function.
 
         Args:
-            sd (pg.Grid): The grid on which to assemble the matrix.
-            func (Callable): The function defining the natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            _sd (pg.Grid): The grid on which to assemble the matrix.
+            _func (Callable): The function defining the natural boundary condition.
+            _b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
             np.ndarray: The assembled natural boundary condition matrix.
@@ -204,7 +204,7 @@ class Nedelec0(pg.Discretization):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class for the given grid.
@@ -265,7 +265,7 @@ class Nedelec1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid for which the mass matrix is to be assembled.
-            data (dict | None): Additional data required for the assembly process.
+            _data (dict | None): Additional data required for the assembly process.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -280,7 +280,7 @@ class Nedelec1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (dict | None): Additional data. Defaults to None.
+            _data (dict | None): Additional data. Defaults to None.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -459,9 +459,9 @@ class Nedelec1(pg.Discretization):
             boundary faces.
 
         Args:
-            sd (pg.Grid): The grid on which to assemble the natural boundary condition.
-            func (Callable): The function defining the natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            _sd (pg.Grid): The grid on which to assemble the natural boundary condition.
+            _func (Callable): The function defining the natural boundary condition.
+            _b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
             np.ndarray: The assembled natural boundary condition.
@@ -476,7 +476,7 @@ class Nedelec1(pg.Discretization):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.

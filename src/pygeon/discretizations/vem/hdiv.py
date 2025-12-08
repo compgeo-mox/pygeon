@@ -110,7 +110,7 @@ class VBDM1(pg.BDM1):
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            data (dict | None): Optional data dictionary.
+            _data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
