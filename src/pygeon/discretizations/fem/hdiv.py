@@ -353,6 +353,8 @@ class RT0(pg.Discretization):
                 Defaults to True.
             etype (str): Type of error computed. Defaults to
                 "specific".
+            _data (dict | None): Unused parameter kept for API compatibility.
+                Defaults to None.
 
         Returns:
             float: The computed error.
