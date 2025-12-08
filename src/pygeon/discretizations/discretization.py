@@ -51,8 +51,7 @@ class Discretization(abc.ABC):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes.
-
+        
         Args:
             sd: Grid, or a subclass.
 
