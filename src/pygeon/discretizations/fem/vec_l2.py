@@ -86,9 +86,9 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            func (Callable[[np.ndarray], np.ndarray]): The function defining the
+            _func (Callable[[np.ndarray], np.ndarray]): The function defining the
                  natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            _b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.

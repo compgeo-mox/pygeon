@@ -42,7 +42,7 @@ class Lagrange1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
+            _data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -220,7 +220,7 @@ class Lagrange1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (dict | None): Optional data dictionary.
+            _data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped mass matrix.

@@ -27,7 +27,7 @@ class VLagrange1(pg.Lagrange1):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
+            _data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The sparse mass matrix obtained from the discretization.
@@ -224,7 +224,7 @@ class VLagrange1(pg.Lagrange1):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
+            _data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The stiffness matrix obtained from the discretization.

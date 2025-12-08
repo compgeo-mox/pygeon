@@ -270,7 +270,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
+            _data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The penalisation matrix obtained from the discretization.

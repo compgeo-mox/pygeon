@@ -441,7 +441,7 @@ class VecBDM1(VecHDiv):
         Returns the discretization class that contains the range of the differential
 
         Args:
-            dim (int): The dimension of the range.
+            _dim (int): The dimension of the range.
 
         Returns:
             pg.Discretization: The discretization class containing the range of the
@@ -542,7 +542,7 @@ class VecRT0(VecHDiv):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.
@@ -655,7 +655,7 @@ class VecRT1(VecHDiv):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.
