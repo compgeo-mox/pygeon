@@ -2,9 +2,6 @@ import numpy as np
 import scipy.sparse as sps
 import pygeon as pg
 
-LAME_MU = "mu"
-LAME_LAMBDA = "mu"
-
 
 def rotation_dim(dim: int) -> int:
     return dim * (dim - 1) // 2
@@ -22,11 +19,11 @@ class TPSA:
 
         # Extract the spring constant
         self.delta_bdry_over_mu = data.get(
-            "inv_spring_constant", np.zeros(self.sd.num_faces)
+            "inv_spring_constant", np.zeros(sd.num_faces)
         )
 
         # We precompute delta_k^i / mu here
-        self.delta_ki_over_mu = self.assemble_delta_ki_over_mu(data[LAME_MU])
+        self.delta_ki_over_mu = self.assemble_delta_ki_over_mu(sd, data[pg.LAME_MU])
         self.dk_mu = self.assemble_delta_mu_k()
 
         # Generate the first order terms in (3.9)
@@ -34,16 +31,16 @@ class TPSA:
 
         # Precompute the operator that multiplies with the area
         # and applies the divergence
-        div_F = sps.csc_array(self.sd.cell_faces.T) * self.sd.face_areas
+        div_F = sps.csc_array(sd.cell_faces.T) * sd.face_areas
 
         # Assemble the remaining terms in (3.9)
-        A = self.assemble_second_order_terms(div_F, scale_factor=self.scaling)
+        A = self.assemble_second_order_terms(sd, div_F, scale_factor=self.scaling)
 
         # Assemble the matrix from (3.9)
         self.system = sps.csc_array(A - M)
 
     def assemble_second_order_terms(
-        self, div_F: sps.sparray, scale_factor: float = 1.0
+        self, sd: pg.Grid, div_F: sps.sparray, scale_factor: float = 1.0
     ) -> sps.sparray:
         """
         Assemble the second-order terms
@@ -55,8 +52,8 @@ class TPSA:
         # Assemble the blocks of (3.7) where
         # A_ij is the block coupling variable i and j.
         mu_bar = self.harmonic_avg()
-        A_uu = -2 * div_F * (mu_bar / scale_factor) @ self.sd.cell_faces
-        A[0, 0] = sps.block_diag([A_uu] * self.sd.dim)
+        A_uu = -2 * div_F * (mu_bar / scale_factor) @ sd.cell_faces
+        A[0, 0] = sps.block_diag([A_uu] * sd.dim)
 
         # The blocks in the first column depend on the averaging operator Xi
         Xi = self.assemble_xi()
@@ -66,12 +63,12 @@ class TPSA:
         Xi_tilde = self.convert_to_xi_tilde(Xi)
         A[0, 1], A[0, 2] = self.assemble_off_diagonal_terms(Xi_tilde, div_F, False)
 
-        A[2, 2] = -div_F * (0.5 * self.dk_mu * scale_factor) @ self.sd.cell_faces
+        A[2, 2] = -div_F * (0.5 * self.dk_mu * scale_factor) @ sd.cell_faces
 
         # Assembly by blocks
         return sps.block_array(A).tocsc()
 
-    def assemble_delta_ki_over_mu(self, mu: np.ndarray) -> np.ndarray:
+    def assemble_delta_ki_over_mu(self, sd: pg.Grid, mu: np.ndarray) -> np.ndarray:
         """
         Compute delta_k^i / mu from (2.1) for every physical face-cell pair.
         Boundary conditions are handled later
@@ -83,8 +80,8 @@ class TPSA:
             return np.sum(
                 (
                     (
-                        self.sd.face_centers[:, faces[indices]]
-                        - self.sd.cell_centers[:, cells[indices]]
+                        sd.face_centers[:, faces[indices]]
+                        - sd.cell_centers[:, cells[indices]]
                     )
                     * (orient[indices] * self.unit_normals[:, faces[indices]])
                 ),
@@ -103,9 +100,9 @@ class TPSA:
             for cell in cells[delta_ki <= 0]:
                 cf_pairs = cells == cell
 
-                # Define a cell-center based on the mean of the 8 nodes
-                xyz = self.sd.xyz_from_active_index(cell)
-                self.sd.cell_centers[:, cell] = np.mean(xyz, axis=1)
+                # Define a cell-center based on the mean of the nodes
+                xyz = sd.xyz_from_active_index(cell)
+                sd.cell_centers[:, cell] = np.mean(xyz, axis=1)
 
                 # Recompute the deltas with the updated cell center
                 delta_ki[cf_pairs] = compute_delta_ki(cf_pairs)
@@ -113,8 +110,8 @@ class TPSA:
             if np.any(delta_ki <= 0):
                 # Report on the first problematic cell for visual inspection
                 first_cell = cells[np.argmax(delta_ki <= 0)]
-                ijk = self.sd.ijk_from_active_index(first_cell)
-                glob_ind = self.sd.global_index(*ijk)
+                ijk = sd.ijk_from_active_index(first_cell)
+                glob_ind = sd.global_index(*ijk)
 
                 print(
                     "There are {} extra-cellular centers".format(np.sum(delta_ki <= 0))
@@ -205,6 +202,7 @@ class TPSA:
 
     def assemble_off_diagonal_terms(
         self,
+        sd: pg.Grid,
         Xi: sps.sparray,
         div_F: sps.sparray,
         map_from_u: bool = True,
@@ -216,7 +214,7 @@ class TPSA:
         """
 
         # Compute n times Xi
-        if self.sd.dim == 3:
+        if sd.dim == 3:
             R_Xi = -sps.block_array(
                 [
                     [None, -nz, ny],
@@ -247,8 +245,8 @@ class TPSA:
 
         volumes = self.sd.cell_volumes
         M_u = np.zeros(self.ndofs[0])
-        M_r = np.tile(scale_factor * volumes / data[LAME_MU], self.dim_r)
-        M_p = scale_factor * volumes / data[LAME_LAMBDA]
+        M_r = np.tile(scale_factor * volumes / data[pg.LAME_MU], self.dim_r)
+        M_p = scale_factor * volumes / data[pg.LAME_LAMBDA]
 
         diagonal = np.concatenate((M_u, M_r, M_p))
 
@@ -262,7 +260,7 @@ class TPSA:
 
         rhs_u = np.zeros(self.ndofs[0])
         rhs_r = np.zeros(self.ndofs[1])
-        rhs_p = self.sd.cell_volumes * data["alpha"] / data[LAME_LAMBDA] * w
+        rhs_p = self.sd.cell_volumes * data["alpha"] / data[pg.LAME_LAMBDA] * w
 
         return np.concatenate((rhs_u, rhs_r, rhs_p))
 
@@ -368,7 +366,7 @@ class TPSA:
         """
 
         return (solid_p + data["alpha"] * (fluid_p - self.ref_pressure)) / data[
-            LAME_LAMBDA
+            pg.LAME_LAMBDA
         ]
 
     def assemble_dual_var_map(self, scale_factor: float = 1.0) -> sps.sparray:
