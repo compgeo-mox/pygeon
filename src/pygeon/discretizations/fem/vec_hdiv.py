@@ -1,7 +1,7 @@
 """Module for the discretizations of the H(div) space."""
 
 import abc
-from typing import Optional, Type
+from typing import Type, cast
 
 import numpy as np
 import porepy as pp
@@ -17,11 +17,11 @@ class VecHDiv(pg.VecDiscretization):
     discretizations in the H(div) space.
     """
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+    def assemble_mass_matrix_elasticity(
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1, which is given by
+        Assembles and returns the elasticity inner product matrix, which is given by
         (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
         with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
 
@@ -32,19 +32,8 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        if not data:
-            # If the data is not provided then use default values to build a block
-            # diagonal mass matrix without the trace term
-            mu = 0.5 * np.ones(sd.num_cells)
-            lambda_ = np.zeros(sd.num_cells)
-        else:
-            # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
-
-        # If mu is a scalar, replace it by a vector so that it can be accessed per cell
-        if isinstance(mu, np.ScalarType):
-            mu = np.full(sd.num_cells, mu)
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
         if isinstance(lambda_, np.ScalarType):
             lambda_ = np.full(sd.num_cells, lambda_)
@@ -52,7 +41,7 @@ class VecHDiv(pg.VecDiscretization):
         # Save 1/(2mu) as a tensor so that it can be read by self
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
         data_self = pp.initialize_data(
-            {}, self.keyword, {"second_order_tensor": mu_tensor}
+            {}, self.keyword, {pg.SECOND_ORDER_TENSOR: mu_tensor}
         )
 
         # Save the coefficient for the trace contribution
@@ -64,8 +53,8 @@ class VecHDiv(pg.VecDiscretization):
 
         data_tr_space = pp.initialize_data({}, self.keyword, {"weight": coeff})
 
-        # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_mass_matrix(sd, data_self)
+        # Assemble the block diagonal mass matrix
+        D = self.assemble_mass_matrix(sd, data_self)
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
@@ -108,84 +97,77 @@ class VecHDiv(pg.VecDiscretization):
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1 discretizing the Cosserat
-        inner product, which is given by (A sigma, tau) where
+        Assembles and returns the Cosserat inner product, which is given by (A sigma,
+        tau) where
         A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
                   + skw(sigma) / (2 mu_c)
         with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
         mu_c the coupling Lamé modulus.
 
         Args:
-            sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            sd (pg.Grid): The grid. data (dict): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        M = self.assemble_mass_matrix(sd, data)
+        M = self.assemble_mass_matrix_elasticity(sd, data)
 
         # Extract the data
-        mu = data[pp.PARAMETERS][self.keyword]["mu"]
-        mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
-        coeff = 0.25 * (1 / mu_c - 1 / mu)
+        weight = 0.25 * (1 / mu_c - 1 / mu)
+        data_ = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        if isinstance(coeff, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff)
-
-        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
         if sd.dim == 2:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
+            R_tensor_order = pg.SCALAR
         elif sd.dim == 3:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)(self.keyword)
+            R_tensor_order = pg.VECTOR
+        else:
+            raise ValueError
 
-        R_mass = R_space.assemble_mass_matrix(sd, data_for_R)
+        R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
+        R_mass = R_space.assemble_mass_matrix(sd, data_)
 
         asym = self.assemble_asym_matrix(sd)
 
         return M + asym.T @ R_mass @ asym
 
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+    def assemble_lumped_matrix_elasticity(
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        if not data:
-            # If the data is not provided then use default values to build a block
-            # diagonal mass matrix without the trace term
-            mu = 0.5
-            lambda_ = 0.0
-        else:
-            # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            lambda_ = data[pp.PARAMETERS][self.keyword]["lambda"]
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
+
+        weight_M = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        weight_D = 1 / (2 * mu)
 
         # Assemble the block diagonal mass matrix for the base discretization class
-        D = super().assemble_lumped_matrix(sd)
+        data_D = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight_D})
+        D = self.assemble_lumped_matrix(sd, data_D)
 
         # Assemble the trace part
         B = self.assemble_trace_matrix(sd)
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Trace(sigma), Trace(tau))
+        data_M = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight_M})
+
         scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
-        M = scalar_discr.assemble_lumped_matrix(sd)
-        coeff = lambda_ / (2 * mu + sd.dim * lambda_)
+        M = scalar_discr.assemble_lumped_matrix(sd, data_M)
 
         # Compose all the parts and return them
-        return (D - coeff * B.T @ M @ B) / (2 * mu)
+        return D - B.T @ M @ B
 
     def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
@@ -193,43 +175,28 @@ class VecHDiv(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        M = self.assemble_lumped_matrix(sd, data)
+        M = self.assemble_lumped_matrix_elasticity(sd, data)
 
-        # Extract the data
-        if not data:
-            # If the data is not provided then use default values to build a block
-            # diagonal mass matrix without the trace term
-            mu = 0.5
-            mu_c = 0.5
-        else:
-            # Extract the data
-            mu = data[pp.PARAMETERS][self.keyword]["mu"]
-            mu_c = data[pp.PARAMETERS][self.keyword]["mu_c"]
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
-        coeff_val = 0.25 * (1 / mu_c - 1 / mu)
-
-        # If coeff is a scalar, replace it by a vector so that it can be accessed per
-        # cell
-        coeff: np.ndarray
-        if isinstance(coeff_val, np.ScalarType):
-            coeff = np.full(sd.num_cells, coeff_val)
-        else:
-            coeff = np.atleast_1d(coeff_val)
-
-        data_for_R = pp.initialize_data({}, self.keyword, {"weight": coeff})
-
-        R_space: pg.Discretization
         if sd.dim == 2:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
+            R_tensor_order = pg.SCALAR
         elif sd.dim == 3:
-            R_space = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)(self.keyword)
+            R_tensor_order = pg.VECTOR
+        else:
+            raise ValueError
 
-        R_mass = R_space.assemble_lumped_matrix(sd, data_for_R)
+        weight = 0.25 * (1 / mu_c - 1 / mu)
+        data_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
+
+        R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
+        R_mass = R_space.assemble_lumped_matrix(sd, data_R)
 
         asym = self.assemble_asym_matrix(sd)
 
@@ -252,7 +219,8 @@ class VecHDiv(pg.VecDiscretization):
         """
         P = self.proj_to_PwPolynomials(sd)
         mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
-        asym = mat_discr.assemble_asym_matrix(sd)  # type: ignore[union-attr]
+        mat_discr = cast(pg.MatPwLinears | pg.MatPwQuadratics, mat_discr)
+        asym = mat_discr.assemble_asym_matrix(sd)
 
         return asym @ P
 
@@ -308,7 +276,7 @@ class VecBDM1(VecHDiv):
                  [sigma_yx, sigma_yy, sigma_yz],
                  [sigma_zx, sigma_zy, sigma_zz]]
 
-        where its vectorized structure of lenght 9 is given by
+        where its vectorized structure of length 9 is given by
 
         sigma = [sigma_xx, sigma_xy, sigma_xz,
                  sigma_yx, sigma_yy, sigma_yz,
@@ -355,7 +323,7 @@ class VecBDM1(VecHDiv):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             loc_ind = np.hstack([faces_loc] * sd.dim)
             loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
@@ -401,7 +369,6 @@ class VecBDM1(VecHDiv):
         Returns:
             sps.csc_array: The asymmetric matrix obtained from the discretization.
         """
-
         # overestimate the size
         size = np.square((sd.dim + 1) * sd.dim) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -441,7 +408,7 @@ class VecBDM1(VecHDiv):
 
             # Get all the components of the basis at node
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             for ind in ind_list:
                 Psi_v_copy = Psi_v.copy()
@@ -693,7 +660,7 @@ class VecRT1(VecHDiv):
 
             # Get all the components of the basis at nodes and edges
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             # Get the indices for the local face and cell degrees of freedom
             loc_face = np.hstack([faces_loc] * sd.dim)

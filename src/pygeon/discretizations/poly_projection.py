@@ -1,4 +1,4 @@
-from typing import Type, Union
+from typing import Type
 
 import scipy.sparse as sps
 
@@ -7,7 +7,7 @@ import pygeon as pg
 
 def get_PwPolynomials(
     poly_order: int, tensor_order: int
-) -> Union[Type[pg.PwPolynomials], Type[pg.VecPwPolynomials]]:
+) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
     """
     Returns the piecewise polynomial discretization class based on the polynomial order.
 

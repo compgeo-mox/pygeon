@@ -1,6 +1,8 @@
 # Adapted from PorePy
 # Run unit, integration, and functional tests.
 name: Check tutorials
+permissions:
+  contents: read
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events for the main and develop branches
@@ -80,4 +82,5 @@ jobs:
 
     - name: Check tutorials
       if: ${{always()}}
-      run: pytest tests -m tutorials
+      run: |
+        pytest tests -m tutorials

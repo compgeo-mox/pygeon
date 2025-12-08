@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(curl) space."""
 
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -35,14 +35,14 @@ class Nedelec0(pg.Discretization):
         return sd.num_ridges
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
 
         Args:
             sd (pg.Grid): Grid, or a subclass, with geometry fields computed.
-            data (dict, optional): Dictionary to store the data. See self.matrix_rhs
+            data (dict | None): Dictionary to store the data. See self.matrix_rhs
                 for required contents.
 
         Returns:
@@ -255,14 +255,14 @@ class Nedelec1(pg.Discretization):
         return 2 * sd.num_ridges
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid for which the mass matrix is to be assembled.
-            data (dict, optional): Additional data required for the assembly process.
+            data (dict | None): Additional data required for the assembly process.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -270,14 +270,14 @@ class Nedelec1(pg.Discretization):
         raise NotImplementedError
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (dict, optional): Additional data. Defaults to None.
+            data (dict | None): Additional data. Defaults to None.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.

@@ -1,6 +1,6 @@
 """Module for the LinearSystem class."""
 
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -13,7 +13,7 @@ class LinearSystem:
     and reduces the system appropriately before solving.
     """
 
-    def __init__(self, A: sps.csc_array, b: Optional[np.ndarray] = None) -> None:
+    def __init__(self, A: sps.csc_array, b: np.ndarray | None = None) -> None:
         """
         Initialize a LinearSystem object.
 
@@ -93,7 +93,7 @@ class LinearSystem:
 
         return sol
 
-    def repeat_ess_vals(self) -> Union[np.ndarray, sps.csc_array]:
+    def repeat_ess_vals(self) -> sps.csc_array | np.ndarray:
         """
         Repeat the essential values of the linear system.
 

@@ -1,7 +1,7 @@
 """Module for the discretizations of the L2 space."""
 
 import abc
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 import numpy as np
 import porepy as pp
@@ -55,54 +55,46 @@ class PwPolynomials(pg.Discretization):
         """
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Computes the mass matrix for piecewise linears
+        Computes the mass matrix for piecewise polynomials.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
-            data (Optional[dict]): Dictionary with possible scaling.
+            data (dict | None): Dictionary with possible scaling.
 
         Returns:
             sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
         """
         local_mass = self.assemble_local_mass(sd.dim)
 
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
-
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
         diag_weight = sps.diags_array(sd.cell_volumes * weight)
+
         M = sps.kron(local_mass, diag_weight)
         M.eliminate_zeros()
 
         return M.tocsc()
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
         local_mass = self.assemble_local_lumped_mass(sd.dim)
 
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
-
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
         diag_weight = sps.diags_array(sd.cell_volumes * weight)
+
         M = sps.kron(local_mass, diag_weight).tocsc()
         M.eliminate_zeros()
 
@@ -124,14 +116,14 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((0, self.ndof(sd)))
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
-            data (Optional[dict]): Additional data for the assembly process.
+            data (dict | None): Additional data for the assembly process.
 
         Returns:
             sps.csc_array: The assembled stiffness matrix.
@@ -269,14 +261,14 @@ class PwConstants(PwPolynomials):
         return self.assemble_local_mass(dim)
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for piecewise constants
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
-            data (Optional[dict]): Dictionary with possible scaling.
+            data (dict | None): Dictionary with possible scaling.
 
         Returns:
             sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
@@ -287,14 +279,14 @@ class PwConstants(PwPolynomials):
         return M.tocsc()
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the lumped mass matrix, which coincides with the mass matrix for P0.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
-            data (Optional[dict]): Additional data for the assembly process.
+            data (dict | None): Additional data for the assembly process.
 
         Returns:
             sps.csc_array: The assembled lumped mass matrix.
@@ -353,7 +345,7 @@ class PwConstants(PwPolynomials):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
         etype: str = "specific",
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
@@ -364,9 +356,9 @@ class PwConstants(PwPolynomials):
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
                 analytical solution.
-            relative (Optional[bool], optional): Compute the relative error or not.
+            relative (bool): Compute the relative error or not.
                 Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to
+            etype (str): Type of error computed. Defaults to
             "specific".
 
         Returns:

@@ -1,6 +1,6 @@
 """Module for the discretizations of the vector H1 space."""
 
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import porepy as pp
@@ -56,6 +56,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
+
     base_discr: pg.Lagrange1  # To please mypy
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -145,7 +146,7 @@ class VecLagrange1(pg.VecDiscretization):
         return c_volume * dphi
 
     def assemble_div_div_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the div-div matrix operator for the lowest order
@@ -153,25 +154,21 @@ class VecLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Additional data, the Lame' parameter lambda.
+            data (dict | None): Additional data, the Lame' parameter lambda.
                 Defaults to None.
 
         Returns:
             csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained from
             the discretization.
         """
-        if not data:
-            labda = 1
-        else:
-            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            labda = parameter_dictionary.get("lambda", 1)
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
         p0 = pg.PwConstants(self.keyword)
 
         div = self.assemble_div_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
 
-        return div.T @ (labda * mass) @ div
+        return div.T @ (lambda_ * mass) @ div
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -271,7 +268,7 @@ class VecLagrange1(pg.VecDiscretization):
         return c_volume * sym @ grad
 
     def assemble_symgrad_symgrad_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the symgrad-symgrad matrix operator for the lowest order
@@ -280,25 +277,19 @@ class VecLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to
+            data (dict | None): Additional data, the Lame' parameter mu. Defaults to
                 None.
 
         Returns:
             sps.csc_array: Sparse symgrad-symgrad matrix of shape (sd.num_nodes,
             sd.num_nodes). The matrix obtained from the discretization.
         """
-        if not data:
-            mu = 1
-        else:
-            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            mu = parameter_dictionary.get("mu", 1)
-
-        coeff = 2 * mu
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         p0 = pg.PwConstants(self.keyword)
 
         symgrad = self.assemble_symgrad_matrix(sd)
         mass = p0.assemble_mass_matrix(sd)
-        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim)).tocsc()
+        tensor_mass = sps.block_diag([2 * mu * mass] * np.square(sd.dim)).tocsc()
 
         return symgrad.T @ tensor_mass @ symgrad
 
@@ -318,14 +309,14 @@ class VecLagrange1(pg.VecDiscretization):
         return sps.block_array([[symgrad], [div]]).tocsc()
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the global stiffness matrix for the finite element method.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
-            data (Optional[dict]): Additional data required for the assembly process.
+            data (dict | None): Additional data required for the assembly process.
 
         Returns:
             sps.csc_array: The assembled global stiffness matrix.
@@ -369,7 +360,8 @@ class VecLagrange1(pg.VecDiscretization):
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
             data (dict): Data for the computation including the Lame parameters accessed
-                with the keys "lambda" and "mu". Both float and np.ndarray are accepted.
+                with the keys pg.LAME_LAMBDA and pg.LAME_MU.
+                Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.
@@ -382,13 +374,13 @@ class VecLagrange1(pg.VecDiscretization):
         proj = p0.eval_at_cell_centers(sd)
 
         # retrieve Lamé parameters
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        mu = parameter_dictionary["mu"]
-        labda = parameter_dictionary["lambda"]
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        mu = np.tile(mu, np.square(sd.dim))
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
         # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += labda * div @ u
+        sigma = np.array(np.split(2 * mu * (symgrad @ u), np.square(sd.dim)))
+        sigma[:: (sd.dim + 1)] += lambda_ * (div @ u)
 
         # compute the actual dofs
         sigma = sigma @ proj

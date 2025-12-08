@@ -4,8 +4,8 @@ from pygeon.utils.common_constants import *
 
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
-from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.mortar_grid import MortarGrid
+from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.octagon import OctagonGrid
 from pygeon.grids.voronoi import VoronoiGrid
 from pygeon.grids.einstein import EinSteinGrid
@@ -17,6 +17,8 @@ from pygeon.grids.create_grid import (
     reference_element,
 )
 from pygeon.grids.refinement import barycentric_split
+
+from pygeon.params.data import get_cell_data
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.vec_discretization import VecDiscretization
@@ -84,3 +86,8 @@ from pygeon.numerics.block_diag_solver import (
 
 import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
+
+# Expose the `numerics` subpackage on the top-level `pygeon` package so
+# attribute-style access (e.g. `pygeon.numerics`) is available and type
+# checkers like mypy can resolve references to `pygeon.numerics`.
+from . import numerics

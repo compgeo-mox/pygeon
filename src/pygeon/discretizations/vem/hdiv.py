@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import porepy as pp
@@ -39,21 +39,24 @@ class VRT0(pg.RT0):
         self.ref_discr = pp.MVEM
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
+            data (dict | None): Optional dictionary with physical parameters for
                 scaling.
 
         Returns:
             sps.csc_array: The mass matrix.
         """
-        # create unitary data, unitary permeability, in case not present
-        data = VRT0.create_unitary_data(self.keyword, sd, data)
+        perm = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
+        data = data if data is not None else {}
+        data = pp.initialize_data(data, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
@@ -72,7 +75,8 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        data = VRT0.create_unitary_data(self.keyword, sd, None)
+        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
+        data = pp.initialize_data({}, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)
@@ -99,14 +103,14 @@ class VBDM1(pg.BDM1):
     """Vector-valued discretization"""
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for the Virtual Element Method (VEM).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -299,14 +303,14 @@ class VBDM1(pg.BDM1):
         return dof
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid for which the lumped matrix is assembled.
-            data (Optional[dict]): Optional data required for the assembly.
+            data (dict | None): Optional data required for the assembly.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.

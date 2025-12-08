@@ -1,7 +1,5 @@
 """This module contains functions for computing the stiffness operators."""
 
-from typing import Optional, Union
-
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -10,7 +8,7 @@ import pygeon as pg
 
 
 def cell_stiff(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for the piecewise constants on a (MD-)grid.
@@ -26,7 +24,7 @@ def cell_stiff(
 
 
 def face_stiff(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the faces of a (MD-)grid.
@@ -43,7 +41,7 @@ def face_stiff(
 
 def ridge_stiff(
     mdg: pg.MixedDimensionalGrid,
-    discr: Optional[pg.Discretization] = None,
+    discr: pg.Discretization | None = None,
     **kwargs,
 ) -> sps.csc_array:
     """
@@ -61,7 +59,7 @@ def ridge_stiff(
 
 
 def peak_stiff(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the peaks of a (MD-)grid.
@@ -82,7 +80,7 @@ def peak_stiff(
 def stiff_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
-    discr: Union[pg.Discretization, None],
+    discr: pg.Discretization | None,
     **kwargs,
 ) -> sps.csc_array:
     """
@@ -92,7 +90,7 @@ def stiff_matrix(
         mdg (pp.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
+        discr (pg discretization object).
         data (dict): The data object associated to the grid.
         local_matrix (function): Function that generates the local mass matrix on a
             grid.
@@ -108,4 +106,4 @@ def stiff_matrix(
         mdg, n_minus_k - 1, discr, **kwargs
     )
 
-    return (diff.T @ mass_plus_1 @ diff).tocsc()  # type: ignore
+    return (diff.T @ mass_plus_1 @ diff).tocsc()

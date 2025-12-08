@@ -22,20 +22,10 @@ class MortarGrid(pp.MortarGrid):
     interfaces between subdomains in a numerical simulation.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        """
-        Initialize a new instance of the MortarGrid class.
+    def assign_sd_pair(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
+        self.sd_pair = sd_pair
 
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            None
-        """
-        super(MortarGrid, self).__init__(*args, **kwargs)
-
-    def compute_geometry(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:  # type: ignore
+    def compute_geometry(self) -> None:
         """
         Computes the geometry of the MortarGrid.
 
@@ -47,13 +37,13 @@ class MortarGrid(pp.MortarGrid):
         """
         super(MortarGrid, self).compute_geometry()
 
-        self.assign_signed_mortar_to_primary(sd_pair)
+        self.assign_signed_mortar_to_primary()
         self.assign_cell_faces()
 
         if self.dim >= 1:
-            self.compute_ridges(sd_pair)
+            self.compute_ridges()
 
-    def compute_ridges(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
+    def compute_ridges(self) -> None:
         """
         Assign the face-ridge and ridge-peak connectivities to the mortar grid
 
@@ -63,7 +53,7 @@ class MortarGrid(pp.MortarGrid):
         Returns:
             None
         """
-        sd_up, sd_down = sd_pair
+        sd_up, sd_down = self.sd_pair
 
         # High-dim ridges matching to low-dim face
         face_ridges = sps.lil_array((sd_up.num_ridges, sd_down.num_faces), dtype=int)
@@ -173,7 +163,7 @@ class MortarGrid(pp.MortarGrid):
         self.face_ridges = face_ridges_csc
         self.ridge_peaks = ridge_peaks_csc
 
-    def assign_signed_mortar_to_primary(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
+    def assign_signed_mortar_to_primary(self) -> None:
         """
         Compute the mapping from mortar cells to the faces of the primary grid that
         respects orientation.
@@ -186,8 +176,8 @@ class MortarGrid(pp.MortarGrid):
             cells to primary grid faces. The matrix has dimensions num_primary_faces x
             num_mortar_cells.
         """
-        sd_up = sd_pair[0]
-        cells, faces, _ = sps.find(self.primary_to_mortar_int())  # type: ignore[arg-type]
+        sd_up = self.sd_pair[0]
+        cells, faces, _ = sps.find(self.primary_to_mortar_int())
         cf_csr = sd_up.cell_faces.tocsr()
         signs = [cf_csr[face, :].data[0] for face in faces]
 
@@ -212,5 +202,5 @@ class MortarGrid(pp.MortarGrid):
             None
         """
         self.cell_faces = (
-            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()  # type: ignore[operator]
+            -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()
         )

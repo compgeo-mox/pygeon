@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Optional, Tuple, Type, Union
+from typing import Callable, Literal, Tuple, Type, overload
 
 import numpy as np
 import porepy as pp
@@ -35,77 +35,16 @@ class RT0(pg.Discretization):
         """
         return sd.num_faces
 
-    @staticmethod
-    def create_unitary_data(
-        keyword: str, sd: pg.Grid, data: Optional[dict] = None
-    ) -> dict:
-        """
-        Updates data such that it has all the necessary components for pp.RT0, if the
-        second order tensor is not present, it is set to the identity. It represents
-        the inverse of the diffusion tensor (permeability for porous media).
-
-        Args:
-            keyword (str): The keyword for the discretization.
-            sd (pg.Grid): Grid object or a subclass.
-            data (dict): Dictionary object or None.
-
-        Returns:
-            dict: Dictionary with required attributes.
-        """
-        if not data:
-            data = {
-                pp.PARAMETERS: {keyword: {}},
-                pp.DISCRETIZATION_MATRICES: {keyword: {}},
-            }
-
-        try:
-            data[pp.PARAMETERS]
-        except KeyError:
-            data.update({pp.PARAMETERS: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]
-        except KeyError:
-            data[pp.PARAMETERS].update({keyword: {}})
-
-        try:
-            data[pp.PARAMETERS]
-        except KeyError:
-            data.update({pp.PARAMETERS: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]
-        except KeyError:
-            data[pp.PARAMETERS].update({keyword: {}})
-
-        try:
-            data[pp.PARAMETERS][keyword]["second_order_tensor"]
-        except KeyError:
-            perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-            data[pp.PARAMETERS][keyword].update({"second_order_tensor": perm})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {}})
-
-        try:
-            data[pp.DISCRETIZATION_MATRICES][keyword]
-        except KeyError:
-            data.update({pp.DISCRETIZATION_MATRICES: {keyword: {}}})
-
-        return data
-
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
-                scaling, in particular the second_order_tensor that is the inverse of
+            data (dict | None): Optional dictionary with physical parameters for
+                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
         Returns:
@@ -115,20 +54,16 @@ class RT0(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
-        # create unitary data, unitary permeability, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         _, _, _, R, dim, nodes = pp.map_geometry.map_grid(sd)
         nodes = nodes[: sd.dim, :]
 
-        if not data_.get("is_tangential", False):
+        if not data or not data.get("is_tangential", False):
             # Rotate the inverse of the permeability tensor and delete last dimension
             if sd.dim < 3:
                 inv_K = inv_K.copy()
@@ -279,27 +214,23 @@ class RT0(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
-                scaling. In particular the second_order_tensor that is the inverse of
+            data (dict | None): Optional dictionary with physical parameters for
+                scaling. In particular the pg.SECOND_ORDER_TENSOR that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        if not data:
-            data = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of the permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         h_perp = np.zeros(sd.num_faces)
         for face, cell in zip(*sd.cell_faces.nonzero()):
@@ -407,7 +338,7 @@ class RT0(pg.Discretization):
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
         etype: str = "specific",
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
@@ -418,9 +349,9 @@ class RT0(pg.Discretization):
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
                 analytical solution.
-            relative (Optional[bool], optional): Compute the relative error or not.
+            relative (bool): Compute the relative error or not.
                 Defaults to True.
-            etype (Optional[str], optional): Type of error computed. Defaults to
+            etype (str): Type of error computed. Defaults to
                 "specific".
 
         Returns:
@@ -490,14 +421,14 @@ class BDM1(pg.Discretization):
         return loc_ind
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid for which the mass matrix is assembled.
-            data (Optional[dict]): Additional data for the assembly process.
+            data (dict | None): Additional data for the assembly process.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -510,13 +441,9 @@ class BDM1(pg.Discretization):
 
         M = self.local_inner_product(sd.dim)
 
-        inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            inv_K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", inv_K)
-            )
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -532,7 +459,7 @@ class BDM1(pg.Discretization):
             weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
 
             # Compute the inner products
-            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]  # type: ignore[union-attr]
+            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
 
             loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
 
@@ -547,13 +474,31 @@ class BDM1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    @overload
+    def eval_basis_at_node(
+        self,
+        sd: pg.Grid,
+        opposites: np.ndarray,
+        faces_loc: np.ndarray,
+        return_node_ind: Literal[True],
+    ) -> Tuple[np.ndarray, np.ndarray]: ...
+
+    @overload
+    def eval_basis_at_node(
+        self,
+        sd: pg.Grid,
+        opposites: np.ndarray,
+        faces_loc: np.ndarray,
+        return_node_ind: Literal[False] = False,
+    ) -> np.ndarray: ...
+
     def eval_basis_at_node(
         self,
         sd: pg.Grid,
         opposites: np.ndarray,
         faces_loc: np.ndarray,
         return_node_ind: bool = False,
-    ) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray] | np.ndarray:
         """
         Compute the local basis function for the BDM1 finite element space.
 
@@ -778,14 +723,14 @@ class BDM1(pg.Discretization):
         return pg.PwConstants
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -798,13 +743,9 @@ class BDM1(pg.Discretization):
         data_IJ = np.empty(size)
         idx = 0
 
-        inv_K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            inv_K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", inv_K)
-            )
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         opposite_nodes = sd.compute_opposite_nodes()
 
@@ -871,7 +812,7 @@ class BDM1(pg.Discretization):
             Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
 
             Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]  # type: ignore[call-overload]
+            Psi_v = Psi[Psi_i, Psi_j]
 
             # Extract indices of local dofs
             loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
@@ -938,15 +879,15 @@ class RT1(pg.Discretization):
         return np.hstack((loc_face, loc_cell))
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
-                scaling, in particular the second_order_tensor that is the inverse of
+            data (dict | None): Optional dictionary with physical parameters for
+                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
                 the diffusion tensor (permeability for porous media).
 
         Returns:
@@ -956,13 +897,9 @@ class RT1(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_array((0, 0))
 
-        # create unitary data, unitary permeability, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         # Allocate the data to store matrix A entries
         size = np.square(sd.dim * (sd.dim + 2)) * sd.num_cells
@@ -1342,7 +1279,7 @@ class RT1(pg.Discretization):
         return pg.PwLinears
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid,
@@ -1350,7 +1287,7 @@ class RT1(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
@@ -1362,13 +1299,9 @@ class RT1(pg.Discretization):
         bdm1 = pg.BDM1(self.keyword)
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
-        # create unitary data, unitary permeability, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-        # Retrieve the inverse of permeability
-        inv_K = parameter_dictionary["second_order_tensor"]
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         # Allocate the data to store matrix P entries
         size = sd.dim * sd.dim * sd.num_cells
