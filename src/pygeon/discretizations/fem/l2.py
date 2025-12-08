@@ -123,7 +123,7 @@ class PwPolynomials(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid or a subclass.
-            data (dict | None): Additional data for the assembly process.
+            _data (dict | None): Additional data for the assembly process.
 
         Returns:
             sps.csc_array: The assembled stiffness matrix.
@@ -141,9 +141,9 @@ class PwPolynomials(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object.
-            func (Callable[[np.ndarray], np.ndarray]): The function defining the
+            _func (Callable[[np.ndarray], np.ndarray]): The function defining the
                  natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            _b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.
@@ -155,7 +155,7 @@ class PwPolynomials(pg.Discretization):
         Returns the discretization class for the range of the differential.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Raises:
             NotImplementedError: There is no zero discretization available in PyGeoN.
@@ -208,7 +208,7 @@ class PwPolynomials(pg.Discretization):
         Projects the discretization to +1 order discretization.
 
         Args:
-            sd (pg.Grid): The grid object.
+            _sd (pg.Grid): The grid object.
 
         Returns:
             sps.csc_array: The projection matrix.
@@ -232,7 +232,7 @@ class PwConstants(PwPolynomials):
         Returns the number of degrees of freedom per cell.
 
         Args:
-            sd (pg.Grid): The grid object.
+            _sd (pg.Grid): The grid object.
 
         Returns:
             int: The number of degrees of freedom per cell.
@@ -244,7 +244,7 @@ class PwConstants(PwPolynomials):
         Computes the local mass matrix for piecewise constants
 
         Args:
-            dim (int): The dimension of the grid.
+            _dim (int): The dimension of the grid.
 
         Returns:
             np.ndarray: Local mass matrix for piecewise constants.
@@ -363,6 +363,7 @@ class PwConstants(PwPolynomials):
                 Defaults to True.
             etype (str): Type of error computed. Defaults to
             "specific".
+            _data (dict | None): Optional data for the error computation.
 
         Returns:
             float: The computed error.

@@ -59,7 +59,7 @@ class VecVRT0(pg.VecDiscretization):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.

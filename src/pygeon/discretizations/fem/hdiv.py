@@ -307,7 +307,7 @@ class RT0(pg.Discretization):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.
@@ -353,8 +353,7 @@ class RT0(pg.Discretization):
                 Defaults to True.
             etype (str): Type of error computed. Defaults to
                 "specific".
-            _data (dict | None): Unused parameter kept for API compatibility.
-                Defaults to None.
+            _data (dict | None): Optional data for the error computation.
 
         Returns:
             float: The computed error.
@@ -717,7 +716,7 @@ class BDM1(pg.Discretization):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.
@@ -1273,7 +1272,7 @@ class RT1(pg.Discretization):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range space.
+            _dim (int): The dimension of the range space.
 
         Returns:
             pg.Discretization: The range discretization class.

@@ -236,8 +236,9 @@ class Discretization(abc.ABC):
             ana_sol (Callable): Function that represents the analytical solution.
             relative (bool, optional): Compute the relative error or not. Defaults to
                 True.
-            etype (str, optional): Type of error computed. For "standard", the current
+            _etype (str, optional): Type of error computed. For "standard", the current
                 implementation. Defaults to "standard".
+            data (dict | None): Optional data for the error computation.
 
         Returns:
             float: The computed error.
