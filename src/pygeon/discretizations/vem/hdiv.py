@@ -52,8 +52,11 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The mass matrix.
         """
-        # create unitary data, unitary permeability, in case not present
-        data = VRT0.create_unitary_data(self.keyword, sd, data)
+        perm = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
+        data = data if data is not None else {}
+        data = pp.initialize_data(data, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
@@ -72,7 +75,8 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        data = VRT0.create_unitary_data(self.keyword, sd, None)
+        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
+        data = pp.initialize_data({}, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)

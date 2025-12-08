@@ -51,8 +51,6 @@ def convert_from_pp(
 
         obj.__class__ = pg.MixedDimensionalGrid
         obj = cast(pg.MixedDimensionalGrid, obj)
-        if hasattr(obj, "initialize_data"):
-            obj.initialize_data()
     else:
         raise TypeError
 

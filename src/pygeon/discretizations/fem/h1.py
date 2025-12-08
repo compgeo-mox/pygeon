@@ -24,12 +24,12 @@ class Lagrange1(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes.
+        In this case, the number of nodes.
 
-        Args
+        Args:
             sd: grid, or a subclass.
 
-        Returns
+        Returns:
             ndof: the number of degrees of freedom.
         """
         return sd.num_nodes
@@ -105,22 +105,13 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        # Get dictionary for parameter storage
-        K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", K)
-            )
-        else:
-            data = {"is_tangential": True}
+        K = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
-        if not data.get("is_tangential", False):
+        if not data or not data.get("is_tangential", False):
             # Rotate the permeability tensor and delete last dimension
             if sd.dim < 3:
                 K = K.copy()
@@ -358,13 +349,13 @@ class Lagrange2(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes plus the number of edges,
+        In this case, the number of nodes plus the number of edges,
         where edges are one-dimensional mesh entities.
 
-        Args
+        Args:
             sd: grid, or a subclass.
 
-        Returns
+        Returns:
             ndof: the number of degrees of freedom.
         """
         if sd.dim == 0:
@@ -391,11 +382,7 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The mass matrix.
         """
-        weight = np.ones(sd.num_cells)
-        if data is not None:
-            weight = (
-                data.get(pp.PARAMETERS, {}).get(self.keyword, {}).get("weight", weight)
-            )
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
 
         # Data allocation
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
@@ -544,7 +531,7 @@ class Lagrange2(pg.Discretization):
 
         return e_nodes
 
-    def eval_grads_at_nodes(self, dphi, e_nodes) -> np.ndarray:
+    def eval_grads_at_nodes(self, dphi: np.ndarray, e_nodes: np.ndarray) -> np.ndarray:
         """
         Evaluates the gradients of the basis functions at the nodes
 
@@ -563,21 +550,23 @@ class Lagrange2(pg.Discretization):
         # nodal dofs
         n_nodes = dphi.shape[1]
         Psi_nodes = np.zeros((n_nodes, 3 * n_nodes))
-        for ind in np.arange(n_nodes):
-            Psi_nodes[ind, 3 * ind : 3 * (ind + 1)] = 4 * dphi[:, ind]
+        for ind_n in np.arange(n_nodes):
+            Psi_nodes[ind_n, 3 * ind_n : 3 * (ind_n + 1)] = 4 * dphi[:, ind_n]
         Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
 
         # edge dofs
         n_edges = self.num_edges_per_cell(n_nodes - 1)
         Psi_edges = np.zeros((n_edges, 3 * n_nodes))
 
-        for ind, (e0, e1) in enumerate(e_nodes):
-            Psi_edges[ind, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
-            Psi_edges[ind, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
+        for ind_e, (e0, e1) in enumerate(e_nodes):
+            Psi_edges[ind_e, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
+            Psi_edges[ind_e, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
 
         return np.vstack((Psi_nodes, Psi_edges))
 
-    def get_edge_dof_indices(self, sd, cell, faces) -> np.ndarray:
+    def get_edge_dof_indices(
+        self, sd: pg.Grid, cell: int, faces: np.ndarray
+    ) -> np.ndarray:
         """
         Finds the indices for the edge degrees of freedom that correspond
         to the local numbering of the edges.
@@ -623,13 +612,9 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The stiffness matrix.
         """
-        K = pp.SecondOrderTensor(np.ones(sd.num_cells))
-        if data is not None:
-            K = (
-                data.get(pp.PARAMETERS, {})
-                .get(self.keyword, {})
-                .get("second_order_tensor", K)
-            )
+        sot = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
 
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -651,7 +636,7 @@ class Lagrange2(pg.Discretization):
             dphi = -sd.face_normals[:, faces] * signs / (sd.dim * sd.cell_volumes[c])
             Psi = self.eval_grads_at_nodes(dphi, e_nodes)
 
-            weight = np.kron(np.eye(sd.dim + 1), K.values[:, :, c])
+            weight = np.kron(np.eye(sd.dim + 1), sot.values[:, :, c])
 
             A = Psi @ local_mass @ weight @ Psi.T * sd.cell_volumes[c]
 
@@ -766,7 +751,9 @@ class Lagrange2(pg.Discretization):
 
         return sps.hstack((eval_nodes, eval_edges)).tocsc()
 
-    def assemble_lumped_matrix(self, sd: pg.Grid, data=None) -> sps.csc_array:
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix for the quadratic Lagrange space.
         This is based on the integration rule by Eggers and Radu,
@@ -774,8 +761,8 @@ class Lagrange2(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the
-                matrix.
+            data (dict | None): A dictionary containing the necessary data for
+                assembling the matrix.
 
         Returns:
             sps.csc_array: The lumped mass matrix.

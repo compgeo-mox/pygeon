@@ -20,7 +20,8 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
 
 @pytest.fixture
 def data():
-    return {pp.PARAMETERS: {"test": {"mu": 0.5, "lambda": 0.5, "mu_c": 0.25}}}
+    params = {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 0.5, pg.LAME_MU_COSSERAT: 0.25}
+    return pp.initialize_data({}, "test", params)
 
 
 @pytest.fixture
@@ -35,10 +36,10 @@ def test_range(discr, ref_sd):
     assert discr.get_range_discr_class(ref_sd.dim) is known_range
 
 
-def test_assemble_mass_matrices(discr, unit_sd, data, constant_fun):
+def test_assemble_elasticity_matrices(discr, unit_sd, data, constant_fun):
     if unit_sd.dim == 1:
         return
-    M = discr.assemble_mass_matrix(unit_sd, data)
+    M = discr.assemble_mass_matrix_elasticity(unit_sd, data)
     u = discr.interpolate(unit_sd, constant_fun)
 
     known = 26 if unit_sd.dim == 2 else 27
@@ -47,7 +48,7 @@ def test_assemble_mass_matrices(discr, unit_sd, data, constant_fun):
     if isinstance(discr, pg.VecRT0):
         return
 
-    L = discr.assemble_lumped_matrix(unit_sd, data)
+    L = discr.assemble_lumped_matrix_elasticity(unit_sd, data)
     assert np.isclose(u.T @ L @ u, known)
 
 
