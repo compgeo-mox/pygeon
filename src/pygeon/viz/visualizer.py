@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 try:
     import pyvista as pv
@@ -29,25 +29,36 @@ class Visualizer:
             vis.show(screenshot="pressure.png")
     """
 
-    def __init__(self, file_path: str | Path, time_step: int = 0) -> None:
+    def __init__(
+        self, file_name: str | Path, folder_name: str | Path = None, time_step: int = 0
+    ) -> None:
         """
         Initialize the Visualizer.
 
         Args:
-            file_path (str | Path): Path to the PVD file (extension pvd can be omitted).
-            time_step (int): Time step index for PVD files. Default 0 (first time step).
+            file_name (str | Path): Name or path to the PVD file
+                (extension .pvd can be omitted).
+            folder_name (str | Path): Optional folder path. If provided,
+                will be combined with file_name.
+            time_step (int): Time step index for PVD files.
+                Default 0 (first time step).
         """
         if not PYVISTA_AVAILABLE:
             raise ImportError("PyVista is required for visualization.")
 
-        # Convert to Path object if string
-        file_path = Path(file_path)
+        # Convert to Path objects if strings
+        file_name = Path(file_name)
+
+        # Construct full path as union of folder_name and file_name
+        if folder_name is not None:
+            folder_name = Path(folder_name)
+            file_name = folder_name / file_name
 
         # Add .pvd extension if not present
-        if file_path.suffix.lower() != ".pvd":
-            file_path = file_path.with_suffix(".pvd")
+        if file_name.suffix.lower() != ".pvd":
+            file_name = file_name.with_suffix(".pvd")
 
-        self.file_path: Path = file_path
+        self.file_path: Path = file_name
         self.time_step: int = time_step
 
         # Configure PyVista for LaTeX rendering
@@ -62,7 +73,7 @@ class Visualizer:
         self.active_mesh_name: str = ""
         self.time_values: list[float] = []
         self.current_time: float = 0.0
-        self._load_pvd(file_path, time_step)
+        self._load_pvd(file_name, time_step)
 
         self.actors: list[Any] = []
 
@@ -133,7 +144,7 @@ class Visualizer:
                 if dim is not None:
                     mesh_path = base_dir / file_ref
                     try:
-                        mesh = pv.read(str(mesh_path))
+                        mesh = cast("pv.DataSet", pv.read(str(mesh_path)))
                         self.meshes[f"Mesh_dim{dim}"] = mesh
                     except Exception as e:
                         raise ValueError(f"Failed to read mesh file {file_ref}: {e}")
@@ -229,7 +240,9 @@ class Visualizer:
         show_edges = kwargs.get("show_edges", True)
         edge_color = kwargs.get("edge_color", "gray")
         line_width = kwargs.get("line_width", 1.0)
-        scalar_bar_args = kwargs.get("scalar_bar_args", {"title": field_name})
+        scalar_bar_args = kwargs.get(
+            "scalar_bar_args", {"title": field_name, "vertical": True}
+        )
 
         # Show scalar field without edges to avoid triangulation visibility
         actor = self.plotter.add_mesh(
@@ -337,14 +350,14 @@ class Visualizer:
 
         # Set camera view
         if view == "xy":
-            self.plotter.view_xy()
-            self.plotter.enable_parallel_projection()
+            cast(Any, self.plotter.view_xy)()
+            cast(Any, self.plotter.enable_parallel_projection)()
         elif view == "xz":
-            self.plotter.view_xz()
+            cast(Any, self.plotter.view_xz)()
         elif view == "yz":
-            self.plotter.view_yz()
+            cast(Any, self.plotter.view_yz)()
         elif view == "iso":
-            self.plotter.view_isometric()
+            cast(Any, self.plotter.view_isometric)()
 
         # Set the title if provided
         if title:
@@ -372,4 +385,4 @@ class Visualizer:
                 self.plotter.screenshot(str(screenshot_path))
 
         # Show the plot
-        self.plotter.show()
+        self.plotter.show(jupyter_backend="static")
