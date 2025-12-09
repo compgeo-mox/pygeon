@@ -30,7 +30,7 @@ class Visualizer:
     """
 
     def __init__(
-        self, file_name: str | Path, folder_name: str | Path = None, time_step: int = 0
+        self, file_name: str | Path, folder_name: str | Path = "", time_step: int = 0
     ) -> None:
         """
         Initialize the Visualizer.
@@ -50,7 +50,7 @@ class Visualizer:
         file_name = Path(file_name)
 
         # Construct full path as union of folder_name and file_name
-        if folder_name is not None:
+        if folder_name != "":
             folder_name = Path(folder_name)
             file_name = folder_name / file_name
 
