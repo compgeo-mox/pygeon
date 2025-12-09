@@ -101,15 +101,18 @@ def test_range_discr_class(discr):
 
 def test_error_l2(discr, unit_sd):
     def fun(pt):
-        return np.array([pt[0] + 2 * pt[1], 2 * pt[0] + pt[1], 0])
+        return np.array([pt[0] ** 2 + 2 * pt[1], 2 * pt[0] + pt[1], 0])
 
     int_sol = discr.interpolate(unit_sd, fun)
 
+    # Test that the relative error is 1 for a zero distribution
     err = discr.error_l2(unit_sd, np.zeros_like(int_sol), fun)
     assert np.isclose(err, 1)
 
-    err = discr.error_l2(unit_sd, int_sol, fun, etype="standard")
+    # Test that the error is 0 if num_sol is the interpolant
+    err = discr.error_l2(unit_sd, int_sol, fun)
     assert np.isclose(err, 0)
 
-    err = discr.error_l2(unit_sd, int_sol, fun, etype="specific")
+    # Test that the error is nonzero with lowest-order integration
+    err = discr.error_l2(unit_sd, int_sol, fun, poly_order=0)
     assert not np.isclose(err, 0)

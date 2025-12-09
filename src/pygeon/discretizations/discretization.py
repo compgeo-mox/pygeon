@@ -222,29 +222,44 @@ class Discretization(abc.ABC):
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
-        etype: str = "standard",
+        poly_order: int | None = None,
         data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
-        function.
+        function. NOTE: The default implementation uses interpolation which may result
+        in unexpected superconvergence. In that case, we advise specifying poly_order.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            num_sol (np.ndarray): Vector of the numerical solution.
-            ana_sol (Callable): Function that represents the analytical solution.
-            relative (bool, optional): Compute the relative error or not. Defaults to
+            sd (pg.Grid): Grid, or a subclass. num_sol (np.ndarray): Vector of the
+            numerical solution. ana_sol (Callable): Function that represents the
+            analytical solution. relative (bool, optional): Compute the relative error
+            or not. Defaults to
                 True.
-            etype (str, optional): Type of error computed. For "standard", the current
-                implementation. Defaults to "standard".
+            poly_order (int, optional): The default is to compare the numerical solution
+                to the interpolation of the given solution. If poly_order is specified,
+                the error is evaluated in a piecewise polynomial space of that order.
 
         Returns:
             float: The computed error.
         """
-        int_sol = self.interpolate(sd, ana_sol)
-        mass = self.assemble_mass_matrix(sd, data)
 
-        norm = (int_sol @ mass @ int_sol.T) if relative else 1
+        # Default case in which we interpolate the solution and compare
+        if poly_order is None:
+            int_sol = self.interpolate(sd, ana_sol)
+            mass = self.assemble_mass_matrix(sd, data)
 
-        diff = num_sol - int_sol
-        return np.sqrt(diff @ mass @ diff.T / norm)
+            norm = (int_sol @ mass @ int_sol.T) if relative else 1
+
+            diff = num_sol - int_sol
+            return np.sqrt(diff @ mass @ diff.T / norm)
+
+        # If poly_order is specified, we compare the solutions in a piecewise polynomial
+        # space
+        else:
+            poly_space = pg.get_PwPolynomials(poly_order, self.tensor_order)(
+                self.keyword
+            )
+            proj_sol = pg.proj_to_PwPolynomials(self, sd, poly_order) @ num_sol
+
+            return poly_space.error_l2(sd, proj_sol, ana_sol, relative, data=data)
