@@ -88,6 +88,7 @@ import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
 
 from pygeon.viz.visualizer import Visualizer
+from pygeon.viz.spanning_tree_visualizer import visualize_spanningtree_2d
 
 # Expose the `numerics` subpackage on the top-level `pygeon` package so
 # attribute-style access (e.g. `pygeon.numerics`) is available and type
