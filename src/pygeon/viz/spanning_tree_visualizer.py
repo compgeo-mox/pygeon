@@ -33,7 +33,7 @@ def visualize_spanningtree_2d(
 
     draw_grid = kwargs.get("draw_grid", True)
     draw_tree = kwargs.get("draw_tree", True)
-    draw_complement = kwargs.get("draw_cotree", False)
+    draw_cotree = kwargs.get("draw_cotree", False)
     start_color = kwargs.get("start_color", "green")
 
     fig_num = 1
@@ -119,7 +119,7 @@ def visualize_spanningtree_2d(
         )
 
     # Draw the tree that spans all nodes
-    if draw_complement:
+    if draw_cotree:
         curl = pg.curl(mdg)[~spt.flagged_faces, :]
         incidence = curl.T @ curl
         incidence -= sps.triu(incidence)
