@@ -85,4 +85,4 @@ jobs:
 
     - name: Compare coverage
       run: |
-        python compare_coverage.py
+        python .github/compare_coverage.py
