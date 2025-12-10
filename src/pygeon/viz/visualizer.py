@@ -1,6 +1,7 @@
+import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 try:
     import pyvista as pv
@@ -8,6 +9,11 @@ try:
     PYVISTA_AVAILABLE = True
 except ImportError:
     PYVISTA_AVAILABLE = False
+
+
+def _check_latex_available() -> bool:
+    """Check if LaTeX is available on the system."""
+    return shutil.which("latex") is not None
 
 
 class Visualizer:
@@ -61,10 +67,16 @@ class Visualizer:
         self.file_path: Path = file_name
         self.time_step: int = time_step
 
-        # Configure PyVista for LaTeX rendering
-        pv.global_theme.font.family = "times"
+        # Configure PyVista theme
         pv.global_theme.font.label_size = 14
         pv.global_theme.font.title_size = 16
+
+        # Enable LaTeX rendering if available
+        if _check_latex_available():
+            pv.global_theme.font.family = "times"
+            # LaTeX is available, PyVista can use it for text rendering
+        else:
+            pv.global_theme.font.family = "arial"
 
         self.plotter: "pv.Plotter" = pv.Plotter()
 
@@ -75,6 +87,7 @@ class Visualizer:
         self.current_time: float = 0.0
         self.actors: list[Any] = []
         self._load_pvd(file_name, time_step)
+
     def _load_pvd(self, file_path: Path, time_step: int = 0) -> None:
         """
         Load a PVD file containing time-series data.
@@ -90,16 +103,11 @@ class Visualizer:
             time_step (int): Time step index to load (0-based).
         """
         # Parse PVD XML file to extract timesteps and files
-        try:
-            tree = ET.parse(str(file_path))
-            root = tree.getroot()
-        except Exception as e:
-            raise ValueError(f"Failed to parse PVD file: {e}")
+        tree = ET.parse(str(file_path))
+        root = tree.getroot()
 
         # Extract all DataSet entries from the Collection
         datasets = root.findall(".//DataSet")
-        if not datasets:
-            raise ValueError("No DataSet entries found in PVD file.")
 
         # Parse timesteps and file paths
         time_data = []
@@ -111,14 +119,6 @@ class Visualizer:
 
         # Sort by timestep
         time_data.sort(key=lambda x: x[0])
-
-        if not time_data:
-            raise ValueError("No valid timestep data found in PVD file.")
-
-        # Validate time_step index
-        n_steps = len(time_data)
-        if time_step < 0 or time_step >= n_steps:
-            raise ValueError(f"Time step {time_step} out of range [0, {n_steps - 1}]")
 
         # Load meshes from first timestep
         # Extract unique dimensions from the first timestep files
@@ -140,22 +140,15 @@ class Visualizer:
             if timestep == first_timestep:
                 dim = file_to_dim.get(file_ref)
                 if dim is not None:
-                    mesh_path = base_dir / file_ref
-                    try:
-                        mesh = cast("pv.DataSet", pv.read(str(mesh_path)))
-                        self.meshes[f"Mesh_dim{dim}"] = mesh
-                    except Exception as e:
-                        raise ValueError(f"Failed to read mesh file {file_ref}: {e}")
+                    mesh = pv.read(str(base_dir / file_ref))
+                    self.meshes[f"Mesh_dim{dim}"] = mesh
 
         # Store time information
         self.time_values = [t[0] for t in time_data]
         self.current_time = time_data[time_step][0]
 
         # Set the first mesh as active
-        if self.meshes:
-            self.active_mesh_name = list(self.meshes.keys())[0]
-        else:
-            raise ValueError("No valid grids found in the PVD file.")
+        self.active_mesh_name = list(self.meshes.keys())[0]
 
     @staticmethod
     def _extract_dimension_from_filename(filename: str) -> int | None:
@@ -199,20 +192,37 @@ class Visualizer:
         Args:
             time_index (int): Index of the time step (0-based).
         """
-        if not self.time_values:
-            raise ValueError("No time steps available in this file.")
-
-        if time_index < 0 or time_index >= len(self.time_values):
-            raise ValueError(
-                f"Time index {time_index} out of range [0, {len(self.time_values) - 1}]"
-            )
-
-        # Clear plotter and actors first to ensure no actors reference old meshes
+        # Clear and reload at new time step
         self.clear()
         # Then reset mesh data (time_values and current_time are set by _load_pvd)
         self.meshes = {}
         # Finally reload at new time step
         self._load_pvd(self.file_path, time_index)
+
+    def _default_bar_args(self, field_name: str) -> dict[str, Any]:
+        """Return centered right-side scalar bar args based on mesh dimension."""
+
+        # Extract dimension from active mesh name (e.g., "Mesh_dim2" -> 2)
+        if "dim" in self.active_mesh_name:
+            dim = int(self.active_mesh_name.split("dim")[-1])
+        else:
+            dim = 3
+
+        # Make bar size proportional to dimension and center vertically
+        # Height grows with dimension but is clamped for readability
+        height = 0.35 + 0.1 * max(1, min(dim, 3))  # 1D->0.45, 2D->0.55, 3D->0.65
+        height = min(max(height, 0.35), 0.7)
+        position_y = (1.0 - height) / 2.0  # vertical centering
+
+        return {
+            "title": field_name,
+            "vertical": True,
+            "title_font_size": 18,
+            "width": 0.08,
+            "height": height,
+            "position_x": 0.88,
+            "position_y": position_y,
+        }
 
     def vector_field(self, field_name: str, scaling_factor: float = 1.0) -> None:
         """
@@ -228,26 +238,31 @@ class Visualizer:
         actor = self.plotter.add_mesh(arrows, color="gray", scalars=None, cmap=None)
         self.actors.append(actor)
 
-    def scalar_field(self, field_name: str, **kwargs: Any) -> None:
+    def scalar_field(
+        self, field_name: str, field_label: str = None, **kwargs: Any
+    ) -> None:
         """
         Visualize a scalar field with color mapping.
 
         Args:
             field_name (str): Name of the scalar field in the mesh.
             **kwargs: Additional options:
-                cmap (str): Colormap name. Default "rainbow".
-                show_edges (bool): Show mesh edges. Default True.
-                edge_color (str): Color of edges. Default "gray".
-                line_width (float): Width of edge lines. Default 1.0.
-                scalar_bar_args (dict): Scalar bar configuration. Default
-                    {"title": field_name}.
+
+                - cmap (str): Colormap name. Default "rainbow".
+                - show_edges (bool): Show mesh edges. Default True.
+                - edge_color (str): Color of edges. Default "gray".
+                - line_width (float): Width of edge lines. Default 1.0.
+                - scalar_bar_args (dict): Scalar bar configuration.
         """
+        if field_label is None:
+            field_label = field_name
+
         cmap = kwargs.get("cmap", "rainbow")
         show_edges = kwargs.get("show_edges", True)
         edge_color = kwargs.get("edge_color", "gray")
         line_width = kwargs.get("line_width", 1.0)
         scalar_bar_args = kwargs.get(
-            "scalar_bar_args", {"title": field_name, "vertical": True}
+            "scalar_bar_args", self._default_bar_args(field_label)
         )
 
         # Show scalar field without edges to avoid triangulation visibility
@@ -370,16 +385,6 @@ class Visualizer:
         # Set the title if provided
         if title:
             self.plotter.add_title(title)
-
-        # Add time information if available
-        if self.time_values:
-            time_text = f"t = {self.current_time:.4g}"
-            self.plotter.add_text(
-                time_text,
-                position="lower_right",
-                font_size=14,
-                color="black",
-            )
 
         # Save screenshot if requested
         if screenshot is not None:
