@@ -74,6 +74,10 @@ jobs:
         pip install -e .
         pip freeze
 
+    - name: Install pyvista
+      run: |
+        pip install pyvista
+
     - name: Pytest
       if: ${{always()}}
       run: pytest tests --cov-report=xml:coverage_report.xml
