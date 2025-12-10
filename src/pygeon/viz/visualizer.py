@@ -10,11 +10,6 @@ except ImportError:
     PYVISTA_AVAILABLE = False
 
 
-def _check_latex_available() -> bool:
-    """Check if LaTeX is available on the system."""
-    return shutil.which("latex") is not None
-
-
 class Visualizer:
     """
     A flexible visualization class for PVD time-series mesh files using PyVista.
@@ -69,7 +64,7 @@ class Visualizer:
         pv.global_theme.font.title_size = 16
 
         # Enable LaTeX rendering if available
-        if _check_latex_available():
+        if shutil.which("latex") is not None:
             pv.global_theme.font.family = "times"
             # LaTeX is available, PyVista can use it for text rendering
         else:
