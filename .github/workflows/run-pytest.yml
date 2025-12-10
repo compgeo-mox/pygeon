@@ -72,12 +72,11 @@ jobs:
     - name: Install requirements and PyGeoN
       run: |
         pip install .
-        pip install pytest-cov
         pip freeze
 
     - name: Pytest
       if: ${{always()}}
-      run: pytest tests --cov-report=xml:pytest_coverage.xml
+      run: pytest tests --cov=pygeon --cov-report=xml:pytest_coverage.xml
 
     - name: Compare coverage
       run: python ./.github/compare_coverage.py
