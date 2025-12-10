@@ -8,7 +8,7 @@ def get_coverage_percentage(file):
     return line_rate * 100
 
 
-baseline = 0.95
+baseline = 95
 current = get_coverage_percentage("pr.xml")
 
 print(f"Baseline coverage: {baseline:.2f}%")
