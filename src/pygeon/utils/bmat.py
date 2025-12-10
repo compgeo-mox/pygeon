@@ -1,4 +1,6 @@
-""" Block matrix utilities. """
+"""Block matrix utilities."""
+
+from typing import Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -15,7 +17,6 @@ def replace_nones_with_zeros(mat: np.ndarray) -> None:
     Returns:
         None: This function modifies the input matrix in-place.
     """
-
     # Do nothing if there are no Nones
     if None not in mat:
         return
@@ -23,13 +24,13 @@ def replace_nones_with_zeros(mat: np.ndarray) -> None:
     # Otherwise, we retrieve the row and column lengths for the shapes
     row_lengths, col_lengths = find_row_col_lengths(mat)
 
-    # We then replace each None with a coo_matrix
+    # We then replace each None with a csc_array
     for (i, j), block in np.ndenumerate(mat):
         if block is None:
-            mat[i, j] = sps.csc_matrix((row_lengths[i], col_lengths[j]))
+            mat[i, j] = sps.csc_array((row_lengths[i], col_lengths[j]))
 
 
-def find_row_col_lengths(mat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def find_row_col_lengths(mat: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find shapes of the blocks in mat.
 
@@ -40,7 +41,6 @@ def find_row_col_lengths(mat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         tuple: A tuple containing two numpy arrays - rows and cols,
         representing the lengths of rows and columns respectively.
     """
-
     rows = np.zeros(mat.shape[0], int)
     cols = np.zeros(mat.shape[1], int)
 
@@ -64,7 +64,6 @@ def transpose(mat: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: The transposed block matrix.
     """
-
     # Initialize and loop through all blocks
     mat_T = np.empty_like(mat.T)
 

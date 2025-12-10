@@ -1,7 +1,7 @@
-""" Grid build from the a-periodic monotile cell."""
+"""Grid build from the a-periodic monotile cell."""
 
 import xml.etree.ElementTree as ET
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import porepy as pp
@@ -60,7 +60,7 @@ class EinSteinGrid(pg.Grid):
         for key, p in self.poly.items():
             self.poly[key] = np.insert(p, 3, 0.5 * (p[:, 2] + p[:, 3]), axis=1)
 
-    def build_connectivity(self) -> tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
+    def build_connectivity(self) -> Tuple[np.ndarray, sps.csc_array, sps.csc_array]:
         """
         Build the connectivity of the grid.
 
@@ -68,21 +68,23 @@ class EinSteinGrid(pg.Grid):
             None
 
         Returns:
-            Tuple[np.ndarray, sps.csc_matrix, sps.csc_matrix]:
+            Tuple[np.ndarray, sps.csc_array, sps.csc_array]:
             A tuple containing the following:
-                - coords (np.ndarray):
-                    The rescaled points of the polygons in the unit square.
-                - cell_faces (sps.csc_matrix):
-                    The sparse matrix representing the cell-face relations.
-                - face_nodes (sps.csc_matrix):
-                    The sparse matrix representing the face-nodes relations.
+                - coords (np.ndarray): The rescaled points of the polygons in the unit
+                square.
+                - cell_faces (sps.csc_array): The sparse matrix representing the
+                cell-face relations.
+                - face_nodes (sps.csc_array): The sparse matrix representing the
+                face-nodes relations.
         """
         # rescale the points of the polygons to be in the unit square
         all_pts = self.rescale()
 
         n = 14
         # uniquify the points coordinate
-        coords, _, cell_nodes = pp.utils.setmembership.unique_columns_tol(all_pts)
+        coords, _, cell_nodes = pp.array_operations.uniquify_point_set(
+            all_pts, tol=1e-8
+        )
         # cell node map after uniquify
         cell_nodes = cell_nodes.reshape((-1, n))
 
@@ -112,10 +114,10 @@ class EinSteinGrid(pg.Grid):
         fn_data = np.ones_like(fn_indices)
 
         # build the sparse matrices
-        cell_faces = sps.csc_matrix((cf_data, cf_indices, cf_indptr))
-        face_nodes = sps.csc_matrix((fn_data, fn_indices, fn_indptr))
+        cell_faces_sparse = sps.csc_array((cf_data, cf_indices, cf_indptr))
+        face_nodes_sparse = sps.csc_array((fn_data, fn_indices, fn_indptr))
 
-        return coords, cell_faces, face_nodes
+        return coords, cell_faces_sparse, face_nodes_sparse
 
     def rescale(self) -> np.ndarray:
         """
@@ -132,7 +134,8 @@ class EinSteinGrid(pg.Grid):
 
     def poly_adder(self, input_str: str, transform: np.ndarray) -> None:
         """
-        Recursive function to build all the polygons based on the transformation matrices.
+        Recursive function to build all the polygons based on the transformation
+        matrices.
 
         Args:
             input_str (str): The input string representing the current tag.
@@ -150,7 +153,7 @@ class EinSteinGrid(pg.Grid):
             for sub in self.trans[input_str]:
                 self.poly_adder(sub[0], transform @ sub[1])
 
-    def from_file(self, file_name: str) -> tuple[dict, dict, tuple]:
+    def from_file(self, file_name: str) -> Tuple[dict, dict, tuple]:
         """
         Read an SVG file and create the first data structure.
 
@@ -158,12 +161,13 @@ class EinSteinGrid(pg.Grid):
             file_name (str): The path to the SVG file.
 
         Returns:
-            tuple[dict, dict, tuple]: A tuple containing three elements:
-                - poly_dict: A dictionary mapping polygon IDs to their corresponding polygons.
+            Tuple[dict, dict, tuple]: A tuple containing three elements:
+                - poly_dict: A dictionary mapping polygon IDs to their corresponding
+                polygons.
                 - trans_dict: A dictionary mapping transformation IDs to a
-                    list of transformations.
+                list of transformations.
                 - use_info: A tuple containing the ID and transformation matrix of
-                    the root use element.
+                the root use element.
         """
         root = ET.parse(file_name).getroot()[0]
         tag_str = r"{http://www.w3.org/1999/xlink}href"
@@ -201,7 +205,7 @@ class EinSteinGrid(pg.Grid):
         Convert a string to a 2d polygon in homogeneous coordinate
 
         Args:
-            pts (str): The string representing the polygon points
+            pts (str): The string representing the polygon points.
 
         Returns:
             np.ndarray: The 2d polygon in homogeneous coordinate
@@ -216,7 +220,7 @@ class EinSteinGrid(pg.Grid):
         Convert a string to a 2d matrix in homogeneous coordinate
 
         Args:
-            mat (str): The string representation of the matrix
+            mat (str): The string representation of the matrix.
 
         Returns:
             np.ndarray: The 2d matrix in homogeneous coordinate

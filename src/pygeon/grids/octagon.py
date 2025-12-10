@@ -1,6 +1,4 @@
-""" Module for the octagon grid. """
-
-from typing import Optional, Union
+"""Module for the octagon grid."""
 
 import numpy as np
 import scipy.sparse as sps
@@ -17,18 +15,21 @@ class OctagonGrid(pg.Grid):
     def __init__(
         self,
         nx: np.ndarray,
-        physdims: Optional[Union[dict, np.ndarray]] = {},
-        name: Optional[str] = "Octagon grid",
+        physdims: dict | np.ndarray | None = None,
+        name: str = "Octagon grid",
     ) -> None:
         """
         Constructor for the 2D octagonal grid.
 
         Args:
-            nx (np.ndarray): number of cells in the x and y directions
-            physdims (np.ndarray or dict): the physical dimensions, either
-                as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax"
+            nx (np.ndarray): Number of cells in the x and y directions.
+            physdims (np.ndarray or dict): The physical dimensions, either
+                as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax".
             name (str): Name of grid.
         """
+        if physdims is None:
+            physdims = np.array([1.0, 1.0])
+
         # Define the nodes as a 3 x num_nodes array
         nodes = self.compute_nodes(nx, physdims)
 
@@ -40,15 +41,13 @@ class OctagonGrid(pg.Grid):
 
         super().__init__(2, nodes, face_nodes, cell_faces, name)
 
-    def compute_nodes(
-        self, nx: np.ndarray, physdims: Union[dict, np.ndarray]
-    ) -> np.ndarray:
+    def compute_nodes(self, nx: np.ndarray, physdims: dict | np.ndarray) -> np.ndarray:
         """
         Compute the nodes of an octagon grid.
 
         Args:
             nx (np.ndarray): Number of grid points in each dimension.
-            physdims (Union[dict, np.ndarray]): Physical dimensions of the grid.
+            physdims (dict| np.ndarray): Physical dimensions of the grid.
 
         Returns:
             np.ndarray: Array of node coordinates.
@@ -90,7 +89,7 @@ class OctagonGrid(pg.Grid):
         return nodes
 
     def rescale_nodes(
-        self, nodes: np.ndarray, nx: np.ndarray, physdims: Union[dict, np.ndarray]
+        self, nodes: np.ndarray, nx: np.ndarray, physdims: dict | np.ndarray
     ) -> np.ndarray:
         """
         Rescales the given nodes based on the physical dimensions and grid size.
@@ -98,7 +97,7 @@ class OctagonGrid(pg.Grid):
         Args:
             nodes (np.ndarray): The array of nodes to be rescaled.
             nx (np.ndarray): The grid size in each dimension.
-            physdims (Union[dict, np.ndarray]): The physical dimensions of the grid.
+            physdims (dict| np.ndarray): The physical dimensions of the grid.
 
         Returns:
             np.ndarray: The rescaled nodes.
@@ -123,7 +122,7 @@ class OctagonGrid(pg.Grid):
 
         return nodes
 
-    def compute_face_nodes(self, nx: np.ndarray) -> sps.csc_matrix:
+    def compute_face_nodes(self, nx: np.ndarray) -> sps.csc_array:
         """
         Compute the face-node connectivity matrix for an octagon grid.
 
@@ -132,7 +131,7 @@ class OctagonGrid(pg.Grid):
                 directions.
 
         Returns:
-            sps.csc_matrix: The face-node connectivity matrix.
+            sps.csc_array: The face-node connectivity matrix.
         """
         n_oct = nx[0] * nx[1]
         n_hf = n_oct + nx[0]
@@ -239,9 +238,9 @@ class OctagonGrid(pg.Grid):
         fn_I = np.concatenate(fn_row)
         fn_J = np.repeat(np.arange(fn_I.size / 2), 2).astype(int)
 
-        return sps.csc_matrix((np.ones(fn_I.size), (fn_I, fn_J)))
+        return sps.csc_array((np.ones(fn_I.size), (fn_I, fn_J)))
 
-    def compute_cell_faces(self, nx: np.ndarray) -> sps.csc_matrix:
+    def compute_cell_faces(self, nx: np.ndarray) -> sps.csc_array:
         """
         Compute the faces of each cell in the octagon grid.
 
@@ -250,7 +249,7 @@ class OctagonGrid(pg.Grid):
             and y directions.
 
         Returns:
-            sps.csc_matrix: Sparse matrix representing the cell faces.
+            sps.csc_array: Sparse matrix representing the cell faces.
         """
         n_oct = nx[0] * nx[1]
         n_hf = n_oct + nx[0]
@@ -441,4 +440,4 @@ class OctagonGrid(pg.Grid):
         cf_J = np.concatenate(cf_col)
         cf_V = np.concatenate(cf_val)
 
-        return sps.csc_matrix((cf_V, (cf_I, cf_J)))
+        return sps.csc_array((cf_V, (cf_I, cf_J)))

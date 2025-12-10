@@ -1,132 +1,97 @@
-""" Module for the discretization class. """
+"""Module for the discretization class."""
+
+from __future__ import annotations
 
 import abc
-from typing import Callable, Optional
+from typing import Callable, Type
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
 
 
-class Discretization(pp.numerics.discretization.Discretization):
+class Discretization(abc.ABC):
     """
-    Abstract class for pygeon discretization methods.
-    For full compatibility, a child class requires the following methods:
-        ndof
-        assemble_mass_matrix
-        assemble_diff_matrix
-        interpolate
-        eval_at_cell_centers
-        assemble_nat_bc
-        get_range_discr_class
-
-    Attributes:
-        mass_matrix_key (str): The keyword used to identify the mass matrix
-            term in the discretization matrix dictionary.
-        diff_matrix_key (str): The keyword used to identify the diffusion matrix
-            term in the discretization matrix dictionary.
-        stiff_matrix_key (str): The keyword used to identify the stiffness matrix
-            term in the discretization matrix dictionary.
-        lumped_matrix_key (str): The keyword used to identify the lumped matrix
-            term in the discretization matrix dictionary.
+    Abstract class for PyGeoN discretization methods.
     """
 
-    def __init__(self, keyword: str) -> None:
+    poly_order: int
+    tensor_order: int
+
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the Discretization object.
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
+                Default is pg.UNITARY_DATA.
 
-        Attributes:
-            mass_matrix_key (str): The keyword used to identify the mass matrix
-                term in the discretization matrix dictionary.
-            diff_matrix_key (str): The keyword used to identify the diffusion matrix
-                term in the discretization matrix dictionary.
-            stiff_matrix_key (str): The keyword used to identify the stiffness matrix
-                term in the discretization matrix dictionary.
-            lumped_matrix_key (str): The keyword used to identify the lumped matrix
-                term in the discretization matrix dictionary.
+        Returns:
+            None
         """
-        super().__init__(keyword)
+        self.keyword = keyword
 
-        self.mass_matrix_key = "mass"
-        self.diff_matrix_key = "diff"
-        self.stiff_matrix_key = "stiff"
-        self.lumped_matrix_key = "lumped"
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the Discretization object.
+
+        The string includes the type of the discretization and, if available,
+        the keyword associated with it.
+
+        Returns:
+            str: A string representation of the Discretization object.
+        """
+        s = f"Discretization of type {self.__class__.__name__}"
+        if hasattr(self, "keyword"):
+            s += f" with keyword {self.keyword}"
+        return s
 
     @abc.abstractmethod
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case number of nodes.
-
-        Args
-            sd: grid, or a subclass.
-
-        Returns
-            ndof: the number of degrees of freedom.
-        """
-        pass
-
-    def discretize(self, sd: pg.Grid, data: dict) -> None:
-        """
-        Discretizes the given grid using the specified data.
 
         Args:
-            sd (pg.Grid): The grid to be discretized.
-            data (dict): The data required for discretization.
+            sd: Grid, or a subclass.
 
         Returns:
-            None
+            ndof: the number of degrees of freedom.
         """
-        if self.keyword not in data[pp.DISCRETIZATION_MATRICES]:
-            data[pp.DISCRETIZATION_MATRICES][self.keyword] = {}
-        matrix_dictionary = data[pp.DISCRETIZATION_MATRICES][self.keyword]
-
-        matrix_dictionary[self.mass_matrix_key] = self.assemble_mass_matrix(sd, data)
-        matrix_dictionary[self.diff_matrix_key] = self.assemble_diff_matrix(sd)
-        matrix_dictionary[self.stiff_matrix_key] = self.assemble_stiff_matrix(sd, data)
-        matrix_dictionary[self.lumped_matrix_key] = self.assemble_lumped_matrix(
-            sd, data
-        )
 
     @abc.abstractmethod
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Dictionary with physical parameters for scaling.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The mass matrix.
+            sps.csc_array: The mass matrix.
         """
-        pass
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Dictionary with physical parameters for scaling.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_matrix: The lumped mass matrix.
+            sps.csc_array: The lumped mass matrix.
         """
-        diag_mass = np.sum(self.assemble_mass_matrix(sd, data), axis=0)
-        return sps.diags(np.asarray(diag_mass).flatten()).tocsc()
+        diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
+        return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
 
     @abc.abstractmethod
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_matrix:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix corresponding to the differential operator.
 
@@ -134,18 +99,18 @@ class Discretization(pp.numerics.discretization.Discretization):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_matrix: The differential matrix.
+            sps.csc_array: The differential matrix.
         """
-        pass
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_matrix:
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the stiffness matrix.
 
-        This method takes a grid object `sd` and an optional data dictionary `data` as input.
-        It first calls the `assemble_diff_matrix` method to obtain the differential matrix `B`.
+        This method takes a grid object `sd` and an optional data dictionary `data` as
+        input. It first calls the `assemble_diff_matrix` method to obtain the
+        differential matrix `B`.
         Then, it creates an instance of the range discretization class using the `dim`
         attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
         discretization class to obtain the mass matrix `A`.
@@ -153,17 +118,17 @@ class Discretization(pp.numerics.discretization.Discretization):
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Optional data dictionary. Defaults to None.
+            data (dict | None): Optional data dictionary. Defaults to None.
 
         Returns:
-            sps.csc_matrix: The stiffness matrix.
+            sps.csc_array: The stiffness matrix.
         """
         B = self.assemble_diff_matrix(sd)
 
         discr = self.get_range_discr_class(sd.dim)(self.keyword)
         A = discr.assemble_mass_matrix(sd, data)
 
-        return B.T * A * B
+        return (B.T @ A @ B).tocsc()
 
     @abc.abstractmethod
     def interpolate(
@@ -173,16 +138,14 @@ class Discretization(pp.numerics.discretization.Discretization):
         Interpolates a function onto the finite element space
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
-            func (Callable): a function that returns the function values at coordinates
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom
         """
-        pass
 
-    @abc.abstractmethod
-    def eval_at_cell_centers(self, sd: pg.Grid) -> np.ndarray:
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
 
@@ -190,9 +153,14 @@ class Discretization(pp.numerics.discretization.Discretization):
             sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            np.ndarray: The evaluation matrix.
+             sps.csc_array: The evaluation matrix.
         """
-        pass
+        Pi = self.proj_to_PwPolynomials(sd)
+        Poly_space = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(
+            self.keyword
+        )
+
+        return Poly_space.eval_at_cell_centers(sd) @ Pi
 
     def source_term(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -208,8 +176,7 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             np.ndarray: The evaluation matrix.
         """
-
-        return self.assemble_mass_matrix(sd) * self.interpolate(sd, func)
+        return self.assemble_mass_matrix(sd) @ self.interpolate(sd, func)
 
     @abc.abstractmethod
     def assemble_nat_bc(
@@ -227,63 +194,76 @@ class Discretization(pp.numerics.discretization.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        pass
 
     @abc.abstractmethod
-    def get_range_discr_class(self, dim: int) -> object:
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
         Args:
-            dim (int): The dimension of the range
+            dim (int): The dimension of the range.
 
         Returns:
             pg.Discretization: The discretization class containing the range of the
-                differential
+            differential
         """
-        pass
 
-    def assemble_matrix_rhs(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> tuple[sps.csc_matrix, np.ndarray]:
+    @abc.abstractmethod
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles a mass matrix and returns it along with a zero rhs vector.
+        Returns the inclusion matrix that projects the finite element space onto
+        the lowest order piecewise polynomial space without loss of information.
 
         Args:
-            sd (pg.Grid): The grid on which the matrix is assembled.
-            data (dict, optional): Additional data for the assembly process. Defaults to None.
+            sd (pg.Grid): The grid.
 
         Returns:
-            tuple[sps.csc_matrix, np.ndarray]: The assembled mass matrix and zero rhs vector.
+            sps.csc_array: The inclusion matrix.
         """
-        return self.assemble_mass_matrix(sd, data), np.zeros(self.ndof(sd))
 
     def error_l2(
         self,
         sd: pg.Grid,
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: Optional[bool] = True,
-        etype: Optional[str] = "standard",
+        relative: bool = True,
+        poly_order: int | None = None,
+        data: dict | None = None,
     ) -> float:
         """
-        Returns the l2 error computed against an analytical solution given as a function.
+        Returns the l2 error computed against an analytical solution given as a
+        function. NOTE: The default implementation uses interpolation which may result
+        in unexpected superconvergence. In that case, we advise specifying poly_order.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable): Function that represents the analytical solution.
-            relative (bool, optional): Compute the relative error or not. Defaults to True.
-            etype (str, optional): Type of error computed. For "standard", the current
-                implementation. Defaults to "standard".
+            relative (bool, optional): Compute the relative error or not. Defaults to
+                True.
+            poly_order (int, optional): The default is to compare the numerical solution
+                to the interpolation of the given solution. If poly_order is specified,
+                the error is evaluated in a piecewise polynomial space of that order.
 
         Returns:
             float: The computed error.
         """
-        int_sol = self.interpolate(sd, ana_sol)
-        mass = self.assemble_mass_matrix(sd)
+        # Default case in which we interpolate the solution and compare
+        if poly_order is None:
+            int_sol = self.interpolate(sd, ana_sol)
+            mass = self.assemble_mass_matrix(sd, data)
 
-        norm = (int_sol @ mass @ int_sol.T) if relative else 1
+            norm = (int_sol @ mass @ int_sol.T) if relative else 1
 
-        diff = num_sol - int_sol
-        return np.sqrt(diff @ mass @ diff.T / norm)
+            diff = num_sol - int_sol
+            return np.sqrt(diff @ mass @ diff.T / norm)
+
+        # If poly_order is specified, we compare the solutions in a piecewise polynomial
+        # space
+        else:
+            poly_space = pg.get_PwPolynomials(poly_order, self.tensor_order)(
+                self.keyword
+            )
+            proj_sol = pg.proj_to_PwPolynomials(self, sd, poly_order) @ num_sol
+
+            return poly_space.error_l2(sd, proj_sol, ana_sol, relative, data=data)

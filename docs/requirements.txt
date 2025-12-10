@@ -1,0 +1,13 @@
+# Documentation build requirements for ReadTheDocs
+
+# Sphinx and extensions
+sphinx>=7.0.0
+sphinx-rtd-theme>=2.0.0
+myst-parser>=2.0.0
+
+# For autodoc to work properly
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Optional but useful for documentation
+sphinx-autodoc-typehints>=1.24.0

@@ -1,0 +1,131 @@
+name: Documentation
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-docs:
+    name: Validate docs sources
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run docs validator
+        run: |
+          python3 docs/readthedocs/tools/validate_docs.py
+
+  build-docs:
+    needs: validate-docs
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r docs/requirements.txt
+        pip install -e .
+    
+    - name: Generate API documentation
+      run: |
+        cd docs
+        sphinx-apidoc -f -o api ../src/pygeon --separate --no-toc
+    
+    - name: Build documentation (fail on warnings)
+      run: |
+        cd docs
+        # Use -W to turn warnings into errors
+        # Use -n for stricter mode (detects broken links)
+        # Use --keep-going to see all warnings, not just first error
+        sphinx-build -W -n --keep-going -b html . _build/html 2>&1 | tee build.log
+    
+    - name: Generate warning report
+      if: always()
+      run: |
+        cd docs
+        echo "## Documentation Build Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f build.log ]; then
+          warnings=$(grep -i "warning" build.log | wc -l)
+          errors=$(grep -i "error" build.log | wc -l)
+          
+          echo "- **Warnings**: $warnings" >> $GITHUB_STEP_SUMMARY
+          echo "- **Errors**: $errors" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $warnings -gt 0 ] || [ $errors -gt 0 ]; then
+            echo "### Issues Found:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -E "(WARNING|ERROR)" build.log | head -20 >> $GITHUB_STEP_SUMMARY || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **All checks passed!**" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+    
+    - name: Upload documentation artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: docs/_build/html/
+        retention-days: 7
+    
+    - name: Check for warnings in build log
+      if: failure()
+      run: |
+        echo "::error::Documentation build failed with warnings or errors"
+        echo "Please check the build log above for details"
+        exit 1
+
+  build-developer-docs:
+    name: Developer Docs (readthedocs/*.md)
+    needs: validate-docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+          pip install -e .
+
+      - name: Generate API documentation
+        run: |
+          cd docs
+          sphinx-apidoc -f -o api ../src/pygeon --separate --no-toc
+
+      - name: Build docs (focus on Developer Docs)
+        run: |
+          cd docs
+          sphinx-build -W -n --keep-going -b html . _build/html 2>&1 | tee devdocs.log
+          echo "## Developer Docs Pages" >> $GITHUB_STEP_SUMMARY
+          find _build/html/readthedocs -maxdepth 1 -name '*.html' -printf "- %f\n" | sort >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Upload dev docs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: developer-docs
+          path: docs/_build/html/readthedocs/
+          retention-days: 7

@@ -1,6 +1,6 @@
-""" Module for spanning tree computation. """
+"""Module for spanning tree computation."""
 
-from typing import Optional, Union
+from typing import Type, cast
 
 import numpy as np
 import porepy as pp
@@ -13,55 +13,19 @@ class SpanningTree:
     """
     Class that can perform a spanning tree solve, aka a "grid sweep".
     Useful to rapidly compute a flux field that balances a mass source.
-
-    Attributes:
-        system (sps.csc_matrix): The matrix used in the solve,
-            which is triangular up to row/column permutations.
-        expand (sps.csc_matrix): Expansion matrix from tree to global ordering.
-
-        div (sps.csc_matrix): the divergence operator on the associated mdg.
-        starting_cells (np.ndarray): the first cells of the spanning tree.
-        starting_faces (np.ndarray): the first faces of the spanning tree.
-        tree (sps.csc_array): The incidence matrix of the spanning tree.
-
-    Methods:
-        setup_system(mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
-            Sets up the linear system for solving the spanning tree problem.
-
-        find_starting_faces(mdg: pg.MixedDimensionalGrid) -> int:
-            Find the starting face for the spanning tree if None is provided.
-
-        find_starting_cells() -> int:
-            Find the starting cell for the spanning tree.
-
-        compute_tree() -> sps.csc_array:
-            Construct a spanning tree of the elements.
-
-        flag_tree_faces() -> np.ndarray:
-            Flag the faces in the mesh that correspond to edges of the tree.
-
-        solve(f: np.ndarray) -> np.ndarray:
-            Perform a spanning tree solve to compute a conservative flux field
-            for given mass source.
-
-        solve_transpose(rhs: np.ndarray) -> np.ndarray:
-            Post-process the pressure by performing a transposed solve.
-
-        visualize_2d(mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None) -> None:
-            Create a graphical illustration of the spanning tree superimposed on the grid.
     """
 
     def __init__(
         self,
         mdg: pg.MixedDimensionalGrid,
-        starting_faces: Optional[Union[str, np.ndarray, int]] = "first_bdry",
+        starting_faces: str | np.ndarray | int = "first_bdry",
     ) -> None:
         """
         Initializes a SpanningTree object.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
-            starting_faces (Union[np.ndarray, int, str], optional):
+            starting_faces (np.ndarray | int | str):
                 - "first_bdry" (default): Choose the first boundary face.
                 - "all_bdry": Choose all boundary faces.
                 - np.array or int: Indices of the starting faces.
@@ -69,12 +33,16 @@ class SpanningTree:
         self.div = pg.div(mdg)
 
         self.starting_faces = self.find_starting_faces(mdg, starting_faces)
-        self.starting_cells = self.find_starting_cells()
+
+        self.add_outside_cell()
+
         self.tree = self.compute_tree()
+        self.flagged_faces = self.flag_tree_faces()
 
-        flagged_faces = self.flag_tree_faces()
+        self.remove_outside_cell()
 
-        self.setup_system(mdg, flagged_faces)
+        self.starting_cells = self.find_starting_cells()
+        self.setup_system(mdg, self.flagged_faces)
 
     def setup_system(
         self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
@@ -94,13 +62,13 @@ class SpanningTree:
         ).T.tocsc()
 
         # Save the sparse LU decomposition of the system
-        system = pg.cell_mass(mdg) @ self.div @ self.expand
-        self.system = sps.linalg.splu(system)
+        self.system = pg.cell_mass(mdg) @ self.div @ self.expand
+        self.system_splu = sps.linalg.splu(self.system)
 
     def find_starting_faces(
         self,
         mdg: pg.MixedDimensionalGrid,
-        starting_faces: Union[str, np.ndarray, int],
+        starting_faces: str | np.ndarray | int,
     ) -> np.ndarray:
         """
         Find the starting face for the spanning tree.
@@ -114,34 +82,35 @@ class SpanningTree:
                 - np.array or int: Indices of the starting faces.
 
         Returns:
-            np.ndarray or int: The indices of the starting faces for the spanning tree.
+            np.ndarray: The indices of the starting faces for the spanning tree.
 
         Raises:
             KeyError: if starting_faces does not have the right type
         """
-
         if isinstance(starting_faces, str):
             # Extract top-dimensional domain
-            sd = mdg.subdomains(dim=mdg.dim_max())[0]
-            bdry_faces = np.where(sd.tags["domain_boundary_faces"])[0]
+            bdry_face_tags = np.hstack(
+                [sd.tags["domain_boundary_faces"] for sd in mdg.subdomains()]
+            )
+            bdry_faces = np.where(bdry_face_tags)[0]
 
             # The default case
             if starting_faces == "first_bdry":
                 return bdry_faces[[0]]
 
             elif starting_faces == "all_bdry":
-                # Find the boundary faces and remove duplicate connections to boundary cells
-                I_cells, J_faces, _ = sps.find(self.div.tocsc()[:, bdry_faces])
-                _, uniq_ind = np.unique(I_cells, return_index=True)
-
-                return bdry_faces[J_faces[uniq_ind]]
+                return bdry_faces
 
             else:
                 raise KeyError(
                     "Not a supported string. Input must be first_bdry or all_bdry"
                 )
 
-        # Scalars and arrays
+        # Boolean arrays
+        if isinstance(starting_faces, np.ndarray) and starting_faces.dtype == bool:
+            return np.where(starting_faces)[0]
+
+        # Index arrays and scalars
         else:
             return np.atleast_1d(starting_faces)
 
@@ -154,48 +123,38 @@ class SpanningTree:
         """
         return self.div.tocsc()[:, self.starting_faces].indices
 
+    def add_outside_cell(self) -> None:
+        """
+        Include a fictitious outside cell in the div operator.
+        This cell will be used as the root of the tree.
+        """
+        outside_cell = np.zeros((1, self.div.shape[1]))
+        outside_cell[0, self.starting_faces] = -np.sum(
+            self.div[:, self.starting_faces], axis=0
+        )
+
+        self.div = sps.vstack([self.div, outside_cell]).tocsc()
+
+    def remove_outside_cell(self) -> None:
+        """
+        Remove the fictitious outside cell from the div operator and the tree
+        """
+        self.div = self.div[:-1, :]
+        self.tree = self.tree[:-1, :-1]
+
     def compute_tree(self) -> sps.csc_array:
         """
         Construct a spanning tree of the elements.
 
         Returns:
-            sps.csc_array: The computed spanning tree as a compressed sparse column matrix.
+            sps.csc_array: The computed spanning tree as a compressed sparse column
+            matrix.
         """
         incidence = self.div @ self.div.T
 
-        # If a single root is given, we default to the breadth-first tree generator from scipy
-        if len(self.starting_cells) == 1:
-            tree = sps.csgraph.breadth_first_tree(
-                incidence, self.starting_cells[0], directed=False
-            )
-
-        # For multiple roots, we use our own generator
-        else:
-            # Initialize the tree
-            tree = sps.lil_array(incidence.shape, dtype=int)
-
-            # Keep track of the cells that have been visited by the tree
-            visited_cells = np.zeros(np.size(incidence, 0), dtype=bool)
-            visited_cells[self.starting_cells] = True
-
-            while np.any(~visited_cells):
-                # Extract global indices of the (un)visited cells
-                vis_glob = np.where(visited_cells)[0]
-                unv_glob = np.where(~visited_cells)[0]
-
-                # Find connectivity between visited and unvisited cells
-                local_graph = incidence[np.ix_(vis_glob, unv_glob)]
-                vis_cell, unv_cell, _ = sps.find(local_graph)
-
-                assert len(unv_cell) > 0, "No new neighbors found."
-
-                # Each unvisited cell is linked to exactly one visited cell
-                unv_cell, nc_ind = np.unique(unv_cell, return_index=True)
-                vis_cell = vis_cell[nc_ind]
-
-                # Save the connectivity in the tree and mark the new cells as visited
-                tree[vis_glob[vis_cell], unv_glob[unv_cell]] = 1
-                visited_cells[unv_glob[unv_cell]] = True
+        tree = sps.csgraph.breadth_first_tree(
+            incidence, incidence.shape[0] - 1, directed=False
+        )
 
         return sps.csc_array(tree)
 
@@ -214,19 +173,22 @@ class SpanningTree:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        face_finder = sps.csc_array(
+        face_finder = abs(self.div.T) @ sps.csc_array(
             (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
         )
-        face_finder = np.abs(self.div.T) @ face_finder
-        I, J, V = sps.find(face_finder)
+        face, tree_edge_ind, nr_common_cells = sps.find(face_finder)
 
-        _, index = np.unique(J[V == 2], return_index=True)
-        tree_faces = I[V == 2][index]
+        # Polytopal grids may have multiple faces between a pair of cells.
+        # We associate the tree edge with the face that has the lowest index.
+        _, index = np.unique(tree_edge_ind[nr_common_cells == 2], return_index=True)
+        tree_faces = face[nr_common_cells == 2][index]
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
-        flagged_faces[self.starting_faces] = True
         flagged_faces[tree_faces] = True
+
+        # Update the starting faces by removing the ones that are unnecessary
+        self.starting_faces = self.starting_faces[flagged_faces[self.starting_faces]]
 
         return flagged_faces
 
@@ -239,9 +201,25 @@ class SpanningTree:
             f (np.ndarray): Mass source, integrated against PwConstants.
 
         Returns:
-            np.ndarray: the post-processed flux field
+            np.ndarray: The post-processed flux field
         """
-        return self.expand @ self.system.solve(f)
+        return self.expand @ self.system_splu.solve(f)
+
+    def assemble_SI(self) -> sps.sparray:
+        """
+        Assembles the operator S_I as a sparse array.
+
+        Returns:
+            sps.sparray: S_I, a right inverse of the B-operator
+
+        Notes:
+            This will be slow for large systems. If you only need the action of S_I,
+            consider using self.solve() instead.
+        """
+        identity = np.eye(self.system.shape[0])
+        inv_system = self.system_splu.solve(identity)
+
+        return self.expand @ sps.csc_array(inv_system)
 
     def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
@@ -252,59 +230,143 @@ class SpanningTree:
                               minus boundary terms.
 
         Returns:
-            np.ndarray: the post-processed pressure field
+            np.ndarray: The post-processed pressure field
         """
-        return self.system.solve(self.expand.T.tocsc() @ rhs, "T")
+        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
     def visualize_2d(
-        self, mdg: pg.MixedDimensionalGrid, fig_name: Optional[str] = None
-    ):  # pragma: no cover
+        self, mdg: pg.MixedDimensionalGrid, fig_name: str | None = None, **kwargs
+    ):
         """
         Create a graphical illustration of the spanning tree superimposed on the grid.
 
         Args:
             mdg (pg.MixedDimensionalGrid) The object representing the grid.
-            fig_name (Optional[str], optional). The name of the figure file to save the
+            fig_name (str). The name of the figure file to save the
                 visualization.
+
+        Optional Args
+            draw_grid (bool): Plot the grid.
+            draw_tree (bool): Plot the tree spanning the cells.
+            draw_cotree (bool): Plot the tree spanning the nodes.
+            start_color (str): Color of the "starting" cells, next to the boundary
         """
         import matplotlib.pyplot as plt
         import networkx as nx
 
         assert mdg.dim_max() == 2
+        sd_top = mdg.subdomains()[0]
 
-        graph = nx.from_scipy_sparse_array(self.tree)
-        cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+        draw_grid = kwargs.get("draw_grid", True)
+        draw_tree = kwargs.get("draw_tree", True)
+        draw_complement = kwargs.get("draw_cotree", False)
+        start_color = kwargs.get("start_color", "green")
 
         fig_num = 1
 
-        pp.plot_grid(
-            mdg,
-            alpha=0,
-            fig_num=fig_num,
-            plot_2d=True,
-            if_plot=False,
-        )
+        # Draw grid
+        if draw_grid:
+            pp.plot_grid(
+                mdg, alpha=0, fig_num=fig_num, plot_2d=True, if_plot=False, title=""
+            )
 
+        # Define the figure and axes
         fig = plt.figure(fig_num)
-        ax = fig.add_subplot(111)
 
-        node_color = ["blue"] * cell_centers.shape[1]
-        for sc in self.starting_cells:
-            node_color[sc] = "green"
+        # The grid is drawn by PorePy if desired
+        if draw_grid:
+            pp_ax = fig.gca()
+            pp_ax.set_xlabel("")
+            pp_ax.set_ylabel("")
+            pp_ax.set_aspect("equal")
+            plt.tick_params(
+                left=False,
+                labelleft=False,
+                labelbottom=False,
+                bottom=False,
+            )
+            ax = fig.add_subplot(111)
+            ax.set_xlim(pp_ax.get_xlim())
+            ax.set_ylim(pp_ax.get_ylim())
 
-        ax.autoscale(False)
-        nx.draw(
-            graph,
-            cell_centers[: mdg.dim_max(), :].T,
-            node_color=node_color,
-            node_size=40,
-            edge_color="red",
-            ax=ax,
-        )
+        # If there is no PorePy grid plot, we create our own axes
+        else:
+            ax = fig.gca()
+
+            min_coord = np.min(sd_top.nodes, axis=1)
+            max_coord = np.max(sd_top.nodes, axis=1)
+
+            ax.set_xlim((min_coord[0], max_coord[0]))
+            ax.set_ylim((min_coord[1], max_coord[1]))
+
+        ax.set_aspect("equal")
+
+        # Draw the tree that spans all cells
+        if draw_tree:
+            graph = nx.from_scipy_sparse_array(self.tree)
+            cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+            node_color = ["blue"] * cell_centers.shape[1]
+            for sc in self.starting_cells:
+                node_color[sc] = start_color
+
+            nx.draw(
+                graph,
+                cell_centers[: mdg.dim_max(), :].T,
+                node_color=node_color,
+                node_size=40,
+                edge_color="red",
+                ax=ax,
+            )
+
+            # Add connections from the roots to the starting faces
+            num_bdry = len(self.starting_faces)
+            bdry_graph = sps.diags_array(
+                np.ones(num_bdry),
+                num_bdry,
+                shape=(2 * num_bdry, 2 * num_bdry),
+            )
+            graph = nx.from_scipy_sparse_array(bdry_graph)
+
+            face_centers = np.hstack([sd.face_centers for sd in mdg.subdomains()])
+            cell_centers = np.hstack([sd.cell_centers for sd in mdg.subdomains()])
+            node_centers = np.hstack(
+                (
+                    face_centers[: mdg.dim_max(), self.starting_faces],
+                    cell_centers[: mdg.dim_max(), self.starting_cells],
+                )
+            ).T
+
+            nx.draw(
+                graph,
+                node_centers,
+                node_size=0,
+                edge_color="red",
+                ax=ax,
+            )
+
+        # Draw the tree that spans all nodes
+        if draw_complement:
+            curl = pg.curl(mdg)[~self.flagged_faces, :]
+            incidence = curl.T @ curl
+            incidence -= sps.triu(incidence)
+
+            graph = nx.from_scipy_sparse_array(incidence)
+
+            node_color = ["black"] * sd_top.nodes.shape[1]
+
+            nx.draw(
+                graph,
+                sd_top.nodes[: mdg.dim_max(), :].T,
+                node_color=node_color,
+                node_size=30,
+                edge_color="purple",
+                width=1.5,
+                ax=ax,
+            )
 
         plt.draw()
         if fig_name is not None:
-            plt.savefig(fig_name, bbox_inches="tight", pad_inches=0)
+            plt.savefig(fig_name, bbox_inches="tight", pad_inches=0.1)
 
         plt.close()
 
@@ -312,24 +374,10 @@ class SpanningTree:
 class SpanningTreeElasticity(SpanningTree):
     """
     Represents a class for computing the spanning tree for the elastic problem.
-
-    Attributes:
-        expand (sps.csc_matrix): The expanded matrix for spanning tree computation.
-        system (sps.csc_matrix): The computed system matrix.
-
-    Methods:
-        setup_system(self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray) -> None:
-            Set up the system for the spanning tree algorithm.
-
-        compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
-            Compute the expanded matrix for spanning tree computation.
-
-        compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
-            Computes the system matrix for the given grid.
     """
 
     def setup_system(
-        self, mdg: Union[pg.MixedDimensionalGrid, pg.Grid], flagged_faces: np.ndarray
+        self, mdg: pg.MixedDimensionalGrid, flagged_faces: np.ndarray
     ) -> None:
         """
         Set up the system for the spanning tree algorithm.
@@ -343,13 +391,13 @@ class SpanningTreeElasticity(SpanningTree):
         """
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
+        sd = cast(pg.Grid, sd)
         self.expand = self.compute_expand(sd, flagged_faces)
-
         # Save the sparse LU decomposition of the system
-        system = self.compute_system(sd)
-        self.system = sps.linalg.splu(system)
+        self.system = self.compute_system(sd)
+        self.system_splu = sps.linalg.splu(self.system)
 
-    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_matrix:
+    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
         """
         Compute the expanded matrix for spanning tree computation.
 
@@ -358,7 +406,7 @@ class SpanningTreeElasticity(SpanningTree):
             flagged_faces (np.ndarray): Array of flagged faces.
 
         Returns:
-            sps.csc_matrix: The expanded matrix for spanning tree computation.
+            sps.csc_array: The expanded matrix for spanning tree computation.
         """
         key = "tree"
         bdm1 = pg.BDM1(key)
@@ -366,27 +414,92 @@ class SpanningTreeElasticity(SpanningTree):
         # this operator fix one dof per face of the bdm space to capture displacement
         P_div = bdm1.proj_from_RT0(sd)
 
-        # this operator maps to div-free bdm to capture rotation
-        P_rot = P_div.copy()
-        P_rot.data[::2] *= -1
-
+        # Normalize the face normals and split into xyz-components
         fn = sd.face_normals.copy()
-        fn = fn / np.linalg.norm(fn, axis=0)
-        fn_x, fn_y, _ = np.split(fn.ravel(), 3)
+        fn /= np.linalg.norm(fn, axis=0)
+        fn_xyz = np.split(fn.ravel(), 3)
 
-        # scaled P_rot with the face normals to be consistent with the div operator
-        P_asym = sps.vstack((P_rot @ sps.diags(fn_x), P_rot @ sps.diags(fn_y)))
+        if sd.dim == 2:
+            # This operator maps to div-free functions to capture the scalar rotation
+            # We take the difference between the first basis func
+            # on a face and the second.
+            P_tn = sps.csc_array(P_div, copy=True)
+            P_tn.data[1::2] = -1
+
+            # scale with the face normals to obtain tensor-valued functions
+            n_times_P_tn = [P_tn * fn_xyz[i] for i in np.arange(sd.dim)]
+            P_asym = sps.vstack(n_times_P_tn)
+
+        elif sd.dim == 3:
+            # Given an orthonormal basis (s, t) of the face,
+            # we generate three matrices that capture asymmetries
+            # in (t, n), (n, s), and (s, t).
+            P_asym = np.empty(3, dtype=sps.csc_array)
+
+            # (t, n) Take the difference between
+            # the first dof on a face and the second dof
+            P_tn = sps.csc_array(P_div, copy=True)
+            # P_tn.data[0::3] = 1
+            P_tn.data[1::3] = -1
+            P_tn.data[2::3] = 0
+
+            # scale with the face normals
+            n_times_P_tn = [P_tn * fn_i for fn_i in fn_xyz]
+            P_asym[0] = sps.vstack(n_times_P_tn)
+
+            # (s, n) Take the difference between
+            # the first dof on a face and the third dof
+            P_sn = sps.csc_array(P_div, copy=True)
+            # P_sn.data[0::3] = 1
+            P_sn.data[1::3] = 0
+            P_sn.data[2::3] = -1
+
+            # scale with the face normals
+            n_times_P_sn = [P_sn * fn_i for fn_i in fn_xyz]
+            P_asym[1] = sps.vstack(n_times_P_sn)
+
+            # (s, t) This one is more complicated
+            # Extract the vectors s and t
+            dof_loc = [sd.nodes[:, sd.face_nodes.indices[i::3]] for i in np.arange(3)]
+            s = dof_loc[1] - dof_loc[0]
+            t = np.cross(fn, s, axisa=0, axisb=0, axisc=0)
+
+            # Normalize such that both scale as 1/h
+            s /= np.sum(np.square(s), axis=0)
+            t /= 2 * sd.face_areas
+
+            # Generate functions in the s-direction
+            P_s = sps.csc_array(P_div, copy=True)
+            for ind in np.arange(3):
+                P_s.data[ind::3] = np.sum((dof_loc[ind] - sd.face_centers) * s, axis=0)
+            # Scale in the t-direction
+            t_times_P_s = [P_s * t_i for t_i in t]
+            P_asym[2] = sps.vstack(t_times_P_s)
+
+            # Generate functions in the t-direction
+            P_t = sps.csc_array(P_div, copy=True)
+            for ind in np.arange(3):
+                P_t.data[ind::3] = np.sum((dof_loc[ind] - sd.face_centers) * t, axis=0)
+            # Scale in the s-direction
+            s_times_P_t = [P_t * s_i for s_i in s]
+            P_asym[2] -= sps.vstack(s_times_P_t)
+
+            P_asym = sps.hstack(P_asym)
+        else:
+            raise NotImplementedError("Grid must be 2D or 3D.")
 
         # combine all the P
         P_div = sps.block_diag([P_div] * sd.dim)
-        P = sps.hstack((P_div, P_asym), format="csc")
+        P = sps.hstack((P_div, P_asym)).tocsc()
 
         # restriction to the flagged faces and restrict P to them
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+        # 3 dof in 2D, 6 dof in 3D
+        dofs_per_face = sd.dim * (sd.dim + 1) // 2
 
-        return P @ sps.block_diag([expand] * 3, format="csc")
+        return P @ sps.block_diag([expand] * dofs_per_face).tocsc()
 
-    def compute_system(self, sd: pg.Grid) -> sps.csc_matrix:
+    def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """
         Computes the system matrix for the given grid.
 
@@ -394,22 +507,78 @@ class SpanningTreeElasticity(SpanningTree):
             sd (pg.Grid): The grid object representing the domain.
 
         Returns:
-            sps.csc_matrix: The computed system matrix.
+            sps.csc_array: The computed system matrix.
         """
         # first we assemble the B matrix
         key = "tree"
         vec_bdm1 = pg.VecBDM1(key)
         vec_p0 = pg.VecPwConstants(key)
-        p0 = pg.PwConstants(key)
 
         M_div = vec_p0.assemble_mass_matrix(sd)
-        M_asym = p0.assemble_mass_matrix(sd)
+
+        if sd.dim == 2:
+            p0 = pg.PwConstants(key)
+            M_asym = p0.assemble_mass_matrix(sd)
+        elif sd.dim == 3:
+            M_asym = M_div
+        else:
+            raise NotImplementedError("Grid must be 2D or 3D.")
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
-        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd)
+        asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)
 
         # create the solution operator
         return sps.vstack((-div, -asym)) @ self.expand
+
+
+class SpanningTreeCosserat(SpanningTreeElasticity):
+    """
+    Represents a class for computing the spanning tree for the Cosserat problem.
+    """
+
+    def compute_expand(self, sd: pg.Grid, flagged_faces: np.ndarray) -> sps.csc_array:
+        """
+        Compute the expanded matrix for spanning tree computation.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            flagged_faces (np.ndarray): Array of flagged faces.
+
+        Returns:
+            sps.csc_array: The expanded matrix for spanning tree computation.
+        """
+        dim_sig_omega = sd.dim * (sd.dim + 1) // 2
+
+        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+
+        return sps.block_diag([expand] * dim_sig_omega).tocsc()
+
+    def compute_system(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Computes the system matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid object representing the domain.
+
+        Returns:
+            sps.csc_array: The computed system matrix.
+        """
+        assert sd.dim == 3, "Only implemented the 3D Raviart-Thomas version."
+
+        # first we assemble the B matrix
+        key = "tree"
+        vec_rt0 = pg.VecRT0(key)
+        vec_p0 = pg.VecPwConstants(key)
+
+        M = vec_p0.assemble_mass_matrix(sd)
+
+        div = M @ vec_rt0.assemble_diff_matrix(sd)
+        asym = M @ vec_rt0.assemble_asym_matrix(sd, True)
+
+        B = sps.block_array([[-div, None], [-asym, -div]]).tocsc()
+
+        # create the solution operator
+        return B @ self.expand
 
 
 class SpanningWeightedTrees:
@@ -418,42 +587,24 @@ class SpanningWeightedTrees:
     the previously introduced classes SpanningTree and SpanningTreeElasticity.
     It works very similarly to the previous one by considering multiple
     trees instead.
-
-    Attributes:
-        sptrs (list): List of SpanningTree objects.
-        avg (function): Function to compute the average of a given array.
-
-    Methods:
-        solve(f: np.ndarray) -> np.ndarray:
-            Perform a spanning weighted trees solve to compute a conservative flux field
-            for given mass source.
-
-        solve_transpose(rhs: np.ndarray) -> np.ndarray:
-            Post-process the pressure by performing a transposed solve.
-
-        find_starting_faces(mdg: pg.MixedDimensionalGrid, num: int) -> np.ndarray:
-            Find the starting faces for each spanning tree if None is provided in the
-            constructor.
-            By default, an equidistribution of boundary faces is constructed.
-
     """
 
     def __init__(
         self,
         mdg: pg.MixedDimensionalGrid,
-        spt: object,
+        spt: Type[SpanningTree],
         weights: np.ndarray,
-        starting_faces: Optional[np.ndarray] = None,
+        starting_faces: np.ndarray | None = None,
     ) -> None:
-        """Constructor of the class
+        """Constructor of the class.
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
             spt (object): The spanning tree object to use.
-            weights (np.ndarray): The weights to impose for each spanning tree, they need to
-                sum to 1.
-            starting_faces (Optional[np.ndarray]): The set of starting faces, if not specified
-                equi-distributed boundary faces are selected.
+            weights (np.ndarray): The weights to impose for each spanning tree, they
+                need to sum to 1.
+            starting_faces (np.ndarray): The set of starting faces, if not
+                specified equi-distributed boundary faces are selected.
         """
         if starting_faces is None:
             num = np.asarray(weights).size
@@ -474,6 +625,17 @@ class SpanningWeightedTrees:
             np.ndarray: The post-processed flux field.
         """
         return self.avg([st.solve(f) for st in self.sptrs])
+
+    def assemble_SI(self) -> sps.sparray:
+        """
+        Assembles the operator S_I as a sparse array.
+        NOTE: This will be slow for large systems.
+        If you only need the action of S_I, consider using self.solve() instead.
+
+        Returns:
+            sps.sparray: S_I, a right inverse of the B-operator
+        """
+        return self.avg([st.assemble_SI() for st in self.sptrs])
 
     def solve_transpose(self, rhs: np.ndarray) -> np.ndarray:
         """
