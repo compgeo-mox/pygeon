@@ -199,11 +199,13 @@ class Visualizer:
                 f"Time index {time_index} out of range [0, {len(self.time_values) - 1}]"
             )
 
-        # Clear and reload at new time step
-        self.clear()
+        # Reset instance variables first to maintain consistent state
         self.meshes = {}
         self.time_values = []
         self.current_time = 0.0
+        # Then clear plotter and actors
+        self.clear()
+        # Finally reload at new time step
         self._load_pvd(self.file_path, time_index)
 
     def vector_field(self, field_name: str, scaling_factor: float = 1.0) -> None:
