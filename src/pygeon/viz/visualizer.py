@@ -73,10 +73,8 @@ class Visualizer:
         self.active_mesh_name: str = ""
         self.time_values: list[float] = []
         self.current_time: float = 0.0
-        self._load_pvd(file_name, time_step)
-
         self.actors: list[Any] = []
-
+        self._load_pvd(file_name, time_step)
     def _load_pvd(self, file_path: Path, time_step: int = 0) -> None:
         """
         Load a PVD file containing time-series data.
