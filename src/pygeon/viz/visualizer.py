@@ -163,6 +163,7 @@ class Visualizer:
         Extract spatial dimension from filename.
 
         Assumes format like 'sol_2_000000.vtu' where _2_ indicates dimension 2.
+        The dimension is the digit immediately before the timestep number.
 
         Args:
             filename (str): The VTU filename.
@@ -170,13 +171,20 @@ class Visualizer:
         Returns:
             int | None: The dimension (0, 1, 2, or 3) or None if not found.
         """
-        # Split by underscore and look for dimension indicator
+        # Remove .vtu extension and split by underscore
         parts = filename.replace(".vtu", "").split("_")
-        for part in parts:
-            if part.isdigit():
-                dim = int(part)
-                if dim in [0, 1, 2, 3]:
-                    return dim
+        
+        # The timestep is typically the last part (all digits)
+        # The dimension is the part immediately before it
+        if len(parts) >= 2:
+            # Check if the last part is a timestep (all digits)
+            if parts[-1].isdigit():
+                # Get the part before the timestep
+                dim_part = parts[-2]
+                if dim_part.isdigit():
+                    dim = int(dim_part)
+                    if dim in [0, 1, 2, 3]:
+                        return dim
         return None
 
     @property
