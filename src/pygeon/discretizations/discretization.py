@@ -145,7 +145,6 @@ class Discretization(abc.ABC):
             np.ndarray: The values of the degrees of freedom
         """
 
-    @abc.abstractmethod
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
@@ -156,6 +155,12 @@ class Discretization(abc.ABC):
         Returns:
              sps.csc_array: The evaluation matrix.
         """
+        Pi = self.proj_to_PwPolynomials(sd)
+        Poly_space = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(
+            self.keyword
+        )
+
+        return Poly_space.eval_at_cell_centers(sd) @ Pi
 
     def source_term(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
