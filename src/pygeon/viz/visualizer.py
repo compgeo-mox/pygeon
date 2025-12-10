@@ -244,18 +244,26 @@ class Visualizer:
         if title:
             self.plotter.add_title(title)
 
-        # Save screenshot if requested
+        # Render and save/show
         if screenshot is not None:
             # Convert to Path if string
             screenshot_path = Path(screenshot)
             file_ext = screenshot_path.suffix.lower().lstrip(".")
 
+            # Render first (required for both screenshot and save_graphic)
+            self.plotter.show(
+                jupyter_backend="static", interactive=False, auto_close=False
+            )
+
+            # Save based on format
             if file_ext in ["eps", "svg"]:
                 self.plotter.save_graphic(str(screenshot_path), raster=False)
             else:
                 self.plotter.screenshot(str(screenshot_path))
+
+            self.plotter.close()
         else:
-            # Show the plot
+            # Show the plot interactively
             if self.plotter.notebook:
                 self.plotter.show(jupyter_backend="static")
             else:
