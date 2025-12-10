@@ -338,66 +338,6 @@ class PwConstants(PwPolynomials):
         """
         return sps.diags_array(1 / sd.cell_volumes).tocsc()
 
-    def error_l2(
-        self,
-        sd: pg.Grid,
-        num_sol: np.ndarray,
-        ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: bool = True,
-        etype: str = "specific",
-        data: dict | None = None,
-    ) -> float:
-        """
-        Returns the l2 error computed against an analytical solution given as a
-        function.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-            num_sol (np.ndarray): Vector of the numerical solution.
-            ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
-                analytical solution.
-            relative (bool): Compute the relative error or not.
-                Defaults to True.
-            etype (str): Type of error computed. Defaults to
-            "specific".
-
-        Returns:
-            float: The computed error.
-        """
-        if etype == "standard":
-            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
-
-        int_sol = np.array([ana_sol(x) for x in sd.nodes.T])
-        proj = self.eval_at_cell_centers(sd)
-        num_sol = proj @ num_sol
-
-        norm = self._cell_error(sd, np.zeros_like(num_sol), int_sol) if relative else 1
-        return self._cell_error(sd, num_sol, int_sol) / norm
-
-    def _cell_error(
-        self, sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray
-    ) -> float:
-        """
-        Calculate the error for each cell in the finite element mesh.
-
-        Args:
-            sd (pg.Grid): The finite element mesh.
-            num_sol (np.ndarray): The numerical solution.
-            int_sol (np.ndarray): The interpolated solution.
-
-        Returns:
-            float: The error for each cell.
-        """
-        cell_nodes = sd.cell_nodes()
-        err = 0
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
-            diff = int_sol[nodes_loc] - num_sol[c]
-
-            err += sd.cell_volumes[c] * diff @ diff.T
-        return np.sqrt(err / (sd.dim + 1))
-
 
 class PwLinears(PwPolynomials):
     """
