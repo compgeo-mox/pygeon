@@ -9,7 +9,7 @@ def get_coverage_percentage(file):
 
 
 baseline = 95
-current = get_coverage_percentage("pr.xml")
+current = get_coverage_percentage("pytest_coverage.xml")
 
 print(f"Baseline coverage: {baseline:.2f}%")
 print(f"PR coverage: {current:.2f}%")
