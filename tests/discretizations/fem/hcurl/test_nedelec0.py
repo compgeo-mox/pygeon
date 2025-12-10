@@ -71,9 +71,7 @@ def test_error_l2(discr, unit_sd_3d):
     def fun(x):
         return np.array([x[0] + 2 * x[1] - x[2], 2 * x[0] - x[1], 6 * x[2]])
 
-    # fmt: off
     int_sol = discr.interpolate(unit_sd_3d, fun)
-
 
     err = discr.error_l2(unit_sd_3d, np.zeros_like(int_sol), fun)
     assert np.isclose(err, 1)

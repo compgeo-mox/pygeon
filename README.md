@@ -1,6 +1,5 @@
 ![Pytest](https://github.com/compgeo-mox/pygeon/actions/workflows/run-pytest.yml/badge.svg)
 ![Mypy, ruff, isort](https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml/badge.svg)
-![Tutorials](https://github.com/compgeo-mox/pygeon/actions/workflows/check_tutorials.yml/badge.svg)
 ![CodeQL](https://github.com/compgeo-mox/pygeon/workflows/CodeQL/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/pygeon-docs/badge/?version=latest)](https://pygeon-docs.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/455087135.svg)](https://zenodo.org/badge/latestdoi/455087135)
