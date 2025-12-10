@@ -72,6 +72,7 @@ jobs:
     - name: Install requirements and PyGeoN
       run: |
         pip install .
+        pip install pytest-cov
         pip freeze
 
     - name: Pytest
