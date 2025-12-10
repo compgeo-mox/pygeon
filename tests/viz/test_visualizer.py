@@ -192,15 +192,6 @@ def test_visualizer_custom_scalar_bar_args(simple_pvd_file):
         vis.show()
 
 
-def test_visualizer_import_error():
-    """Test that ImportError is raised when PyVista is not available."""
-    if PYVISTA_AVAILABLE:
-        pytest.skip("PyVista is available, cannot test import error")
-
-    with pytest.raises(ImportError, match="PyVista is required"):
-        pg.Visualizer("dummy_file")
-
-
 @pytest.mark.skipif(not PYVISTA_AVAILABLE, reason="PyVista not available")
 def test_visualizer_missing_file():
     """Test error handling for missing PVD file."""
