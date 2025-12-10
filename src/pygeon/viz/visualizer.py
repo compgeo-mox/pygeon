@@ -1,5 +1,4 @@
 import shutil
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -25,18 +24,17 @@ class Visualizer:
     containing multiple grids of different dimensions (1D, 2D, 3D) at
     different time steps.
 
+    NOTE: the visualization of a vector field should be called before the one of a
+    scalar field. Contour plot should be called last.
+
     Requires PyVista to be installed.
-
-    Example:
-        Basic usage::
-
-            vis = Visualizer("results")
-            vis.scalar_field("pressure", cmap="viridis")
-            vis.show(screenshot="pressure.png")
     """
 
     def __init__(
-        self, file_name: str | Path, folder_name: str | Path = "", time_step: int = 0
+        self,
+        dim: int,
+        file_name: str | Path,
+        folder_name: str | Path = "",
     ) -> None:
         """
         Initialize the Visualizer.
@@ -46,11 +44,11 @@ class Visualizer:
                 (extension .pvd can be omitted).
             folder_name (str | Path): Optional folder path. If provided,
                 will be combined with file_name.
-            time_step (int): Time step index for PVD files.
-                Default 0 (first time step).
         """
         if not PYVISTA_AVAILABLE:
             raise ImportError("PyVista is required for visualization.")
+
+        self.dim = dim
 
         # Convert to Path objects if strings
         file_name = Path(file_name)
@@ -61,11 +59,10 @@ class Visualizer:
             file_name = folder_name / file_name
 
         # Add .pvd extension if not present
-        if file_name.suffix.lower() != ".pvd":
-            file_name = file_name.with_suffix(".pvd")
+        if file_name.suffix.lower() != ".vtu":
+            file_name = file_name.with_suffix(".vtu")
 
-        self.file_path: Path = file_name
-        self.time_step: int = time_step
+        self.mesh = pv.read(str(file_name))
 
         # Configure PyVista theme
         pv.global_theme.font.label_size = 14
@@ -78,139 +75,14 @@ class Visualizer:
         else:
             pv.global_theme.font.family = "arial"
 
-        self.plotter: "pv.Plotter" = pv.Plotter()
-
-        # Load the PVD file
-        self.meshes: dict[str, "pv.DataSet"] = {}
-        self.active_mesh_name: str = ""
-        self.time_values: list[float] = []
-        self.current_time: float = 0.0
-        self.actors: list[Any] = []
-        self._load_pvd(file_name, time_step)
-
-    def _load_pvd(self, file_path: Path, time_step: int = 0) -> None:
-        """
-        Load a PVD file containing time-series data.
-
-        The mesh geometry remains constant across timesteps; only the scalar
-        and vector fields change. Meshes are indexed by dimension extracted from
-        filenames (e.g., sol_2_000000.vtu indicates dimension 2).
-        All grids present at the first timestep are assumed to be present at all
-        timesteps.
-
-        Args:
-            file_path (Path): Path to the PVD file.
-            time_step (int): Time step index to load (0-based).
-        """
-        # Parse PVD XML file to extract timesteps and files
-        tree = ET.parse(str(file_path))
-        root = tree.getroot()
-
-        # Extract all DataSet entries from the Collection
-        datasets = root.findall(".//DataSet")
-
-        # Parse timesteps and file paths
-        time_data = []
-        for dataset in datasets:
-            timestep = float(dataset.get("timestep", 0))
-            file_ref = dataset.get("file")
-            if file_ref:
-                time_data.append((timestep, file_ref))
-
-        # Sort by timestep
-        time_data.sort(key=lambda x: x[0])
-
-        # Load meshes from first timestep
-        # Extract unique dimensions from the first timestep files
-        first_timestep = time_data[0][0]
-        base_dir = file_path.parent
-
-        # Collect all unique dimensions from first timestep files
-        file_to_dim = {}  # Map from filename to dimension
-
-        for timestep, file_ref in time_data:
-            if timestep == first_timestep:
-                # Extract dimension from filename (e.g., "sol_2_000000.vtu" -> dim 2)
-                dim = self._extract_dimension_from_filename(file_ref)
-                if dim is not None:
-                    file_to_dim[file_ref] = dim
-
-        # Load mesh for each dimension from first timestep
-        for timestep, file_ref in time_data:
-            if timestep == first_timestep:
-                dim = file_to_dim.get(file_ref)
-                if dim is not None:
-                    mesh = pv.read(str(base_dir / file_ref))
-                    self.meshes[f"Mesh_dim{dim}"] = mesh
-
-        # Store time information
-        self.time_values = [t[0] for t in time_data]
-        self.current_time = time_data[time_step][0]
-
-        # Set the first mesh as active
-        self.active_mesh_name = list(self.meshes.keys())[0]
-
-    @staticmethod
-    def _extract_dimension_from_filename(filename: str) -> int | None:
-        """
-        Extract spatial dimension from filename.
-
-        Assumes format like 'sol_2_000000.vtu' where _2_ indicates dimension 2.
-        The dimension is the digit immediately before the timestep number.
-
-        Args:
-            filename (str): The VTU filename.
-
-        Returns:
-            int | None: The dimension (0, 1, 2, or 3) or None if not found.
-        """
-        # Remove .vtu extension and split by underscore
-        parts = filename.replace(".vtu", "").split("_")
-
-        # The timestep is typically the last part (all digits)
-        # The dimension is the part immediately before it
-        if len(parts) >= 2:
-            # Check if the last part is a timestep (all digits)
-            if parts[-1].isdigit():
-                # Get the part before the timestep
-                dim_part = parts[-2]
-                if dim_part.isdigit():
-                    dim = int(dim_part)
-                    if dim in [0, 1, 2, 3]:
-                        return dim
-        return None
-
-    @property
-    def mesh(self) -> "pv.DataSet":
-        """Get the currently active mesh."""
-        return self.meshes[self.active_mesh_name]
-
-    def load_time_step(self, time_index: int) -> None:
-        """
-        Load a specific time step from the PVD file.
-
-        Args:
-            time_index (int): Index of the time step (0-based).
-        """
-        # Clear and reload at new time step
-        self.clear()
-        # Then reset mesh data (time_values and current_time are set by _load_pvd)
-        self.meshes = {}
-        # Finally reload at new time step
-        self._load_pvd(self.file_path, time_index)
+        self.plotter = pv.Plotter()
 
     def _default_bar_args(self, field_name: str) -> dict[str, Any]:
         """Return centered right-side scalar bar args based on mesh dimension."""
 
-        # Extract dimension from active mesh name (e.g., "Mesh_dim2" -> 2)
-        if "dim" in self.active_mesh_name:
-            dim = int(self.active_mesh_name.split("dim")[-1])
-        else:
-            dim = 3
-
         # Make bar size proportional to dimension and center vertically
         # Height grows with dimension but is clamped for readability
-        height = 0.35 + 0.1 * max(1, min(dim, 3))  # 1D->0.45, 2D->0.55, 3D->0.65
+        height = 0.35 + 0.1 * max(1, min(self.dim, 3))  # 1D->0.45, 2D->0.55, 3D->0.65
         height = min(max(height, 0.35), 0.7)
         position_y = (1.0 - height) / 2.0  # vertical centering
 
@@ -235,17 +107,17 @@ class Visualizer:
         arrows = self.mesh.glyph(
             orient=field_name, scale=field_name, factor=scaling_factor, absolute=False
         )
-        actor = self.plotter.add_mesh(arrows, color="gray", scalars=None, cmap=None)
-        self.actors.append(actor)
+        self.plotter.add_mesh(arrows, color="gray", scalars=None, cmap=None)
 
     def scalar_field(
-        self, field_name: str, field_label: str = None, **kwargs: Any
+        self, field_name: str, field_label: str = "", **kwargs: Any
     ) -> None:
         """
         Visualize a scalar field with color mapping.
 
         Args:
             field_name (str): Name of the scalar field in the mesh.
+            field_label (str): Label for the scalar bar. Default is field_name.
             **kwargs: Additional options:
 
                 - cmap (str): Colormap name. Default "rainbow".
@@ -254,7 +126,7 @@ class Visualizer:
                 - line_width (float): Width of edge lines. Default 1.0.
                 - scalar_bar_args (dict): Scalar bar configuration.
         """
-        if field_label is None:
+        if field_label == "":
             field_label = field_name
 
         cmap = kwargs.get("cmap", "rainbow")
@@ -266,25 +138,23 @@ class Visualizer:
         )
 
         # Show scalar field without edges to avoid triangulation visibility
-        actor = self.plotter.add_mesh(
+        self.plotter.add_mesh(
             self.mesh,
             scalars=field_name,
             cmap=cmap,
             show_edges=False,
             scalar_bar_args=scalar_bar_args,
         )
-        self.actors.append(actor)
 
         # Add cell edges separately if requested
         if show_edges:
             edges = self.mesh.extract_all_edges()
-            edge_actor = self.plotter.add_mesh(
+            self.plotter.add_mesh(
                 edges,
                 color=edge_color,
                 line_width=line_width,
                 style="wireframe",
             )
-            self.actors.append(edge_actor)
 
     def contour(self, field_name: str, isosurfaces: int = 10) -> None:
         """
@@ -300,8 +170,7 @@ class Visualizer:
             mesh = mesh.cell_data_to_point_data()
 
         contours = mesh.contour(isosurfaces=isosurfaces, scalars=field_name)
-        actor = self.plotter.add_mesh(contours, color="black", line_width=2.0)
-        self.actors.append(actor)
+        self.plotter.add_mesh(contours, color="black", line_width=2.0)
 
     def show_mesh(self, **kwargs: Any) -> None:
         """
@@ -325,33 +194,21 @@ class Visualizer:
         edges = self.mesh.extract_all_edges()
 
         # Show surface with cell boundaries only
-        actor = self.plotter.add_mesh(
+        self.plotter.add_mesh(
             self.mesh,
             color=color,
             show_edges=False,
             opacity=opacity,
         )
-        self.actors.append(actor)
 
         # Add cell edges separately
         if show_edges:
-            edge_actor = self.plotter.add_mesh(
+            self.plotter.add_mesh(
                 edges,
                 color=edge_color,
                 line_width=line_width,
                 style="wireframe",
             )
-            self.actors.append(edge_actor)
-
-    def add_mesh_outline(self) -> None:
-        """Add an outline of the mesh domain."""
-        outline = self.mesh.outline()
-        self.plotter.add_mesh(outline, color="black", line_width=2.0)
-
-    def clear(self) -> None:
-        """Clear all actors from the plotter."""
-        self.plotter.clear()
-        self.actors = []
 
     def show(self, **kwargs: Any) -> None:
         """
@@ -371,16 +228,16 @@ class Visualizer:
 
         # Set camera view
         if view == "xy":
-            self.plotter.view_xy()
-            self.plotter.enable_parallel_projection()
+            self.plotter.view_xy()  # type: ignore[call-arg]
+            self.plotter.enable_parallel_projection()  # type: ignore[call-arg]
         elif view == "xz":
-            self.plotter.view_xz()
-            self.plotter.enable_parallel_projection()
+            self.plotter.view_xz()  # type: ignore[call-arg]
+            self.plotter.enable_parallel_projection()  # type: ignore[call-arg]
         elif view == "yz":
-            self.plotter.view_yz()
-            self.plotter.enable_parallel_projection()
+            self.plotter.view_yz()  # type: ignore[call-arg]
+            self.plotter.enable_parallel_projection()  # type: ignore[call-arg]
         elif view == "iso":
-            self.plotter.view_isometric()
+            self.plotter.view_isometric()  # type: ignore[call-arg]
 
         # Set the title if provided
         if title:
@@ -396,6 +253,9 @@ class Visualizer:
                 self.plotter.save_graphic(str(screenshot_path), raster=False)
             else:
                 self.plotter.screenshot(str(screenshot_path))
-
-        # Show the plot
-        self.plotter.show(jupyter_backend="static")
+        else:
+            # Show the plot
+            if self.plotter.notebook:
+                self.plotter.show(jupyter_backend="static")
+            else:
+                self.plotter.show()
