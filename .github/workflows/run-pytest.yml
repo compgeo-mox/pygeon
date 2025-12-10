@@ -71,10 +71,13 @@ jobs:
 
     - name: Install requirements and PyGeoN
       run: |
-        pip install .
+        pip install -e .
         pip freeze
 
     - name: Pytest
       if: ${{always()}}
-      run: pytest tests -m "not tutorials"
+      run: pytest tests --cov-report=xml:coverage_report.xml
+
+    - name: Compare coverage
+      run: python .github/compare_coverage.py
 
