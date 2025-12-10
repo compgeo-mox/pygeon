@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 try:
     import pyvista as pv
@@ -56,7 +56,8 @@ class Visualizer:
         if file_name.suffix.lower() != ".vtu":
             file_name = file_name.with_suffix(".vtu")
 
-        self.mesh = pv.read(str(file_name))
+        # Cast to DataSet to satisfy type checkers
+        self.mesh: pv.DataSet = cast(pv.DataSet, pv.read(str(file_name)))
 
         # Configure PyVista theme
         pv.global_theme.font.label_size = 14
