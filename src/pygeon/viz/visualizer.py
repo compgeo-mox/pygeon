@@ -348,14 +348,16 @@ class Visualizer:
 
         # Set camera view
         if view == "xy":
-            cast(Any, self.plotter.view_xy)()
-            cast(Any, self.plotter.enable_parallel_projection)()
+            self.plotter.view_xy()
+            self.plotter.enable_parallel_projection()
         elif view == "xz":
-            cast(Any, self.plotter.view_xz)()
+            self.plotter.view_xz()
+            self.plotter.enable_parallel_projection()
         elif view == "yz":
-            cast(Any, self.plotter.view_yz)()
+            self.plotter.view_yz()
+            self.plotter.enable_parallel_projection()
         elif view == "iso":
-            cast(Any, self.plotter.view_isometric)()
+            self.plotter.view_isometric()
 
         # Set the title if provided
         if title:
