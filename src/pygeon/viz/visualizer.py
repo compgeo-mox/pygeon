@@ -166,7 +166,7 @@ class Visualizer:
         """
         # Remove .vtu extension and split by underscore
         parts = filename.replace(".vtu", "").split("_")
-        
+
         # The timestep is typically the last part (all digits)
         # The dimension is the part immediately before it
         if len(parts) >= 2:
