@@ -12,12 +12,10 @@ except ImportError:
 
 class Visualizer:
     """
-    A flexible visualization class for PVD time-series mesh files using PyVista.
+    A flexible visualization class for VTU mesh file using PyVista.
 
     Supports both Jupyter notebook and standalone usage with various
-    visualization modes for scalar and vector fields. Handles PVD files
-    containing multiple grids of different dimensions (1D, 2D, 3D) at
-    different time steps.
+    visualization modes for scalar and vector fields.
 
     NOTE: the visualization of a vector field should be called before the one of a
     scalar field. Contour plot should be called last.
@@ -35,6 +33,7 @@ class Visualizer:
         Initialize the Visualizer.
 
         Args:
+            dim (int): The dimension of the domain.
             file_name (str | Path): Name or path to the PVD file
                 (extension .pvd can be omitted).
             folder_name (str | Path): Optional folder path. If provided,
@@ -73,8 +72,12 @@ class Visualizer:
         self.plotter = pv.Plotter()
 
     def _default_bar_args(self, field_name: str) -> dict[str, Any]:
-        """Return centered right-side scalar bar args based on mesh dimension."""
+        """
+        Return centered right-side scalar bar args based on mesh dimension.
 
+        Args:
+            field_name (str): Name of the field in the mesh.
+        """
         # Make bar size proportional to dimension and center vertically
         # Height grows with dimension but is clamped for readability
         height = 0.35 + 0.1 * max(1, min(self.dim, 3))  # 1D->0.45, 2D->0.55, 3D->0.65
@@ -155,6 +158,9 @@ class Visualizer:
         """
         Create contour surfaces of a scalar field.
 
+        NOTE: if the scalar field is a cell data, it will be converted to point data
+        before doing the contour.
+
         Args:
             field_name (str): Name of the scalar field.
             isosurfaces (int): Number of isosurfaces. Default 10.
@@ -173,11 +179,12 @@ class Visualizer:
 
         Args:
             **kwargs: Additional options:
-                color (str): Mesh color. Default "white".
-                show_edges (bool): Show mesh edges. Default True.
-                edge_color (str): Color of edges. Default "black".
-                opacity (float): Mesh opacity. Default 1.0.
-                line_width (float): Width of edge lines. Default 1.0.
+
+                - color (str): Mesh color. Default "white".
+                - show_edges (bool): Show mesh edges. Default True.
+                - edge_color (str): Color of edges. Default "black".
+                - opacity (float): Mesh opacity. Default 1.0.
+                - line_width (float): Width of edge lines. Default 1.0.
         """
         color = kwargs.get("color", "white")
         show_edges = kwargs.get("show_edges", True)
@@ -212,10 +219,9 @@ class Visualizer:
         Args:
             **kwargs: Additional options:
 
-                view (str): Camera view ("xy", "xz", "yz", "iso"). Default "xy".
-                title (str): Title text to display.
-                screenshot (str | Path): Path to save screenshot (png, jpg, eps, svg).
-                    Default None.
+                - view (str): Camera view ("xy", "xz", "yz", "iso"). Default "xy".
+                - title (str): Title text to display.
+                - screenshot (str | Path): Path to save screenshot (png, jpg, eps, svg).
         """
         view = kwargs.get("view", "xy")
         screenshot = kwargs.get("screenshot", None)
