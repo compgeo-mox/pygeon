@@ -231,10 +231,10 @@ class Discretization(abc.ABC):
         in unexpected superconvergence. In that case, we advise specifying poly_order.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass. num_sol (np.ndarray): Vector of the
-            numerical solution. ana_sol (Callable): Function that represents the
-            analytical solution. relative (bool, optional): Compute the relative error
-            or not. Defaults to
+            sd (pg.Grid): Grid, or a subclass.
+            num_sol (np.ndarray): Vector of the numerical solution.
+            ana_sol (Callable): Function that represents the analytical solution.
+            relative (bool, optional): Compute the relative error or not. Defaults to
                 True.
             poly_order (int, optional): The default is to compare the numerical solution
                 to the interpolation of the given solution. If poly_order is specified,
@@ -243,7 +243,6 @@ class Discretization(abc.ABC):
         Returns:
             float: The computed error.
         """
-
         # Default case in which we interpolate the solution and compare
         if poly_order is None:
             int_sol = self.interpolate(sd, ana_sol)
