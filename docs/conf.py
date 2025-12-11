@@ -60,7 +60,7 @@ templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md", "api/pygeon.rst"]
 
 # The suffix(es) of source filenames.
 source_suffix = {
@@ -71,6 +71,8 @@ source_suffix = {
 # Suppress warnings for unresolved type hints in autodoc
 suppress_warnings = [
     "ref.class",  # Suppress unresolved class reference warnings
+    "ref.exc",  # Suppress unresolved exception reference warnings
+    "misc.highlighting_failure",  # Suppress invalid Pygments lexer warnings
 ]
 
 # -- Options for HTML output -------------------------------------------------
