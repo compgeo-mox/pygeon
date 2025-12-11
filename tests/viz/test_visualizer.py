@@ -11,38 +11,38 @@ import pytest
 import pygeon as pg
 
 
-@pytest.fixture(params=["unit_sd_2d", "octagon_sd_2d", "cart_sd_2d"])
-def grid_2d(request: pytest.FixtureRequest):
+@pytest.fixture(params=["unit_sd_2d", "unit_sd_3d", "octagon_sd_2d", "cart_sd_2d"])
+def grid_to_visualize(request: pytest.FixtureRequest):
     # resolve the underlying fixture by name
     return request.getfixturevalue(request.param)
 
 
 @pytest.fixture
-def simple_vtu_file(grid_2d):
+def simple_vtu_file(grid_to_visualize):
     """Create a simple VTU data for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
 
         # Create some test data
-        cell_scalar = np.random.rand(grid_2d.num_cells)
-        cell_vector = np.random.rand(3, grid_2d.num_cells)
-        point_scalar = np.random.rand(grid_2d.num_nodes)
-        point_vector = np.random.rand(3, grid_2d.num_nodes)
+        cell_scalar = np.random.rand(grid_to_visualize.num_cells)
+        cell_vector = np.random.rand(3, grid_to_visualize.num_cells)
+        point_scalar = np.random.rand(grid_to_visualize.num_nodes)
+        point_vector = np.random.rand(3, grid_to_visualize.num_nodes)
 
         # Export to VTU
         file_name = "test_sol"
-        save = pp.Exporter(grid_2d, file_name, folder_name=str(tmpdir))
+        save = pp.Exporter(grid_to_visualize, file_name, folder_name=str(tmpdir))
         save.write_vtu(
             [(f"cell_scalar", cell_scalar), (f"cell_vector", cell_vector)],
             data_pt=[(f"point_scalar", point_scalar), (f"point_vector", point_vector)],
         )
 
-        file_name += "_2.vtu"
-        vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
+        file_name += "_" + str(grid_to_visualize.dim) + ".vtu"
+        vis = pg.Visualizer(file_name, folder_name=str(tmpdir))
 
         fields = ["cell_scalar", "cell_vector", "point_scalar", "point_vector"]
         with mock.patch.object(vis.plotter, "show"):
-            yield vis, grid_2d, fields
+            yield vis, grid_to_visualize, fields
 
 
 def test_visualizer_initialization(simple_vtu_file):
