@@ -2,12 +2,7 @@ import shutil
 from pathlib import Path
 from typing import Any, cast
 
-try:
-    import pyvista as pv
-
-    PYVISTA_AVAILABLE = True
-except ImportError:
-    PYVISTA_AVAILABLE = False
+import pyvista as pv
 
 
 class Visualizer:
@@ -39,9 +34,6 @@ class Visualizer:
             folder_name (str | Path): Optional folder path. If provided,
                 will be combined with file_name.
         """
-        if not PYVISTA_AVAILABLE:
-            raise ImportError("PyVista is required for visualization.")
-
         self.dim = dim
 
         # Convert to Path objects if strings
