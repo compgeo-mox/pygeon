@@ -12,8 +12,7 @@ def argsort_ccw_convex(pts: np.ndarray) -> np.ndarray:
 
     Returns:
         np.ndarray: Array of indices that represents the sorted order of the points in
-            counterclockwise direction.
-
+        counterclockwise direction.
     """
     # Compute the centroid and the radii of the points
     centre = np.mean(pts, axis=0)
