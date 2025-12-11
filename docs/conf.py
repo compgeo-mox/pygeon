@@ -60,7 +60,18 @@ templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md", "api/pygeon.rst"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "README.md",
+    "api/pygeon.rst",
+    "api/pygeon.discretizations.rst",
+    "api/pygeon.filters.rst",
+    "api/pygeon.grids.rst",
+    "api/pygeon.numerics.rst",
+    "api/pygeon.utils.rst",
+]
 
 # The suffix(es) of source filenames.
 source_suffix = {
