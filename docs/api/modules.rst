@@ -11,6 +11,7 @@ This section contains the complete API documentation for PyGeoN.
    grids
    numerics
    utils
+   viz
 
 Main Package
 ------------
