@@ -69,7 +69,7 @@ class Visualizer:
         """
         # Make bar size proportional to dimension and center vertically
         # Height grows with dimension but is clamped for readability
-        height = 0.35 + 0.1 * max(1, min(self.dim, 3))  # 1D->0.45, 2D->0.55, 3D->0.65
+        height = 0.35 + 0.1 * self.dim # 1D->0.45, 2D->0.55, 3D->0.65
         height = min(max(height, 0.35), 0.7)
         position_y = (1.0 - height) / 2.0  # vertical centering
 
