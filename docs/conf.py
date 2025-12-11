@@ -86,6 +86,19 @@ suppress_warnings = [
     "misc.highlighting_failure",  # Suppress invalid Pygments lexer warnings
 ]
 
+# Autodoc settings
+autodoc_mock_imports = [
+    "pyvista",
+    "vtkmodules",
+    "vtkmodules.vtkCommonCore",
+    "vtkmodules.vtkCommonDataModel",
+    "vtkmodules.vtkIOXML",
+    "vtkmodules.vtkIOLegacy",
+    "vtkmodules.vtkImagingSources",
+    "vtkmodules.util",
+    "vtkmodules.util.numpy_support",
+]
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
