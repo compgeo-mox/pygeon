@@ -320,7 +320,8 @@ class VecBDM1(VecHDiv):
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
-        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d as::
+        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d
+        as::
 
             as(tau) = tau_yx - tau_xy
 
@@ -526,7 +527,8 @@ class VecRT0(VecHDiv):
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
-        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d as::
+        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d
+        as::
 
             as(tau) = tau_xy - tau_yx
 
