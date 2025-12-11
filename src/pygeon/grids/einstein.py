@@ -38,9 +38,7 @@ class EinSteinGrid(pg.Grid):
         coords, cell_faces, face_nodes = self.build_connectivity()
 
         # build the grid
-        super(EinSteinGrid, self).__init__(
-            2, coords, face_nodes, cell_faces, "EinSteinGrid"
-        )
+        super().__init__(2, coords, face_nodes, cell_faces, "EinSteinGrid")
 
     def add_hanging_node(self) -> None:
         """
