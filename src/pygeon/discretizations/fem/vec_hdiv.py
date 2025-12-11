@@ -22,8 +22,20 @@ class VecHDiv(pg.VecDiscretization):
     ) -> sps.csc_array:
         """
         Assembles and returns the elasticity inner product matrix, which is given by
-        (A sigma, tau) where A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu and lambda the Lamé constants and coeff = lambda / (2*mu + dim*lambda)
+        :math:`(A \\sigma, \\tau)` where
+
+        .. math::
+
+            A \\sigma = \\frac{1}{2\\mu} \\left[ \\sigma - c
+            \\text{Tr}(\\sigma) I\\right]
+
+        with :math:`\\mu` and :math:`\\lambda` the Lamé constants and
+
+        .. math::
+
+            c = \\frac{\\lambda}{2\\mu + d \\lambda}
+
+        where :math:`d` is the dimension.
 
         Args:
             sd (pg.Grid): The grid.
@@ -51,7 +63,7 @@ class VecHDiv(pg.VecDiscretization):
         B = self.assemble_trace_matrix(sd)
 
         # Assemble the piecewise linear mass matrix, to assemble the term
-        # (Trace(sigma), Trace(tau))
+        # (Tr(sigma), Tr(tau))
         scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
         M = scalar_discr.assemble_mass_matrix(sd, data_tr_space)
 
@@ -60,14 +72,23 @@ class VecHDiv(pg.VecDiscretization):
 
     def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
-        Assembles and returns the Cosserat inner product, which is given by (A sigma,
-        tau) where
+        Assembles and returns the Cosserat inner product, which is given by
+        :math:`(A \\sigma, \\tau)` where
 
-            A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
-                      + skw(sigma) / (2 mu_c)
+        .. math::
 
-        with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
-        mu_c the coupling Lamé modulus.
+            A \\sigma = \\frac{1}{2\\mu} \\left( \\text{sym}(\\sigma)
+            - c \\text{Tr}(\\sigma) I \\right)
+            + \\frac{1}{2\\mu_c} \\text{skw}(\\sigma)
+
+        with :math:`\\mu` and :math:`\\lambda` the Lamé constants,
+        :math:`\\mu_c` the coupling Lamé modulus, and
+
+        .. math::
+
+            c = \\frac{\\lambda}{2\\mu + d \\lambda}
+
+        where :math:`d` is the dimension.
 
         Args:
             sd (pg.Grid): The grid.
@@ -137,7 +158,7 @@ class VecHDiv(pg.VecDiscretization):
 
     def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
-        Assembles the lumped matrix with cosserat terms for the given grid.
+        Assembles the lumped matrix with Cosserat terms for the given grid.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -226,27 +247,38 @@ class VecBDM1(VecHDiv):
         Initialize the vector BDM1 discretization class.
         The base discretization class is pg.BDM1.
 
-        We are considering the following structure of the stress tensor in 2d
+        We are considering the following structure of the stress tensor in 2D:
 
-        sigma = [[sigma_xx, sigma_xy],
-                 [sigma_yx, sigma_yy]]
+        .. math::
 
-        which is represented in the code unrolled row-wise as a vector of length 4
+            \\sigma = \\begin{bmatrix}
+                \\sigma_{xx} & \\sigma_{xy} \\\\
+                \\sigma_{yx} & \\sigma_{yy}
+            \\end{bmatrix}
 
-        sigma = [sigma_xx, sigma_xy,
-                 sigma_yx, sigma_yy]
+        which is represented in the code unrolled row-wise as a vector of length 4:
 
-        While in 3d the stress tensor can be written as
+        .. math::
 
-        sigma = [[sigma_xx, sigma_xy, sigma_xz],
-                 [sigma_yx, sigma_yy, sigma_yz],
-                 [sigma_zx, sigma_zy, sigma_zz]]
+            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
-        where its vectorized structure of length 9 is given by
+        While in 3D the stress tensor can be written as:
 
-        sigma = [sigma_xx, sigma_xy, sigma_xz,
-                 sigma_yx, sigma_yy, sigma_yz,
-                 sigma_zx, sigma_zy, sigma_zz]
+        .. math::
+
+            \\sigma = \\begin{bmatrix}
+                \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
+                \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
+                \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
+            \\end{bmatrix}
+
+        where its vectorized structure of length 9 is given by:
+
+        .. math::
+
+            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
+                       \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
+                       \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -316,20 +348,29 @@ class VecBDM1(VecHDiv):
         # Construct the global matrices
         return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])), shape=shape)
 
-    def assemble_asym_matrix(self, sd: pg.Grid, as_pwconstant=False) -> sps.csc_array:
+    def assemble_asym_matrix(
+        self, sd: pg.Grid, as_pwconstant: bool = False
+    ) -> sps.csc_array:
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
-        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d
-        as::
+        The asymmetric operator :math:`\\text{as}` for a tensor is a scalar in 2D:
 
-            as(tau) = tau_yx - tau_xy
+        .. math::
 
-        while for a tensor in 3d it is a vector and given by::
+            \\text{as}(\\tau) = \\tau_{yx} - \\tau_{xy}
 
-            as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
+        while for a tensor in 3D it is a vector:
 
-        Note: We assume that the as(tau) is a piecewise linear.
+        .. math::
+
+            \\text{as}(\\tau) = \\begin{bmatrix}
+                \\tau_{zy} - \\tau_{yz} \\\\
+                \\tau_{xz} - \\tau_{zx} \\\\
+                \\tau_{yx} - \\tau_{xy}
+            \\end{bmatrix}
+
+        Note: We assume that the :math:`\\text{as}(\\tau)` is piecewise linear.
 
         Args:
             sd (pg.Grid): The grid.
@@ -477,27 +518,38 @@ class VecRT0(VecHDiv):
         Initialize the vector RT0 discretization class.
         The base discretization class is pg.RT0.
 
-        We are considering the following structure of the stress tensor in 2d
+        We are considering the following structure of the stress tensor in 2D:
 
-        sigma = [[sigma_xx, sigma_xy],
-                 [sigma_yx, sigma_yy]]
+        .. math::
 
-        which is represented in the code unrolled row-wise as a vector of length 4
+            \\sigma = \\begin{bmatrix}
+                \\sigma_{xx} & \\sigma_{xy} \\\\
+                \\sigma_{yx} & \\sigma_{yy}
+            \\end{bmatrix}
 
-        sigma = [sigma_xx, sigma_xy,
-                 sigma_yx, sigma_yy]
+        which is represented in the code unrolled row-wise as a vector of length 4:
 
-        While in 3d the stress tensor can be written as
+        .. math::
 
-        sigma = [[sigma_xx, sigma_xy, sigma_xz],
-                 [sigma_yx, sigma_yy, sigma_yz],
-                 [sigma_zx, sigma_zy, sigma_zz]]
+            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
-        where its vectorized structure of length 9 is given by
+        While in 3D the stress tensor can be written as:
 
-        sigma = [sigma_xx, sigma_xy, sigma_xz,
-                 sigma_yx, sigma_yy, sigma_yz,
-                 sigma_zx, sigma_zy, sigma_zz]
+        .. math::
+
+            \\sigma = \\begin{bmatrix}
+                \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
+                \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
+                \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
+            \\end{bmatrix}
+
+        where its vectorized structure of length 9 is given by:
+
+        .. math::
+
+            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
+                       \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
+                       \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -527,16 +579,23 @@ class VecRT0(VecHDiv):
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
-        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d
-        as::
+        The asymmetric operator :math:`\\text{as}` for a tensor is a scalar in 2D:
 
-            as(tau) = tau_xy - tau_yx
+        .. math::
 
-        while for a tensor in 3d it is a vector and given by::
+            \\text{as}(\\tau) = \\tau_{xy} - \\tau_{yx}
 
-            as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
+        while for a tensor in 3D it is a vector:
 
-        Note: We assume that the as(tau) is a cell variable.
+        .. math::
+
+            \\text{as}(\\tau) = \\begin{bmatrix}
+                \\tau_{zy} - \\tau_{yz} \\\\
+                \\tau_{xz} - \\tau_{zx} \\\\
+                \\tau_{yx} - \\tau_{xy}
+            \\end{bmatrix}
+
+        Note: We assume that the :math:`\\text{as}(\\tau)` is a cell variable.
 
         Args:
             sd (pg.Grid): The grid.

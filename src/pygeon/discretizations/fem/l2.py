@@ -227,7 +227,7 @@ class PwPolynomials(pg.Discretization):
 class PwConstants(PwPolynomials):
     """
     Discretization class for the piecewise constants.
-    NB! Each degree of freedom is the integral over the cell.
+    NOTE: Each degree of freedom is the integral over the cell.
     """
 
     poly_order = 0

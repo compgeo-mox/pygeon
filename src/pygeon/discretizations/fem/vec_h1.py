@@ -25,28 +25,38 @@ class VecLagrange1(pg.VecDiscretization):
     The stress tensor and strain tensor are represented as vectors unrolled row-wise.
     In 2D, the stress tensor has a length of 4, and in 3D, it has a length of 9.
 
-    We are considering the following structure of the stress tensor in 2d
+    We are considering the following structure of the stress tensor in 2D:
 
-    sigma = [[sigma_xx, sigma_xy],
-             [sigma_yx, sigma_yy]]
+    .. math::
 
-    which is represented in the code unrolled row-wise as a vector of length 4
+        \\sigma = \\begin{bmatrix}
+            \\sigma_{xx} & \\sigma_{xy} \\\\
+            \\sigma_{yx} & \\sigma_{yy}
+        \\end{bmatrix}
 
-    sigma = [sigma_xx, sigma_xy,
-             sigma_yx, sigma_yy]
+    which is represented in the code unrolled row-wise as a vector of length 4:
 
-    While in 3d the stress tensor can be written as
+    .. math::
 
-    sigma = [[sigma_xx, sigma_xy, sigma_xz],
-             [sigma_yx, sigma_yy, sigma_yz],
-             [sigma_zx, sigma_zy, sigma_zz]]
+        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
-    where its vectorized structure of length 9 is given by
+    While in 3D the stress tensor can be written as:
 
-    sigma = [sigma_xx, sigma_xy, sigma_xz,
-             sigma_yx, sigma_yy, sigma_yz,
-             sigma_zx, sigma_zy, sigma_zz]
+    .. math::
 
+        \\sigma = \\begin{bmatrix}
+            \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
+            \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
+            \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
+        \\end{bmatrix}
+
+    where its vectorized structure of length 9 is given by:
+
+    .. math::
+
+        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
+                   \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
+                   \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
 
     The strain tensor follows the same approach.
     """
