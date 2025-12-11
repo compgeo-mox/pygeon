@@ -44,10 +44,6 @@ class Visualizer:
             folder_name = Path(folder_name)
             file_name = folder_name / file_name
 
-        # Add .pvd extension if not present
-        if file_name.suffix.lower() != ".vtu":
-            file_name = file_name.with_suffix(".vtu")
-
         # Cast to DataSet to satisfy type checkers
         self.mesh: pv.DataSet = cast(pv.DataSet, pv.read(str(file_name)))
 
