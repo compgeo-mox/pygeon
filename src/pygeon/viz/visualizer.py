@@ -20,7 +20,6 @@ class Visualizer:
 
     def __init__(
         self,
-        dim: int,
         file_name: str | Path,
         folder_name: str | Path = "",
     ) -> None:
@@ -28,14 +27,11 @@ class Visualizer:
         Initialize the Visualizer.
 
         Args:
-            dim (int): The dimension of the domain.
             file_name (str | Path): Name or path to the PVD file
                 (extension .pvd can be omitted).
             folder_name (str | Path): Optional folder path. If provided,
                 will be combined with file_name.
         """
-        self.dim = dim
-
         # Convert to Path objects if strings
         file_name = Path(file_name)
 
@@ -46,6 +42,7 @@ class Visualizer:
 
         # Cast to DataSet to satisfy type checkers
         self.mesh: pv.DataSet = cast(pv.DataSet, pv.read(str(file_name)))
+        self.dim = self.mesh.GetMaxSpatialDimension()
 
         # Configure PyVista theme
         pv.global_theme.font.label_size = 14
@@ -69,8 +66,7 @@ class Visualizer:
         """
         # Make bar size proportional to dimension and center vertically
         # Height grows with dimension but is clamped for readability
-        height = 0.35 + 0.1 * self.dim  # 1D->0.45, 2D->0.55, 3D->0.65
-        height = min(max(height, 0.35), 0.7)
+        height = 0.35 + 0.1 * self.dim # 1D->0.45, 2D->0.55, 3D->0.65
         position_y = (1.0 - height) / 2.0  # vertical centering
 
         return {
