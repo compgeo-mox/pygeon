@@ -30,8 +30,9 @@ def plot_spanningtree(
             - draw_cotree (bool): Plot the tree spanning the nodes.
             - start_color (str): Color of the "starting" cells, next to the boundary
     """
-    mdg = pg.as_mdg(mdg)  # type: ignore[assignment]
-    mdg = cast(pg.MixedDimensionalGrid, pg.convert_from_pp(mdg))
+    if isinstance(mdg, pg.Grid):
+        pp_mdg = pg.as_mdg(mdg)
+        mdg = pg.convert_from_pp(pp_mdg)
     sd_top = mdg.subdomains()[0]
 
     assert mdg.dim_max() == 2, "Only 2D grids are supported."
