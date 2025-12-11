@@ -80,7 +80,7 @@ def test_visualizer_scalar_field(simple_pvd_file):
 
     # Mock the show method to prevent display
     with mock.patch.object(vis.plotter, "show"):
-        vis.scalar_field("cell_p", cmap="viridis")
+        vis.plot_scalar_field("cell_p", cmap="viridis")
         vis.show()
 
 
@@ -92,7 +92,7 @@ def test_visualizer_scalar_field_with_label(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.scalar_field("cell_p", field_label="Pressure")
+        vis.plot_scalar_field("cell_p", field_label="Pressure")
         vis.show()
 
 
@@ -104,7 +104,7 @@ def test_visualizer_scalar_field_no_edges(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.scalar_field("cell_p", show_edges=False)
+        vis.plot_scalar_field("cell_p", show_edges=False)
         vis.show()
 
 
@@ -116,7 +116,7 @@ def test_visualizer_vector_field(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.vector_field("cell_q", scaling_factor=0.1)
+        vis.plot_vector_field("cell_q", scaling_factor=0.1)
         vis.show()
 
 
@@ -128,8 +128,8 @@ def test_visualizer_combined_fields(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.vector_field("cell_q", scaling_factor=0.05)
-        vis.scalar_field("cell_p")
+        vis.plot_vector_field("cell_q", scaling_factor=0.05)
+        vis.plot_scalar_field("cell_p")
         vis.show()
 
 
@@ -141,7 +141,7 @@ def test_visualizer_show_mesh(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.show_mesh(color="lightblue", show_edges=True)
+        vis.plot_mesh(color="lightblue", show_edges=True)
         vis.show()
 
 
@@ -153,12 +153,12 @@ def test_visualizer_view_options(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.scalar_field("cell_p")
+        vis.plot_scalar_field("cell_p")
 
         # Test different views
         for view in ["xy", "xz", "yz", "iso"]:
             vis.show(view=view)
-            vis.scalar_field("cell_p")
+            vis.plot_scalar_field("cell_p")
 
 
 @pytest.mark.skipif(not PYVISTA_AVAILABLE, reason="PyVista not available")
@@ -169,7 +169,7 @@ def test_visualizer_with_title(simple_pvd_file):
     vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.scalar_field("cell_p")
+        vis.plot_scalar_field("cell_p")
         vis.show(title="Test Visualization")
 
 
@@ -188,7 +188,7 @@ def test_visualizer_custom_scalar_bar_args(simple_pvd_file):
     }
 
     with mock.patch.object(vis.plotter, "show"):
-        vis.scalar_field("cell_p", scalar_bar_args=custom_bar_args)
+        vis.plot_scalar_field("cell_p", scalar_bar_args=custom_bar_args)
         vis.show()
 
 
