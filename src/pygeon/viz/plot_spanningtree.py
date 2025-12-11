@@ -7,7 +7,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-def visualize_spanningtree_2d(
+def plot_spanningtree(
     spt: pg.SpanningTree,
     mdg: pg.MixedDimensionalGrid,
     fig_name: str | None = None,
