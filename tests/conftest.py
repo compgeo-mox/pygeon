@@ -102,28 +102,37 @@ def unit_cart_sd(_unit_cart_dict: dict, request: pytest.FixtureRequest) -> pg.Gr
 
 
 @pytest.fixture(scope="session")
-def _unit_poly_dict() -> dict[str, pg.Grid]:
+def octagon_sd_2d():
+    sd = pg.OctagonGrid(
+        np.array([3] * 2),
+        np.array([1] * 2),
+    )
+    sd.compute_geometry()
+
+    return sd
+
+
+@pytest.fixture(scope="session")
+def cart_sd_2d():
+    sd = pp.CartGrid(
+        np.array([3] * 2),
+        np.array([1] * 2),
+    )
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    return sd
+
+
+@pytest.fixture(scope="session")
+def _unit_poly_dict(cart_sd_2d, octagon_sd_2d) -> dict[str, pg.Grid]:
     """
     Helper fixture that generates a dictionary of polygonal grids in 2D.
     """
     grids = {}
 
-    sd_cart = pp.CartGrid(
-        np.array([3] * 2),
-        np.array([1] * 2),
-    )
-    pg.convert_from_pp(sd_cart)
-    sd_cart.compute_geometry()
-
-    grids["Cartgrid"] = sd_cart
-
-    sd_oct = pg.OctagonGrid(
-        np.array([3] * 2),
-        np.array([1] * 2),
-    )
-    sd_oct.compute_geometry()
-
-    grids["Octgrid"] = sd_oct
+    grids["Cartgrid"] = cart_sd_2d
+    grids["Octgrid"] = octagon_sd_2d
 
     return grids
 
