@@ -29,7 +29,8 @@ class SpanningTree:
                 - "all_bdry": Choose all boundary faces.
                 - np.array or int: Indices of the starting faces.
         """
-        mdg = pg.as_mdg(mdg)
+        mdg = pg.as_mdg(mdg)  # type: ignore[assignment]
+        mdg = cast(pg.MixedDimensionalGrid, pg.convert_from_pp(mdg))
         self.div = pg.div(mdg)
 
         self.starting_faces = self.find_starting_faces(mdg, starting_faces)

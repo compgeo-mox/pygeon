@@ -1,3 +1,5 @@
+from typing import cast
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -28,10 +30,11 @@ def plot_spanningtree(
             - draw_cotree (bool): Plot the tree spanning the nodes.
             - start_color (str): Color of the "starting" cells, next to the boundary
     """
-    mdg = pg.as_mdg(mdg)
-
-    assert mdg.dim_max() == 2
+    mdg = pg.as_mdg(mdg)  # type: ignore[assignment]
+    mdg = cast(pg.MixedDimensionalGrid, pg.convert_from_pp(mdg))
     sd_top = mdg.subdomains()[0]
+
+    assert mdg.dim_max() == 2, "Only 2D grids are supported."
 
     draw_grid = kwargs.get("draw_grid", True)
     draw_tree = kwargs.get("draw_tree", True)
