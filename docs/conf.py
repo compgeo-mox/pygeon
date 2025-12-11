@@ -71,6 +71,7 @@ exclude_patterns = [
     "api/pygeon.grids.rst",
     "api/pygeon.numerics.rst",
     "api/pygeon.utils.rst",
+    "api/pygeon.viz.rst",
 ]
 
 # The suffix(es) of source filenames.
