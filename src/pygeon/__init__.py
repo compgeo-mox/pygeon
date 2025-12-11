@@ -87,6 +87,9 @@ from pygeon.numerics.block_diag_solver import (
 import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
 
+from pygeon.viz.visualizer import Visualizer
+from pygeon.viz.plot_spanningtree import plot_spanningtree
+
 # Expose the `numerics` subpackage on the top-level `pygeon` package so
 # attribute-style access (e.g. `pygeon.numerics`) is available and type
 # checkers like mypy can resolve references to `pygeon.numerics`.
