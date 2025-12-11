@@ -11,21 +11,27 @@ import pytest
 import pygeon as pg
 
 
+@pytest.fixture(params=["unit_sd_2d", "octagon_sd_2d", "cart_sd_2d"])
+def grid_2d(request: pytest.FixtureRequest):
+    # resolve the underlying fixture by name
+    return request.getfixturevalue(request.param)
+
+
 @pytest.fixture
-def simple_vtu_file(unit_sd_2d):
+def simple_vtu_file(grid_2d):
     """Create a simple VTU data for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
 
         # Create some test data
-        cell_scalar = np.random.rand(unit_sd_2d.num_cells)
-        cell_vector = np.random.rand(3, unit_sd_2d.num_cells)
-        point_scalar = np.random.rand(unit_sd_2d.num_nodes)
-        point_vector = np.random.rand(3, unit_sd_2d.num_nodes)
+        cell_scalar = np.random.rand(grid_2d.num_cells)
+        cell_vector = np.random.rand(3, grid_2d.num_cells)
+        point_scalar = np.random.rand(grid_2d.num_nodes)
+        point_vector = np.random.rand(3, grid_2d.num_nodes)
 
         # Export to VTU
         file_name = "test_sol"
-        save = pp.Exporter(unit_sd_2d, file_name, folder_name=str(tmpdir))
+        save = pp.Exporter(grid_2d, file_name, folder_name=str(tmpdir))
         save.write_vtu(
             [(f"cell_scalar", cell_scalar), (f"cell_vector", cell_vector)],
             data_pt=[(f"point_scalar", point_scalar), (f"point_vector", point_vector)],
@@ -34,17 +40,18 @@ def simple_vtu_file(unit_sd_2d):
         file_name += "_2.vtu"
         vis = pg.Visualizer(2, file_name, folder_name=str(tmpdir))
 
+        fields = ["cell_scalar", "cell_vector", "point_scalar", "point_vector"]
         with mock.patch.object(vis.plotter, "show"):
-            yield vis, ["cell_scalar", "cell_vector", "point_scalar", "point_vector"]
+            yield vis, grid_2d, fields
 
 
 def test_visualizer_initialization(simple_vtu_file):
     """Test Visualizer initialization."""
-    vis, fields = simple_vtu_file
+    vis, sd, fields = simple_vtu_file
 
     # Check that meshes were loaded
-    assert vis.mesh.n_cells == 26
-    assert vis.mesh.n_points == 20
+    assert vis.mesh.n_cells == sd.num_cells
+    assert vis.mesh.n_points == sd.num_nodes
     assert vis.mesh.n_arrays == 10
 
     for field in fields:
@@ -56,63 +63,63 @@ def test_visualizer_initialization(simple_vtu_file):
 
 def test_visualizer_scalar_field(simple_vtu_file):
     """Test scalar field visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("cell_scalar", cmap="viridis")
     vis.show()
 
 
 def test_visualizer_point_scalar_field(simple_vtu_file):
     """Test point scalar field visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("point_scalar")
     vis.show()
 
 
 def test_visualizer_scalar_field_with_label(simple_vtu_file):
     """Test scalar field with custom label."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("cell_scalar", field_label="Pressure")
     vis.show()
 
 
 def test_visualizer_scalar_field_no_edges(simple_vtu_file):
     """Test scalar field without edges."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("cell_scalar", show_edges=False)
     vis.show()
 
 
 def test_visualizer_vector_field(simple_vtu_file):
     """Test vector field visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_vector_field("cell_vector", scaling_factor=0.1)
     vis.show()
 
 
 def test_visualizer_point_vector_field(simple_vtu_file):
     """Test point vector field visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_vector_field("point_vector", scaling_factor=0.1)
     vis.show()
 
 
 def test_visualizer_contour_scalar_field(simple_vtu_file):
     """Test scalar field visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_contour("cell_scalar")
     vis.show()
 
 
 def test_visualizer_contour_point_scalar_field(simple_vtu_file):
     """Test point scalar field visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_contour("point_scalar", isosurfaces=5)
     vis.show()
 
 
 def test_visualizer_combined_fields(simple_vtu_file):
     """Test combining scalar and vector fields."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_vector_field("cell_vector", scaling_factor=0.05)
     vis.plot_scalar_field("cell_scalar")
     vis.show()
@@ -120,7 +127,7 @@ def test_visualizer_combined_fields(simple_vtu_file):
 
 def test_visualizer_show_mesh(simple_vtu_file):
     """Test mesh visualization."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_mesh(color="lightblue", show_edges=True)
     vis.show()
 
@@ -128,21 +135,21 @@ def test_visualizer_show_mesh(simple_vtu_file):
 @pytest.mark.parametrize("view", ["xy", "xz", "yz", "iso"])
 def test_visualizer_view_options(simple_vtu_file, view):
     """Test different view options."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("cell_scalar")
     vis.show(view=view)
 
 
 def test_visualizer_with_title(simple_vtu_file):
     """Test visualization with title."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("cell_scalar")
     vis.show(title="Test Visualization")
 
 
 def test_visualizer_custom_scalar_bar_args(simple_vtu_file):
     """Test custom scalar bar arguments."""
-    vis, _ = simple_vtu_file
+    vis, _, _ = simple_vtu_file
     custom_bar_args = {
         "title": "Custom Pressure",
         "vertical": True,

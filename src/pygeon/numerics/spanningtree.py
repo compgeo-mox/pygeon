@@ -16,19 +16,20 @@ class SpanningTree:
 
     def __init__(
         self,
-        mdg: pg.MixedDimensionalGrid,
+        mdg: pg.MixedDimensionalGrid | pg.Grid,
         starting_faces: str | np.ndarray | int = "first_bdry",
     ) -> None:
         """
         Initializes a SpanningTree object.
 
         Args:
-            mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
+            mdg (pg.MixedDimensionalGrid | pg.Grid): The mixed-dimensional grid.
             starting_faces (np.ndarray | int | str):
                 - "first_bdry" (default): Choose the first boundary face.
                 - "all_bdry": Choose all boundary faces.
                 - np.array or int: Indices of the starting faces.
         """
+        mdg = pg.as_mdg(mdg)
         self.div = pg.div(mdg)
 
         self.starting_faces = self.find_starting_faces(mdg, starting_faces)

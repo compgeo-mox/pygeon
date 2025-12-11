@@ -9,7 +9,7 @@ import pygeon as pg
 
 def plot_spanningtree(
     spt: pg.SpanningTree,
-    mdg: pg.MixedDimensionalGrid,
+    mdg: pg.MixedDimensionalGrid | pg.Grid,
     fig_name: str | None = None,
     **kwargs,
 ) -> None:
@@ -18,7 +18,7 @@ def plot_spanningtree(
 
     Args:
         spt (pg.SpanningTree): The spanningtree object
-        mdg (pg.MixedDimensionalGrid): The object representing the grid.
+        mdg (pg.MixedDimensionalGrid | pg.Grid): The object representing the grid.
         fig_name (str): The name of the figure file to save the
             visualization.
         **kwargs: Additional options:
@@ -28,6 +28,8 @@ def plot_spanningtree(
             - draw_cotree (bool): Plot the tree spanning the nodes.
             - start_color (str): Color of the "starting" cells, next to the boundary
     """
+    mdg = pg.as_mdg(mdg)
+
     assert mdg.dim_max() == 2
     sd_top = mdg.subdomains()[0]
 

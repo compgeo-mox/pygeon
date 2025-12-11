@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 import matplotlib
+import pytest
 
 import pygeon as pg
 
@@ -11,42 +12,36 @@ import pygeon as pg
 matplotlib.use("Agg")
 
 
-def test_plot_spanningtree_sd(unit_sd_2d):
-    mdg = pg.as_mdg(unit_sd_2d)
-    spt = pg.SpanningTree(mdg)
-    pg.plot_spanningtree(spt, mdg)
+@pytest.fixture(
+    params=["unit_sd_2d", "mdg_embedded_frac_2d", "octagon_sd_2d", "cart_sd_2d"]
+)
+def grid_2d(request: pytest.FixtureRequest):
+    # resolve the underlying fixture by name
+    return request.getfixturevalue(request.param)
 
-    pg.plot_spanningtree(spt, mdg, draw_cotree=True)
 
-    pg.plot_spanningtree(spt, mdg, draw_grid=False)
+def test_plot_spanningtree(grid_2d):
+    spt = pg.SpanningTree(grid_2d)
+    pg.plot_spanningtree(spt, grid_2d)
 
+
+def test_plot_spanningtree_cotree(grid_2d):
+    spt = pg.SpanningTree(grid_2d)
+    pg.plot_spanningtree(spt, grid_2d, draw_cotree=True)
+
+
+def test_plot_spanningtree_option(grid_2d):
+    spt = pg.SpanningTree(grid_2d)
+    pg.plot_spanningtree(spt, grid_2d, draw_grid=False)
+
+
+def test_plot_spanningtree_save_image(grid_2d):
+    spt = pg.SpanningTree(grid_2d)
     with tempfile.TemporaryDirectory() as tmpdir:
         fig_path = Path(tmpdir) / "spanning_tree.png"
 
-        pg.plot_spanningtree(spt, mdg, fig_name=str(fig_path))
+        pg.plot_spanningtree(spt, grid_2d, fig_name=str(fig_path))
 
         # Check that file was created
         assert fig_path.exists()
         assert fig_path.stat().st_size > 0
-
-    assert True  # If no exceptions, the test passes
-
-
-def test_plot_spanningtree_mdg(mdg_embedded_frac_2d):
-    spt = pg.SpanningTree(mdg_embedded_frac_2d)
-    pg.plot_spanningtree(spt, mdg_embedded_frac_2d)
-
-    pg.plot_spanningtree(spt, mdg_embedded_frac_2d, draw_cotree=True)
-
-    pg.plot_spanningtree(spt, mdg_embedded_frac_2d, draw_grid=False)
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fig_path = Path(tmpdir) / "spanning_tree.png"
-
-        pg.plot_spanningtree(spt, mdg_embedded_frac_2d, fig_name=str(fig_path))
-
-        # Check that file was created
-        assert fig_path.exists()
-        assert fig_path.stat().st_size > 0
-
-    assert True  # If no exceptions, the test passes
