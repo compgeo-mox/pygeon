@@ -48,11 +48,3 @@ jobs:
         else
           echo "Build successful" >> $GITHUB_STEP_SUMMARY
         fi
-    
-    - name: Upload ReadTheDocs artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: readthedocs
-        path: docs/_build/html/readthedocs/
-        retention-days: 7
