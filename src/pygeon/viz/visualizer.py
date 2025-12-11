@@ -95,7 +95,7 @@ class Visualizer:
             "position_y": position_y,
         }
 
-    def vector_field(self, field_name: str, scaling_factor: float = 1.0) -> None:
+    def plot_vector_field(self, field_name: str, scaling_factor: float = 1.0) -> None:
         """
         Visualize a vector field using arrows.
 
@@ -108,7 +108,7 @@ class Visualizer:
         )
         self.plotter.add_mesh(arrows, color="gray", scalars=None, cmap=None)
 
-    def scalar_field(
+    def plot_scalar_field(
         self, field_name: str, field_label: str = "", **kwargs: Any
     ) -> None:
         """
@@ -155,7 +155,7 @@ class Visualizer:
                 style="wireframe",
             )
 
-    def contour(self, field_name: str, isosurfaces: int = 10) -> None:
+    def plot_contour(self, field_name: str, isosurfaces: int = 10) -> None:
         """
         Create contour surfaces of a scalar field.
 
@@ -174,7 +174,7 @@ class Visualizer:
         contours = mesh.contour(isosurfaces=isosurfaces, scalars=field_name)
         self.plotter.add_mesh(contours, color="black", line_width=2.0)
 
-    def show_mesh(self, **kwargs: Any) -> None:
+    def plot_mesh(self, **kwargs: Any) -> None:
         """
         Visualize the mesh grid without any field data.
 
