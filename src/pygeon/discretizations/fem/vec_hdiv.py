@@ -62,13 +62,16 @@ class VecHDiv(pg.VecDiscretization):
         """
         Assembles and returns the Cosserat inner product, which is given by (A sigma,
         tau) where
-        A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
-                  + skw(sigma) / (2 mu_c)
+
+            A sigma = (sym(sigma) - coeff * Trace(sigma) * I) / (2 mu)
+                      + skw(sigma) / (2 mu_c)
+
         with mu and lambda the Lamé constants, coeff = lambda / (2*mu + dim*lambda), and
         mu_c the coupling Lamé modulus.
 
         Args:
-            sd (pg.Grid): The grid. data (dict): Data for the assembly.
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -317,10 +320,13 @@ class VecBDM1(VecHDiv):
         """
         Assembles and returns the asymmetric matrix for the vector BDM1.
 
-        The asymmetric operator `as' for a tensor is a scalar and it is defined in 2d as
-        as(tau) = tau_yx - tau_xy
-        while for a tensor in 3d it is a vector and given by
-        as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
+        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d as::
+
+            as(tau) = tau_yx - tau_xy
+
+        while for a tensor in 3d it is a vector and given by::
+
+            as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
 
         Note: We assume that the as(tau) is a piecewise linear.
 
@@ -520,15 +526,20 @@ class VecRT0(VecHDiv):
         """
         Assembles and returns the asymmetric matrix for the vector RT0.
 
-        The asymmetric operator `as' for a tensor is a scalar and it is defined in 2d as
-        as(tau) = tau_xy - tau_yx
-        while for a tensor in 3d it is a vector and given by
-        as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
+        The asymmetric operator ``as`` for a tensor is a scalar and it is defined in 2d as::
+
+            as(tau) = tau_xy - tau_yx
+
+        while for a tensor in 3d it is a vector and given by::
+
+            as(tau) = [tau_zy - tau_yz, tau_xz - tau_zx, tau_yx - tau_xy]^T
 
         Note: We assume that the as(tau) is a cell variable.
 
         Args:
             sd (pg.Grid): The grid.
+            as_pwconstant (bool): Compute the operator with the range on the piece-wise
+                constants (default), otherwise the mapping is on the piece-wise linears.
 
         Returns:
             sps.csc_array: The asymmetric matrix obtained from the discretization.
