@@ -38,3 +38,19 @@ def test_cochain_property(discr, unit_sd):
 
     prod = range_Diff @ Diff
     assert np.allclose(prod.data, 0)
+
+
+def test_eval_at_cc(discr, unit_sd):
+    if isinstance(discr, (pg.Nedelec0, pg.Nedelec1)):
+        with pytest.raises(NotImplementedError):
+            pg.Discretization.eval_at_cell_centers(discr, unit_sd)
+        return
+
+    Pi_child = discr.eval_at_cell_centers(unit_sd)
+    Pi_super = pg.Discretization.eval_at_cell_centers(discr, unit_sd)
+
+    # The eval_at_cell_centers of vector-valued spaces has shape (3 * num_cells, ndof).
+    # We therefore have to pad the eval with zero rows if the dimensions mismatch.
+    Pi_super.resize(Pi_child.shape)
+
+    assert np.allclose((Pi_child - Pi_super).data, 0)
