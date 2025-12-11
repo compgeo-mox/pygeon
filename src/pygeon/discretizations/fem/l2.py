@@ -197,6 +197,18 @@ class PwPolynomials(pg.Discretization):
         return sps.eye_array(self.ndof(sd)).tocsc()
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to -1 order discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+
+        Raises:
+            NotImplementedError: If the method is not implemented in a subclass.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod

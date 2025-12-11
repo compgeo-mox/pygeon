@@ -27,10 +27,10 @@ class Lagrange1(pg.Discretization):
         In this case, the number of nodes.
 
         Args:
-            sd: grid, or a subclass.
+            sd: Grid, or a subclass.
 
         Returns:
-            ndof: the number of degrees of freedom.
+            ndof: The number of degrees of freedom.
         """
         return sd.num_nodes
 
@@ -47,7 +47,6 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-
         # Data allocation
         size = np.power(sd.dim + 1, 2) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -87,7 +86,6 @@ class Lagrange1(pg.Discretization):
             np.ndarray: Local mass matrix of shape (num_nodes_of_cell,
             num_nodes_of_cell).
         """
-
         M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         return M / ((dim + 1) * (dim + 2))
 
@@ -353,10 +351,10 @@ class Lagrange2(pg.Discretization):
         where edges are one-dimensional mesh entities.
 
         Args:
-            sd: grid, or a subclass.
+            sd: Grid, or a subclass.
 
         Returns:
-            ndof: the number of degrees of freedom.
+            ndof: The number of degrees of freedom.
         """
         if sd.dim == 0:
             num_edges = 0
