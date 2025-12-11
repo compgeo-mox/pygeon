@@ -33,6 +33,10 @@ def convert_from_pp(
             - pp.MortarGrid: Convert to pg.MortarGrid.
             - pp.MixedDimensionalGrid: Convert to pg.MixedDimensionalGrid.
 
+    Returns:
+        The converted PyGeoN object (pg.Grid, pg.MortarGrid, or
+        pg.MixedDimensionalGrid).
+
     Raises:
         TypeError: If the input object is not one of the supported types.
     """
@@ -74,8 +78,8 @@ def as_mdg(sd: pp.MixedDimensionalGrid | pp.Grid) -> pp.MixedDimensionalGrid:
         pp.MixedDimensionalGrid: The converted mixed-dimensional grid object.
 
     Raises:
-        ValueError: If the input grid object is neither a pp.MixedDimensionalGrid nor a
-        pp.Grid.
+        ValueError: If the input grid object is neither a pp.MixedDimensionalGrid
+            nor a pp.Grid.
     """
     if isinstance(sd, pp.MixedDimensionalGrid):
         return sd
