@@ -14,8 +14,6 @@ class Visualizer:
 
     NOTE: the visualization of a vector field should be called before the one of a
     scalar field. Contour plot should be called last.
-
-    Requires PyVista to be installed.
     """
 
     def __init__(
@@ -66,7 +64,7 @@ class Visualizer:
         """
         # Make bar size proportional to dimension and center vertically
         # Height grows with dimension but is clamped for readability
-        height = 0.35 + 0.1 * self.dim # 1D->0.45, 2D->0.55, 3D->0.65
+        height = 0.35 + 0.1 * self.dim  # 1D->0.45, 2D->0.55, 3D->0.65
         position_y = (1.0 - height) / 2.0  # vertical centering
 
         return {
