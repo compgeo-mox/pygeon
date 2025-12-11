@@ -239,10 +239,8 @@ class Visualizer:
             screenshot_path = Path(screenshot)
             file_ext = screenshot_path.suffix.lower().lstrip(".")
 
-            # Render first (required for both screenshot and save_graphic)
-            self.plotter.show(
-                jupyter_backend="static", interactive=False, auto_close=False
-            )
+            # Render first
+            self.plotter.render()
 
             # Save based on format
             if file_ext in ["eps", "svg"]:
