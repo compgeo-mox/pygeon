@@ -19,7 +19,7 @@ def grid_from_domain(
     Args:
         domain (pp.Domain): The domain of the grid.
         mesh_size (float): The desired mesh size for the grid.
-        as_mdg (bool): Return the grid as a mixed-dimensional grid.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid. Default True.
         **kwargs: Additional options for creating the grid:
 
             - mesh_size_min (float): The minimum mesh size. Default is mesh_size / 10.
