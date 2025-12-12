@@ -6,14 +6,15 @@ import pygeon as pg
 
 def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
     """
-    Perform Lloyd's relaxation on the Voronoi grid. The topology of the grid is not preserved.
+    Perform Lloyd's relaxation on the Voronoi grid. The topology of the grid is not
+    preserved.
 
     Args:
-        sd (pg.VoronoiGrid): The Voronoi grid to relax.
-        num_iter (int): The number of iterations to perform.
+        sd (pg.VoronoiGrid): The Voronoi grid to relax. num_iter (int): The number of
+            iterations to perform.
 
     Returns:
-        The relaxed Voronoi grid.
+        The regularized Voronoi grid.
     """
     # Perform Lloyd's relaxation
     for _ in np.arange(num_iter):
@@ -57,13 +58,13 @@ def graph_laplace_dual_regularization(
     sd: pg.Grid, sliding: bool = True
 ) -> pg.VoronoiGrid:
     """
-    Perform Laplace regularization on the dual grid by solving a graph laplacian over the
-    cell-faces. A Voronoi grid is constructed based on the new cell centers.
-    The topology of the grid is not preserved.
+    Perform Laplace regularization on the dual grid by solving a graph laplacian over
+    the cell-faces. A Voronoi grid is constructed based on the new cell centers. The
+    topology of the grid is not preserved.
 
     Args:
-        sd (pg.Grid): The grid to regularize.
-        sliding (bool): Whether the boundary is sliding, defaults to True.
+        sd (pg.Grid): The grid to regularize. sliding (bool): Whether the boundary is
+            sliding, defaults to True.
 
     Returns:
         The regularized Voronoi grid.
@@ -149,7 +150,7 @@ def compute_displacement(
     A: sps.csc_matrix,
     b: np.ndarray,
     coords: np.ndarray,
-    ess: np.ndarray,
+    ess: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Solve the regularizing system to compute the displacement field.
