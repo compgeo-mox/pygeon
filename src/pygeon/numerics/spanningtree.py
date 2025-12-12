@@ -30,8 +30,7 @@ class SpanningTree:
                 - np.array or int: Indices of the starting faces.
         """
         if isinstance(mdg, pg.Grid):
-            pp_mdg = pg.as_mdg(mdg)
-            mdg = pg.convert_from_pp(pp_mdg)
+            mdg = pg.as_mdg(mdg)
 
         self.div = pg.div(mdg)
         self.starting_faces = self.find_starting_faces(mdg, starting_faces)

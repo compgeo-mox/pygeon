@@ -31,8 +31,8 @@ def plot_spanningtree(
             - start_color (str): Color of the "starting" cells, next to the boundary
     """
     if isinstance(mdg, pg.Grid):
-        pp_mdg = pg.as_mdg(mdg)
-        mdg = pg.convert_from_pp(pp_mdg)
+        mdg = pg.as_mdg(mdg)
+
     sd_top = mdg.subdomains()[0]
 
     assert mdg.dim_max() == 2, "Only 2D grids are supported."
