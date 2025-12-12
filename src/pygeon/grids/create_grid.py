@@ -130,7 +130,7 @@ def unit_grid(
         bbox.update({"zmin": 0.0, "zmax": 1.0})
 
     domain = pp.Domain(bounding_box=bbox)
-    return grid_from_domain(domain, mesh_size, **kwargs)
+    return grid_from_domain(domain, mesh_size, as_mdg, **kwargs)
 
 
 def reference_element(dim: int) -> pg.Grid:
