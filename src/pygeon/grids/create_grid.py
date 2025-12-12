@@ -60,7 +60,7 @@ def grid_from_boundary_pts(
     Args:
         pts (np.ndarray): The ordered points representing the boundary.
         mesh_size (float): The desired mesh size.
-        as_mdg (bool): Return the grid as a mixed-dimensional grid.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid. Default True.
         **kwargs: Additional options:
 
             - mesh_size_min (float): The minimum mesh size. Default is mesh_size.
