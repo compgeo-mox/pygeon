@@ -63,24 +63,25 @@ def convert_from_pp(
     return obj
 
 
-def as_mdg(sd: pp.MixedDimensionalGrid | pp.Grid) -> pp.MixedDimensionalGrid:
+def as_mdg(obj: pp.MixedDimensionalGrid | pp.Grid) -> pg.MixedDimensionalGrid:
     """
     Convert a grid object to a mixed-dimensional grid (MDG) object.
 
     Args:
-        sd (pp.MixedDimensionalGrid | pp.Grid): The input grid object to be
+        obj (pp.MixedDimensionalGrid | pp.Grid): The input grid object to be
             converted.
 
     Returns:
-        pp.MixedDimensionalGrid: The converted mixed-dimensional grid object.
+        pg.MixedDimensionalGrid: The converted mixed-dimensional grid object.
 
     Raises:
         ValueError: If the input grid object is neither a pp.MixedDimensionalGrid
             nor a pp.Grid.
     """
-    if isinstance(sd, pp.MixedDimensionalGrid):
-        return sd
-    elif isinstance(sd, pp.Grid):
-        return pp.meshing.subdomains_to_mdg([[sd]])
+    if isinstance(obj, pp.MixedDimensionalGrid):
+        return convert_from_pp(obj)
+    elif isinstance(obj, pp.Grid):
+        mdg = pp.meshing.subdomains_to_mdg([[obj]])
+        return convert_from_pp(mdg)
     else:
         raise ValueError
