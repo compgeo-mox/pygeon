@@ -1,7 +1,7 @@
 """Create grids from various sources."""
 
 import inspect
-from typing import cast
+from typing import Literal, cast, overload
 
 import numpy as np
 import porepy as pp
@@ -11,7 +11,7 @@ import pygeon as pg
 
 
 def grid_from_domain(
-    domain: pp.Domain, mesh_size: float, **kwargs
+    domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a grid from a domain with a specified mesh size.
@@ -19,11 +19,10 @@ def grid_from_domain(
     Args:
         domain (pp.Domain): The domain of the grid.
         mesh_size (float): The desired mesh size for the grid.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid.
         **kwargs: Additional options for creating the grid:
 
             - mesh_size_min (float): The minimum mesh size. Default is mesh_size / 10.
-            - as_mdg (bool): If True, return the grid as a pg.MixedDimensionalGrid.
-              If False, return the grid as a pg.Grid.
 
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
@@ -44,7 +43,7 @@ def grid_from_domain(
     mdg = frac_net.mesh(mesh_kwargs, **sub_kwargs)
 
     mdg = pg.convert_from_pp(mdg)
-    if kwargs.get("as_mdg", True):
+    if as_mdg:
         return mdg
     else:
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
@@ -52,7 +51,7 @@ def grid_from_domain(
 
 
 def grid_from_boundary_pts(
-    pts: np.ndarray, mesh_size: float, **kwargs
+    pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a 2D grid from a set of nodes, where portions of the boundary of the grid
@@ -61,10 +60,10 @@ def grid_from_boundary_pts(
     Args:
         pts (np.ndarray): The ordered points representing the boundary.
         mesh_size (float): The desired mesh size.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid.
         **kwargs: Additional options:
 
             - mesh_size_min (float): The minimum mesh size. Default is mesh_size.
-            - as_mdg (bool): Return the grid as a mixed-dimensional grid.
 
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid.
@@ -76,11 +75,24 @@ def grid_from_boundary_pts(
 
     # Create the domain
     domain = pp.Domain(polytope=lines)
-    return grid_from_domain(domain, mesh_size, **kwargs)
+    return grid_from_domain(domain, mesh_size, as_mdg, **kwargs)
+
+
+# Overloads to make mypy understand when we return a Grid or a MixedDimensionalGrid
+@overload
+def unit_grid(
+    dim: int, mesh_size: float, as_mdg: Literal[False], **kwargs
+) -> pg.Grid: ...
+
+
+@overload
+def unit_grid(
+    dim: int, mesh_size: float, as_mdg: Literal[True], **kwargs
+) -> pg.MixedDimensionalGrid: ...
 
 
 def unit_grid(
-    dim: int, mesh_size: float, **kwargs
+    dim: int, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a unit square or cube grid with a given mesh size.
@@ -88,11 +100,11 @@ def unit_grid(
     Args:
         dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid.
         kwargs: Additional options:
 
             - mesh_size_min (float): The minimum mesh size. Default is the same as
               mesh_size.
-            - as_mdg (bool): If True, return the grid as a mixed-dimensional grid.
             - structured (bool): If True, create a structured grid.
 
     Returns:
@@ -108,7 +120,7 @@ def unit_grid(
         else:
             sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))
 
-        if kwargs.get("as_mdg", True):
+        if as_mdg:
             return pg.as_mdg(sd)
         else:
             return pg.convert_from_pp(sd)
@@ -135,6 +147,7 @@ def reference_element(dim: int) -> pg.Grid:
         sd = unit_grid(1, 1, as_mdg=False)
         sd.name = "reference_segment"
         return sd
+
     elif dim == 2:
         nodes = np.eye(3, k=1)
 
