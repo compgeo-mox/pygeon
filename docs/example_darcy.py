@@ -5,7 +5,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 # creation of the grid
-mesh_size = 0.05
+mesh_size = 0.1
 dim = 2
 sd = pg.unit_grid(dim, mesh_size, as_mdg=False)
 
@@ -19,23 +19,20 @@ key = "flow"
 rt0 = pg.RT0(key)
 p0 = pg.PwConstants(key)
 
-# set up the data for the flow problem
-data = {}
+# build the degrees of freedom
+dofs = np.array([rt0.ndof(sd), p0.ndof(sd)])
 
-# unitary permeability tensor
+# inverse of the permeability tensor
 inv_perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
-parameters = {
-    pg.SECOND_ORDER_TENSOR: inv_perm,
-}
-pp.initialize_data(sd, data, key, parameters)
+param = {pg.SECOND_ORDER_TENSOR: inv_perm}
+data = pp.initialize_data({}, key, param)
 
 # compute the source term
-mass = p0.assemble_mass_matrix(sd)
-scalar_source = mass @ p0.interpolate(sd, lambda _: 1)
+mass_p0 = p0.assemble_mass_matrix(sd)
+scalar_source = mass_p0 @ p0.interpolate(sd, lambda _: 1)
 
 # construct the local matrices
 A = rt0.assemble_mass_matrix(sd, data)
-mass_p0 = p0.assemble_mass_matrix(sd, data)
 B = mass_p0 @ rt0.assemble_diff_matrix(sd)
 
 # assemble the saddle point problem
@@ -47,20 +44,17 @@ spp = sps.block_array(
     format="csc",
 )
 
-# get the degrees of freedom for each variable
-dof_p, dof_q = B.shape
-
 # assemble the right-hand side
-rhs = np.zeros(dof_p + dof_q)
-rhs[dof_q:] += scalar_source
+rhs = np.zeros(dofs.sum())
+rhs[dofs[0] :] += scalar_source
 
 # solve the problem
 ls = pg.LinearSystem(spp, rhs)
 x = ls.solve()
 
-# extract the variables
-q = x[:dof_q]
-p = x[-dof_p:]
+# split the solution into the components
+idx = np.cumsum(dofs[:-1])
+q, p = np.split(x, idx)
 
 # post process variables
 proj_q = rt0.eval_at_cell_centers(sd)
