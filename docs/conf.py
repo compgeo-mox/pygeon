@@ -37,7 +37,7 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "PyGeoN"
-copyright = "2024, Wietse M. Boon, Alessio Fumagalli"
+copyright = "2025, Wietse M. Boon, Alessio Fumagalli"
 author = "Wietse M. Boon, Alessio Fumagalli"
 
 # -- General configuration ---------------------------------------------------
@@ -60,13 +60,45 @@ templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "README.md",
+    "api/pygeon.rst",
+    "api/pygeon.discretizations.rst",
+    "api/pygeon.filters.rst",
+    "api/pygeon.grids.rst",
+    "api/pygeon.numerics.rst",
+    "api/pygeon.utils.rst",
+    "api/pygeon.viz.rst",
+]
 
 # The suffix(es) of source filenames.
 source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
 }
+
+# Suppress warnings for unresolved type hints in autodoc
+suppress_warnings = [
+    "ref.class",  # Suppress unresolved class reference warnings
+    "ref.exc",  # Suppress unresolved exception reference warnings
+    "misc.highlighting_failure",  # Suppress invalid Pygments lexer warnings
+]
+
+# Autodoc settings
+autodoc_mock_imports = [
+    "pyvista",
+    "vtkmodules",
+    "vtkmodules.vtkCommonCore",
+    "vtkmodules.vtkCommonDataModel",
+    "vtkmodules.vtkIOXML",
+    "vtkmodules.vtkIOLegacy",
+    "vtkmodules.vtkImagingSources",
+    "vtkmodules.util",
+    "vtkmodules.util.numpy_support",
+]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -115,9 +147,10 @@ autodoc_default_options = {
     "special-members": "__init__",
     "undoc-members": True,
     "exclude-members": "__weakref__",
+    "no-index": True,
 }
 
-autodoc_typehints = "description"
+autodoc_typehints = "none"
 autodoc_typehints_description_target = "documented"
 
 # autosummary settings

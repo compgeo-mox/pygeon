@@ -24,14 +24,15 @@ def convert_from_pp(
     obj: pp.Grid | pp.MortarGrid | pp.MixedDimensionalGrid,
 ) -> pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid:
     """
-    Convert an object from the PorePy library to the PyGeoN  library.
+    Convert an object from the PorePy library to the PyGeoN library.
 
     Args:
-        obj: The object to be converted. It can be one of the following types:
+        obj (pp.Grid | pp.MortarGrid | pp.MixedDimensionalGrid): The object to be
+            converted. Can be a pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid.
 
-            - pp.Grid: Convert to pg.Grid.
-            - pp.MortarGrid: Convert to pg.MortarGrid.
-            - pp.MixedDimensionalGrid: Convert to pg.MixedDimensionalGrid.
+    Returns:
+        The converted PyGeoN object (pg.Grid, pg.MortarGrid, or
+        pg.MixedDimensionalGrid).
 
     Raises:
         TypeError: If the input object is not one of the supported types.
@@ -74,8 +75,8 @@ def as_mdg(obj: pp.MixedDimensionalGrid | pp.Grid) -> pg.MixedDimensionalGrid:
         pg.MixedDimensionalGrid: The converted mixed-dimensional grid object.
 
     Raises:
-        ValueError: If the input grid object is neither a pp.MixedDimensionalGrid nor a
-        pp.Grid.
+        ValueError: If the input grid object is neither a pp.MixedDimensionalGrid
+            nor a pp.Grid.
     """
     if isinstance(obj, pp.MixedDimensionalGrid):
         return convert_from_pp(obj)

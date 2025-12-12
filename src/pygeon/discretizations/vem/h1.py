@@ -87,8 +87,13 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Computes the local projection onto the monomials
-        Returns the coefficients {a_i} in a_0 + [a_1, a_2] dot (x - c) / d
+        Computes the local projection onto the monomials. Returns the coefficients
+        :math:`\\{a_i\\}` in the expansion
+
+        .. math::
+
+            a_0 + \\frac{1}{d}[a_1, a_2] \\cdot (x - c)
+
         for each VL1 basis function.
 
         Args:
@@ -109,7 +114,7 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the system G from the hitchhiker's (3.9)
+        Returns the system G from the Hitchhiker's (3.9)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -132,7 +137,7 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the righthand side B from the hitchhiker's (3.14)
+        Returns the righthand side B from the Hitchhiker's (3.14)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -158,8 +163,12 @@ class VLagrange1(pg.Lagrange1):
     ) -> np.ndarray:
         """
         Computes the inner products of the monomials
-        {1, (x - c)/d, (y - c)/d}
-        Hitchhiker's (5.3)
+
+        .. math::
+
+            \\left\\{1, \\frac{x - c}{d}, \\frac{y - c}{d}\\right\\}
+
+        Reference: Hitchhiker's (5.3)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -197,7 +206,7 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the matrix D from the hitchhiker's (3.17)
+        Returns the matrix D from the Hitchhiker's (3.17)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -293,6 +302,6 @@ class VLagrange1(pg.Lagrange1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError

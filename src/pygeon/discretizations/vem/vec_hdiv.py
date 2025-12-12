@@ -22,27 +22,38 @@ class VecVRT0(pg.VecDiscretization):
         Initialize the vector virtual RT0 discretization class.
         The base discretization class is pg.VRT0.
 
-        We are considering the following structure of the stress tensor in 2d
+        We are considering the following structure of the stress tensor in 2D:
 
-        sigma = [[sigma_xx, sigma_xy],
-                 [sigma_yx, sigma_yy]]
+        .. math::
 
-        which is represented in the code unrolled row-wise as a vector of length 4
+            \\sigma = \\begin{bmatrix}
+                \\sigma_{xx} & \\sigma_{xy} \\\\
+                \\sigma_{yx} & \\sigma_{yy}
+            \\end{bmatrix}
 
-        sigma = [sigma_xx, sigma_xy,
-                 sigma_yx, sigma_yy]
+        which is represented in the code unrolled row-wise as a vector of length 4:
 
-        While in 3d the stress tensor can be written as
+        .. math::
 
-        sigma = [[sigma_xx, sigma_xy, sigma_xz],
-                 [sigma_yx, sigma_yy, sigma_yz],
-                 [sigma_zx, sigma_zy, sigma_zz]]
+            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
-        where its vectorized structure of length 9 is given by
+        While in 3D the stress tensor can be written as:
 
-        sigma = [sigma_xx, sigma_xy, sigma_xz,
-                 sigma_yx, sigma_yy, sigma_yz,
-                 sigma_zx, sigma_zy, sigma_zz]
+        .. math::
+
+            \\sigma = \\begin{bmatrix}
+                \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
+                \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
+                \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
+            \\end{bmatrix}
+
+        where its vectorized structure of length 9 is given by:
+
+        .. math::
+
+            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
+                       \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
+                       \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
 
         Args:
             keyword (str): The keyword for the vector discretization class.

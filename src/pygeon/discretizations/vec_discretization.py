@@ -15,6 +15,7 @@ class VecDiscretization(pg.Discretization):
     """
 
     base_discr: pg.Discretization
+    """The scalar discretization method."""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
