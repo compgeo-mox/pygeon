@@ -28,7 +28,6 @@ def grid_from_domain(
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
     """
-    as_mdg = kwargs.get("as_mdg", True)
     mesh_size_min = kwargs.get("mesh_size_min", mesh_size / 10)
     mesh_kwargs = {"mesh_size_frac": mesh_size, "mesh_size_min": mesh_size_min}
 
@@ -45,7 +44,7 @@ def grid_from_domain(
     mdg = frac_net.mesh(mesh_kwargs, **sub_kwargs)
 
     mdg = pg.convert_from_pp(mdg)
-    if as_mdg:
+    if kwargs.get("as_mdg", True):
         return mdg
     else:
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
@@ -108,12 +107,11 @@ def unit_grid(
             sd = pp.StructuredTriangleGrid(num, np.ones(dim))
         else:
             sd = pp.StructuredTetrahedralGrid(num, np.ones(dim))
-        sd = pg.convert_from_pp(sd)
 
         if kwargs.get("as_mdg", True):
-            mdg = pg.as_mdg(sd)
-            return pg.convert_from_pp(mdg)
-        return sd
+            return pg.as_mdg(sd)
+        else:
+            return pg.convert_from_pp(sd)
 
     bbox = {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0}
     if dim == 3:
@@ -136,7 +134,7 @@ def reference_element(dim: int) -> pg.Grid:
     if dim == 1:
         sd = unit_grid(1, 1, as_mdg=False)
         sd.name = "reference_segment"
-        return cast(pg.Grid, sd)
+        return sd
     elif dim == 2:
         nodes = np.eye(3, k=1)
 
