@@ -10,6 +10,18 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
+@overload
+def grid_from_domain(
+    domain: pp.Domain, mesh_size: float, as_mdg: Literal[False], **kwargs
+) -> pg.Grid: ...
+
+
+@overload
+def grid_from_domain(
+    domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs
+) -> pg.MixedDimensionalGrid: ...
+
+
 def grid_from_domain(
     domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.Grid | pg.MixedDimensionalGrid:
@@ -50,6 +62,18 @@ def grid_from_domain(
         return cast(pg.Grid, sd)
 
 
+@overload
+def grid_from_boundary_pts(
+    pts: np.ndarray, mesh_size: float, as_mdg: Literal[False], **kwargs
+) -> pg.Grid: ...
+
+
+@overload
+def grid_from_boundary_pts(
+    pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs
+) -> pg.MixedDimensionalGrid: ...
+
+
 def grid_from_boundary_pts(
     pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.Grid | pg.MixedDimensionalGrid:
@@ -87,7 +111,7 @@ def unit_grid(
 
 @overload
 def unit_grid(
-    dim: int, mesh_size: float, as_mdg: Literal[True], **kwargs
+    dim: int, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.MixedDimensionalGrid: ...
 
 
