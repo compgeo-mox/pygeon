@@ -57,3 +57,11 @@ def test_norm_of_linear_function(discr, unit_sd):
     computed_norm = interp @ M @ interp
 
     assert np.isclose(computed_norm, unit_sd.dim / 3)
+
+
+def test_point_grid(discr, ref_sd_0d):
+    """Tests with a point grid"""
+
+    assert discr.ndof(ref_sd_0d) == 0
+    assert discr.assemble_mass_matrix(ref_sd_0d).nnz == 0
+    assert discr.assemble_lumped_matrix(ref_sd_0d).nnz == 0
