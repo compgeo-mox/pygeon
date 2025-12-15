@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import scipy.sparse as sps
 
 import pygeon as pg
 
@@ -41,3 +42,16 @@ def test_decomposition(poin, k):
     f = np.random.rand(poin.bar_spaces[k].size)
     pdf, dpf = poin.decompose(k, f)
     assert np.allclose(f, pdf + dpf)
+
+
+@pytest.mark.parametrize("k", range(0, 4))
+def test_solve_subproblem(poin, k):
+    if k > poin.mdg.dim_max():
+        return
+
+    ndof = poin.bar_spaces[k].size
+    system = sps.eye(ndof)
+
+    sol = poin.solve_subproblem(k, system, np.zeros(ndof))
+
+    assert np.allclose(sol, 0)
