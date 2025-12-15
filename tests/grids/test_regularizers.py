@@ -1,11 +1,7 @@
 """Module testing the grid regularizers."""
 
-import os
-
 import numpy as np
-import porepy as pp
 import pytest
-import scipy.sparse as sps
 
 import pygeon as pg
 
@@ -18,59 +14,47 @@ def sd_voronoi() -> pg.Grid:
     return sd
 
 
+def aspect_ratio(sd: pg.Grid) -> float:
+    return np.mean(sd.cell_diameters() ** 2 / sd.cell_volumes)
+
+
 def test_lloyd(sd_voronoi):
     sd = pg.lloyd_regularization(sd_voronoi, 15)
 
-    assert sd.num_cells == 30
+    assert sd.num_cells == sd_voronoi.num_cells
+
+    # Aspect ratios have improved
+    assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)
 
 
 def test_graph_laplace(sd_voronoi):
     sd = pg.graph_laplace_regularization(sd_voronoi)
 
+    # Topology is preserved
     assert (sd.face_ridges - sd_voronoi.face_ridges).nnz == 0
     assert (sd.cell_faces - sd_voronoi.cell_faces).nnz == 0
 
-
-def wip_test_graph_laplace_with_centers(sd_voronoi):
-    sd = pg.graph_laplace_regularization_with_centers(sd_voronoi)
-
-    assert (sd.face_ridges - sd_voronoi.face_ridges).nnz == 0
-    assert (sd.cell_faces - sd_voronoi.cell_faces).nnz == 0
+    # Aspect ratios have improved
+    assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)
 
 
-def wip_test_elasticity():
-    sd = pg.VoronoiGrid(100, seed=0)
-    sd.compute_geometry()
+def test_graph_laplace_cart_grids(unit_cart_sd):
+    sd = pg.graph_laplace_regularization(unit_cart_sd, False)
 
-    cond_old = compute_cond(sd)
-
-    pp.plot_grid(sd, alpha=0)
-    for _ in np.arange(10):
-        sd = pg.elasticity_regularization(sd, 5e-2)
-    pp.plot_grid(sd, alpha=0)
-
-    cond_new = compute_cond(sd)
-
-    assert cond_old > cond_new
+    # The regularization leaves regular Cartesian grids intact
+    assert np.allclose(sd.nodes, unit_cart_sd.nodes)
+    assert np.allclose(sd.cell_volumes, unit_cart_sd.cell_volumes)
 
 
-def wip_test_einstein():
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    folder = os.path.join(dir_path, "einstein_svg_grids")
-    file_name = os.path.join(folder, "H2.svg")
+def test_graph_laplace_dual(sd_voronoi):
+    sd = pg.graph_laplace_dual_regularization(sd_voronoi)
 
-    sd = pg.EinSteinGrid(file_name)
-    sd.compute_geometry()
-    sd = pg.graph_laplace_regularization(sd, False)
-
-    pass
+    # Aspect ratios have improved
+    assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)
 
 
-def compute_cond(sd):
-    discr = pg.VLagrange1("dumb")
-    A = discr.assemble_stiff_matrix(sd)
+def test_elasticity_regulatization(sd_voronoi):
+    sd = pg.elasticity_regularization(sd_voronoi, 10, sliding=False)
 
-    ew1 = sps.linalg.eigsh(A, 1, which="LM", return_eigenvectors=False)
-    ew2 = sps.linalg.eigsh(A, 2, which="SM", return_eigenvectors=False).max()
-
-    return ew1 / ew2
+    # Aspect ratios have improved
+    assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)

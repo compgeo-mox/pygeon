@@ -36,7 +36,9 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
         The Laplace regularized grid.
     """
     # Construct the Laplacian matrix
-    if sd.dim == 2:
+    if sd.dim == 1:
+        incidence = sd.cell_faces
+    elif sd.dim == 2:
         tags = sd.tags["domain_boundary_faces"]
         incidence = sd.face_ridges[:, np.logical_not(tags)]
     else:
@@ -130,11 +132,7 @@ def elasticity_regularization(
 
     # Assemble right-hand side
     nodes, cells, _ = sps.find(sd.cell_nodes())
-    forces = (
-        spring_const
-        * (sd.cell_centers[:, cells] - sd.nodes[:, nodes])
-        / sd.cell_volumes[cells]
-    )
+    forces = spring_const * (sd.cell_centers[:, cells] - sd.nodes[:, nodes])
     force_list = [
         np.bincount(nodes, weights=forces[ind, :]) for ind in np.arange(sd.dim)
     ]
