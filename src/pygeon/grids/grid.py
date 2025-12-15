@@ -350,6 +350,6 @@ class Grid(pp.Grid):
             A deep copy of ``self``. Some predefined attributes are also copied.
 
         """
-        h = super(Grid, self).copy()
+        h = super().copy()
         pg.convert_from_pp(h)
         return h
