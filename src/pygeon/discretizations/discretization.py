@@ -17,7 +17,10 @@ class Discretization(abc.ABC):
     """
 
     poly_order: int
+    """Polynomial degree of the basis functions"""
+
     tensor_order: int
+    """Tensor order of the basis functions"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

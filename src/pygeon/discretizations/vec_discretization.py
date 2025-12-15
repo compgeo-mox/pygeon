@@ -10,22 +10,12 @@ import pygeon as pg
 
 class VecDiscretization(pg.Discretization):
     """
-    A class representing a vector discretization.
+    A class representing a vectorized discretization for a given base discretization.
+    The base needs to be specified in the __init__ function.
     """
 
-    def __init__(self, keyword: str) -> None:
-        """
-        Initializes the VecDiscretization class.
-
-        Args:
-            keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        self.base_discr: pg.Discretization
+    base_discr: pg.Discretization
+    """The scalar discretization method."""
 
     def ndof(self, sd: pg.Grid) -> int:
         """

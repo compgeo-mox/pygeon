@@ -24,15 +24,20 @@ class VecVLagrange1(pg.VecDiscretization):
     The stress tensor and strain tensor are represented as vectors unrolled row-wise.
     In 2D, the stress tensor has a length of 4.
 
-    We are considering the following structure of the stress tensor in 2d
+    We are considering the following structure of the stress tensor in 2D:
 
-    sigma = [[sigma_xx, sigma_xy],
-             [sigma_yx, sigma_yy]]
+    .. math::
 
-    which is represented in the code unrolled row-wise as a vector of length 4
+        \\sigma = \\begin{bmatrix}
+            \\sigma_{xx} & \\sigma_{xy} \\\\
+            \\sigma_{yx} & \\sigma_{yy}
+        \\end{bmatrix}
 
-    sigma = [sigma_xx, sigma_xy,
-             sigma_yx, sigma_yy]
+    which is represented in the code unrolled row-wise as a vector of length 4:
+
+    .. math::
+
+        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
     The strain tensor follows the same approach.
     """
@@ -380,7 +385,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Raises:
             NotImplementedError: There is no range discretization for the vector
-            Lagrangian 1 in PyGeoN.
+                Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector VLagrangian 1 in PyGeoN"

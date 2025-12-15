@@ -22,7 +22,7 @@ def test_convert_grid():
     sd = pp.StructuredTriangleGrid([2] * 2, [1] * 2)
 
     mdg = pg.as_mdg(sd)
-    assert isinstance(mdg, pp.MixedDimensionalGrid)
+    assert isinstance(mdg, pg.MixedDimensionalGrid)
 
     pg.convert_from_pp(sd)
     assert isinstance(sd, pg.Grid)

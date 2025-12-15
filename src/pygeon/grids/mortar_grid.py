@@ -35,7 +35,7 @@ class MortarGrid(pp.MortarGrid):
         Returns:
             None
         """
-        super(MortarGrid, self).compute_geometry()
+        super().compute_geometry()
 
         self.assign_signed_mortar_to_primary()
         self.assign_cell_faces()

@@ -32,7 +32,7 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        super(Grid, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.face_nodes: sps.csc_array
         self.cell_faces: sps.csc_array
 
@@ -56,7 +56,7 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        super(Grid, self).compute_geometry()
+        super().compute_geometry()
         self.compute_ridges()
 
         self.compute_edge_properties()
