@@ -48,6 +48,12 @@ def test_convert_mixed_dimensional_grid(pp_mdg):
     assert isinstance(pp_mdg, pg.MixedDimensionalGrid)
 
 
+def test_as_mdg(pp_mdg):
+    mdg = pg.as_mdg(pp_mdg)
+
+    assert isinstance(mdg, pg.MixedDimensionalGrid)
+
+
 def test_wrong_type():
     with pytest.raises(ValueError):
         pg.as_mdg(None)
