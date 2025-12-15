@@ -70,7 +70,9 @@ class VecHDiv(pg.VecDiscretization):
         # Compose all the parts and return them
         return D - B.T @ M @ B
 
-    def assemble_mass_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_mass_matrix_cosserat(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles and returns the Cosserat inner product, which is given by
         :math:`(A \\sigma, \\tau)` where
@@ -156,7 +158,9 @@ class VecHDiv(pg.VecDiscretization):
         # Compose all the parts and return them
         return D - B.T @ M @ B
 
-    def assemble_lumped_matrix_cosserat(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_lumped_matrix_cosserat(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the lumped matrix with Cosserat terms for the given grid.
 
