@@ -74,3 +74,8 @@ def test_up_and_down_projection(tensor_order, unit_sd):
     I_known = sps.eye_array(I.shape[0])
 
     assert np.allclose((I - I_known).data, 0)
+
+
+def test_faulty_input_pwp():
+    with pytest.raises(KeyError):
+        pg.get_PwPolynomials(-1, 0)
