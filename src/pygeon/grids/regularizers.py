@@ -12,11 +12,12 @@ def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
     Args:
         sd (pg.VoronoiGrid): The Voronoi grid to relax. num_iter (int): The number of
             iterations to perform.
+        num_iter (int): The number of regularization iterations.
 
     Returns:
         The regularized Voronoi grid.
     """
-    # Perform Lloyd's relaxation
+    # Perform Lloyd's algorithm
     for _ in np.arange(num_iter):
         sd = pg.VoronoiGrid(vrt=sd.cell_centers)
         sd.compute_geometry()
@@ -65,8 +66,8 @@ def graph_laplace_dual_regularization(
     topology of the grid is not preserved.
 
     Args:
-        sd (pg.Grid): The grid to regularize. sliding (bool): Whether the boundary is
-            sliding, defaults to True.
+        sd (pg.Grid): The grid to regularize.
+        sliding (bool): Whether the boundary is sliding, defaults to True.
 
     Returns:
         The regularized Voronoi grid.
@@ -121,7 +122,7 @@ def elasticity_regularization(
         sd (pg.Grid): The grid to regularize.
         spring_const (float): The spring constant, defaults to 1.
         key (str): The key for the discretization, defaults to "reg".
-        is_sliding (bool): Whether the boundary is sliding, defaults to True.
+        sliding (bool): Whether the boundary is sliding, defaults to True.
 
     Returns:
         The regularized grid.
