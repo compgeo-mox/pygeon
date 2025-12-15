@@ -1,4 +1,4 @@
-"""Module contains general tests for all vector H(div) discretizations."""
+"""Module contains general tests for the virtual vector H(div) discretizations."""
 
 import pytest
 
