@@ -13,3 +13,16 @@ def test_cell_volumes(ref_octagon):
     cell_volumes_known[0] = 2 * np.sqrt(2) - 2
 
     assert np.allclose(ref_octagon.cell_volumes, cell_volumes_known)
+
+
+def test_rescale_nodes_with_dict(ref_octagon):
+    nodes = ref_octagon.nodes.copy()
+    phys_dims = {
+        "xmin": 1,
+        "ymin": 1,
+        "xmax": 2,
+        "ymax": 2,
+    }
+    new_nodes = ref_octagon.rescale_nodes(nodes, [1] * 2, phys_dims)
+
+    assert np.allclose((new_nodes - ref_octagon.nodes)[:2], 1)
