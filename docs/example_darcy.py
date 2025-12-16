@@ -19,7 +19,7 @@ key = "flow"
 rt0 = pg.RT0(key)
 p0 = pg.PwConstants(key)
 
-# build the degrees of freedom
+# Save the numbers of degrees of freedom
 dofs = np.array([rt0.ndof(sd), p0.ndof(sd)])
 
 # inverse of the permeability tensor
