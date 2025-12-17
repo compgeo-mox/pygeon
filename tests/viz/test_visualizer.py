@@ -11,13 +11,15 @@ import pytest
 import pygeon as pg
 
 
-@pytest.fixture(params=["unit_sd_2d", "unit_sd_3d", "octagon_sd_2d", "cart_sd_2d"])
+@pytest.fixture(
+    params=["unit_sd_2d", "unit_sd_3d", "octagon_sd_2d", "cart_sd_2d"], scope="module"
+)
 def grid_to_visualize(request: pytest.FixtureRequest):
     # resolve the underlying fixture by name
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def simple_vtu_file(grid_to_visualize):
     """Create a simple VTU data for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
