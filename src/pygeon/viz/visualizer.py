@@ -20,6 +20,7 @@ class Visualizer:
         self,
         file_name: str | Path,
         folder_name: str | Path = "",
+        off_screen: bool = False,
     ) -> None:
         """
         Initialize the Visualizer.
@@ -53,7 +54,8 @@ class Visualizer:
         else:
             pv.global_theme.font.family = "arial"
 
-        self.plotter = pv.Plotter()
+        self.off_screen = off_screen
+        self.plotter = pv.Plotter(off_screen=off_screen)
 
     def _default_bar_args(self, field_name: str) -> dict[str, Any]:
         """
@@ -230,17 +232,6 @@ class Visualizer:
 
         # Render and save/show
         if screenshot is not None:
-            # Ensure off-screen rendering so screenshot works without a prior .show()
-            off_screen_prev = getattr(self.plotter, "off_screen", False)
-            global_off_prev = getattr(pv, "OFF_SCREEN", False)
-            pv.OFF_SCREEN = True
-            self.plotter.off_screen = True
-
-            # Ensure the underlying VTK render window is off-screen to prevent flicker
-            ren_win = getattr(self.plotter, "ren_win", None)
-            if ren_win is not None and hasattr(ren_win, "SetOffScreenRendering"):
-                ren_win.SetOffScreenRendering(True)
-
             # Convert to Path if string
             screenshot_path = Path(screenshot)
             file_ext = screenshot_path.suffix.lower().lstrip(".")
@@ -254,10 +245,8 @@ class Visualizer:
                 self.plotter.screenshot(str(screenshot_path))
 
             self.plotter.close()
-            self.plotter.off_screen = off_screen_prev
-            pv.OFF_SCREEN = global_off_prev
             # Recreate plotter for future use (e.g., if show() is called again)
-            self.plotter = pv.Plotter()
+            self.plotter = pv.Plotter(off_screen=self.off_screen)
         else:
             # Show the plot interactively
             if self.plotter.notebook:

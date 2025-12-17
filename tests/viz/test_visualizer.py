@@ -40,7 +40,7 @@ def simple_vtu_file(grid_to_visualize):
         )
 
         file_name += "_" + str(grid_to_visualize.dim) + ".vtu"
-        vis = pg.Visualizer(file_name, folder_name=str(tmpdir))
+        vis = pg.Visualizer(file_name, folder_name=str(tmpdir), off_screen=True)
 
         fields = ["cell_scalar", "cell_vector", "point_scalar", "point_vector"]
         with mock.patch.object(vis.plotter, "show"):
@@ -168,18 +168,15 @@ def test_visualizer_missing_file():
         pg.Visualizer("nonexistent_file.pvd")
 
 
-@pytest.mark.parametrize("file_name", ["fig.png"])
+@pytest.mark.parametrize("file_name", ["fig.png", "fig.eps"])
 def test_visualizer_save(simple_vtu_file, file_name):
     """Test save image."""
-
     vis, _, _ = simple_vtu_file
     vis.plot_scalar_field("cell_scalar")
 
-    vis.plotter.off_screen = True
-
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir = Path(tmpdir)
-        # vis.show(screenshot=tmpdir / file_name)
+        vis.show(screenshot=tmpdir / file_name)
 
         # Check that file was created
         assert (tmpdir / file_name).stat().st_size > 0
