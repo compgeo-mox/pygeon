@@ -230,13 +230,23 @@ class Visualizer:
 
         # Render and save/show
         if screenshot is not None:
+            # Ensure off-screen rendering so screenshot works without a prior .show()
+            off_screen_prev = getattr(self.plotter, "off_screen", False)
+            global_off_prev = getattr(pv, "OFF_SCREEN", False)
+            pv.OFF_SCREEN = True
+            self.plotter.off_screen = True
+
+            # Ensure the underlying VTK render window is off-screen to prevent flicker
+            ren_win = getattr(self.plotter, "ren_win", None)
+            if ren_win is not None and hasattr(ren_win, "SetOffScreenRendering"):
+                ren_win.SetOffScreenRendering(True)
+
             # Convert to Path if string
             screenshot_path = Path(screenshot)
             file_ext = screenshot_path.suffix.lower().lstrip(".")
 
             # Render first
             self.plotter.render()
-
             # Save based on format
             if file_ext in ["eps", "svg"]:
                 self.plotter.save_graphic(str(screenshot_path), raster=False)
@@ -244,6 +254,8 @@ class Visualizer:
                 self.plotter.screenshot(str(screenshot_path))
 
             self.plotter.close()
+            self.plotter.off_screen = off_screen_prev
+            pv.OFF_SCREEN = global_off_prev
         else:
             # Show the plot interactively
             if self.plotter.notebook:
