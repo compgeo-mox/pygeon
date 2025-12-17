@@ -174,10 +174,13 @@ def test_visualizer_save(simple_vtu_file, file_name):
 
     vis, _, _, fig_path = simple_vtu_file
     vis.plot_scalar_field("cell_scalar")
-    vis.show(screenshot=fig_path / file_name)
 
-    # Check that file was created
-    assert (fig_path / file_name).stat().st_size > 0
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        vis.show(screenshot=tmpdir / file_name)
+
+        # Check that file was created
+        assert (tmpdir / file_name).stat().st_size > 0
 
 
 # def test_visualizer_notebook_backend(simple_vtu_file):
