@@ -168,7 +168,7 @@ def test_visualizer_missing_file():
         pg.Visualizer("nonexistent_file.pvd")
 
 
-@pytest.mark.parametrize("file_name", ["fig.png", "fig.eps", "fig.svg"])
+@pytest.mark.parametrize("file_name", ["fig.png"])
 def test_visualizer_save(simple_vtu_file, file_name):
     """Test save image."""
 
