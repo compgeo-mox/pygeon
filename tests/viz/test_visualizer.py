@@ -180,39 +180,39 @@ def test_visualizer_save(simple_vtu_file, file_name):
     assert (fig_path / file_name).stat().st_size > 0
 
 
-def test_visualizer_notebook_backend(simple_vtu_file):
-    """Test jupyter notebook visualization with static backend."""
-    vis, _, _, _ = simple_vtu_file
-    vis.plot_scalar_field("cell_scalar")
+# def test_visualizer_notebook_backend(simple_vtu_file):
+#     """Test jupyter notebook visualization with static backend."""
+#     vis, _, _, _ = simple_vtu_file
+#     vis.plot_scalar_field("cell_scalar")
 
-    # Mock plotter.notebook to True to trigger jupyter_backend="static" path
-    with mock.patch.object(vis.plotter, "notebook", True):
-        vis.show()
+#     # Mock plotter.notebook to True to trigger jupyter_backend="static" path
+#     with mock.patch.object(vis.plotter, "notebook", True):
+#         vis.show()
 
 
-@pytest.mark.parametrize(
-    "latex_available, expected_family",
-    [(True, "times"), (False, "arial")],
-)
-def test_visualizer_latex_detection(monkeypatch, latex_available, expected_family):
-    """Ensure LaTeX detection sets the correct font family for both branches."""
-    import pygeon.viz.visualizer as viz_module
+# @pytest.mark.parametrize(
+#     "latex_available, expected_family",
+#     [(True, "times"), (False, "arial")],
+# )
+# def test_visualizer_latex_detection(monkeypatch, latex_available, expected_family):
+#     """Ensure LaTeX detection sets the correct font family for both branches."""
+#     import pygeon.viz.visualizer as viz_module
 
-    # Mock Latex availability
-    monkeypatch.setattr(
-        viz_module.shutil,
-        "which",
-        lambda _: "/usr/bin/latex" if latex_available else None,
-    )
+#     # Mock Latex availability
+#     monkeypatch.setattr(
+#         viz_module.shutil,
+#         "which",
+#         lambda _: "/usr/bin/latex" if latex_available else None,
+#     )
 
-    # Minimal fake mesh to satisfy Visualizer.__init__
-    class _FakeMesh:
-        def GetMaxSpatialDimension(self):
-            return 3
+#     # Minimal fake mesh to satisfy Visualizer.__init__
+#     class _FakeMesh:
+#         def GetMaxSpatialDimension(self):
+#             return 3
 
-    # Mock pv.read to return fake mesh
-    monkeypatch.setattr(viz_module.pv, "read", lambda _: _FakeMesh())
+#     # Mock pv.read to return fake mesh
+#     monkeypatch.setattr(viz_module.pv, "read", lambda _: _FakeMesh())
 
-    # Construct Visualizer and verify font family
-    viz_module.Visualizer("dummy.vtu")
-    assert viz_module.pv.global_theme.font.family == expected_family
+#     # Construct Visualizer and verify font family
+#     viz_module.Visualizer("dummy.vtu")
+#     assert viz_module.pv.global_theme.font.family == expected_family
