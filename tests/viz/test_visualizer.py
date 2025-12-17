@@ -168,19 +168,21 @@ def test_visualizer_missing_file():
         pg.Visualizer("nonexistent_file.pvd")
 
 
-# @pytest.mark.parametrize("file_name", ["fig.png", "fig.eps", "fig.svg"])
-# def test_visualizer_save(simple_vtu_file, file_name):
-#     """Test save image."""
+@pytest.mark.parametrize("file_name", ["fig.png", "fig.eps", "fig.svg"])
+def test_visualizer_save(simple_vtu_file, file_name):
+    """Test save image."""
 
-#     vis, _, _, fig_path = simple_vtu_file
-#     vis.plot_scalar_field("cell_scalar")
+    vis, _, _, fig_path = simple_vtu_file
+    vis.plot_scalar_field("cell_scalar")
 
-#     with tempfile.TemporaryDirectory() as tmpdir:
-#         tmpdir = Path(tmpdir)
-#         vis.show(screenshot=tmpdir / file_name)
+    vis.plotter.off_screen = True
 
-#         # Check that file was created
-#         assert (tmpdir / file_name).stat().st_size > 0
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        vis.show(screenshot=tmpdir / file_name)
+
+        # Check that file was created
+        assert (tmpdir / file_name).stat().st_size > 0
 
 
 def test_visualizer_notebook_backend(simple_vtu_file):
