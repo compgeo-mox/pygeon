@@ -182,8 +182,7 @@ def test_visualizer_save(simple_vtu_file, file_name):
         # vis.show(screenshot=tmpdir / file_name)
 
         # Check that file was created
-        # assert (tmpdir / file_name).stat().st_size > 0
-        assert True
+        assert (tmpdir / file_name).stat().st_size > 0
 
 
 def test_visualizer_notebook_backend(simple_vtu_file):
