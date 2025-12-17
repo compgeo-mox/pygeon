@@ -256,6 +256,8 @@ class Visualizer:
             self.plotter.close()
             self.plotter.off_screen = off_screen_prev
             pv.OFF_SCREEN = global_off_prev
+            # Recreate plotter for future use (e.g., if show() is called again)
+            self.plotter = pv.Plotter()
         else:
             # Show the plot interactively
             if self.plotter.notebook:
