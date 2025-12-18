@@ -43,8 +43,8 @@ def simple_vtu_file(grid_to_visualize):
         vis = pg.Visualizer(file_name, folder_name=str(tmpdir), off_screen=True)
 
         fields = ["cell_scalar", "cell_vector", "point_scalar", "point_vector"]
-
-        yield vis, grid_to_visualize, fields
+        with mock.patch.object(vis.plotter, "show"):
+            yield vis, grid_to_visualize, fields
 
 
 def test_visualizer_initialization(simple_vtu_file):
