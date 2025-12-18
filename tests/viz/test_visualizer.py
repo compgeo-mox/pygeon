@@ -168,8 +168,6 @@ def test_visualizer_missing_file():
         pg.Visualizer("nonexistent_file.pvd")
 
 
-
-
 def test_visualizer_notebook_backend(simple_vtu_file):
     """Test jupyter notebook visualization with static backend."""
     vis, _, _ = simple_vtu_file
