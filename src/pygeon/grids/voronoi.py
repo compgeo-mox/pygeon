@@ -61,8 +61,10 @@ class VoronoiGrid(pg.Grid):
                 # find the point that is furthest from the center
                 midpoint = vor.points[pt_idx].mean(axis=0)
                 direction = np.sign(np.dot(midpoint - center, n)) * n
-                if vor.furthest_site:
-                    direction *= -1
+                # This if-statement (copied from scipy) is never true because we don't
+                # consider furthest-site Voronoi grids.
+                # if vor.furthest_site:
+                #     direction *= -1
                 far_pt = vor.vertices[i] + direction * kwargs.get("factor", 1)
 
                 # add the far point to the list of vertices

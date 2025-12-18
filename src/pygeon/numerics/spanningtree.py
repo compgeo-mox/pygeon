@@ -386,8 +386,6 @@ class SpanningTreeElasticity(SpanningTree):
             M_asym = p0.assemble_mass_matrix(sd)
         elif sd.dim == 3:
             M_asym = M_div
-        else:
-            raise NotImplementedError("Grid must be 2D or 3D.")
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
         asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)

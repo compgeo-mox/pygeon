@@ -13,7 +13,8 @@ matplotlib.use("Agg")
 
 
 @pytest.fixture(
-    params=["unit_sd_2d", "mdg_embedded_frac_2d", "octagon_sd_2d", "cart_sd_2d"]
+    scope="module",
+    params=["unit_sd_2d", "mdg_embedded_frac_2d", "octagon_sd_2d", "cart_sd_2d"],
 )
 def spt_sd_pair(request: pytest.FixtureRequest):
     # resolve the underlying fixture by name
