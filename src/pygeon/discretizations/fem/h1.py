@@ -169,9 +169,9 @@ class Lagrange1(pg.Discretization):
         elif sd.dim == 2:
             return sd.face_ridges.T.tocsc()
         elif sd.dim == 1:
-            return sps.csc_array(sd.cell_faces.T)
+            return sd.cell_faces.T.tocsc()
         elif sd.dim == 0:
-            return sps.csc_array((0, 1))
+            return sps.csc_array((0, 0))
         else:
             raise ValueError
 
@@ -699,6 +699,9 @@ class Lagrange2(pg.Discretization):
             # on an edge opposite to the first in 3D
             second_dof_scaling = -1
 
+        else:
+            raise ValueError
+
         # Start of the edge
         # The nodal function associated with the start has derivative -3 here.
         # The other nodal function has derivative -1.
@@ -737,7 +740,9 @@ class Lagrange2(pg.Discretization):
         val_at_cc = 1 / (sd.dim + 1)
         eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
 
-        if sd.dim == 1:
+        if sd.dim == 0:
+            return sps.csc_array((1, 0))
+        elif sd.dim == 1:
             eval_edges = sps.eye_array(sd.num_cells).tocsc()
         elif sd.dim == 2:
             eval_edges = abs(sd.cell_faces).T
@@ -827,7 +832,7 @@ class Lagrange2(pg.Discretization):
             grid.
         """
         if sd.dim == 0:
-            edge_coords = np.empty(0)
+            edge_coords = np.empty((3, 0))
         elif sd.dim == 1:
             edge_coords = sd.cell_centers
         elif sd.dim == 2:

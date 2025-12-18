@@ -11,13 +11,15 @@ import pytest
 import pygeon as pg
 
 
-@pytest.fixture(params=["unit_sd_2d", "unit_sd_3d", "octagon_sd_2d", "cart_sd_2d"])
+@pytest.fixture(
+    params=["unit_sd_2d", "unit_sd_3d", "octagon_sd_2d", "cart_sd_2d"], scope="module"
+)
 def grid_to_visualize(request: pytest.FixtureRequest):
     # resolve the underlying fixture by name
     return request.getfixturevalue(request.param)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def simple_vtu_file(grid_to_visualize):
     """Create a simple VTU data for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -38,7 +40,7 @@ def simple_vtu_file(grid_to_visualize):
         )
 
         file_name += "_" + str(grid_to_visualize.dim) + ".vtu"
-        vis = pg.Visualizer(file_name, folder_name=str(tmpdir))
+        vis = pg.Visualizer(file_name, folder_name=str(tmpdir), off_screen=True)
 
         fields = ["cell_scalar", "cell_vector", "point_scalar", "point_vector"]
         with mock.patch.object(vis.plotter, "show"):
@@ -164,3 +166,41 @@ def test_visualizer_missing_file():
     """Test error handling for missing PVD file."""
     with pytest.raises((FileNotFoundError, Exception)):
         pg.Visualizer("nonexistent_file.pvd")
+
+
+def test_visualizer_notebook_backend(simple_vtu_file):
+    """Test jupyter notebook visualization with static backend."""
+    vis, _, _ = simple_vtu_file
+    vis.plot_scalar_field("cell_scalar")
+
+    # Mock plotter.notebook to True to trigger jupyter_backend="static" path
+    with mock.patch.object(vis.plotter, "notebook", True):
+        vis.show()
+
+
+@pytest.mark.parametrize(
+    "latex_available, expected_family",
+    [(True, "times"), (False, "arial")],
+)
+def test_visualizer_latex_detection(monkeypatch, latex_available, expected_family):
+    """Ensure LaTeX detection sets the correct font family for both branches."""
+    import pygeon.viz.visualizer as viz_module
+
+    # Mock Latex availability
+    monkeypatch.setattr(
+        viz_module.shutil,
+        "which",
+        lambda _: "/usr/bin/latex" if latex_available else None,
+    )
+
+    # Minimal fake mesh to satisfy Visualizer.__init__
+    class _FakeMesh:
+        def GetMaxSpatialDimension(self):
+            return 3
+
+    # Mock pv.read to return fake mesh
+    monkeypatch.setattr(viz_module.pv, "read", lambda _: _FakeMesh())
+
+    # Construct Visualizer and verify font family
+    viz_module.Visualizer("dummy.vtu")
+    assert viz_module.pv.global_theme.font.family == expected_family

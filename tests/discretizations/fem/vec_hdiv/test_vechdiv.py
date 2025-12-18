@@ -170,3 +170,11 @@ def test_linear_asym(discr, unit_sd):
     asym_interp = asym_space.interpolate(unit_sd, func_asym)
 
     assert np.allclose(asym @ func_interp, asym_interp)
+
+
+def test_cosserat_1d(discr, unit_sd_1d):
+    with pytest.raises(ValueError):
+        discr.assemble_mass_matrix_cosserat(unit_sd_1d, None)
+
+    with pytest.raises(ValueError):
+        discr.assemble_lumped_matrix_cosserat(unit_sd_1d, None)

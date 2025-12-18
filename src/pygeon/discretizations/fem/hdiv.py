@@ -164,10 +164,6 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
-        # If a 0-d grid is given then we return an empty matrix
-        if sd.dim == 0:
-            return sps.csc_array((3 * sd.num_faces, sd.num_faces))
-
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         c_centers, f_normals, f_centers, R, dim, node_coords = pp.map_geometry.map_grid(
@@ -346,7 +342,7 @@ class BDM1(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pp.Grid) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Return the number of degrees of freedom associated to the method.
         In this case the number of faces times the dimension.
@@ -360,10 +356,7 @@ class BDM1(pg.Discretization):
         Raises:
             ValueError: If the input grid is not an instance of pp.Grid.
         """
-        if isinstance(sd, pg.Grid):
-            return sd.face_nodes.nnz
-        else:
-            raise ValueError
+        return sd.face_nodes.nnz
 
     def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray) -> np.ndarray:
         """
@@ -394,6 +387,10 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled mass matrix.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((sd.num_faces, sd.num_faces))
+
         size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -696,6 +693,10 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((sd.num_faces, sd.num_faces))
+
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
         size = sd.dim * sd.dim * (sd.dim + 1) * sd.num_cells

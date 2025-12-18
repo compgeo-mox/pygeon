@@ -20,6 +20,7 @@ class Visualizer:
         self,
         file_name: str | Path,
         folder_name: str | Path = "",
+        off_screen: bool = False,
     ) -> None:
         """
         Initialize the Visualizer.
@@ -53,7 +54,8 @@ class Visualizer:
         else:
             pv.global_theme.font.family = "arial"
 
-        self.plotter = pv.Plotter()
+        self.off_screen = off_screen
+        self.plotter = pv.Plotter(off_screen=off_screen)
 
     def _default_bar_args(self, field_name: str) -> dict[str, Any]:
         """
@@ -236,7 +238,6 @@ class Visualizer:
 
             # Render first
             self.plotter.render()
-
             # Save based on format
             if file_ext in ["eps", "svg"]:
                 self.plotter.save_graphic(str(screenshot_path), raster=False)
@@ -244,6 +245,8 @@ class Visualizer:
                 self.plotter.screenshot(str(screenshot_path))
 
             self.plotter.close()
+            # Recreate plotter for future use (e.g., if show() is called again)
+            self.plotter = pv.Plotter(off_screen=self.off_screen)
         else:
             # Show the plot interactively
             if self.plotter.notebook:

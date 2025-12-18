@@ -2,6 +2,7 @@
 
 import numpy as np
 import porepy as pp
+import pytest
 
 import pygeon as pg
 
@@ -136,3 +137,12 @@ def test_unit_cube2(unit_sd_3d):
     assert np.isclose(unit_sd_3d.num_cells, 100)
     assert np.isclose(unit_sd_3d.num_faces, 242)
     assert np.isclose(unit_sd_3d.num_nodes, 45)
+
+
+def test_as_mdg():
+    assert isinstance(pg.unit_grid(1, 0.5, as_mdg=True), pg.MixedDimensionalGrid)
+
+
+def test_wrong_input_reference_element():
+    with pytest.raises(ValueError):
+        pg.reference_element(0)

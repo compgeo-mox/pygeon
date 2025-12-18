@@ -52,7 +52,7 @@ def unit_sd_1d(_unit_grids_dict: dict) -> pg.Grid:
     return _unit_grids_dict[1, False]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def unit_sd_2d(_unit_grids_dict: dict) -> pg.Grid:
     """
     Unstructured triangle grid of the unit square
@@ -60,7 +60,7 @@ def unit_sd_2d(_unit_grids_dict: dict) -> pg.Grid:
     return _unit_grids_dict[2, False]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def unit_sd_3d(_unit_grids_dict: dict) -> pg.Grid:
     """
     Unstructured tetrahedral grid of the unit cube
@@ -304,7 +304,7 @@ def mdg(_mdg_dict: dict, request: pytest.FixtureRequest) -> pg.MixedDimensionalG
     return _mdg_dict[request.param]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mdg_embedded_frac_2d(_mdg_dict):
     """
     The mixed-dimensional grid of the unit square with a single embedded fracture.

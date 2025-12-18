@@ -19,30 +19,27 @@ def get_PwPolynomials(
         Type[pg.Discretization]: The corresponding piecewise polynomial discretization
         class.
     """
-    match (poly_order, tensor_order):
-        case (0, pg.SCALAR):
-            return pg.PwConstants
-        case (1, pg.SCALAR):
-            return pg.PwLinears
-        case (2, pg.SCALAR):
-            return pg.PwQuadratics
-        case (0, pg.VECTOR):
-            return pg.VecPwConstants
-        case (1, pg.VECTOR):
-            return pg.VecPwLinears
-        case (2, pg.VECTOR):
-            return pg.VecPwQuadratics
-        case (0, pg.MATRIX):
-            return pg.MatPwConstants
-        case (1, pg.MATRIX):
-            return pg.MatPwLinears
-        case (2, pg.MATRIX):
-            return pg.MatPwQuadratics
-        case _:
-            raise ValueError(
-                f"Unsupported polynomial order {poly_order} and tensor order"
-                "{tensor_order}."
+    pwp_dict: dict[
+        tuple[int, int],
+        Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials],
+    ] = {
+        (0, pg.SCALAR): pg.PwConstants,
+        (1, pg.SCALAR): pg.PwLinears,
+        (2, pg.SCALAR): pg.PwQuadratics,
+        (0, pg.VECTOR): pg.VecPwConstants,
+        (1, pg.VECTOR): pg.VecPwLinears,
+        (2, pg.VECTOR): pg.VecPwQuadratics,
+        (0, pg.MATRIX): pg.MatPwConstants,
+        (1, pg.MATRIX): pg.MatPwLinears,
+        (2, pg.MATRIX): pg.MatPwQuadratics,
+    }
+    if (poly_order, tensor_order) not in pwp_dict:
+        raise KeyError(
+            "Unsupported polynomial order {:} and tensor order {:}.".format(
+                poly_order, tensor_order
             )
+        )
+    return pwp_dict[(poly_order, tensor_order)]
 
 
 def proj_to_PwPolynomials(

@@ -123,3 +123,11 @@ def test_lumped_inv_cosserat(ref_sd, data):
     L_inv.eliminate_zeros()
 
     assert L_inv.nnz <= max_nnz[ref_sd.dim]
+
+
+def test_with_zero_rows(M_sparse, B_sparse):
+    B = B_sparse.copy()
+    B[:2, :] = 0
+    sol = pg.block_diag_solver(M_sparse, B)
+
+    assert np.allclose((M_sparse @ sol - B).data, 0)
