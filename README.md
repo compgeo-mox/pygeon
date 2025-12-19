@@ -18,7 +18,7 @@ PyGeoN is a Python library for structure-preserving numerical methods in geoscie
 
 ## Installation for Linux
 
-PyGeoN requires Python >= 3.12
+PyGeoN requires Python >= 3.13
 
 Since for many functionalities PyGeoN depends on [PorePy](https://github.com/pmgbergen/porepy), we assume that the latter is accessible in your PYTHONPATH.
 To install PyGeoN

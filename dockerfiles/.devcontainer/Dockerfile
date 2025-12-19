@@ -47,7 +47,7 @@ RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkg
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 # Create a new environment
-ENV PYTHON_VERSION=3.13
+ENV PYTHON_VERSION=3.14
 
 RUN conda create -y -n py3 python=${PYTHON_VERSION}
 SHELL ["conda", "run", "-n", "py3", "/bin/bash", "-c"]
