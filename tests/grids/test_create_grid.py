@@ -39,6 +39,16 @@ def check_grid(sd: pg.Grid, dim: int, boundary: np.ndarray):
     assert np.all(node_on_boundary)
 
 
+def test_point_grid():
+    sd = pg.unit_grid(0, mesh_size=1.0, as_mdg=False)
+
+    assert sd.dim == 0
+    assert sd.num_nodes == 0
+    assert sd.num_faces == 0
+    assert sd.num_cells == 1
+    assert np.allclose(sd.cell_centers, np.array([[0.0], [0.0], [0.0]]))
+
+
 def test_unit_square_mdg():
     mdg = pg.unit_grid(2, mesh_size=0.5)
     sd = mdg.subdomains(dim=2)[0]
