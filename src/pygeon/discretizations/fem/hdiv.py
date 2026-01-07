@@ -166,7 +166,7 @@ class RT0(pg.Discretization):
         """
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
-            return sps.csc_array((3 * sd.num_cells, sd.num_faces))
+            return sps.csc_array((3, 0))
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
@@ -577,7 +577,7 @@ class BDM1(pg.Discretization):
         """
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
-            return sps.csc_array((3 * sd.num_cells, sd.num_faces))
+            return sps.csc_array((3, 0))
 
         size = 3 * sd.dim * (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -1068,9 +1068,7 @@ class RT1(pg.Discretization):
         """
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
-            return sps.csc_array(
-                (3 * sd.num_cells, sd.dim * (sd.num_cells + sd.num_faces))
-            )
+            return sps.csc_array((3, 0))
 
         # Allocate the data to store matrix P entries
         size = 3 * sd.dim * sd.num_cells
