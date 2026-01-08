@@ -47,9 +47,6 @@ class VecHDiv(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
-        if isinstance(lambda_, np.ScalarType):
-            lambda_ = np.full(sd.num_cells, lambda_)
-
         # Save 1/(2mu) as a tensor so that it can be read by self
         mu_tensor = pp.SecondOrderTensor(1 / (2 * mu))
         data_self = pp.initialize_data(
@@ -63,7 +60,7 @@ class VecHDiv(pg.VecDiscretization):
             lambda_[comp] / (2 * mu[comp] + sd.dim * lambda_[comp]) / (2 * mu[comp])
         )
 
-        data_tr_space = pp.initialize_data({}, self.keyword, {"weight": coeff})
+        data_tr_space = pp.initialize_data({}, self.keyword, {pg.WEIGHT: coeff})
 
         # Assemble the block diagonal mass matrix
         D = self.assemble_mass_matrix(sd, data_self)
@@ -94,18 +91,12 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        if data is None:
-            # If the data is not provided then use default value for mu
-            mu = 0.5 * np.ones(sd.num_cells)
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
 
-            data_: dict = {pp.PARAMETERS: {self.keyword: {}}}
-            data_[pp.PARAMETERS][self.keyword]["mu"] = mu
-        else:
-            data_ = data.copy()
+        param = {pg.LAME_LAMBDA: np.inf, pg.LAME_MU: mu}
+        data_ = pp.initialize_data({}, self.keyword, param)
 
-        data_[pp.PARAMETERS][self.keyword]["lambda"] = np.full(sd.num_cells, np.inf)
-
-        return self.assemble_mass_matrix(sd, data_)
+        return self.assemble_mass_matrix_elasticity(sd, data_)
 
     def assemble_mass_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
