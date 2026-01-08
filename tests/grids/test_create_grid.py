@@ -46,7 +46,7 @@ def test_point_grid():
     assert sd.num_nodes == 0
     assert sd.num_faces == 0
     assert sd.num_cells == 1
-    assert np.allclose(sd.cell_centers, np.array([[0.0], [0.0], [0.0]]))
+    assert np.allclose(sd.cell_centers, 0)
 
 
 def test_unit_square_mdg():
