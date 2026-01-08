@@ -22,7 +22,7 @@ def test_convert_grid():
     sd = pp.StructuredTriangleGrid([2] * 2, [1] * 2)
 
     mdg = pg.as_mdg(sd)
-    assert isinstance(mdg, pp.MixedDimensionalGrid)
+    assert isinstance(mdg, pg.MixedDimensionalGrid)
 
     pg.convert_from_pp(sd)
     assert isinstance(sd, pg.Grid)
@@ -46,6 +46,12 @@ def test_convert_mixed_dimensional_grid(pp_mdg):
 
     # The object should be converted to pg.MixedDimensionalGrid
     assert isinstance(pp_mdg, pg.MixedDimensionalGrid)
+
+
+def test_as_mdg(pp_mdg):
+    mdg = pg.as_mdg(pp_mdg)
+
+    assert isinstance(mdg, pg.MixedDimensionalGrid)
 
 
 def test_wrong_type():

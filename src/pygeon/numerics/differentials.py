@@ -1,5 +1,6 @@
 """This module contains functions for computing the differential operators."""
 
+import warnings
 from typing import cast
 
 import numpy as np
@@ -135,7 +136,7 @@ def _g_exterior_derivative(
         grid = cast(pg.Grid, grid)
         derivative = sps.csc_array((grid.num_peaks, 0))
     else:
-        Warning("(n - k) is not between 0 and 4")
+        warnings.warn("(n - k) is not between 0 and 4")
         derivative = sps.csc_array((0, 0))
     return derivative
 
@@ -188,4 +189,4 @@ def _mdg_exterior_derivative(
         bmat_matrix = sps.block_array(bmat)
         return bmat_matrix @ is_tip_dof
     else:
-        return bmat @ is_tip_dof
+        return pg.bmat.multiply(bmat, is_tip_dof)

@@ -8,14 +8,6 @@ Example Repository
 
 Examples demonstrating various features of PyGeoN can be found in the `tutorials directory <https://github.com/compgeo-mox/pygeon/tree/main/tutorials>`_.
 
-Basic Usage
------------
-
-Here's a simple example of using PyGeoN:
-
-.. literalinclude:: ./example_darcy.py
-   :language: python
-
 Papers Using PyGeoN
 -------------------
 

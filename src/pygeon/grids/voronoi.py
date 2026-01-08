@@ -30,11 +30,12 @@ class VoronoiGrid(pg.Grid):
         Returns:
             None
         """
+        tol = kwargs.get("tol", 1e-8)
         # Generate the internal seed points for the Voronoi grid
         if vrt is None:
             vrt = self.generate_internal_pts(num_pts, **kwargs)
         else:
-            assert np.amin(vrt) >= 0 and np.amax(vrt) <= 1, (
+            assert np.amin(vrt) >= -tol and np.amax(vrt) <= 1 + tol, (
                 "Points must be in the unit square"
             )
 
@@ -60,8 +61,10 @@ class VoronoiGrid(pg.Grid):
                 # find the point that is furthest from the center
                 midpoint = vor.points[pt_idx].mean(axis=0)
                 direction = np.sign(np.dot(midpoint - center, n)) * n
-                if vor.furthest_site:
-                    direction *= -1
+                # This if-statement (copied from scipy) is never true because we don't
+                # consider furthest-site Voronoi grids.
+                # if vor.furthest_site:
+                #     direction *= -1
                 far_pt = vor.vertices[i] + direction * kwargs.get("factor", 1)
 
                 # add the far point to the list of vertices

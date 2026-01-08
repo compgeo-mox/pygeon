@@ -103,6 +103,7 @@ def test_trianglegrid():
 
 def test_oct_grid():
     sd = pg.OctagonGrid([6, 6])
+    sd.compute_geometry()  # to cover the case where sd has face_ridges
 
     sd = pg.levelset_remesh(sd, circle_at_0505)
     assert sd.num_cells == 113
@@ -112,3 +113,10 @@ def test_oct_grid():
 
     sd.compute_geometry()
     assert np.isclose(sd.cell_volumes.sum(), 1)
+
+
+def test_two_faces_cut(cart_sd_2d):
+    levelset = lambda x: 1 / 6 + np.min((x[0] - x[1], x[1] - x[0]))
+
+    with pytest.raises(NotImplementedError):
+        pg.levelset_remesh(cart_sd_2d, levelset)

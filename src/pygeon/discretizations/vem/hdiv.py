@@ -197,7 +197,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -230,7 +230,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -249,7 +249,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -317,6 +317,6 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError

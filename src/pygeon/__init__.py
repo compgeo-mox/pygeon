@@ -17,6 +17,12 @@ from pygeon.grids.create_grid import (
     reference_element,
 )
 from pygeon.grids.refinement import barycentric_split
+from pygeon.grids.regularizers import (
+    lloyd_regularization,
+    graph_laplace_regularization,
+    graph_laplace_dual_regularization,
+    elasticity_regularization,
+)
 
 from pygeon.params.data import get_cell_data
 
@@ -86,6 +92,8 @@ from pygeon.numerics.block_diag_solver import (
 
 import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
+
+from pygeon.viz.plot_spanningtree import plot_spanningtree
 
 # Expose the `numerics` subpackage on the top-level `pygeon` package so
 # attribute-style access (e.g. `pygeon.numerics`) is available and type

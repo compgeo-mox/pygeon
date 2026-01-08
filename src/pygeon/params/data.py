@@ -67,8 +67,8 @@ def get_cell_data(
 
     Returns:
         np.ndarray | pp.SecondOrderTensor: The parameter values for all cells.
-            Returns a numpy array for scalar data, or a SecondOrderTensor for
-            vector discretization.
+        Returns a numpy array for scalar data, or a SecondOrderTensor for
+        vector discretization.
 
     Notes:
         If the parameter is not found in the data dictionary, it falls back to

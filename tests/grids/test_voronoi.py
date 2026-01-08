@@ -1,6 +1,7 @@
 """Module contains tests to validate the voronoi grids."""
 
 import numpy as np
+import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -74,3 +75,11 @@ def test_simple_voronoi_grid():
     assert np.allclose(sd.nodes, sd_nodes)
     assert np.allclose((sd.face_nodes - sd_face_nodes).data, 0)
     assert np.allclose((sd.cell_faces - sd_cell_faces).data, 0)
+
+
+def test_out_of_bounds():
+    vrt = np.zeros((3, 3))
+    vrt[:2] = -1
+
+    with pytest.raises(AssertionError):
+        pg.VoronoiGrid(3, vrt)
