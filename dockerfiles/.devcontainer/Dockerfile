@@ -52,7 +52,7 @@ ENV PYTHON_VERSION=3.14
 RUN conda create -y -n py3 python=${PYTHON_VERSION}
 SHELL ["conda", "run", "-n", "py3", "/bin/bash", "-c"]
 RUN echo ". activate py3" >> ${HOME}/.bashrc
-RUN . ${HOME}/.bashrc && conda install -y jupyter
+RUN . ${HOME}/.bashrc && pip install jupyter
 
 # Expose the Jupyter Notebook port
 EXPOSE 8888
