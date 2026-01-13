@@ -134,7 +134,7 @@ def unit_grid(
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid.
     """
-    if dim == 0 or dim == 1 or kwargs.get("structured", False):
+    if dim <= 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)
         sd: pp.Grid
         if dim == 0:
