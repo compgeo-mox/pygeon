@@ -154,6 +154,77 @@ class Lagrange1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the advection matrix for the finite element method.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+            data (dict): A dictionary containing the necessary data for
+            assembling the matrix.
+
+        Returns:
+            sps.csc_array: The assembled advection matrix.
+        """
+
+        # Get dictionary for parameter storage
+        V = np.zeros((3, sd.num_cells))
+
+        if data is not None:
+            V = data[pp.PARAMETERS][self.keyword]["vector_field"]
+        else:
+            data = {"is_tangential": True}
+
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
+
+        if not data.get("is_tangential", False):
+            # Rotate the vector field and delete last dimension
+            if sd.dim < 3:
+                V = V.copy()
+                V = R @ V
+                remove_dim = np.where(np.logical_not(dim))[0]
+                V = np.delete(V, remove_dim, axis=0)
+
+        # Allocate the data to store matrix entries, that's the most efficient
+        # way to create a sparse matrix.
+        size = np.power(sd.dim + 1, 2) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        cell_nodes = sd.cell_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its nodes
+            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
+
+            nodes_loc = cell_nodes.indices[loc]
+            coord_loc = node_coords[:, nodes_loc]
+
+            # Compute the adv-H1 local matrix
+            A = self.local_adv(
+                V[0 : sd.dim, c],
+                sd.cell_volumes[c],
+                coord_loc,
+                sd.dim,
+            )
+
+            # Save values for adv-H1 local matrix in the global structure
+            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = cols.T.ravel()
+            cols_J[loc_idx] = cols.ravel()
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the differential matrix based on the dimension of the grid.
@@ -193,6 +264,28 @@ class Lagrange1(pg.Discretization):
         dphi = self.local_grads(coord, dim)
 
         return c_volume * dphi.T @ K @ dphi
+
+    def local_adv(
+        self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
+    ) -> np.ndarray:
+        """
+        Compute the local advection matrix for P1.
+
+        Args:
+            V (np.ndarray): vector field over the cell of (dim, dim) shape.
+            c_volume (np.ndarray): scalar cell volume.
+            coord (np.ndarray): coordinates of the cell vertices of (dim+1, dim) shape.
+            dim (int): dimension of the problem.
+
+        Returns:
+            np.ndarray: local advection matrix of (dim+1, dim+1) shape.
+        """
+
+        phi = np.full((dim + 1,), (1 / (dim + 1)))
+
+        dphi = self.local_grads(coord, dim)
+
+        return c_volume * np.outer(phi, V @ dphi)
 
     @staticmethod
     def local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
