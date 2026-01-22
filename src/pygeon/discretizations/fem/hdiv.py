@@ -113,6 +113,105 @@ class RT0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the advection matrix for mixed finite elements
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (Optional[dict]): Optional dictionary with physical parameters for
+                scaling, in particular the second_order_tensor that is the inverse of
+                the inverse of the diffusion tensor (permeability for porous media)
+                and the velocity field (advection).
+
+        Returns:
+            sps.csc_array: The advection matrix.
+        """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((sd.num_faces, sd.num_faces))
+
+        # Create unitary data, unitary diffusivity, in case not present
+        data_ = RT0.create_unitary_data(self.keyword, sd, data)
+        V = np.ones((3, sd.num_cells))
+
+        # Get dictionary for parameter storage
+        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
+
+        # Retrieve the inverse of diffusivity and the velocity field
+        D_inv = parameter_dictionary["second_order_tensor"]
+
+        if data is not None:
+            V = data[pp.PARAMETERS][self.keyword]["vector_field"]
+
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
+        nodes = nodes[: sd.dim, :]
+
+        if not data_.get("is_tangential", False):
+            # Rotate the inverse of the permeability tensor and the velocity field,
+            # and delete last dimension
+            if sd.dim < 3:
+                D_inv = D_inv.copy()
+                D_inv.rotate(R)
+                remove_dim = np.where(np.logical_not(dim))[0]
+                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=0)
+                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=1)
+
+                V = V.copy()
+                V = R @ V
+                remove_dim = np.where(np.logical_not(dim))[0]
+                V = np.delete(V, remove_dim, axis=0)
+
+        # Allocate the data to store matrix A entries
+        size = (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in np.arange(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = nodes[:, opposites_loc]
+
+            # Compute the flux reconstruction matrix
+            psi_cell = pp.RT0.faces_to_cell(
+                c_centers[:, c],
+                coord_loc,
+                f_centers[:, faces_loc],
+                f_normals[:, faces_loc],
+                dim,
+                R,
+            )[dim, :]
+
+            # Compute the local weight for the local advection matrix
+            weight = D_inv.values[..., c] @ V[:, c]
+
+            # Compute the H_div-advection local matrix
+            A = weight @ psi_cell
+
+            # Save values for local matrix in the global structure
+            cols = faces_loc
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = c
+            cols_J[loc_idx] = faces_loc
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
     @staticmethod
     def local_inner_product(sd: pg.Grid) -> np.ndarray:
         """
