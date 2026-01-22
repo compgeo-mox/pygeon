@@ -127,39 +127,42 @@ def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
-    M = discr.assemble_stiff_matrix(ref_sd)
+def test_assemble_adv_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
+    M = discr.assemble_adv_matrix(ref_sd)
 
     match ref_sd.dim:
         case 1:
-            M_known = np.array(
-                [
-                    [1, -1],
-                    [-1, 1],
-                ]
+            M_known = (
+                np.array(
+                    [
+                        [1, -1],
+                        [1, -1],
+                    ]
+                )
+                / 2
             )
         case 2:
             M_known = (
                 np.array(
                     [
-                        [2, -1, -1],
-                        [-1, 1, 0],
-                        [-1, 0, 1],
+                        [-2, 1, 1],
+                        [-2, 1, 1],
+                        [-2, 1, 1],
                     ]
                 )
-                / 2
+                / 6
             )
         case 3:
             M_known = (
                 np.array(
                     [
-                        [3, -1, -1, -1],
-                        [-1, 1, 0, 0],
-                        [-1, 0, 1, 0],
-                        [-1, 0, 0, 1],
+                        [-3, 1, 1, 1],
+                        [-3, 1, 1, 1],
+                        [-3, 1, 1, 1],
+                        [-3, 1, 1, 1],
                     ]
                 )
-                / 6
+                / 24
             )
 
     assert np.allclose(M.todense(), M_known)
