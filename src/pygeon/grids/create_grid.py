@@ -134,10 +134,12 @@ def unit_grid(
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid.
     """
-    if dim == 1 or kwargs.get("structured", False):
+    if dim <= 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)
         sd: pp.Grid
-        if dim == 1:
+        if dim == 0:
+            sd = pp.PointGrid(np.array([[0.0], [0.0], [0.0]]))
+        elif dim == 1:
             sd = pp.CartGrid(num, np.ones(1))
         elif dim == 2:
             sd = pp.StructuredTriangleGrid(num, np.ones(dim))

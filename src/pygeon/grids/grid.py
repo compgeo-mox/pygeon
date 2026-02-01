@@ -288,6 +288,10 @@ class Grid(pp.Grid):
         if recompute or not hasattr(self, "opposite_nodes"):
             cell_nodes = self.cell_nodes()
 
+            if self.dim == 0:
+                self.opposite_nodes = sps.csc_array((0, 1), dtype=int)
+                return self.opposite_nodes
+
             if not np.all(cell_nodes.sum(axis=0) == self.dim + 1):
                 raise NotImplementedError(
                     "Grid is not simplicial; cannot compute opposite node."
