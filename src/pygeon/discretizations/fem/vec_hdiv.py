@@ -16,6 +16,12 @@ class VecHDiv(pg.VecDiscretization):
     discretizations in the H(div) space.
     """
 
+    poly_order = None
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.MATRIX
+    """Matrix-valued discretization"""
+
     def _apply_pwpolynomials_method(
         self, sd: pg.Grid, method_name: str, *args, **kwargs
     ) -> sps.csc_array:
@@ -226,9 +232,6 @@ class VecBDM1(VecHDiv):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.MATRIX
-    """Matrix-valued discretization"""
-
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector BDM1 discretization class.
@@ -329,9 +332,6 @@ class VecRT0(VecHDiv):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.MATRIX
-    """Matrix-valued discretization"""
-
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector RT0 discretization class.
@@ -403,9 +403,6 @@ class VecRT1(VecHDiv):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.MATRIX
-    """Matrix-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
