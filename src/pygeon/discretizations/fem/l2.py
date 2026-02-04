@@ -4,7 +4,6 @@ import abc
 from typing import Callable, Type
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -15,6 +14,12 @@ class PwPolynomials(pg.Discretization):
     PwPolynomials is a subclass of pg.Discretization that represents
     an abstract element wise polynomial discretization.
     """
+
+    poly_order = None
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -233,9 +238,6 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
-
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell.
@@ -358,9 +360,6 @@ class PwLinears(PwPolynomials):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -496,9 +495,6 @@ class PwQuadratics(PwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
