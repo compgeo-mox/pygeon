@@ -16,6 +16,31 @@ class VecHDiv(pg.VecDiscretization):
     discretizations in the H(div) space.
     """
 
+    def _apply_pwpolynomials_method(
+        self, sd: pg.Grid, method_name: str, *args, **kwargs
+    ) -> sps.csc_array:
+        """
+        Generic helper to apply a PwPolynomials method with projection.
+
+        This method projects to PwPolynomials space, calls the specified method,
+        and returns the result with projection applied: P.T @ result @ P
+
+        Args:
+            sd (pg.Grid): The grid.
+            method_name (str): Name of the method to call on PwPolynomials.
+            *args: Positional arguments to pass to the method.
+            **kwargs: Keyword arguments to pass to the method.
+
+        Returns:
+            sps.csc_array: P.T @ result @ P where result is from the PwPolynomials
+            method.
+        """
+        P = self.proj_to_PwPolynomials(sd)
+        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        method = getattr(pwp, method_name)
+        result = method(sd, *args, **kwargs)
+        return P.T @ result @ P
+
     def assemble_mass_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -43,11 +68,8 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        P = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
-
-        M = pwp.assemble_mass_matrix_elasticity(sd, data)
-        return P.T @ M @ P
+        method_name = "assemble_mass_matrix_elasticity"
+        return self._apply_pwpolynomials_method(sd, method_name, data)
 
     def assemble_deviator_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -101,11 +123,8 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        P = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
-
-        M = pwp.assemble_mass_matrix_cosserat(sd, data)
-        return P.T @ M @ P
+        method_name = "assemble_mass_matrix_cosserat"
+        return self._apply_pwpolynomials_method(sd, method_name, data)
 
     def assemble_lumped_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
@@ -120,11 +139,8 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        P = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
-
-        M = pwp.assemble_lumped_matrix_elasticity(sd, data)
-        return P.T @ M @ P
+        method_name = "assemble_lumped_matrix_elasticity"
+        return self._apply_pwpolynomials_method(sd, method_name, data)
 
     def assemble_lumped_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
@@ -139,11 +155,8 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        P = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
-
-        M = pwp.assemble_lumped_matrix_cosserat(sd, data)
-        return P.T @ M @ P
+        method_name = "assemble_lumped_matrix_cosserat"
+        return self._apply_pwpolynomials_method(sd, method_name, data)
 
     def assemble_asym_matrix(
         self, sd: pg.Grid, as_pwconstant: bool = False
@@ -197,7 +210,6 @@ class VecHDiv(pg.VecDiscretization):
         """
         P = self.proj_to_PwPolynomials(sd)
         pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
-
         trace = pwp.assemble_trace_matrix(sd)
         return trace @ P
 
