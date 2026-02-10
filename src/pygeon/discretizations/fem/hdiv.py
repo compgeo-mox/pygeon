@@ -133,15 +133,12 @@ class RT0(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
-        # Create unitary data, unitary diffusivity, in case not present
-        data_ = RT0.create_unitary_data(self.keyword, sd, data)
+        # Retrieve the inverse of diffusivity
+        D_inv = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
+
         V = np.ones((3, sd.num_cells))
-
-        # Get dictionary for parameter storage
-        parameter_dictionary = data_[pp.PARAMETERS][self.keyword]
-
-        # Retrieve the inverse of diffusivity and the velocity field
-        D_inv = parameter_dictionary["second_order_tensor"]
 
         if data is not None:
             V = data[pp.PARAMETERS][self.keyword]["vector_field"]
@@ -151,9 +148,8 @@ class RT0(pg.Discretization):
         c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
         nodes = nodes[: sd.dim, :]
 
-        if not data_.get("is_tangential", False):
-            # Rotate the inverse of the permeability tensor and the velocity field,
-            # and delete last dimension
+        if not data or not data.get("is_tangential", False):
+            # Rotate the inverse of the permeability tensor and delete last dimension
             if sd.dim < 3:
                 D_inv = D_inv.copy()
                 D_inv.rotate(R)
@@ -176,7 +172,7 @@ class RT0(pg.Discretization):
         # Compute the opposite nodes for each face
         opposite_nodes = sd.compute_opposite_nodes()
 
-        for c in np.arange(sd.num_cells):
+        for c in range(sd.num_cells):
             # For the current cell retrieve its faces
             loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
             faces_loc = sd.cell_faces.indices[loc]
@@ -193,7 +189,7 @@ class RT0(pg.Discretization):
                 f_normals[:, faces_loc],
                 dim,
                 R,
-            )[dim, :]
+            )[: sd.dim, :]
 
             # Compute the local weight for the local advection matrix
             weight = D_inv.values[..., c] @ V[:, c]
