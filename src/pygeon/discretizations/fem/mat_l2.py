@@ -12,7 +12,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     Base class for matrix-valued piecewise polynomial discretizations.
     """
 
-    poly_order = None
+    poly_order: int
     """Polynomial degree of the basis functions"""
 
     tensor_order = pg.MATRIX

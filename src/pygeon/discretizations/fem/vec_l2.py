@@ -15,7 +15,7 @@ class VecPwPolynomials(pg.VecDiscretization):
     A class representing an abstract vector piecewise polynomial discretization.
     """
 
-    poly_order = None
+    poly_order: int
     """Polynomial degree of the basis functions"""
 
     tensor_order = pg.VECTOR

@@ -16,7 +16,7 @@ class VecHDiv(pg.VecDiscretization):
     discretizations in the H(div) space.
     """
 
-    poly_order = None
+    poly_order: int
     """Polynomial degree of the basis functions"""
 
     tensor_order = pg.MATRIX
