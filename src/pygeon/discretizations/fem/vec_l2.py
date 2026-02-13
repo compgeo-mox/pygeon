@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Callable, Type
 
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -16,6 +17,30 @@ class VecPwPolynomials(pg.VecDiscretization):
     """
 
     base_discr: pg.PwPolynomials | pg.VecPwPolynomials
+
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        M = super().assemble_mass_matrix(sd, data)
+
+        K_inv = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        )
+        W = self.assemble_weighting_matrix(sd, K_inv)
+
+        return M @ W
+
+    def assemble_weighting_matrix(self, sd, sot):
+        if isinstance(sot, pp.SecondOrderTensor):
+            sot = sot.values
+
+        rep_sot = np.tile(sot, self.base_discr.ndof_per_cell(sd))
+        bmat = [
+            [sps.diags_array(rep_sot[i, j, :]) for j in range(sd.dim)]
+            for i in range(sd.dim)
+        ]
+
+        return sps.block_array(bmat)
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
