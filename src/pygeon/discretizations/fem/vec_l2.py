@@ -36,14 +36,15 @@ class VecPwPolynomials(pg.VecDiscretization):
         # pg.WEIGHT from the data, if provided.
         M = super().assemble_mass_matrix(sd, data)
 
-        # Retrieve the second-order tensor from the data and assemble the weighting matrix.
+        # Retrieve the second-order tensor from the data and assemble the weighting
+        # matrix.
         sot = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
         )
         W = self.assemble_weighting_matrix(sd, sot)
 
-        # Since the basis functions are discontinuous, we can assemble the weights using a
-        # matrix product.
+        # Since the basis functions are discontinuous, we can assemble the weights using
+        # a matrix product.
         return M @ W
 
     def assemble_weighting_matrix(
