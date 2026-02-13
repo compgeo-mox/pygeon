@@ -75,10 +75,13 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The mass matrix.
         """
+        # Discretizations either have 0 or 1 dof on point grids
         if sd.dim == 0:
             return sps.eye_array(self.ndof(sd), format="csc")
 
-        # NOTE: We can replace this code with the _apply_pwpolynomials_method functionality from the Jaumann branch
+        # In general, we project to the piecewise polynomials and use that mass matrix.
+        # NOTE: We can replace this code with the _apply_pwpolynomials_method
+        # functionality from the Jaumann branch
         Pi = self.proj_to_PwPolynomials(sd)
         pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         M = pwp.assemble_mass_matrix(sd, data)

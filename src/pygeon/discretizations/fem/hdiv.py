@@ -39,9 +39,26 @@ class RT0(pg.Discretization):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
+        """
+        Assembles the mass matrix.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Optional dictionary with physical parameters for
+                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
+                the diffusion tensor (permeability for porous media).
+
+        Returns:
+            sps.csc_array: The mass matrix.
+        """
+
+        # If the grid is not aligned with the xy-plane, we revert to a legacy
+        # implementation
         if np.any(sd.nodes[sd.dim :, :]):
             return self.assemble_mass_matrix_tilted(sd, data)
 
+        # Else, we use the conventional implementation based on projecting to piecewise
+        # polynomials.
         return super().assemble_mass_matrix(sd, data)
 
     def assemble_mass_matrix_tilted(

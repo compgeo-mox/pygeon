@@ -21,26 +21,59 @@ class VecPwPolynomials(pg.VecDiscretization):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
+        """
+        Assembles the mass matrix, using the scalar and tensor weights in data.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_array: The mass matrix.
+        """
+
+        # Retrieve the block-diagonal mass matrix. This one is weighted with the scalar
+        # pg.WEIGHT from the data, if provided.
         M = super().assemble_mass_matrix(sd, data)
 
-        K_inv = pg.get_cell_data(
+        # Retrieve the second-order tensor from the data and assemble the weighting matrix.
+        sot = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
         )
-        W = self.assemble_weighting_matrix(sd, K_inv)
+        W = self.assemble_weighting_matrix(sd, sot)
 
+        # Since the basis functions are discontinuous, we can assemble the weights using a
+        # matrix product.
         return M @ W
 
-    def assemble_weighting_matrix(self, sd, sot):
-        if isinstance(sot, pp.SecondOrderTensor):
-            sot = sot.values
+    def assemble_weighting_matrix(
+        self, sd: pg.Grid, sot: pp.SecondOrderTensor
+    ) -> sps.csc_array:
+        """
+        Assembles the weighting matrix based on a second-order tensor.
 
-        rep_sot = np.tile(sot, self.base_discr.ndof_per_cell(sd))
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            sot (pp.SecondOrderTensor): The physical scaling parameter. Usually the
+            inverse of the permeability
+
+        Returns:
+            sps.csc_array: The weighting matrix.
+        """
+        # Retrieve the underlying numpy array of shape (3, 3, n_cells).
+        np_sot = sot.values
+
+        # Due to our dof numbering convention, we loop through the grid ndof_per_cell
+        # times.
+        tiled_sot = np.tile(np_sot, self.base_discr.ndof_per_cell(sd))
+
+        # Create a block-array of diagonal matrices containing the tensor entries.
         bmat = [
-            [sps.diags_array(rep_sot[i, j, :]) for j in range(sd.dim)]
+            [sps.diags_array(tiled_sot[i, j, :]) for j in range(sd.dim)]
             for i in range(sd.dim)
         ]
 
-        return sps.block_array(bmat)
+        return sps.block_array(bmat, format="csc")
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
