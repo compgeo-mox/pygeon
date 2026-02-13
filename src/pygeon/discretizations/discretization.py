@@ -62,7 +62,6 @@ class Discretization(abc.ABC):
             ndof: the number of degrees of freedom.
         """
 
-    @abc.abstractmethod
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -76,6 +75,15 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The mass matrix.
         """
+        if sd.dim == 0:
+            return sps.eye_array(self.ndof(sd), format="csc")
+
+        # NOTE: We can replace this code with the _apply_pwpolynomials_method functionality from the Jaumann branch
+        Pi = self.proj_to_PwPolynomials(sd)
+        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        M = pwp.assemble_mass_matrix(sd, data)
+
+        return (Pi.T @ M @ Pi).tocsc()
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
