@@ -63,7 +63,7 @@ def get_cell_data(
             data[pp.PARAMETERS].
         param (str): The parameter name to retrieve from the data dictionary.
         tensor_order (int): The tensor order of the data. Default is pg.SCALAR.
-            If pg.VECTOR, the result is wrapped in a pp.SecondOrderTensor.
+            If pg.MATRIX, the result is wrapped in a pp.SecondOrderTensor.
 
     Returns:
         np.ndarray | pp.SecondOrderTensor: The parameter values for all cells.
@@ -94,7 +94,7 @@ def get_cell_data(
         value = np.full(sd.num_cells, value)
 
         # Wrap vector tensor orders in a SecondOrderTensor
-        if tensor_order == pg.VECTOR:
+        if tensor_order == pg.MATRIX:
             value = pp.SecondOrderTensor(value)
 
     return value

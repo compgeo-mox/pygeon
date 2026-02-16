@@ -81,7 +81,7 @@ class RT0(pg.Discretization):
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
@@ -255,7 +255,7 @@ class RT0(pg.Discretization):
             sps.csc_array: The lumped mass matrix.
         """
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         h_perp = np.zeros(sd.num_faces)
@@ -431,7 +431,7 @@ class BDM1(pg.Discretization):
         M = self.local_inner_product(sd.dim)
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         opposite_nodes = sd.compute_opposite_nodes()
@@ -741,7 +741,7 @@ class BDM1(pg.Discretization):
         idx = 0
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         opposite_nodes = sd.compute_opposite_nodes()
@@ -895,7 +895,7 @@ class RT1(pg.Discretization):
             return sps.csc_array((0, 0))
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         # Allocate the data to store matrix A entries
@@ -1301,7 +1301,7 @@ class RT1(pg.Discretization):
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         # Allocate the data to store matrix P entries
