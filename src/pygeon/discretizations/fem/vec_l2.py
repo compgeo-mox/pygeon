@@ -39,7 +39,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         # Retrieve the second-order tensor from the data and assemble the weighting
         # matrix.
         sot = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         W = self.assemble_weighting_matrix(sd, sot)
 
