@@ -17,6 +17,12 @@ def test_opposite_nodes(unit_sd):
     assert not np.any(unit_sd.face_nodes[nodes, faces])
 
 
+def test_opposite_nodes_0d_grid(ref_sd_0d):
+    opposite_node = ref_sd_0d.compute_opposite_nodes()
+    assert opposite_node.nnz == 0
+    assert opposite_node.shape == (0, 1)
+
+
 def test_non_simplicial_grid(ref_square):
     with pytest.raises(NotImplementedError):
         ref_square.compute_opposite_nodes()

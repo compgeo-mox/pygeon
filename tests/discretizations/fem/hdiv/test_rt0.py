@@ -98,7 +98,7 @@ def test_mass_matrix_vs_pp(discr, unit_sd):
     discr_pp = pp.RT0(discr.keyword)
 
     perm = pg.get_cell_data(
-        unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
     )
     data = pp.initialize_data({}, discr.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
@@ -117,7 +117,7 @@ def test_eval_at_cc_vs_pp(discr, unit_sd):
     discr_pp = pp.RT0(discr.keyword)
 
     perm = pg.get_cell_data(
-        unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+        unit_sd, {}, discr.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
     )
     data = pp.initialize_data({}, discr.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 

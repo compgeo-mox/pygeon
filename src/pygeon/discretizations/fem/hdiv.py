@@ -1,5 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
+from functools import cache
 from typing import Callable, Literal, Tuple, Type, overload
 
 import numpy as np
@@ -39,7 +40,32 @@ class RT0(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the mass matrix
+        Assembles the mass matrix.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Optional dictionary with physical parameters for
+                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
+                the diffusion tensor (permeability for porous media).
+
+        Returns:
+            sps.csc_array: The mass matrix.
+        """
+
+        # If the grid is not aligned with the xy-plane, we revert to a legacy
+        # implementation
+        if np.any(sd.nodes[sd.dim :, :]):
+            return self.assemble_mass_matrix_tilted(sd, data)
+
+        # Else, we use the conventional implementation based on projecting to piecewise
+        # polynomials.
+        return super().assemble_mass_matrix(sd, data)
+
+    def assemble_mass_matrix_tilted(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the mass matrix if the grid is not aligned with the xy-plane.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -55,7 +81,7 @@ class RT0(pg.Discretization):
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
@@ -259,6 +285,10 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((3, 0))
+
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         c_centers, f_normals, f_centers, R, dim, node_coords = pp.map_geometry.map_grid(
@@ -320,7 +350,7 @@ class RT0(pg.Discretization):
             sps.csc_array: The lumped mass matrix.
         """
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         h_perp = np.zeros(sd.num_faces)
@@ -405,10 +435,11 @@ class RT0(pg.Discretization):
         """
         return pg.PwConstants
 
+    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Constructs the projection matrix from the current finite element space to the
-        VecPwLinears space.
+        Constructs the projection matrix to the VecPwLinears space. This function is
+        cached to speed up repetitive calls for the same grid.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -495,7 +526,7 @@ class BDM1(pg.Discretization):
         M = self.local_inner_product(sd.dim)
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         opposite_nodes = sd.compute_opposite_nodes()
@@ -666,6 +697,10 @@ class BDM1(pg.Discretization):
         Returns:
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((3, 0))
+
         size = 3 * sd.dim * (sd.dim + 1) * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
@@ -801,7 +836,7 @@ class BDM1(pg.Discretization):
         idx = 0
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         opposite_nodes = sd.compute_opposite_nodes()
@@ -955,7 +990,7 @@ class RT1(pg.Discretization):
             return sps.csc_array((0, 0))
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         # Allocate the data to store matrix A entries
@@ -1153,6 +1188,10 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_array: The finite element solution evaluated at the cell centers.
         """
+        # If a 0-d grid is given then we return an empty matrix
+        if sd.dim == 0:
+            return sps.csc_array((3, 0))
+
         # Allocate the data to store matrix P entries
         size = 3 * sd.dim * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -1357,7 +1396,7 @@ class RT1(pg.Discretization):
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
         inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         # Allocate the data to store matrix P entries

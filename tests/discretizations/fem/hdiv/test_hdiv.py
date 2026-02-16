@@ -65,3 +65,4 @@ def test_point_grid(discr, ref_sd_0d):
     assert discr.ndof(ref_sd_0d) == 0
     assert discr.assemble_mass_matrix(ref_sd_0d).nnz == 0
     assert discr.assemble_lumped_matrix(ref_sd_0d).nnz == 0
+    assert discr.eval_at_cell_centers(ref_sd_0d).shape == (3, 0)
