@@ -405,64 +405,6 @@ class BDM1(pg.Discretization):
 
         return loc_ind
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Assembles the mass matrix for the given grid.
-
-        Args:
-            sd (pg.Grid): The grid for which the mass matrix is assembled.
-            data (dict | None): Additional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The assembled mass matrix.
-        """
-        # If a 0-d grid is given then we return an empty matrix
-        if sd.dim == 0:
-            return sps.csc_array((sd.num_faces, sd.num_faces))
-
-        size = np.square(sd.dim * (sd.dim + 1)) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        M = self.local_inner_product(sd.dim)
-
-        inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
-        )
-
-        opposite_nodes = sd.compute_opposite_nodes()
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its faces and
-            # determine the location of the dof
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
-            opposites_loc = opposite_nodes.data[loc]
-
-            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
-
-            weight = np.kron(np.eye(sd.dim + 1), inv_K.values[:, :, c])
-
-            # Compute the inner products
-            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
-
-            loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
-
-            # Save values of the local matrix in the global structure
-            cols = np.tile(loc_dofs, (loc_dofs.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
     @overload
     def eval_basis_at_node(
         self,
@@ -777,6 +719,7 @@ class BDM1(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Constructs the projection matrix from the current finite element space to the
@@ -789,44 +732,50 @@ class BDM1(pg.Discretization):
             sps.csc_array: A sparse array in CSC format representing the projection from
             the current space to VecPwLinears.
         """
-        size = sd.dim**2 * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
 
+        # Each contribution to the matrix corresponds to a (cell, face, node) triplet.
+        # To avoid for-loops, we generate arrays with the relevant cell/face/node indices.
+
+        # We first extract the connected cell-face pairs.
+        faces, cells, orien = sps.find(sd.cell_faces)
+
+        # The first index array contains the node indices, ordered as:
+        # [nodes of face_1, nodes of face_2, ...]
+        fn = np.reshape(sd.face_nodes.indices, (sd.num_faces, -1))
+        nodes = fn[faces].ravel()
+
+        # The corresponding BDM1 dof indices form the column indices.
+        dofs_at_face = np.reshape(np.arange(self.ndof(sd)), (sd.num_faces, -1), "F")
+        cols_J = dofs_at_face[faces].ravel()
+        cols_J = np.tile(cols_J, sd.dim)
+
+        # Each cell-face pair appears once per node of the face, which means dim times.
+        faces = np.repeat(faces, sd.dim)
+        cells = np.repeat(cells, sd.dim)
+        orien = np.repeat(orien, sd.dim)
+
+        # To compute the values of the basis functions, we need to know the opposite
+        # node index.
         opposite_nodes = sd.compute_opposite_nodes()
+        oppos = opposite_nodes[faces, cells]
 
-        shift = pg.PwLinears().ndof(sd) * np.tile(np.arange(3), sd.dim + 1)
+        # We avoid inner products by using the identity:
+        # tangent @ normal = dim * cell_volume
+        tangents = sd.nodes[: sd.dim, nodes] - sd.nodes[: sd.dim, oppos]
+        vals = tangents / (orien * sd.cell_volumes[cells] * sd.dim)
+        data_IJ = vals.ravel()
 
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its faces and
-            # determine the location of the dof
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
-            opposites_loc = opposite_nodes.data[loc]
+        # Finally, we find the corresponding dof in p1 by generating a lookup matrix
+        # that satisfies p1_lookup[node, cell] = dof_index at (node, cell)
+        p1_lookup = sd.cell_nodes().astype("int")
+        p1_ndof = p1_lookup.nnz
+        p1_lookup.data = np.reshape(np.arange(p1_ndof), (sd.num_cells, -1), "F").ravel()
 
-            Psi = self.eval_basis_at_node(sd, opposites_loc, faces_loc)
+        # The vector-valued analogue has sd.dim rows
+        p1_dofs = p1_lookup[nodes, cells] + p1_ndof * np.arange(sd.dim)[:, None]
+        rows_I = p1_dofs.ravel()
 
-            Psi_i, Psi_j = np.nonzero(Psi)
-            Psi_v = Psi[Psi_i, Psi_j]
-
-            # Extract indices of local dofs
-            loc_dofs = self.local_dofs_of_cell(sd, faces_loc)
-
-            # Extract local dofs of VecPwLinears
-            ran_dofs = sd.num_cells * np.arange(sd.dim + 1) + c
-            ran_dofs = np.repeat(ran_dofs, 3) + shift
-
-            # Save values of the local matrix in the global structure
-            loc_idx = slice(idx, idx + Psi_v.size)
-            rows_I[loc_idx] = ran_dofs[Psi_j]
-            cols_J[loc_idx] = loc_dofs[Psi_i]
-            data_IJ[loc_idx] = Psi_v
-            idx += Psi_v.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
 
 class RT1(pg.Discretization):
