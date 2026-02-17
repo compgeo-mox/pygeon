@@ -161,7 +161,7 @@ class RT0(pg.Discretization):
 
         # Retrieve the inverse of diffusivity
         D_inv = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         V = np.ones((3, sd.num_cells))
