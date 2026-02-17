@@ -158,8 +158,9 @@ class Lagrange1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the advection matrix A = (v · ∇p, p) for the finite element method, where
-        v is a given vector field, constant per cell. If not provided, v defaults to (1, 1, 1).
+        Assembles the advection matrix A = (v · ∇p, p) for the finite element 
+        method, where v is a given vector field, constant per cell.
+        If not provided, v defaults to (1, 1, 1).
     
         Args:
             sd (pg.Grid): The grid object representing the discretization.
@@ -170,9 +171,9 @@ class Lagrange1(pg.Discretization):
             sps.csc_array: The assembled advection matrix.
         """
 
-        # Get dictionary for parameter storage
+        # Default vector-field
         V = np.ones((3, sd.num_cells))
-
+        # If data is given, set vector-field values.
         if data is not None:
             V = data[pp.PARAMETERS][self.keyword]["vector_field"]
         else:
