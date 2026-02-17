@@ -213,11 +213,6 @@ class VecPwPolynomials(pg.VecDiscretization):
         proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
 
-    # def eval_at_cell_centers(self, sd: pg.Grid):
-    #     Pi = super().eval_at_cell_centers(sd)
-    #     Pi.resize((3 * sd.num_cells, Pi.shape[1]))
-    #     return Pi
-
 
 class VecPwConstants(VecPwPolynomials):
     """
