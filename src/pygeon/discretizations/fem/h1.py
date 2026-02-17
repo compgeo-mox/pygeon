@@ -158,8 +158,9 @@ class Lagrange1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the advection matrix for the finite element method.
-
+        Assembles the advection matrix A = (v · ∇p, p) for the finite element method, where
+        v is a given vector field, constant per cell. If not provided, v defaults to (1, 1, 1).
+    
         Args:
             sd (pg.Grid): The grid object representing the discretization.
             data (dict): A dictionary containing the necessary data for
