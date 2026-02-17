@@ -123,7 +123,9 @@ def block_diag_solver(
     return sol.tocsc()
 
 
-def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
+def block_diag_solver_dense(
+    M: sps.csc_array, b: np.ndarray, rtol: float = 1e-10
+) -> np.ndarray:
     """
     Solves a system of linear equations where the coefficient matrix M is symmetric
     and positive definite block diagonal, and the right-hand side is given by b a
@@ -135,6 +137,8 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
             matrix.
         b (np.ndarray): The right-hand side of the equation. Can be a 1D array (vector)
             or a 2D array (matrix). If 1D, it will be treated as a column vector.
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Default 1e-10.
 
     Returns:
         np.ndarray: The solution to the system of equations. If b is a 1D array, the
@@ -150,7 +154,7 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
     # Transform the right hand side to a sparse matrix
     b_csc = sps.csc_array(b)
     # Compute the solution by using the block diagonal solver
-    sol = block_diag_solver(M, b_csc).toarray()
+    sol = block_diag_solver(M, b_csc, rtol=rtol).toarray()
 
     # If b was a 1D array, convert the solution back to a 1D array
     if is_b_1d:
