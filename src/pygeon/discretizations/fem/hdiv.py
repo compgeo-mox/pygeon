@@ -143,7 +143,8 @@ class RT0(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the advection matrix for mixed finite elements
+        Assembles the advection matrix A = (v · ∇q, p) for mixed finite elements, where
+        v is a given vector field, constant per cell. If not provided, v defaults to (1, 1, 1).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -163,9 +164,10 @@ class RT0(pg.Discretization):
         D_inv = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
-
+        
+        # Default vector-field
         V = np.ones((3, sd.num_cells))
-
+        # If data is given, set vector-field values.
         if data is not None:
             V = data[pp.PARAMETERS][self.keyword]["vector_field"]
 
