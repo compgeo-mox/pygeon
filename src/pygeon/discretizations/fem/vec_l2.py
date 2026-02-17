@@ -31,10 +31,46 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix.
         """
+        return self._assemble_tensor_weighted_inner_product(
+            sd, data, "assemble_mass_matrix"
+        )
 
-        # Retrieve the block-diagonal mass matrix. This one is weighted with the scalar
-        # pg.WEIGHT from the data, if provided.
-        M = super().assemble_mass_matrix(sd, data)
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped mass matrix, using the scalar and tensor weights in data.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_array: The mass matrix.
+        """
+        return self._assemble_tensor_weighted_inner_product(
+            sd, data, "assemble_lumped_matrix"
+        )
+
+    def _assemble_tensor_weighted_inner_product(
+        self, sd: pg.Grid, data: dict | None, inner_product_method: str
+    ) -> sps.csc_array:
+        """
+        Assemble an inner product weighted by a tensor, given in data.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+            inner_product_method (str): Assembly method of parent class for the inner
+            product.
+
+        Returns:
+            sps.csc_array: The inner product matrix.
+        """
+
+        # Retrieve the block-diagonal mass or lumped matrix. This one is weighted with
+        # the scalar pg.WEIGHT from the data, if provided.
+        M = getattr(super(), inner_product_method)(sd, data)
 
         # Retrieve the second-order tensor from the data and assemble the weighting
         # matrix.
@@ -176,6 +212,11 @@ class VecPwPolynomials(pg.VecDiscretization):
         """
         proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
+
+    # def eval_at_cell_centers(self, sd: pg.Grid):
+    #     Pi = super().eval_at_cell_centers(sd)
+    #     Pi.resize((3 * sd.num_cells, Pi.shape[1]))
+    #     return Pi
 
 
 class VecPwConstants(VecPwPolynomials):
