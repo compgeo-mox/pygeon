@@ -389,22 +389,6 @@ class BDM1(pg.Discretization):
         """
         return sd.face_nodes.nnz
 
-    def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray) -> np.ndarray:
-        """
-        Compute the local degrees of freedom (DOFs) indices for a cell.
-
-        Args:
-            sd (pp.Grid): Grid object or a subclass.
-            faces_loc (np.ndarray):  Array of local face indices for the cell.
-
-        Returns:
-            np.ndarray: Array of local DOF indices associated with the cell.
-        """
-        loc_ind = np.hstack([faces_loc] * sd.dim)
-        loc_ind += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
-
-        return loc_ind
-
     @overload
     def eval_basis_at_node(
         self,
