@@ -103,7 +103,7 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        K = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
+        K = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
@@ -611,7 +611,7 @@ class Lagrange2(pg.Discretization):
             sps.csc_array: The stiffness matrix.
         """
         sot = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
         size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells

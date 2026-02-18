@@ -53,7 +53,7 @@ class VRT0(pg.RT0):
             sps.csc_array: The mass matrix.
         """
         perm = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         data = data if data is not None else {}
         data = pp.initialize_data(data, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
@@ -75,7 +75,7 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
+        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX)
         data = pp.initialize_data({}, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         discr = self.ref_discr(self.keyword)

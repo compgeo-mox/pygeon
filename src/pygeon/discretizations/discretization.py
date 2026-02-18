@@ -62,12 +62,12 @@ class Discretization(abc.ABC):
             ndof: the number of degrees of freedom.
         """
 
-    @abc.abstractmethod
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the mass matrix
+        Assembles the mass matrix by projecting to the corresponding piecewise
+        polynomial space.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -76,12 +76,14 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The mass matrix.
         """
+        return self._assemble_inner_product(sd, data, "assemble_mass_matrix")
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped mass matrix given by the row sums on the diagonal.
+        Assembles the lumped mass matrix using the corresponding piecewise polynomial
+        space.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -90,8 +92,33 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
-        return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
+        return self._assemble_inner_product(sd, data, "assemble_lumped_matrix")
+
+    def _assemble_inner_product(
+        self, sd: pg.Grid, data: dict | None, pwp_method: str
+    ) -> sps.csc_array:
+        """
+        General function to assemble an inner product matrix using the piecewise
+        polynomial space.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+            pwp_method (str): Assembly method of the PiecewisePolynomial space.
+
+        Returns:
+            sps.csc_array: The lumped mass matrix.
+        """
+        # Discretizations either have 0 or 1 dof on point grids
+        if sd.dim == 0:
+            return sps.eye_array(self.ndof(sd), format="csc")
+
+        # We project to the piecewise polynomials and use that mass matrix.
+        Pi = self.proj_to_PwPolynomials(sd)
+        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        M = getattr(pwp, pwp_method)(sd, data)
+
+        return (Pi.T @ M @ Pi).tocsc()
 
     @abc.abstractmethod
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
