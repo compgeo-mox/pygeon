@@ -196,6 +196,44 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         return M + asym.T @ R_mass @ asym
 
+    def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the trace matrix for the matrix-valued piecewise
+        polynomials.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The trace matrix obtained from the discretization.
+
+        Raises:
+            NotImplementedError: This method is not implemented for the base class.
+        """
+        raise NotImplementedError(
+            "The trace matrix assembly is not implemented for the base class. "
+            "Please use the specific implementations in the subclasses."
+        )
+
+    def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the asymmetry matrix for the matrix-valued piecewise
+        polynomials.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The asymmetry matrix obtained from the discretization.
+
+        Raises:
+            NotImplementedError: This method is not implemented for the base class.
+        """
+        raise NotImplementedError(
+            "The asymmetry matrix assembly is not implemented for the base class. "
+            "Please use the specific implementations in the subclasses."
+        )
+
 
 class MatPwConstants(MatPwPolynomials):
     """
