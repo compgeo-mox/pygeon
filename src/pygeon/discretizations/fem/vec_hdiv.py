@@ -216,6 +216,7 @@ class VecHDiv(pg.VecDiscretization):
         """
         P = self.proj_to_PwPolynomials(sd)
         pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = cast(pg.MatPwPolynomials, pwp)
         trace = pwp.assemble_trace_matrix(sd)
         return trace @ P
 
