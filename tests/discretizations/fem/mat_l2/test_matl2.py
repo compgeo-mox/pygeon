@@ -1,4 +1,4 @@
-"""Module contains specific tests for the matrix discretization."""
+"""Module contains specific tests for the polynomial matrix discretization."""
 
 import pytest
 
