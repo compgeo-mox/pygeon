@@ -656,9 +656,12 @@ class BDM1(pg.Discretization):
         opposite_nodes = sd.compute_opposite_nodes()
         oppos = opposite_nodes[faces, cells]
 
+        # If the mesh is tilted, then the coordinates of the nodes need to be mapped
+        coords = sd.rotation_matrix @ sd.nodes
+
         # We avoid inner products by using the identity:
         # tangent @ normal = dim * cell_volume * orientation
-        tangents = sd.nodes[: sd.dim, nodes] - sd.nodes[: sd.dim, oppos]
+        tangents = coords[:, nodes] - coords[:, oppos]
         vals = tangents / (orien * sd.cell_volumes[cells] * sd.dim)
         data_IJ = vals.ravel()
 
