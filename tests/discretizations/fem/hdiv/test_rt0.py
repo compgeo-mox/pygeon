@@ -92,7 +92,7 @@ def test_eval_at_cc_vs_pp(discr, unit_sd):
     # Translate from porepy to pygeon ordering
     indices = np.reshape(np.arange(3 * unit_sd.num_cells), (3, -1), order="F").ravel()
 
-    assert np.allclose((P_pp.tolil()[indices] - P).data , 0)
+    assert np.allclose((P_pp.tolil()[indices] - P).data, 0)
 
 
 def test_range_discr_class(discr):

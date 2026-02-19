@@ -359,12 +359,12 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        if np.any(self.nodes[self.dim:, :]):
+        if np.any(self.nodes[self.dim :, :]):
             *_, R, keep_dims, _ = pp.map_geometry.map_grid(self)
             self.rotation_matrix = R[keep_dims, :]
         else:
             self.rotation_matrix = np.eye(self.dim, 3)
-    
+
     def copy(self):
         """Create a new instance with some attributes deep-copied from the grid.
 
