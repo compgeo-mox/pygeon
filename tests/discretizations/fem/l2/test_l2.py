@@ -65,13 +65,23 @@ def test_proj_to_higherPwPolynomials(discr, unit_sd):
 
 
 def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
+    def polynomial(x, dim, poly_order, tensor_order):
+        poly = x ** poly_order
+        
+
     match discr.tensor_order:
         case 0:
             func = lambda x: x[0] ** discr.poly_order
         case 1:
-            func = lambda x: x[: unit_sd.dim] ** discr.poly_order
+            def func(x):
+                ans = np.zeros(3)
+                ans[:unit_sd.dim] = x[:unit_sd.dim]
+                return ans
         case 2:
-            func = lambda x: np.tile(x[: unit_sd.dim], (unit_sd.dim, 1))
+            def func(x):
+                ans = np.zeros((3,3))
+                ans[:unit_sd.dim, :unit_sd.dim] = np.tile(x[:unit_sd.dim], (unit_sd.dim, 1))
+                return ans
 
     known_vals = np.vstack([func(x).ravel() for x in unit_sd.cell_centers.T]).T
 
@@ -89,9 +99,9 @@ def test_lumped_consistency(discr, unit_sd):
         case 0:
             one = lambda _: 1
         case 1:
-            one = lambda _: np.ones(unit_sd.dim)
+            one = lambda _: np.ones(3)
         case 2:
-            one = lambda _: np.ones((unit_sd.dim, unit_sd.dim))
+            one = lambda _: np.ones((3, 3))
 
     one_interp = discr.interpolate(unit_sd, one)
     integral_L = M_lumped @ one_interp
