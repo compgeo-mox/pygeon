@@ -16,6 +16,12 @@ class VecPwPolynomials(pg.VecDiscretization):
     A class representing an abstract vector piecewise polynomial discretization.
     """
 
+    poly_order: int
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
     base_discr: pg.PwPolynomials | pg.VecPwPolynomials
 
     def assemble_mass_matrix(
@@ -222,9 +228,6 @@ class VecPwConstants(VecPwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
-
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
@@ -249,9 +252,6 @@ class VecPwLinears(VecPwPolynomials):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
-
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
@@ -275,9 +275,6 @@ class VecPwQuadratics(VecPwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

@@ -52,6 +52,16 @@ def test_assemble_elasticity_matrices(discr, unit_sd, data, constant_fun):
     assert np.isclose(u.T @ L @ u, known)
 
 
+def test_assemble_deviator_matrix(discr, unit_sd, data, constant_fun):
+    if unit_sd.dim == 1:
+        return
+    M = discr.assemble_deviator_matrix(unit_sd, data)
+    u = discr.interpolate(unit_sd, constant_fun)
+
+    known = 22 if unit_sd.dim == 2 else 71 / 3
+    assert np.isclose(u.T @ M @ u, known)
+
+
 def test_assemble_cosserat_matrices(discr, unit_sd, data, constant_fun):
     if unit_sd.dim == 1:
         return
