@@ -82,14 +82,23 @@ def test_asym_3d(discr, unit_sd_3d):
 
 
 def test_assemble_mult_matrix(discr, ref_sd):
-    mult_mat = np.ones((ref_sd.num_nodes, ref_sd.dim, ref_sd.dim))
+    diag = np.zeros([ref_sd.dim] * 2)
+    diag[0, 0] = 1
+    mult_mat = np.array([diag for _ in range(ref_sd.num_nodes)])
+
     vec = np.ones(mult_mat.size)
 
+    known = np.zeros(vec.size)
+    known[:: ref_sd.dim] = 1
+
     mult = discr.assemble_mult_matrix(ref_sd, mult_mat.ravel(), right_mult=True)
-    assert np.allclose(mult @ vec, ref_sd.dim * vec)
+    assert np.allclose(mult @ vec, known)
+
+    known = np.ones((ref_sd.dim, ref_sd.num_nodes))
 
     mult = discr.assemble_mult_matrix(ref_sd, mult_mat.ravel(), right_mult=False)
-    assert np.allclose(mult @ vec, ref_sd.dim * vec)
+    sol = (mult @ vec).reshape(ref_sd.dim, ref_sd.dim, -1).sum(axis=0)
+    assert np.allclose(sol, known)
 
 
 def test_assemble_corotational_correction(discr, ref_sd):
