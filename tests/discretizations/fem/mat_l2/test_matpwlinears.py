@@ -93,13 +93,15 @@ def test_assemble_mult_matrix(discr, ref_sd):
 
 
 def test_assemble_corotational_correction(discr, ref_sd):
-    if ref_sd.dim > 1:
-        if ref_sd.dim == 2:
-            rot = np.ones(ref_sd.num_cells)
-        else:
-            rot = np.ones((ref_sd.num_cells, ref_sd.dim)).ravel()
+    if ref_sd.dim < 2:
+        return
 
-        vec = np.ones(ref_sd.dim * ref_sd.dim * ref_sd.num_nodes)
-        corr = discr.assemble_corotational_correction(ref_sd, rot)
+    if ref_sd.dim == 2:
+        rot = np.ones(ref_sd.num_cells)
+    else:
+        rot = np.ones((ref_sd.num_cells, ref_sd.dim)).ravel()
 
-        assert np.allclose(np.sum(corr @ vec), 0)
+    vec = np.ones(ref_sd.dim * ref_sd.dim * ref_sd.num_nodes)
+    corr = discr.assemble_corotational_correction(ref_sd, rot)
+
+    assert np.allclose(np.sum(corr @ vec), 0)
