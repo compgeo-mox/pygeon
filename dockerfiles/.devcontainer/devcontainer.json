@@ -24,8 +24,7 @@
                 "ms-toolsai.jupyter-renderers",
                 "ms-toolsai.vscode-jupyter-cell-tags",
                 "ms-toolsai.jupyter-keymap",
-                "charliermarsh.ruff",
-                "tomoki1207.pdf"
+                "charliermarsh.ruff"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "python",
