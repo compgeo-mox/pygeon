@@ -7,7 +7,7 @@ import pygeon as pg
 
 @pytest.fixture
 def discr() -> pg.MatPwPolynomials:
-    return pg.MatPwPolynomials("test")
+    return pg.MatPwPolynomials()
 
 
 def test_trace(discr, ref_square):
