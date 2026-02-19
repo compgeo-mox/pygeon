@@ -79,3 +79,27 @@ def test_asym_3d(discr, unit_sd_3d):
     asym_interp = pg.VecPwLinears().interpolate(unit_sd_3d, func_asym)
 
     assert np.allclose(asym @ func_interp, asym_interp)
+
+
+def test_assemble_mult_matrix(discr, ref_sd):
+    mult_mat = np.ones((ref_sd.num_nodes, ref_sd.dim, ref_sd.dim))
+    vec = np.ones(mult_mat.size)
+
+    mult = discr.assemble_mult_matrix(ref_sd, mult_mat.ravel(), right_mult=True)
+    assert np.allclose(mult @ vec, ref_sd.dim * vec)
+
+    mult = discr.assemble_mult_matrix(ref_sd, mult_mat.ravel(), right_mult=False)
+    assert np.allclose(mult @ vec, ref_sd.dim * vec)
+
+
+def test_assemble_corotational_correction(discr, ref_sd):
+    if ref_sd.dim > 1:
+        if ref_sd.dim == 2:
+            rot = np.ones(ref_sd.num_cells)
+        else:
+            rot = np.ones((ref_sd.num_cells, ref_sd.dim)).ravel()
+
+        vec = np.ones(ref_sd.dim * ref_sd.dim * ref_sd.num_nodes)
+        corr = discr.assemble_corotational_correction(ref_sd, rot)
+
+        assert np.allclose(np.sum(corr @ vec), 0)
