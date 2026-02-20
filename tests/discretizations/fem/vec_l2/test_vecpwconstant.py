@@ -25,4 +25,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert np.allclose(M.data, factorial(ref_sd.dim))
     assert np.allclose(M.indptr[:-1], M.indices)
     assert np.allclose((M - L).data, 0)
-    assert np.allclose((M - P).data, 0)
+
+    P_known = M.copy()
+    P_known.resize((3, discr.ndof(ref_sd)))
+    assert np.allclose((P_known - P).data, 0)
