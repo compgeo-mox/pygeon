@@ -638,13 +638,13 @@ class RT1(pg.Discretization):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Evaluate the finite element solution at the cell centers of the given grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): The grid on which to evaluate the solution.
+            sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_array: The finite element solution evaluated at the cell centers.
+             sps.csc_array: The evaluation matrix.
         """
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
