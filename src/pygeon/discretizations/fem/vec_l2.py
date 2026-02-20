@@ -19,7 +19,7 @@ class VecPwPolynomials(pg.VecDiscretization):
     poly_order: int
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.VECTOR
+    tensor_order: int = pg.VECTOR
     """Vector-valued discretization"""
 
     base_discr: pg.PwPolynomials | pg.VecPwPolynomials

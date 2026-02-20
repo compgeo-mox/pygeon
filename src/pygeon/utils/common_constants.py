@@ -1,15 +1,17 @@
+from typing import Literal
+
 UNITARY_DATA = "unitary_data"
 """Keyword used to identify unitary (identity) data in discretizations"""
 
 # Tensor order constants
 
-SCALAR = 0
+SCALAR: Literal[0] = 0
 """0-order tensor (scalar field)"""
 
-VECTOR = 1
+VECTOR: Literal[1] = 1
 """1-order tensor (vector field)"""
 
-MATRIX = 2
+MATRIX: Literal[2] = 2
 """2-order tensor (matrix/tensor field)"""
 
 # Keywords for common physical parameters

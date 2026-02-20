@@ -1,4 +1,4 @@
-from typing import overload
+from typing import overload, Literal
 
 import numpy as np
 import porepy as pp
@@ -32,8 +32,18 @@ def get_cell_data(
     data: dict | None,
     keyword: str,
     param: str,
-    tensor_order: int,
+    tensor_order: Literal[2],
 ) -> pp.SecondOrderTensor: ...
+
+
+@overload
+def get_cell_data(
+    sd: pg.Grid,
+    data: dict | None,
+    keyword: str,
+    param: str,
+    tensor_order: Literal[0, 1],
+) -> np.ndarray: ...
 
 
 @overload
