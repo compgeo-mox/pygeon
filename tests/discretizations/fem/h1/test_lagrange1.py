@@ -4,11 +4,17 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+import porepy as pp
 
 
 @pytest.fixture
 def discr(request: pytest.FixtureRequest) -> pg.Lagrange1:
     return pg.Lagrange1("test")
+
+
+@pytest.fixture
+def vector_field() -> np.ndarray:
+    return np.array([[1], [1], [1]])
 
 
 def test_ndof(discr: pg.Lagrange1, unit_sd: pg.Grid):
@@ -127,16 +133,19 @@ def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_assemble_adv_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
-    M = discr.assemble_adv_matrix(ref_sd)
+def test_assemble_adv_matrix(
+    discr: pg.Lagrange1, ref_sd: pg.Grid, vector_field: np.ndarray
+):
+    data = pp.initialize_data({}, "test", {"weight": vector_field})
+    M = discr.assemble_adv_matrix(ref_sd, data=data)
 
     match ref_sd.dim:
         case 1:
             M_known = (
                 np.array(
                     [
-                        [1, -1],
-                        [1, -1],
+                        [-1, 1],
+                        [-1, 1],
                     ]
                 )
                 / 2

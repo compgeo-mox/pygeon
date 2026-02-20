@@ -12,6 +12,11 @@ def discr() -> pg.RT0:
     return pg.RT0("test")
 
 
+@pytest.fixture
+def vector_field() -> np.ndarray:
+    return np.array([[1], [1], [1]])
+
+
 def test_ndof(discr, unit_sd):
     assert discr.ndof(unit_sd) == unit_sd.num_faces
 
@@ -57,8 +62,9 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert np.allclose(M.todense(), M_known)
 
 
-def test_assemble_adv_matrix(discr, ref_sd):
-    M = discr.assemble_adv_matrix(ref_sd)
+def test_assemble_adv_matrix(discr, ref_sd, vector_field):
+    data = pp.initialize_data({}, "test", {"weight": vector_field})
+    M = discr.assemble_adv_matrix(ref_sd, data)
 
     match ref_sd.dim:
         case 1:

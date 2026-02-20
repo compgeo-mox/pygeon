@@ -143,19 +143,25 @@ class RT0(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the advection matrix A = (v · q, p) for mixed finite elements,
-        where v is a given vector field, constant per cell. If not provided,
-        v defaults to (1, 1, 1).
+        Assembles and returns the advection matrix for mixed finite elements
+        (RT0-P0), which is given by
+        :math:`(D^{-1}\\boldsymbol{v} \\cdot \\boldsymbol{q}, p)`.
+
+        The trial functions :math:`\\boldsymbol{q}` are lowest-order
+        Raviart-Thomas (RT0) and test functions :math:`p` are piecewise
+        constant (P0). :math:`\\boldsymbol{v}` is a given vector field and
+        :math:`D^{-1}` is a given second-order tensor, both assumed constant
+        per cell. If not provided, :math:`\\boldsymbol{v}` defaults to
+        :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
-                scaling, in particular the second_order_tensor that is the inverse of
-                the inverse of the diffusion tensor (permeability for porous media)
-                and the velocity field (advection).
+            data (dict | None): Optional data for scaling, in particular
+                pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
+                tensor) and 'weight' (advection velocity field).
 
         Returns:
-            sps.csc_array: The advection matrix.
+            sps.csc_array: The advection matrix obtained from the discretization.
         """
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
@@ -166,11 +172,11 @@ class RT0(pg.Discretization):
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
 
-        # Default vector-field
-        V = np.ones((3, sd.num_cells))
+        V = np.zeros((3, sd.num_cells))
+
         # If data is given, set vector-field values.
         if data is not None:
-            V = data[pp.PARAMETERS][self.keyword]["vector_field"]
+            V = pg.get_cell_data(sd, data, self.keyword, "weight", pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
@@ -178,7 +184,8 @@ class RT0(pg.Discretization):
         nodes = nodes[: sd.dim, :]
 
         if not data or not data.get("is_tangential", False):
-            # Rotate the inverse of the permeability tensor and delete last dimension
+            # Rotate the inverse of the permeability tensor and vector field,
+            # and delete last dimension
             if sd.dim < 3:
                 D_inv = D_inv.copy()
                 D_inv.rotate(R)

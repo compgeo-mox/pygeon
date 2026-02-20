@@ -158,32 +158,34 @@ class Lagrange1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the advection matrix A = (v · ∇p, p) for the finite element
-        method, where v is a given vector field, constant per cell.
-        If not provided, v defaults to (1, 1, 1).
+        Assembles and returns the advection matrix for Lagrange1 finite
+        elements, which is given by
+        :math:`(\\boldsymbol{v} \\cdot \\nabla p, p)`.
+
+        The trial and test functions :math:`p` are Lagrange1.
+        :math:`\\boldsymbol{v}` is a given vector field, assumed constant per
+        cell. If not provided, :math:`\\boldsymbol{v}` defaults to :math:`(0, 0, 0)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for
-            assembling the matrix.
+            data (dict | None): Optional data for scaling, in particular
+            'weight' (advection velocity field).
 
         Returns:
             sps.csc_array: The assembled advection matrix.
         """
+        # Initialize V as a zero vector by default
+        V = np.zeros((3, sd.num_cells))
 
-        # Default vector-field
-        V = np.ones((3, sd.num_cells))
         # If data is given, set vector-field values.
         if data is not None:
-            V = data[pp.PARAMETERS][self.keyword]["vector_field"]
-        else:
-            data = {"is_tangential": True}
+            V = pg.get_cell_data(sd, data, self.keyword, "weight", pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
-        if not data.get("is_tangential", False):
+        if not data or not data.get("is_tangential", False):
             # Rotate the vector field and delete last dimension
             if sd.dim < 3:
                 V = V.copy()
@@ -282,7 +284,6 @@ class Lagrange1(pg.Discretization):
         Returns:
             np.ndarray: local advection matrix of (dim+1, dim+1) shape.
         """
-
         phi = np.full((dim + 1,), (1 / (dim + 1)))
 
         dphi = self.local_grads(coord, dim)
