@@ -76,7 +76,15 @@ class Nedelec0(pg.Discretization):
         Returns:
             sps.csc_array: The assembled differential matrix.
         """
-        return sd.face_ridges.T.tocsc()
+        match sd.dim:
+            case 3:
+                diff = sd.face_ridges.T
+            case 2:
+                diff = sd.cell_faces.T
+            case _:
+                diff = sps.csc_array((0, self.ndof(sd)))
+
+        return diff.tocsc()
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -104,7 +112,14 @@ class Nedelec0(pg.Discretization):
         Returns:
             pg.Discretization: The range discretization class for the given grid.
         """
-        return pg.RT0
+        match dim:
+            case 2:
+                range = pg.PwConstants
+            case 3:
+                range = pg.RT0
+            case _:
+                raise NotImplementedError
+        return range
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -324,4 +339,4 @@ class Nedelec1(pg.Discretization):
         Returns:
             pg.Discretization: The range discretization class.
         """
-        return pg.RT0
+        return Nedelec0().get_range_discr_class(dim)
