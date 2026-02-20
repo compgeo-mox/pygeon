@@ -13,7 +13,8 @@ class Nedelec0(pg.Discretization):
     Discretization class for the Nedelec of the first kind of lowest order. Each degree
     of freedom is the integral over a mesh edge in 3D.
 
-    While intended for three-dimensional grids, the space is generalized
+    While intended for three-dimensional grids, the space is generalized to 2D, where it
+    corresponds to a rotated RT0.
     """
 
     poly_order = 1
@@ -161,6 +162,9 @@ class Nedelec1(pg.Discretization):
     """
     Discretization class for the Nedelec of the second kind of lowest order.
     Each degree of freedom is a first moment over a mesh edge in 3D.
+
+    While intended for three-dimensional grids, the space is generalized to 2D, where it
+    corresponds to a rotated BDM1.
     """
 
     poly_order = 1
