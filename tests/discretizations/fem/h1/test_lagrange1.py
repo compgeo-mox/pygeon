@@ -1,10 +1,10 @@
 """Module contains specific tests for the Lagrangean L1 discretization."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
-import porepy as pp
 
 
 @pytest.fixture
