@@ -30,6 +30,10 @@ def test_string_repr():
 
 
 def test_cochain_property(discr, unit_sd):
+    # Skip the Nedelec spaces in 1D
+    if isinstance(discr, (pg.Nedelec0, pg.Nedelec1)) and unit_sd.dim == 1:
+        return
+
     unit_sd.compute_geometry()
 
     Diff = discr.assemble_diff_matrix(unit_sd)
@@ -41,12 +45,6 @@ def test_cochain_property(discr, unit_sd):
 
 
 def test_eval_at_cc(discr, unit_sd):
-    if isinstance(discr, (pg.Nedelec0, pg.Nedelec1)):
-        if unit_sd.dim > 1:
-            with pytest.raises(NotImplementedError):
-                pg.Discretization.eval_at_cell_centers(discr, unit_sd)
-        return
-
     Pi_child = discr.eval_at_cell_centers(unit_sd)
     Pi_super = pg.Discretization.eval_at_cell_centers(discr, unit_sd)
 

@@ -174,7 +174,7 @@ def ref_sd(_ref_elements_dict: dict, request: pytest.FixtureRequest) -> pg.Grid:
 @pytest.fixture
 def ref_sd_3d(_ref_elements_dict: dict) -> pg.Grid:
     """
-    Unit polygonal grids in 2D.
+    Reference tetrahedron.
     """
     return _ref_elements_dict[3]
 

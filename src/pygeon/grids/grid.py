@@ -321,6 +321,7 @@ class Grid(pp.Grid):
             case 0:
                 self.edge_tangents = np.zeros((0, 3))
                 self.edge_lengths = np.zeros(0)
+                self.num_edges = 0
                 return
             case 1:
                 edge_nodes = self.cell_faces
@@ -331,6 +332,7 @@ class Grid(pp.Grid):
 
         self.edge_tangents = self.nodes @ edge_nodes
         self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
+        self.num_edges = self.edge_lengths.size
 
     def compute_mesh_size(self) -> None:
         """

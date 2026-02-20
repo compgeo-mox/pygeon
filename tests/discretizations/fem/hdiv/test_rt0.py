@@ -16,7 +16,7 @@ def test_ndof(discr, unit_sd):
     assert discr.ndof(unit_sd) == unit_sd.num_faces
 
 
-def test_asssemble_mass_matrix(discr, ref_sd):
+def test_assemble_mass_matrix(discr, ref_sd):
     M = discr.assemble_mass_matrix(ref_sd)
 
     match ref_sd.dim:

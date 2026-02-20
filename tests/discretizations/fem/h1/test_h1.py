@@ -42,11 +42,6 @@ def test_stiffness_consistency(discr, unit_sd):
     """Compare the implemented stiffness matrix
     to the one obtained by mapping to the range discretization"""
 
-    if isinstance(discr, pg.Lagrange2) and unit_sd.dim == 3:
-        with pytest.raises(NotImplementedError):
-            Stiff_2 = pg.Discretization.assemble_stiff_matrix(discr, unit_sd)
-        return
-
     Stiff_1 = discr.assemble_stiff_matrix(unit_sd)
     Stiff_2 = pg.Discretization.assemble_stiff_matrix(discr, unit_sd)
 
