@@ -61,6 +61,7 @@ class Grid(pp.Grid):
 
         self.compute_edge_properties()
         self.compute_mesh_size()
+        self.compute_rotation_matrix()
 
     def compute_ridges(self) -> None:
         """
@@ -348,6 +349,23 @@ class Grid(pp.Grid):
             self.mesh_size = 0.0
         else:
             self.mesh_size = float(np.mean(self.edge_lengths))
+
+    def compute_rotation_matrix(self) -> None:
+        """
+        Computes and stores the rotation matrix that maps the subdomain to the xy-plane
+        or x-axis.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        if np.any(self.nodes[self.dim :, :]):
+            *_, R, keep_dims, _ = pp.map_geometry.map_grid(self)
+            self.rotation_matrix = R[keep_dims, :]
+        else:
+            self.rotation_matrix = np.eye(self.dim, 3)
 
     def copy(self):
         """Create a new instance with some attributes deep-copied from the grid.

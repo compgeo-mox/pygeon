@@ -89,10 +89,10 @@ def test_eval_at_cc_vs_pp(discr, unit_sd):
     discr_pp.discretize(unit_sd, data)
     P_pp = data[pp.DISCRETIZATION_MATRICES][discr_pp.keyword][discr_pp.vector_proj_key]
 
-    # Translagte from porepy to pygeon ordering
+    # Translate from porepy to pygeon ordering
     indices = np.reshape(np.arange(3 * unit_sd.num_cells), (3, -1), order="F").ravel()
 
-    assert (P_pp.tolil()[indices] - P).nnz == 0
+    assert np.allclose((P_pp.tolil()[indices] - P).data, 0)
 
 
 def test_range_discr_class(discr):

@@ -109,9 +109,9 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        # Discretizations either have 0 or 1 dof on point grids
-        if sd.dim == 0:
-            return sps.eye_array(self.ndof(sd), format="csc")
+        # If there are no degrees of freedom, we return an empty matrix.
+        if self.ndof(sd) == 0:
+            return sps.csc_array((0, 0))
 
         # We project to the piecewise polynomials and use that mass matrix.
         Pi = self.proj_to_PwPolynomials(sd)
@@ -185,6 +185,10 @@ class Discretization(abc.ABC):
         Returns:
              sps.csc_array: The evaluation matrix.
         """
+        # If there are no degrees of freedom, we return an empty matrix.
+        if self.ndof(sd) == 0:
+            return sps.csc_array((3**self.tensor_order, 0))
+
         Pi = self.proj_to_PwPolynomials(sd)
         Poly_space = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(
             self.keyword
