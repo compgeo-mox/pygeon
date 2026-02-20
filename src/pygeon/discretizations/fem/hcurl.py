@@ -10,8 +10,10 @@ import pygeon as pg
 
 class Nedelec0(pg.Discretization):
     """
-    Discretization class for the Nedelec of the first kind of lowest order.
-    Each degree of freedom is the integral over a mesh edge in 3D.
+    Discretization class for the Nedelec of the first kind of lowest order. Each degree
+    of freedom is the integral over a mesh edge in 3D.
+
+    While intended for three-dimensional grids, the space is generalized
     """
 
     poly_order = 1
@@ -114,12 +116,11 @@ class Nedelec0(pg.Discretization):
         """
         match dim:
             case 2:
-                range = pg.PwConstants
+                return pg.PwConstants
             case 3:
-                range = pg.RT0
+                return pg.RT0
             case _:
                 raise NotImplementedError
-        return range
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
