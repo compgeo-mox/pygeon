@@ -225,8 +225,7 @@ class Nedelec1(pg.Discretization):
         orien = sd.cell_faces[faces, cells]
 
         # Rotate the normals if the mesh is tilted
-        rotation_matrix = np.eye(sd.dim, 3)
-        normals = rotation_matrix @ sd.face_normals
+        normals = sd.rotation_matrix @ sd.face_normals
 
         # We avoid inner products by using the identity:
         # tangent @ normal = dim * cell_volume * orientation
