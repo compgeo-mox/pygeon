@@ -84,11 +84,11 @@ def test_assemble_lumped(discr, ref_sd):
     assert np.allclose(L.todense(), L_known)
 
 
-def test_lumped_consistency(discr, ref_sd):
-    M_lumped = discr.assemble_lumped_matrix(ref_sd)
-    M_full = discr.assemble_mass_matrix(ref_sd)
+def test_lumped_consistency(discr, ref_sd_3d):
+    M_lumped = discr.assemble_lumped_matrix(ref_sd_3d)
+    M_full = discr.assemble_mass_matrix(ref_sd_3d)
 
-    one_interp = discr.interpolate(ref_sd, lambda _: np.ones(3))
+    one_interp = discr.interpolate(ref_sd_3d, lambda _: np.ones(3))
 
     integral_L = M_lumped @ one_interp
     integral_M = M_full @ one_interp
@@ -107,3 +107,10 @@ def test_error_l2(discr, unit_sd_3d):
 
     err = discr.error_l2(unit_sd_3d, int_sol, fun)
     assert np.isclose(err, 0)
+
+
+def test_1D(discr, unit_sd_1d):
+    assert discr.assemble_diff_matrix(unit_sd_1d).nnz == 0
+
+    with pytest.raises(NotImplementedError):
+        discr.get_range_discr_class(unit_sd_1d.dim)

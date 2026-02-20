@@ -110,6 +110,18 @@ def test_assemble_lumped(discr, ref_sd):
     assert np.allclose(L.todense(), L_known)
 
 
+def test_lumped_consistency(discr, unit_sd_3d):
+    M_lumped = discr.assemble_lumped_matrix(unit_sd_3d)
+    M_full = discr.assemble_mass_matrix(unit_sd_3d)
+
+    one_interp = discr.interpolate(unit_sd_3d, lambda _: np.ones(3))
+
+    integral_L = M_lumped @ one_interp
+    integral_M = M_full @ one_interp
+
+    assert np.allclose(integral_L, integral_M)
+
+
 def test_interp_eval_linears(discr, unit_sd_3d):
     def q_linear(x):
         return x
