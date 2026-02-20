@@ -29,6 +29,11 @@ def test_trace_2d(discr, unit_sd_2d):
     assert np.allclose(trace @ func_interp, trace_interp)
 
 
+def test_asym_1d(discr, unit_sd_1d):
+    with pytest.raises(ValueError):
+        discr.assemble_asym_matrix(unit_sd_1d)
+
+
 def test_asym_2d(discr, unit_sd_2d):
     asym = discr.assemble_asym_matrix(unit_sd_2d)
 
