@@ -11,55 +11,84 @@ def discr() -> pg.Nedelec0:
     return pg.Nedelec0("test")
 
 
-def test_ndof(discr, ref_sd_3d):
-    assert discr.ndof(ref_sd_3d) == ref_sd_3d.num_ridges
+def test_ndof(discr, ref_sd):
+    assert discr.ndof(ref_sd) == ref_sd.dim * (ref_sd.dim + 1) // 2
 
 
-def test_assemble_mass(discr, ref_sd_3d):
-    M = discr.assemble_mass_matrix(ref_sd_3d)
+def test_assemble_mass_matrix(discr, ref_sd):
+    M = discr.assemble_mass_matrix(ref_sd)
 
-    M_known = (
-        np.array(
-            [
-                [10, 5, 5, 0, 0, 0],
-                [5, 10, 5, 0, 0, 0],
-                [5, 5, 10, 0, 0, 0],
-                [0, 0, 0, 4, 1, -1],
-                [0, 0, 0, 1, 4, 1],
-                [0, 0, 0, -1, 1, 4],
-            ]
-        )
-        / 120
-    )
+    match ref_sd.dim:
+        case 1:
+            M_known = np.array([[1]])
+        case 2:
+            M_known = (
+                np.array(
+                    [
+                        [1, 0, 0],
+                        [0, 2, 1],
+                        [0, 1, 2],
+                    ]
+                )
+                / 6
+            )
+        case 3:
+            M_known = (
+                np.array(
+                    [
+                        [10, 5, 5, 0, 0, 0],
+                        [5, 10, 5, 0, 0, 0],
+                        [5, 5, 10, 0, 0, 0],
+                        [0, 0, 0, 4, 1, -1],
+                        [0, 0, 0, 1, 4, 1],
+                        [0, 0, 0, -1, 1, 4],
+                    ]
+                )
+                / 120
+            )
 
     assert np.allclose(M.todense(), M_known)
 
 
-def test_assemble_lumped(discr, ref_sd_3d):
-    L = discr.assemble_lumped_matrix(ref_sd_3d)
-
-    L_known = (
-        np.array(
-            [
-                [10, 0, 0, 0, 0, 0],
-                [0, 10, 0, 0, 0, 0],
-                [0, 0, 10, 0, 0, 0],
-                [0, 0, 0, 2, 0, 0],
-                [0, 0, 0, 0, 3, 0],
-                [0, 0, 0, 0, 0, 2],
-            ]
-        )
-        / 60
-    )
+def test_assemble_lumped(discr, ref_sd):
+    L = discr.assemble_lumped_matrix(ref_sd)
+    match ref_sd.dim:
+        case 1:
+            L_known = np.array([[1]])
+        case 2:
+            L_known = (
+                np.array(
+                    [
+                        [1, 0, 0],
+                        [0, 3, 0],
+                        [0, 0, 3],
+                    ]
+                )
+                / 6
+            )
+        case 3:
+            L_known = (
+                np.array(
+                    [
+                        [10, 0, 0, 0, 0, 0],
+                        [0, 10, 0, 0, 0, 0],
+                        [0, 0, 10, 0, 0, 0],
+                        [0, 0, 0, 2, 0, 0],
+                        [0, 0, 0, 0, 3, 0],
+                        [0, 0, 0, 0, 0, 2],
+                    ]
+                )
+                / 60
+            )
 
     assert np.allclose(L.todense(), L_known)
 
 
-def test_lumped_consistency(discr, ref_sd_3d):
-    M_lumped = discr.assemble_lumped_matrix(ref_sd_3d)
-    M_full = discr.assemble_mass_matrix(ref_sd_3d)
+def test_lumped_consistency(discr, ref_sd):
+    M_lumped = discr.assemble_lumped_matrix(ref_sd)
+    M_full = discr.assemble_mass_matrix(ref_sd)
 
-    one_interp = discr.interpolate(ref_sd_3d, lambda _: np.ones(3))
+    one_interp = discr.interpolate(ref_sd, lambda _: np.ones(3))
 
     integral_L = M_lumped @ one_interp
     integral_M = M_full @ one_interp
