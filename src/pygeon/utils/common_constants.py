@@ -27,6 +27,9 @@ SECOND_ORDER_TENSOR = "second_order_tensor"
 """Keyword used to identify second-order tensor data in discretizations, e.g. for
 permeability"""
 
+VECTOR_FIELD = "vector_field"
+"""Keyword used to identify vector field data in discretizations, e.g. for advection"""
+
 WEIGHT = "weight"
 """Keyword used to identify weight data in discretizations, not covered by other 
 keywords"""

@@ -169,17 +169,13 @@ class Lagrange1(pg.Discretization):
         Args:
             sd (pg.Grid): The grid object representing the discretization.
             data (dict | None): Optional data for scaling, in particular
-            'weight' (advection velocity field).
+            pg.VECTOR-FIELD (advection velocity field).
 
         Returns:
             sps.csc_array: The assembled advection matrix.
         """
-        # Initialize V as a zero vector by default
-        V = np.zeros((3, sd.num_cells))
-
-        # If data is given, set vector-field values.
-        if data is not None:
-            V = pg.get_cell_data(sd, data, self.keyword, "weight", pg.VECTOR)
+        # Retrieve the vector field
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)

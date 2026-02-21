@@ -158,7 +158,7 @@ class RT0(pg.Discretization):
             sd (pg.Grid): Grid object or a subclass.
             data (dict | None): Optional data for scaling, in particular
                 pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
-                tensor) and 'weight' (advection velocity field).
+                tensor) and pg.VECTOR_FIELD (advection velocity field).
 
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
@@ -167,16 +167,12 @@ class RT0(pg.Discretization):
         if sd.dim == 0:
             return sps.csc_array((sd.num_faces, sd.num_faces))
 
-        # Retrieve the inverse of diffusivity
+        # Retrieve the second order tensor
         D_inv = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
-
-        V = np.zeros((3, sd.num_cells))
-
-        # If data is given, set vector-field values.
-        if data is not None:
-            V = pg.get_cell_data(sd, data, self.keyword, "weight", pg.VECTOR)
+        # Retrieve the vector field
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
         # surface coordinates in 1d and 2d)

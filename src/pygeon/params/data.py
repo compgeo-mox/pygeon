@@ -9,6 +9,9 @@ import pygeon as pg
 # in the data dictionary
 data_default = {
     pg.SECOND_ORDER_TENSOR: 1,  # Default permeability/conductivity tensor value
+    pg.VECTOR_FIELD: np.zeros(
+        3
+    ),  # Default vector field value (advection velocity field)
     pg.LAME_LAMBDA: 1,  # First Lamé parameter (bulk modulus related)
     pg.LAME_MU: 0.5,  # Second Lamé parameter (shear modulus)
     pg.LAME_MU_COSSERAT: 0.5,  # Cosserat shear modulus for micropolar materials
@@ -96,5 +99,10 @@ def get_cell_data(
         # Wrap vector tensor orders in a SecondOrderTensor
         if tensor_order == pg.MATRIX:
             value = pp.SecondOrderTensor(value)
+
+    if isinstance(value, np.ndarray) and tensor_order == pg.VECTOR:
+        if value.ndim == 1:
+            value = value.reshape(-1, 1)
+            value = np.tile(value, (1, sd.num_cells))
 
     return value

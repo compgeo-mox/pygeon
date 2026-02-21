@@ -1,10 +1,10 @@
 """Module contains specific tests for the Lagrangean L1 discretization."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
-import porepy as pp
 
 
 @pytest.fixture
@@ -136,7 +136,7 @@ def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
 def test_assemble_adv_matrix(
     discr: pg.Lagrange1, ref_sd: pg.Grid, vector_field: np.ndarray
 ):
-    data = pp.initialize_data({}, "test", {"weight": vector_field})
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: vector_field})
     M = discr.assemble_adv_matrix(ref_sd, data=data)
 
     match ref_sd.dim:
