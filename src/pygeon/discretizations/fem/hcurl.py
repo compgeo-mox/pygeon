@@ -82,6 +82,22 @@ class Nedelec0(pg.Discretization):
         # Construct the global matrices
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped mass matrix given by the row sums on the diagonal.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_array: The lumped mass matrix.
+        """
+        diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
+        return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
+
     def eval_basis_at_node(self, sd: pg.Grid, ridges_loc: np.ndarray) -> np.ndarray:
         """
         Compute the local basis function for the Nedelec0 finite element space.

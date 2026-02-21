@@ -16,6 +16,12 @@ class VecPwPolynomials(pg.VecDiscretization):
     A class representing an abstract vector piecewise polynomial discretization.
     """
 
+    poly_order: int
+    """Polynomial degree of the basis functions"""
+
+    tensor_order: int = pg.VECTOR
+    """Vector-valued discretization"""
+
     base_discr: pg.PwPolynomials | pg.VecPwPolynomials
 
     def assemble_mass_matrix(
@@ -31,10 +37,46 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix.
         """
+        return self._assemble_tensor_weighted_inner_product(
+            sd, data, "assemble_mass_matrix"
+        )
 
-        # Retrieve the block-diagonal mass matrix. This one is weighted with the scalar
-        # pg.WEIGHT from the data, if provided.
-        M = super().assemble_mass_matrix(sd, data)
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped mass matrix, using the scalar and tensor weights in data.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_array: The mass matrix.
+        """
+        return self._assemble_tensor_weighted_inner_product(
+            sd, data, "assemble_lumped_matrix"
+        )
+
+    def _assemble_tensor_weighted_inner_product(
+        self, sd: pg.Grid, data: dict | None, inner_product_method: str
+    ) -> sps.csc_array:
+        """
+        Assemble an inner product weighted by a tensor, given in data.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
+            inner_product_method (str): Assembly method of parent class for the inner
+            product.
+
+        Returns:
+            sps.csc_array: The inner product matrix.
+        """
+
+        # Retrieve the block-diagonal mass or lumped matrix. This one is weighted with
+        # the scalar pg.WEIGHT from the data, if provided.
+        M = getattr(super(), inner_product_method)(sd, data)
 
         # Retrieve the second-order tensor from the data and assemble the weighting
         # matrix.
@@ -61,12 +103,14 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The weighting matrix.
         """
-        # Retrieve the underlying numpy array of shape (3, 3, n_cells).
-        np_sot = sot.values
+        # Retrieve the underlying numpy array of shape (3, 3, n_cells) and rotate it to
+        # the reference plane or line. Code taken from pp.SecondOrderTensor.rotate().
+        R = sd.rotation_matrix
+        rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
 
         # Due to our dof numbering convention, we loop through the grid ndof_per_cell
         # times.
-        tiled_sot = np.tile(np_sot, self.base_discr.ndof_per_cell(sd))
+        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_cell(sd))
 
         # Create a block-array of diagonal matrices containing the tensor entries.
         bmat = [
@@ -75,6 +119,23 @@ class VecPwPolynomials(pg.VecDiscretization):
         ]
 
         return sps.block_array(bmat, format="csc")
+
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        """
+        Interpolates a vector-valued function onto the finite element space
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): A function that returns the function values at coordinates.
+
+        Returns:
+            np.ndarray: The values of the degrees of freedom
+        """
+        # If the mesh is tilted, then the 3-vector from func needs to be rotated.
+        rotated_func = lambda x: sd.rotation_matrix @ func(x)
+        return super().interpolate(sd, rotated_func)
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
@@ -177,6 +238,23 @@ class VecPwPolynomials(pg.VecDiscretization):
         proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
 
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the matrix for evaluating the discretization at the cell centers.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+             sps.csc_array: The evaluation matrix.
+        """
+        Pi = super().eval_at_cell_centers(sd)
+
+        # We need to map back from reference to physical coordinates
+        R = sps.kron(sd.rotation_matrix.T, sps.eye_array(Pi.shape[0] // sd.dim), "csc")
+
+        return (R @ Pi).tocsc()
+
 
 class VecPwConstants(VecPwPolynomials):
     """
@@ -185,9 +263,6 @@ class VecPwConstants(VecPwPolynomials):
 
     poly_order = 0
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -213,9 +288,6 @@ class VecPwLinears(VecPwPolynomials):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
-
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
@@ -239,9 +311,6 @@ class VecPwQuadratics(VecPwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """

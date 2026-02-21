@@ -47,6 +47,7 @@ from pygeon.discretizations.fem.vec_l2 import (
     VecPwQuadratics,
 )
 from pygeon.discretizations.fem.mat_l2 import (
+    MatPwPolynomials,
     MatPwConstants,
     MatPwLinears,
     MatPwQuadratics,
