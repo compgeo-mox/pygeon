@@ -52,7 +52,7 @@ addopts = [
 line-length = 88
 
 [tool.ruff.lint]
-select = ["E501"]
+select = ["E", "F", "I", "ARG"]
 ignore = [
     "E731",  # do not assign a lambda expression, use a def
     "E266",  # too many leading '#' for block comment
