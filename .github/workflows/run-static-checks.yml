@@ -86,7 +86,7 @@ jobs:
 
     - name: Ruff formatting
       if: ${{always()}}
-      run: ruff format --check src tests
+      run: ruff format --check src tests tutorials
 
     - name: isort
       if: ${{always()}}
