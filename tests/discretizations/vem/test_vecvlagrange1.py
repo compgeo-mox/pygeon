@@ -2,7 +2,6 @@
 discretization."""
 
 import numpy as np
-import porepy as pp
 import pytest
 
 import pygeon as pg

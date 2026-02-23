@@ -65,7 +65,7 @@ class VecVRT0(pg.VecDiscretization):
         super().__init__(keyword)
         self.base_discr: pg.VRT0 = pg.VRT0(keyword)
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

@@ -7,7 +7,7 @@ import pygeon as pg
 
 
 @pytest.fixture
-def discr(request: pytest.FixtureRequest) -> pg.Lagrange1:
+def discr(_request: pytest.FixtureRequest) -> pg.Lagrange1:
     return pg.Lagrange1("test")
 
 
