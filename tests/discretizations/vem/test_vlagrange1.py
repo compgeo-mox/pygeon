@@ -90,7 +90,7 @@ def test_interpolate(discr, pentagon_sd):
 
 def test_assemble_nat_bc(discr, pentagon_sd):
     b_nodes = pentagon_sd.tags["domain_boundary_nodes"]
-    vals = discr.assemble_nat_bc(pentagon_sd, lambda x: np.ones(1), b_nodes)
+    vals = discr.assemble_nat_bc(pentagon_sd, lambda _x: np.ones(1), b_nodes)
 
     vals_known = np.array([3.5, 2.5, 2.25, 2.0, 2.75])
 

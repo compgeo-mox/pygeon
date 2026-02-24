@@ -35,7 +35,7 @@ class Nedelec0(pg.Discretization):
         return sd.num_ridges
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for a lowest-order Nedelec discretization
@@ -212,7 +212,7 @@ class Nedelec0(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -286,7 +286,7 @@ class Nedelec1(pg.Discretization):
         raise NotImplementedError
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
@@ -481,7 +481,7 @@ class Nedelec1(pg.Discretization):
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

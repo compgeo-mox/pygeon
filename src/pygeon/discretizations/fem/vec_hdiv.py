@@ -307,7 +307,7 @@ class VecBDM1(VecHDiv):
         proj = self.base_discr.proj_from_RT0(sd)
         return sps.block_diag([proj] * sd.dim).tocsc()
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the discretization class that contains the range of the differential
 
@@ -381,7 +381,7 @@ class VecRT0(VecHDiv):
         super().__init__(keyword)
         self.base_discr: pg.RT0 = pg.RT0(keyword)
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -420,7 +420,7 @@ class VecRT1(VecHDiv):
         super().__init__(keyword)
         self.base_discr: pg.RT1 = pg.RT1(keyword)
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
