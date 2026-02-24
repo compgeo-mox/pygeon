@@ -97,6 +97,7 @@ def test_assemble_adv_matrix(discr, ref_sd, vector_field):
 
     assert np.allclose(M.todense(), M_known)
 
+
 def test_assemble_adv_matrix_default(discr, ref_sd):
     M = discr.assemble_adv_matrix(ref_sd)
 
@@ -121,6 +122,7 @@ def test_assemble_adv_matrix_default(discr, ref_sd):
             )
 
     assert np.allclose(M.todense(), M_known)
+
 
 def test_mass_matrix_vs_pp(discr, unit_sd):
     M = discr.assemble_mass_matrix(unit_sd)

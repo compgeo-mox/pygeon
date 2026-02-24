@@ -176,6 +176,7 @@ def test_assemble_adv_matrix(
 
     assert np.allclose(M.todense(), M_known)
 
+
 def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
     M = discr.assemble_adv_matrix(ref_sd)
 
