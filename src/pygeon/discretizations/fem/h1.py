@@ -35,7 +35,7 @@ class Lagrange1(pg.Discretization):
         return sd.num_nodes
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Returns the mass matrix for the lowest order Lagrange element
@@ -303,7 +303,7 @@ class Lagrange1(pg.Discretization):
         return invQ[1:, :]
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix for the finite element method.

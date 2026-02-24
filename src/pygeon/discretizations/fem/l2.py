@@ -121,7 +121,7 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((0, self.ndof(sd)))
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
@@ -136,7 +136,10 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        self,
+        sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition vector, equal to zero.
@@ -238,7 +241,7 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_cell(self, _sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell.
 
@@ -250,7 +253,7 @@ class PwConstants(PwPolynomials):
         """
         return 1
 
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
+    def assemble_local_mass(self, _dim: int) -> np.ndarray:
         """
         Computes the local mass matrix for piecewise constants
 

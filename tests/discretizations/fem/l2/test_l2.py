@@ -65,9 +65,6 @@ def test_proj_to_higherPwPolynomials(discr, unit_sd):
 
 
 def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
-    def polynomial(x, dim, poly_order, tensor_order):
-        poly = x**poly_order
-
     match discr.tensor_order:
         case 0:
             func = lambda x: x[0] ** discr.poly_order
