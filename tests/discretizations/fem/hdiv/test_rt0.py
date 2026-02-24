@@ -102,28 +102,22 @@ def test_assemble_adv_matrix_default(discr, ref_sd):
 
     match ref_sd.dim:
         case 1:
-            M_known = (
-                np.array(
-                    [
-                        [0, 0],
-                    ]
-                )
+            M_known = np.array(
+                [
+                    [0, 0],
+                ]
             )
         case 2:
-            M_known = (
-                np.array(
-                    [
-                        [0, 0, 0],
-                    ]
-                )
+            M_known =np.array(
+                [
+                    [0, 0, 0],
+                ]
             )
         case 3:
-            M_known = (
-                np.array(
-                    [
-                        [0, 0, 0, 0],
-                    ]
-                )
+            M_known = np.array(
+                [
+                    [0, 0, 0, 0],
+                ]
             )
 
     assert np.allclose(M.todense(), M_known)
