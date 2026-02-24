@@ -181,7 +181,7 @@ def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
 
     match ref_sd.dim:
         case 1:
-            M_known =  np.array(
+            M_known = np.array(
                 [
                     [0, 0],
                     [0, 0],
