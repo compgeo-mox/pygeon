@@ -176,6 +176,43 @@ def test_assemble_adv_matrix(
 
     assert np.allclose(M.todense(), M_known)
 
+def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
+    M = discr.assemble_adv_matrix(ref_sd)
+
+    match ref_sd.dim:
+        case 1:
+            M_known = (
+                np.array(
+                    [
+                        [0, 0],
+                        [0, 0],
+                    ]
+                )
+            )
+        case 2:
+            M_known = (
+                np.array(
+                    [
+                        [0, 0, 0],
+                        [0, 0, 0],
+                        [0, 0, 0],
+                    ]
+                )
+            )
+        case 3:
+            M_known = (
+                np.array(
+                    [
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                        [0, 0, 0, 0],
+                    ]
+                )
+            )
+
+    assert np.allclose(M.todense(), M_known)
+
 
 def test_range_discr(discr: pg.Lagrange1):
     assert discr.get_range_discr_class(1) is pg.PwConstants

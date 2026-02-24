@@ -60,10 +60,6 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
         """
-        # If a 0-d grid is given then we return an empty matrix
-        if sd.dim == 0:
-            return sps.csc_array((sd.num_faces, sd.num_faces))
-
         # Retrieve the second order tensor
         D_inv = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
