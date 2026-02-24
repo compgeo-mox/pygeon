@@ -250,6 +250,46 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         return sps.kron(asym, sps.eye_array(scalar_ndof), format="csc")
 
+    def assemble_mult_matrix(
+        self, sd: pg.Grid, mult_mat: np.ndarray, right_mult: bool
+    ) -> sps.csc_array:
+        """
+        Assembles and returns the matrix that multiplies with an elementwise
+        matrix-valued function.
+
+        Args:
+            sd (pg.Grid): The grid.
+            mult_mat (np.ndarray): The matrix to multiply with. It is assumed to be
+                a piecewise constant matrix.
+            right_mult (bool): If True, performs right multiplication. If False, left
+                multiplication.
+
+        Returns:
+            sps.csc_array: The multiplication matrix obtained from the discretization.
+        """
+        # Reshape the multiplication matrix so that we can easily access its components
+        # per cell.
+        mult_mat = mult_mat.reshape((sd.dim, sd.dim, -1))
+
+        # If one matrix is given per element, then we need to tile its values according
+        # to the number of degrees of freedom per cell.
+        if mult_mat.shape[-1] * self.ndof_per_cell(sd) == self.ndof(sd):
+            mult_mat = np.tile(mult_mat, self.ndof_per_cell(sd) // (sd.dim**2))
+
+        # We create a sparse matrix with diagonal blocks based on the entries in
+        # mult_mat.
+        blocks = [
+            [sps.diags_array(mult_mat[i, j, :]) for j in range(sd.dim)]
+            for i in range(sd.dim)
+        ]
+        mult_array = sps.block_array(blocks)
+        identity = np.eye(sd.dim)
+
+        if right_mult:
+            return sps.kron(identity, mult_array.T, format="csc")
+        else:  # left multiplication
+            return sps.kron(mult_array, identity, format="csc")
+
 
 class MatPwConstants(MatPwPolynomials):
     """
@@ -338,71 +378,6 @@ class MatPwLinears(MatPwPolynomials):
 
         # Return the corotational correction matrix
         return A_omega - omega_A
-
-    def assemble_mult_matrix(
-        self, sd: pg.Grid, mult_mat: np.ndarray, right_mult: bool
-    ) -> sps.csc_array:
-        """
-        Assembles and returns the multiplication matrix for the matrix-valued
-        piecewise constants.
-
-        Args:
-            sd (pg.Grid): The grid.
-            mult_mat (np.ndarray): The matrix to multiply with. It is assumed to be
-                a piecewise constant matrix.
-            right_mult (bool): If True, performs right multiplication. If False, left
-                multiplication.
-
-        Returns:
-            sps.csc_array: The multiplication matrix obtained from the discretization.
-        """
-        size = sd.dim**4 * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        # Precompute the basis functions
-        basis = np.eye(sd.dim**2).reshape((sd.dim, sd.dim, -1))
-
-        if right_mult:
-            # right multiplication: A @ mult_mat
-            oper_str = "ijk,jp->ipk"
-        else:
-            # left multiplication: mult_mat @ A
-            oper_str = "ijk,pi->pjk"
-
-        for c in range(sd.num_cells):
-            # Get the local degrees of freedom for the cell ordered column wise
-            loc_dofs = self.local_dofs_of_cell(sd, c).reshape((-1, sd.dim + 1))
-
-            # Iterate over the node dofs
-            for node_dofs in loc_dofs.T:
-                mult_mat_loc = mult_mat[node_dofs].reshape((sd.dim, sd.dim))
-
-                # Compute the product A @ mult_mat (if right_mult is True)
-                # or mult_mat @ A (if right_mult is False)
-                prod = np.einsum(oper_str, basis, mult_mat_loc)
-
-                # Reshape the product to match the degrees of freedom
-                prod_at_dofs = np.array(
-                    [prod[:, :, i].ravel() for i in np.arange(sd.dim**2)]
-                )
-
-                # Save only the non-zeros values of the local matrix in the global
-                # structure
-                rows_loc, cols_loc = prod_at_dofs.nonzero()
-
-                # Save values of the local matrix in the global structure
-                loc_idx = slice(idx, idx + rows_loc.size)
-                rows_I[loc_idx] = node_dofs[cols_loc]
-                cols_J[loc_idx] = node_dofs[rows_loc]
-                data_IJ[loc_idx] = prod_at_dofs[rows_loc, cols_loc]
-                idx += rows_loc.size
-
-        # Construct the global matrices
-        shape = (self.ndof(sd), self.ndof(sd))
-        return sps.csc_array((data_IJ[:idx], (rows_I[:idx], cols_J[:idx])), shape=shape)
 
 
 class MatPwQuadratics(MatPwPolynomials):
