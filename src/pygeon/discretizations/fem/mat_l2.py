@@ -205,17 +205,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The trace matrix obtained from the discretization.
-
-        Raises:
-            NotImplementedError: This method is not implemented for the base class.
+            sps.csc_array: The trace matrix.
         """
         # Extract the number of degrees of freedom for the underlying scalar space.
         scalar_ndof = self.ndof(sd) // (sd.dim**2)
 
-        # If the matrix-valued function is raveled into a vector, then the trace
-        # operator becomes a linear operation on that vector. This is a matrix-vector
-        # product with the matrix:
+        # The trace of a dxd matrix M is a linear operator acting on M.ravel(). This
+        # linear operator is given by the following matrix:
         # 1D: [1]
         # 2D: [1 0 0 1]
         # 3D: [1 0 0 0 1 0 0 0 1]
@@ -232,17 +228,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The asymmetry matrix obtained from the discretization.
-
-        Raises:
-            NotImplementedError: This method is not implemented for the base class.
+            sps.csc_array: The asymmetry matrix.
         """
         # Extract the number of degrees of freedom for the underlying scalar space.
         scalar_ndof = self.ndof(sd) // (sd.dim**2)
 
-        # If the matrix-valued function is raveled into a vector, then the trace
-        # operator becomes a linear operation on that vector. This is a matrix-vector
-        # product with the matrix:
+        # The asymmetry of a dxd matrix M is a linear operator acting on M.ravel(). This
+        # linear operator is given by the following matrix:
         match sd.dim:
             case 2:
                 asym = np.array([[0, -1, 1, 0]])
