@@ -37,7 +37,9 @@ class Nedelec0(pg.Discretization):
         """
         return sd.num_edges
 
-    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, _data: dict | None = None
+    ) -> sps.csc_array:
         """
         Constructs the projection matrix to the VecPwLinears space via Nedelec1.
 
@@ -105,7 +107,7 @@ class Nedelec0(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 
@@ -334,7 +336,7 @@ class Nedelec1(pg.Discretization):
         """
         raise NotImplementedError
 
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
 

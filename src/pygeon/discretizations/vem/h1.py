@@ -20,7 +20,7 @@ class VLagrange1(pg.Lagrange1):
     """Scalar-valued discretization"""
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix.
@@ -226,7 +226,7 @@ class VLagrange1(pg.Lagrange1):
         return D
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the stiffness matrix.

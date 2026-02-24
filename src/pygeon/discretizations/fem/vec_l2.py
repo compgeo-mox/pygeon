@@ -196,7 +196,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         return self.base_discr.get_range_discr_class(dim)
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        self,
+        sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition vector, equal to zero.
