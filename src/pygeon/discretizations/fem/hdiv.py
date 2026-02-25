@@ -429,7 +429,6 @@ class BDM1(pg.Discretization):
             sps.csc_array: A sparse array in CSC format representing the projection from
             the current space to VecPwLinears.
         """
-
         # Each contribution to the matrix corresponds to a (cell, face, node) triplet.
         # To avoid for-loops, we generate arrays with the relevant cell/face/node
         # indices.
