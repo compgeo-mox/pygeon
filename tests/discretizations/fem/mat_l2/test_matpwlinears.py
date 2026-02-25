@@ -81,7 +81,7 @@ def test_asym_3d(discr, unit_sd_3d):
     assert np.allclose(asym @ func_interp, asym_interp)
 
 
-def test_assemble_mult_matrix(discr, unit_sd):
+def test_assemble_mult_matrix_constant(discr, unit_sd):
     # Linear matrix function
     func = lambda x: np.vstack([x] * 3)
     vec = discr.interpolate(unit_sd, func)
@@ -114,6 +114,31 @@ def test_assemble_mult_matrix(discr, unit_sd):
     mult = discr.assemble_mult_matrix(unit_sd, mult_mat.ravel(), right_mult=False)
 
     known = discr.interpolate(unit_sd, left_func)
+    assert np.allclose(mult @ vec, known)
+
+
+def test_assemble_mult_matrix_linear(discr, unit_sd):
+    # Linear matrix function
+    func = lambda x: np.vstack([x] * 3)
+    vec = discr.interpolate(unit_sd, func)
+
+    # Known output
+    def x_squared(x):
+        result = np.zeros((3, 3))
+        result[: unit_sd.dim, : unit_sd.dim] = (
+            func(x)[: unit_sd.dim, : unit_sd.dim]
+            @ func(x)[: unit_sd.dim, : unit_sd.dim]
+        )
+        return result
+
+    known = discr.interpolate(unit_sd, x_squared)
+
+    # Test the right multiplication
+    mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=True)
+    assert np.allclose(mult @ vec, known)
+
+    # Test the left multiplication
+    mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=False)
     assert np.allclose(mult @ vec, known)
 
 

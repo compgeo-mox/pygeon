@@ -260,7 +260,8 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         Args:
             sd (pg.Grid): The grid.
             mult_mat (np.ndarray): The matrix to multiply with. It is assumed to be
-                a piecewise constant matrix.
+                a piecewise constant matrix and can be provided with shape
+                (d, d, n_cells), (d, d, n_dof), or their flattened equivalents.
             right_mult (bool): If True, performs right multiplication. If False, left
                 multiplication.
 
@@ -278,17 +279,24 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         # We create a sparse matrix with diagonal blocks based on the entries in
         # mult_mat.
-        blocks = [
-            [sps.diags_array(mult_mat[i, j, :]) for j in range(sd.dim)]
-            for i in range(sd.dim)
-        ]
-        mult_array = sps.block_array(blocks)
         identity = np.eye(sd.dim)
+        blocks = [
+            [sps.diags_array(mult_ij) for mult_ij in mult_i] for mult_i in mult_mat
+        ]
 
         if right_mult:
+            # Right multiplication is achieved by first assembling the block matrix and
+            # then applying a Kronecker product to the transpose.
+            mult_array = sps.block_array(blocks)
             return sps.kron(identity, mult_array.T, format="csc")
-        else:  # left multiplication
-            return sps.kron(mult_array, identity, format="csc")
+        else:
+            # Left multiplication is achieved by first applying a Kronecker product and
+            # then assembling the block matrix.
+            tiled_blocks = [
+                [sps.kron(identity, block) for block in block_row]
+                for block_row in blocks
+            ]
+            return sps.block_array(tiled_blocks)
 
 
 class MatPwConstants(MatPwPolynomials):
