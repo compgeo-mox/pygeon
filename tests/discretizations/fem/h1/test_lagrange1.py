@@ -1,6 +1,7 @@
 """Module contains specific tests for the Lagrangean L1 discretization."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
@@ -9,6 +10,11 @@ import pygeon as pg
 @pytest.fixture
 def discr() -> pg.Lagrange1:
     return pg.Lagrange1("test")
+
+
+@pytest.fixture
+def vector_field() -> np.ndarray:
+    return np.array([[1], [1], [1]])
 
 
 def test_ndof(discr: pg.Lagrange1, unit_sd: pg.Grid):
@@ -111,7 +117,6 @@ def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
                 )
                 / 2
             )
-
         case 3:
             M_known = (
                 np.array(
@@ -126,6 +131,56 @@ def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
             )
 
     assert np.allclose(M.todense(), M_known)
+
+
+def test_assemble_adv_matrix(
+    discr: pg.Lagrange1, ref_sd: pg.Grid, vector_field: np.ndarray
+):
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: vector_field})
+    M = discr.assemble_adv_matrix(ref_sd, data=data)
+
+    match ref_sd.dim:
+        case 1:
+            M_known = (
+                np.array(
+                    [
+                        [-1, 1],
+                        [-1, 1],
+                    ]
+                )
+                / 2
+            )
+        case 2:
+            M_known = (
+                np.array(
+                    [
+                        [-2, 1, 1],
+                        [-2, 1, 1],
+                        [-2, 1, 1],
+                    ]
+                )
+                / 6
+            )
+        case 3:
+            M_known = (
+                np.array(
+                    [
+                        [-3, 1, 1, 1],
+                        [-3, 1, 1, 1],
+                        [-3, 1, 1, 1],
+                        [-3, 1, 1, 1],
+                    ]
+                )
+                / 24
+            )
+
+    assert np.allclose(M.todense(), M_known)
+
+
+def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
+    M = discr.assemble_adv_matrix(ref_sd)
+
+    assert np.allclose(M.todense(), 0)
 
 
 def test_range_discr(discr: pg.Lagrange1):

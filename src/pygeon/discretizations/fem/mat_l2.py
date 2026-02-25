@@ -15,7 +15,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     poly_order: int
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.MATRIX
+    tensor_order: int = pg.MATRIX
     """Matrix-valued discretization"""
 
     def assemble_mass_matrix_elasticity(
@@ -111,6 +111,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         weight = 0.25 * (1 / mu_c - 1 / mu)
         data_ = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
+        R_tensor_order: int
         if sd.dim == 2:
             R_tensor_order = pg.SCALAR
         elif sd.dim == 3:
@@ -179,6 +180,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
+        R_tensor_order: int
         if sd.dim == 2:
             R_tensor_order = pg.SCALAR
         elif sd.dim == 3:

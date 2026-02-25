@@ -4,6 +4,7 @@ from functools import cache
 from typing import Callable, Tuple, Type
 
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -34,6 +35,103 @@ class RT0(pg.Discretization):
             int: The number of degrees of freedom.
         """
         return sd.num_faces
+
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles and returns the advection matrix for mixed finite elements
+        (RT0-P0), which is given by
+        :math:`(D^{-1}\\boldsymbol{v} \\cdot \\boldsymbol{q}, p)`.
+
+        The trial functions :math:`\\boldsymbol{q}` are lowest-order
+        Raviart-Thomas (RT0) and test functions :math:`p` are piecewise
+        constant (P0). :math:`\\boldsymbol{v}` is a given vector field and
+        :math:`D^{-1}` is a given second-order tensor, both assumed constant
+        per cell. If not provided, :math:`\\boldsymbol{v}` defaults to
+        :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Optional data for scaling, in particular
+                pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
+                tensor) and pg.VECTOR_FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The advection matrix obtained from the discretization.
+        """
+        # Retrieve the second order tensor
+        D_inv = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
+        )
+        # Retrieve the vector field
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+
+        # Map the domain to a reference geometry (i.e. equivalent to compute
+        # surface coordinates in 1d and 2d)
+        c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
+        nodes = nodes[: sd.dim, :]
+
+        if not data or not data.get("is_tangential", False):
+            # Rotate the inverse of the permeability tensor and vector field,
+            # and delete last dimension
+            if sd.dim < 3:
+                D_inv = D_inv.copy()
+                D_inv.rotate(R)
+                remove_dim = np.where(np.logical_not(dim))[0]
+                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=0)
+                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=1)
+
+                V = V.copy()
+                V = R @ V
+                remove_dim = np.where(np.logical_not(dim))[0]
+                V = np.delete(V, remove_dim, axis=0)
+
+        # Allocate the data to store matrix A entries
+        size = (sd.dim + 1) * sd.num_cells
+        rows_I = np.empty(size, dtype=int)
+        cols_J = np.empty(size, dtype=int)
+        data_IJ = np.empty(size)
+        idx = 0
+
+        # Compute the opposite nodes for each face
+        opposite_nodes = sd.compute_opposite_nodes()
+
+        for c in range(sd.num_cells):
+            # For the current cell retrieve its faces
+            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
+            faces_loc = sd.cell_faces.indices[loc]
+            opposites_loc = opposite_nodes.data[loc]
+
+            # get the opposite node id for each face
+            coord_loc = nodes[:, opposites_loc]
+
+            # Compute the flux reconstruction matrix
+            psi_cell = pp.RT0.faces_to_cell(
+                c_centers[:, c],
+                coord_loc,
+                f_centers[:, faces_loc],
+                f_normals[:, faces_loc],
+                dim,
+                R,
+            )[: sd.dim, :]
+
+            # Compute the local weight for the local advection matrix
+            weight = D_inv.values[..., c] @ V[:, c]
+
+            # Compute the H_div-advection local matrix
+            A = weight @ psi_cell
+
+            # Save values for local matrix in the global structure
+            cols = faces_loc
+            loc_idx = slice(idx, idx + cols.size)
+            rows_I[loc_idx] = c
+            cols_J[loc_idx] = faces_loc
+            data_IJ[loc_idx] = A.ravel()
+            idx += cols.size
+
+        # Construct the global matrices
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -331,7 +429,6 @@ class BDM1(pg.Discretization):
             sps.csc_array: A sparse array in CSC format representing the projection from
             the current space to VecPwLinears.
         """
-
         # Each contribution to the matrix corresponds to a (cell, face, node) triplet.
         # To avoid for-loops, we generate arrays with the relevant cell/face/node
         # indices.
