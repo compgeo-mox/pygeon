@@ -101,27 +101,7 @@ def test_assemble_adv_matrix(discr, ref_sd, vector_field):
 def test_assemble_adv_matrix_default(discr, ref_sd):
     M = discr.assemble_adv_matrix(ref_sd)
 
-    match ref_sd.dim:
-        case 1:
-            M_known = np.array(
-                [
-                    [0, 0],
-                ]
-            )
-        case 2:
-            M_known = np.array(
-                [
-                    [0, 0, 0],
-                ]
-            )
-        case 3:
-            M_known = np.array(
-                [
-                    [0, 0, 0, 0],
-                ]
-            )
-
-    assert np.allclose(M.todense(), M_known)
+    assert np.allclose(M.todense(), 0)
 
 
 def test_mass_matrix_vs_pp(discr, unit_sd):
