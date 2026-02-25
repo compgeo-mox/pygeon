@@ -383,7 +383,7 @@ class BDM1(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        p1 = pg.Lagrange1(self.keyword)
+        p1 = pg.PwLinears(self.keyword)
         local_mass = p1.assemble_local_mass(sd.dim - 1)
 
         vals = np.zeros(self.ndof(sd))

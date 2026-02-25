@@ -34,61 +34,6 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Returns the mass matrix for the lowest order Lagrange element
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        # Data allocation
-        size = np.power(sd.dim + 1, 2) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-        local_mass = self.assemble_local_mass(sd.dim)
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
-
-            # Compute the mass-H1 local matrix
-            A = local_mass * sd.cell_volumes[c]
-
-            # Save values for mass-H1 local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrix
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
-        """Compute the local mass matrix on an element with measure 1.
-
-        Args:
-            dim (int): Dimension of the matrix.
-
-        Returns:
-            np.ndarray: Local mass matrix of shape (num_nodes_of_cell,
-            num_nodes_of_cell).
-        """
-        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        return M / ((dim + 1) * (dim + 2))
-
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -301,22 +246,6 @@ class Lagrange1(pg.Discretization):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped mass matrix for the finite element method.
-
-        Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict | None): Optional data dictionary.
-
-        Returns:
-            sps.csc_array: The assembled lumped mass matrix.
-        """
-        volumes = sd.cell_nodes() @ sd.cell_volumes / (sd.dim + 1)
-        return sps.diags_array(volumes).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """

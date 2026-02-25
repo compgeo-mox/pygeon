@@ -386,8 +386,8 @@ class PwLinears(PwPolynomials):
         Returns:
             np.ndarray: Local mass matrix for piecewise linears.
         """
-        lagrange1 = pg.Lagrange1(self.keyword)
-        return lagrange1.assemble_local_mass(dim)
+        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
+        return M / ((dim + 1) * (dim + 2))
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
