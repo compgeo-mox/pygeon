@@ -298,7 +298,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
                 [sps.kron(identity, block) for block in block_row]
                 for block_row in blocks
             ]
-            return sps.block_array(tiled_blocks)
+            return sps.block_array(tiled_blocks, format="csc")
 
 
 class MatPwConstants(MatPwPolynomials):
