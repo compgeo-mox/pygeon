@@ -38,7 +38,7 @@ class Lagrange1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the stiffness matrix for the finite element method.
+        Assembles the stiffness matrix for the H1-conforming finite elements.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
@@ -318,61 +318,7 @@ class Lagrange2(pg.Discretization):
         Returns:
             ndof: The number of degrees of freedom.
         """
-        if sd.dim == 0:
-            num_edges = 0
-        elif sd.dim == 1:
-            num_edges = sd.num_cells
-        elif sd.dim == 2:
-            num_edges = sd.num_faces
-        elif sd.dim == 3:
-            num_edges = sd.num_ridges
-
-        return sd.num_nodes + num_edges
-
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Returns the mass matrix for the second order Lagrange element
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The mass matrix.
-        """
-        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
-
-        # Data allocation
-        size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        opposite_nodes = sd.compute_opposite_nodes()
-        local_mass = self.assemble_local_mass(sd.dim)
-
-        for c in range(sd.num_cells):
-            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
-            faces = opposite_nodes.indices[loc]
-            nodes = opposite_nodes.data[loc]
-            edges = self.get_edge_dof_indices(sd, c, faces)
-
-            A = local_mass.ravel() * weight[c] * sd.cell_volumes[c]
-
-            loc_ind = np.hstack((nodes, edges))
-
-            cols = np.tile(loc_ind, (loc_ind.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Assemble
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return sd.num_nodes + sd.num_edges
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
@@ -687,55 +633,6 @@ class Lagrange2(pg.Discretization):
 
         # Combine
         return sps.vstack((diff_0, diff_1)).tocsc()
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for evaluating a P2 function at the
-        cell centers of the given grid.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection at the cell centers.
-        """
-        val_at_cc = 1 / (sd.dim + 1)
-        eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
-
-        if sd.dim == 0:
-            return sps.csc_array((1, 0))
-        elif sd.dim == 1:
-            eval_edges = sps.eye_array(sd.num_cells).tocsc()
-        elif sd.dim == 2:
-            eval_edges = abs(sd.cell_faces).T
-        elif sd.dim == 3:
-            eval_edges = abs(sd.cell_faces).T @ abs(sd.face_ridges).T
-            eval_edges.data[:] = 1
-
-        eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
-
-        return sps.hstack((eval_nodes, eval_edges)).tocsc()
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped mass matrix for the quadratic Lagrange space.
-        This is based on the integration rule by Eggers and Radu,
-        and is not block-diagonal for this space.
-
-        Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict | None): A dictionary containing the necessary data for
-                assembling the matrix.
-
-        Returns:
-            sps.csc_array: The lumped mass matrix.
-        """
-        Pi = self.proj_to_PwPolynomials(sd)
-        L = pg.PwQuadratics(self.keyword).assemble_lumped_matrix(sd, data)
-
-        return Pi.T @ L @ Pi
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """

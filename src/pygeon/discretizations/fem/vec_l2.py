@@ -258,6 +258,19 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         return (R @ Pi).tocsc()
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        grad = self.base_discr.assemble_broken_grad_matrix(sd)
+        return self.vectorize(sd.dim, grad)
+
 
 class VecPwConstants(VecPwPolynomials):
     """
