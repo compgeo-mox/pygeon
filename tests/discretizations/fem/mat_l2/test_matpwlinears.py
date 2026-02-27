@@ -81,24 +81,65 @@ def test_asym_3d(discr, unit_sd_3d):
     assert np.allclose(asym @ func_interp, asym_interp)
 
 
-def test_assemble_mult_matrix(discr, ref_sd):
-    diag = np.zeros([ref_sd.dim] * 2)
-    diag[0, 0] = 1
-    mult_mat = np.array([diag for _ in range(ref_sd.num_nodes)])
+def test_assemble_mult_matrix_constant(discr, unit_sd):
+    # Linear matrix function
+    func = lambda x: np.vstack([x] * 3)
+    vec = discr.interpolate(unit_sd, func)
 
-    vec = np.ones(mult_mat.size)
+    # Non-trivial multiplication matrix
+    given_matrix = np.arange(unit_sd.dim**2).reshape((-1, unit_sd.dim))
+    mult_mat = np.repeat(given_matrix[:, :, None], unit_sd.num_cells, axis=2)
 
-    known = np.zeros(vec.size)
-    known[:: ref_sd.dim] = 1
+    # Test the right multiplication
+    mult = discr.assemble_mult_matrix(unit_sd, mult_mat.ravel(), right_mult=True)
 
-    mult = discr.assemble_mult_matrix(ref_sd, mult_mat.ravel(), right_mult=True)
+    def right_func(x):
+        result = np.zeros((3, 3))
+        result[: unit_sd.dim, : unit_sd.dim] = (
+            func(x)[: unit_sd.dim, : unit_sd.dim] @ given_matrix
+        )
+        return result
+
+    known = discr.interpolate(unit_sd, right_func)
     assert np.allclose(mult @ vec, known)
 
-    known = np.ones((ref_sd.dim, ref_sd.num_nodes))
+    # Test the left multiplication
+    def left_func(x):
+        result = np.zeros((3, 3))
+        result[: unit_sd.dim, : unit_sd.dim] = (
+            given_matrix @ func(x)[: unit_sd.dim, : unit_sd.dim]
+        )
+        return result
 
-    mult = discr.assemble_mult_matrix(ref_sd, mult_mat.ravel(), right_mult=False)
-    sol = (mult @ vec).reshape(ref_sd.dim, ref_sd.dim, -1).sum(axis=0)
-    assert np.allclose(sol, known)
+    mult = discr.assemble_mult_matrix(unit_sd, mult_mat.ravel(), right_mult=False)
+
+    known = discr.interpolate(unit_sd, left_func)
+    assert np.allclose(mult @ vec, known)
+
+
+def test_assemble_mult_matrix_linear(discr, unit_sd):
+    # Linear matrix function
+    func = lambda x: np.vstack([x] * 3)
+    vec = discr.interpolate(unit_sd, func)
+
+    # Known output
+    def x_squared(x):
+        result = np.zeros((3, 3))
+        result[: unit_sd.dim, : unit_sd.dim] = (
+            func(x)[: unit_sd.dim, : unit_sd.dim]
+            @ func(x)[: unit_sd.dim, : unit_sd.dim]
+        )
+        return result
+
+    known = discr.interpolate(unit_sd, x_squared)
+
+    # Test the right multiplication
+    mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=True)
+    assert np.allclose(mult @ vec, known)
+
+    # Test the left multiplication
+    mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=False)
+    assert np.allclose(mult @ vec, known)
 
 
 def test_assemble_corotational_correction(discr, ref_sd):
