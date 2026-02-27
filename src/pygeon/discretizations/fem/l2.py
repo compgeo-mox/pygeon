@@ -120,6 +120,18 @@ class PwPolynomials(pg.Discretization):
         """
         return sps.csc_array((0, self.ndof(sd)))
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        raise NotImplementedError
+
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
@@ -313,6 +325,20 @@ class PwConstants(PwPolynomials):
 
         return M.tocsc()
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid,
+        which is zero for the piecewise constants
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        ndof = self.ndof(sd)
+        return sps.csc_array((3 * ndof, ndof))
+
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
@@ -488,6 +514,43 @@ class PwLinears(PwPolynomials):
             cols_J[c] = np.concatenate((dofs_p1, dofs_p1[edge_nodes]))
 
         return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
+
+    @staticmethod
+    def dof_lookup(sd: pg.Grid) -> sps.csc_array:
+        dof_array = sd.cell_nodes().astype("int")
+        p1_ndof = dof_array.nnz
+        dof_array.data = np.reshape(np.arange(p1_ndof), (sd.num_cells, -1), "F").ravel()
+
+        return dof_array
+
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+        This operator maps to the vector-valued piecewise constants.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        opposite_nodes = sd.compute_opposite_nodes().tocoo()
+        faces = opposite_nodes.row
+        cells = opposite_nodes.col
+        orien = sd.cell_faces[faces, cells]
+        nodes = opposite_nodes.data
+
+        vecp0_dofs = np.arange(sd.dim * sd.num_cells).reshape((sd.dim, -1))
+        rows_I = vecp0_dofs[:, cells].ravel()
+
+        dof_lookup = self.dof_lookup(sd)
+        cols_J = np.tile(dof_lookup[nodes, cells], sd.dim)
+
+        normals = sd.rotation_matrix @ sd.face_normals
+        grads = -normals[:, faces] * orien / sd.dim
+        data_IJ = grads.ravel()
+
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
 
 class PwQuadratics(PwPolynomials):

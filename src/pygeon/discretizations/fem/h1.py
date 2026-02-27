@@ -48,56 +48,16 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        K = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX)
+        M = pg.VecPwConstants(self.keyword).assemble_mass_matrix(sd, data)
+        grad = self.assemble_grad_matrix(sd)
 
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
+        return (grad.T @ M @ grad).tocsc()
 
-        if not data or not data.get("is_tangential", False):
-            # Rotate the permeability tensor and delete last dimension
-            if sd.dim < 3:
-                K = K.copy()
-                K.rotate(R)
-                remove_dim = np.where(np.logical_not(dim))[0]
-                K.values = np.delete(K.values, (remove_dim), axis=0)
-                K.values = np.delete(K.values, (remove_dim), axis=1)
+    def assemble_grad_matrix(self, sd: pg.Grid):
+        Pi = self.proj_to_PwPolynomials(sd)
+        grad = pg.PwLinears().assemble_broken_grad_matrix(sd)
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(sd.dim + 1, 2) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the stiff-H1 local matrix
-            A = self.local_stiff(
-                K.values[0 : sd.dim, 0 : sd.dim, c],
-                sd.cell_volumes[c],
-                coord_loc,
-                sd.dim,
-            )
-
-            # Save values for stiff-H1 local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return grad @ Pi
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -190,25 +150,6 @@ class Lagrange1(pg.Discretization):
             return sps.csc_array((0, 0))
         else:
             raise ValueError
-
-    def local_stiff(
-        self, K: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
-    ) -> np.ndarray:
-        """
-        Compute the local stiffness matrix for P1.
-
-        Args:
-            K (np.ndarray): Permeability of the cell of (dim, dim) shape.
-            c_volume (np.ndarray): Scalar cell volume.
-            coord (np.ndarray): Coordinates of the cell vertices of (dim+1, dim) shape.
-            dim (int): Dimension of the problem.
-
-        Returns:
-            np.ndarray: Local stiffness matrix of (dim+1, dim+1) shape.
-        """
-        dphi = self.local_grads(coord, dim)
-
-        return c_volume * dphi.T @ K @ dphi
 
     def local_adv(
         self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
