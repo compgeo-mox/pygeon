@@ -158,8 +158,16 @@ class VecDiscretization(pg.Discretization):
         ]
         return np.hstack(nat_bc)
 
-    def assemble_broken_div_matrix(self, sd: pg.Grid) -> np.ndarray:
+    def assemble_broken_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken, element-wise divergence operator.
 
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The divergence matrix.
+        """
         grad = self.base_discr.assemble_broken_grad_matrix(sd).tocsr()
         blocks = [grad[rows, :] for rows in np.split(np.arange(grad.shape[0]), sd.dim)]
 
