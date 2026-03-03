@@ -158,6 +158,13 @@ class VecDiscretization(pg.Discretization):
         ]
         return np.hstack(nat_bc)
 
+    def assemble_broken_div_matrix(self, sd: pg.Grid) -> np.ndarray:
+
+        grad = self.base_discr.assemble_broken_grad_matrix(sd).tocsr()
+        blocks = [grad[rows, :] for rows in np.split(np.arange(grad.shape[0]), sd.dim)]
+
+        return sps.hstack(blocks, format="csc")
+
     def vectorize(self, dim: int, matrix: sps.csc_array) -> sps.csc_array:
         """
         Vectorizes the given matrix by repeating it for each dimension of the grid.
