@@ -330,24 +330,6 @@ class VecVLagrange1(pg.VecDiscretization):
 
         return I_minus_Pi.T @ I_minus_Pi
 
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix corresponding to the differential operator.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_array: The differential matrix.
-
-        Notes:
-            Duplicate of pg.VecLagrange1.assemble_diff_matrix
-        """
-        div = self.assemble_div_matrix(sd)
-        symgrad = self.assemble_symgrad_matrix(sd)
-
-        return sps.block_array([[symgrad], [div]]).tocsc()
-
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
