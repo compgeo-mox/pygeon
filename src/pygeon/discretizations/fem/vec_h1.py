@@ -4,7 +4,6 @@ from typing import Type
 
 import numpy as np
 import porepy as pp
-import scipy.linalg as spl
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -95,65 +94,7 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The div matrix obtained from the discretization.
         """
-        # If a 0-d grid is given then we return a zero matrix
-        if sd.dim == 0:
-            return sps.csc_array((1, 1))
-
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        _, _, _, _, _, node_coords = pp.map_geometry.map_grid(sd)
-
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = sd.dim * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-        # shift to comply with the ordering convention of (x, y, z) components
-        shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the div local matrix
-            A = self.local_div(
-                sd.cell_volumes[c],
-                coord_loc,
-                sd.dim,
-            )
-
-            # Save values for the local matrix in the global structure
-            cols = nodes_loc + shift
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = c * np.ones(cols.size)
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def local_div(self, c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
-        """
-        Compute the local div matrix for vector P1.
-
-        Args:
-            c_volume (float): Cell volume.
-            coord (ndarray): Coordinates of the cell.
-            dim (int): Dimension of the cell.
-
-        Returns:
-            ndarray: Local mass Hdiv matrix. Shape: (num_faces_of_cell,
-            num_faces_of_cell)
-        """
-        dphi = self.base_discr.local_grads(coord, dim)
-        return c_volume * dphi
+        return self.assemble_broken_div_matrix(sd)
 
     def assemble_div_div_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -190,92 +131,11 @@ class VecLagrange1(pg.VecDiscretization):
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
-
-        Notes:
-            - If a 0-dimensional grid is given, a zero matrix is returned.
-            - The method maps the domain to a reference geometry.
-            - The method allocates data to store matrix entries efficiently.
-            - The symmetrization matrix is constructed differently for 2D and 3D cases.
-            - The method computes the symgrad local matrix for each cell and saves
-              the values in the global structure.
-            - Finally, the method constructs the global matrices using the saved values.
-
         """
-        # If a 0-d grid is given then we return a zero matrix
-        if sd.dim == 0:
-            return sps.csc_array((1, 1))
+        grad = self.assemble_broken_grad_matrix(sd)
+        sym = pg.MatPwConstants().assemble_symmetrizing_matrix(sd)
 
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        _, _, _, _, _, node_coords = pp.map_geometry.map_grid(sd)
-
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(sd.dim, 3) * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        dim2 = np.square(sd.dim)
-        # construct the symmetrization matrix, which is different in
-        # 2d and in 3d
-        sym = np.eye(dim2)
-        if sd.dim == 2:
-            sym[np.ix_([1, 2], [1, 2])] = 0.5
-        elif sd.dim == 3:
-            sym[np.ix_([1, 3], [1, 3])] = 0.5
-            sym[np.ix_([2, 6], [2, 6])] = 0.5
-            sym[np.ix_([5, 7], [5, 7])] = 0.5
-
-        cell_nodes = sd.cell_nodes()
-        # shift to comply with the ordering convention of (x, y, z) components
-        shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the symgrad local matrix
-            A = self.local_symgrad(sd.cell_volumes[c], coord_loc, sd.dim, sym)
-
-            # Save values for the local matrix in the global structure
-            cols = (nodes_loc + shift).ravel()
-            cols = cols * np.ones((dim2, 1), dtype=int)
-
-            rows = c + np.arange(dim2) * sd.num_cells
-            rows = np.ones(dim2 + sd.dim, dtype=int) * rows.reshape((-1, 1))
-
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = rows.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def local_symgrad(
-        self, c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray
-    ) -> np.ndarray:
-        """
-        Compute the local symmetric gradient matrix for P1.
-
-        Args:
-            c_volume (float): Cell volume.
-            coord (np.ndarray): Coordinates of the cell.
-            dim (int): Dimension of the cell.
-            sym (np.ndarray): Symmetric matrix.
-
-        Returns:
-            np.ndarray: Local symmetric gradient matrix of shape (num_faces_of_cell,
-            num_faces_of_cell).
-        """
-        dphi = self.base_discr.local_grads(coord, dim)
-        grad = spl.block_diag(*([dphi] * dim))
-        return c_volume * sym @ grad
+        return sym @ grad
 
     def assemble_symgrad_symgrad_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -295,13 +155,14 @@ class VecLagrange1(pg.VecDiscretization):
             sd.num_nodes). The matrix obtained from the discretization.
         """
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
-        p0 = pg.PwConstants(self.keyword)
+        data_mu = pp.initialize_data({}, self.keyword, {pg.WEIGHT: 2 * mu})
+
+        matp0 = pg.MatPwConstants(self.keyword)
 
         symgrad = self.assemble_symgrad_matrix(sd)
-        mass = p0.assemble_mass_matrix(sd)
-        tensor_mass = sps.block_diag([2 * mu * mass] * np.square(sd.dim)).tocsc()
+        mass = matp0.assemble_mass_matrix(sd, data_mu)
 
-        return symgrad.T @ tensor_mass @ symgrad
+        return symgrad.T @ mass @ symgrad
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -318,18 +179,18 @@ class VecLagrange1(pg.VecDiscretization):
 
         return sps.block_array([[symgrad], [div]]).tocsc()
 
-    def assemble_stiff_matrix(
+    def assemble_elasticity_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the global stiffness matrix for the finite element method.
+        Assembles the elasticity matrix for the finite element method.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
             data (dict | None): Additional data required for the assembly process.
 
         Returns:
-            sps.csc_array: The assembled global stiffness matrix.
+            sps.csc_array: The assembled global elasticity matrix.
         """
         # compute the two parts of the global stiffness matrix
         sym_sym = self.assemble_symgrad_symgrad_matrix(sd, data)
