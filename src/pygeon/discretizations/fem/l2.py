@@ -519,7 +519,6 @@ class PwLinears(PwPolynomials):
     def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles a lookup matrix L with the property L[cell, node] = dof_index.
-        It is a static method so the
 
         Args:
             sd (pg.Grid): The grid or a subclass.
