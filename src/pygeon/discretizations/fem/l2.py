@@ -123,6 +123,7 @@ class PwPolynomials(pg.Discretization):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken (element-wise) gradient matrix for the given grid.
+        This method should be implemented by the child class.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -515,11 +516,20 @@ class PwLinears(PwPolynomials):
 
         return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
 
-    @staticmethod
-    def dof_lookup(sd: pg.Grid) -> sps.csc_array:
+    def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles a lookup matrix L with the property L[cell, node] = dof_index.
+        It is a static method so the
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The lookup matrix.
+        """
         dof_array = sd.cell_nodes().astype("int")
-        p1_ndof = dof_array.nnz
-        dof_array.data = np.reshape(np.arange(p1_ndof), (sd.num_cells, -1), "F").ravel()
+        ndof = self.ndof(sd)
+        dof_array.data = np.reshape(np.arange(ndof), (sd.num_cells, -1), "F").ravel()
 
         return dof_array
 
@@ -543,7 +553,7 @@ class PwLinears(PwPolynomials):
         vecp0_dofs = np.arange(sd.dim * sd.num_cells).reshape((sd.dim, -1))
         rows_I = vecp0_dofs[:, cells].ravel()
 
-        dof_lookup = self.dof_lookup(sd)
+        dof_lookup = self.get_dof_lookup_array(sd)
         cols_J = np.tile(dof_lookup[nodes, cells], sd.dim)
 
         normals = sd.rotation_matrix @ sd.face_normals

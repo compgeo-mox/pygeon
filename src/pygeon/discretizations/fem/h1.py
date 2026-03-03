@@ -53,7 +53,7 @@ class Lagrange1(pg.Discretization):
 
         return (grad.T @ M @ grad).tocsc()
 
-    def assemble_grad_to_p0(self, sd: pg.Grid):
+    def assemble_grad_to_p0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix that computes the gradient as a piecewise constant vector.
 
