@@ -300,6 +300,30 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             ]
             return sps.block_array(tiled_blocks, format="csc")
 
+    def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the operator that symmetrizes a matrix-valued function.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The symmetrization operator.
+        """
+        # Extract the number of degrees of freedom for the underlying scalar space.
+        scalar_ndof = self.ndof(sd) // (sd.dim**2)
+
+        # Construct the symmetrizing operator, depending on the dimension.
+        sym = np.eye(sd.dim**2)
+        if sd.dim == 2:
+            sym[np.ix_([1, 2], [1, 2])] = 0.5
+        elif sd.dim == 3:
+            sym[np.ix_([1, 3], [1, 3])] = 0.5
+            sym[np.ix_([2, 6], [2, 6])] = 0.5
+            sym[np.ix_([5, 7], [5, 7])] = 0.5
+
+        return sps.kron(sym, sps.eye_array(scalar_ndof), format="csc")
+
 
 class MatPwConstants(MatPwPolynomials):
     """
