@@ -10,7 +10,7 @@ def test_rigid_body_motion_Lagrange1(unit_sd):
     discr = pg.VecLagrange1("test")
 
     data = pp.initialize_data({}, discr.keyword, {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 1})
-    A = discr.assemble_elasticity_matrix(unit_sd, data)
+    A = discr.assemble_stiff_matrix_elasticity(unit_sd, data)
 
     ess_dofs = np.hstack([unit_sd.tags["domain_boundary_nodes"]] * unit_sd.dim)
 
@@ -30,7 +30,7 @@ def test_rigid_body_motion_Lagrange1(unit_sd):
 def test_footing_problem(unit_sd):
     discr = pg.VecLagrange1("test")
     data = pp.initialize_data({}, discr.keyword, {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: 1})
-    A = discr.assemble_elasticity_matrix(unit_sd, data)
+    A = discr.assemble_stiff_matrix_elasticity(unit_sd, data)
 
     bottom = np.hstack([np.isclose(unit_sd.nodes[unit_sd.dim - 1, :], 0)] * unit_sd.dim)
     top = np.isclose(unit_sd.face_centers[unit_sd.dim - 1, :], 1)
@@ -46,4 +46,4 @@ def test_footing_problem(unit_sd):
     u = ls.solve()
     sigma = discr.compute_stress(unit_sd, u, data)
 
-    assert np.all(np.trace(sigma, axis1=1, axis2=2) <= 0)
+    assert np.all(np.trace(sigma, axis1=0, axis2=1) <= 0)

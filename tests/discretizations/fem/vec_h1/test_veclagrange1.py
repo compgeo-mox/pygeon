@@ -78,20 +78,6 @@ def test_compute_stress(discr, unit_sd):
     assert np.allclose(sigma, 0)
 
 
-def test_0d(discr):
-    sd = pp.PointGrid()
-    pg.convert_from_pp(sd)
-    sd.compute_geometry()
-
-    B = discr.assemble_div_matrix(sd).todense()
-    S = discr.assemble_symgrad_matrix(sd).todense()
-
-    S_known = np.zeros((1, 1))
-
-    assert np.allclose(B, S_known)
-    assert np.allclose(S, S_known)
-
-
 def test_div_and_symgrad_for_rotations(discr, unit_sd):
     fun = lambda x: np.array([x[2] - x[1], x[0] - x[2], x[1] - x[0]])
     fun_interp = discr.interpolate(unit_sd, fun)

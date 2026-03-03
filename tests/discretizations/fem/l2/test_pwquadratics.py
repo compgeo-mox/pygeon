@@ -73,3 +73,8 @@ def test_source(discr, unit_sd_2d):
     source = discr.source_term(unit_sd_2d, func)
 
     assert np.isclose(source.sum(), 2)
+
+
+def test_broken_grad(discr, unit_sd_2d):
+    with pytest.raises(NotImplementedError):
+        discr.assemble_broken_grad_matrix(unit_sd_2d)
