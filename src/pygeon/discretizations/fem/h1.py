@@ -34,30 +34,36 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_stiff_matrix(
+    def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the stiffness matrix for the H1-conforming finite elements.
+        Assembles the (grad u, grad v) matrix for the nodal finite elements.
+        This corresponds to the stiffness matrix, except in 2D.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the
-                matrix.
+            sd (pg.Grid): The grid.
+            data (dict): A dictionary containing the weight for the inner product.
 
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
         M = pg.VecPwConstants(self.keyword).assemble_mass_matrix(sd, data)
-        grad = self.assemble_grad_matrix(sd)
+        grad = self.assemble_grad_to_p0(sd)
 
         return (grad.T @ M @ grad).tocsc()
 
-    def assemble_grad_matrix(self, sd: pg.Grid):
-        Pi = self.proj_to_PwPolynomials(sd)
-        grad = pg.PwLinears().assemble_broken_grad_matrix(sd)
+    def assemble_grad_to_p0(self, sd: pg.Grid):
+        """
+        Assembles the matrix that computes the gradient as a piecewise constant vector.
 
-        return grad @ Pi
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The gradient matrix.
+        """
+        return self.assemble_broken_grad_matrix(sd)
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
