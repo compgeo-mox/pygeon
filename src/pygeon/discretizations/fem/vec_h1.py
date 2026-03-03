@@ -85,8 +85,7 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the div matrix operator for the lowest order
-        vector Lagrange element
+        Returns the div matrix operator for the lowest order vector Lagrange element
 
         Args:
             sd (pg.Grid): The grid object.
@@ -96,35 +95,10 @@ class VecLagrange1(pg.VecDiscretization):
         """
         return self.assemble_broken_div_matrix(sd)
 
-    def assemble_div_div_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Returns the div-div matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by the Lame' parameter lambda.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            data (dict | None): Additional data, the Lame' parameter lambda.
-                Defaults to None.
-
-        Returns:
-            csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained from
-            the discretization.
-        """
-        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
-
-        p0 = pg.PwConstants(self.keyword)
-
-        div = self.assemble_div_matrix(sd)
-        mass = p0.assemble_mass_matrix(sd)
-
-        return div.T @ (lambda_ * mass) @ div
-
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the symmetric gradient matrix operator for the
-        lowest order vector Lagrange element
+        Returns the symmetric gradient matrix operator for the lowest order vector
+        Lagrange element
 
         Args:
             sd (pg.Grid): The grid object representing the domain.
@@ -137,49 +111,7 @@ class VecLagrange1(pg.VecDiscretization):
 
         return sym @ grad
 
-    def assemble_symgrad_symgrad_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Returns the symgrad-symgrad matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter
-        mu.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Additional data, the Lame' parameter mu. Defaults to
-                None.
-
-        Returns:
-            sps.csc_array: Sparse symgrad-symgrad matrix of shape (sd.num_nodes,
-            sd.num_nodes). The matrix obtained from the discretization.
-        """
-        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
-        data_mu = pp.initialize_data({}, self.keyword, {pg.WEIGHT: 2 * mu})
-
-        matp0 = pg.MatPwConstants(self.keyword)
-
-        symgrad = self.assemble_symgrad_matrix(sd)
-        mass = matp0.assemble_mass_matrix(sd, data_mu)
-
-        return symgrad.T @ mass @ symgrad
-
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix corresponding to the differential operator.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_array: The differential matrix.
-        """
-        div = self.assemble_div_matrix(sd)
-        symgrad = self.assemble_symgrad_matrix(sd)
-
-        return sps.block_array([[symgrad], [div]]).tocsc()
-
-    def assemble_elasticity_matrix(
+    def assemble_stiff_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
@@ -192,12 +124,29 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The assembled global elasticity matrix.
         """
-        # compute the two parts of the global stiffness matrix
-        sym_sym = self.assemble_symgrad_symgrad_matrix(sd, data)
-        div_div = self.assemble_div_div_matrix(sd, data)
+        # Compute the two parts of the global stiffness matrix
+        # We start with the symgrad-symgrad component
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        data_mu = pp.initialize_data({}, self.keyword, {pg.WEIGHT: 2 * mu})
 
-        # return the global stiffness matrix
-        return sym_sym + div_div
+        matp0 = pg.MatPwConstants(self.keyword)
+        mu_mass = matp0.assemble_mass_matrix(sd, data_mu)
+
+        symgrad = self.assemble_symgrad_matrix(sd)
+        sym_sym = symgrad.T @ mu_mass @ symgrad
+
+        # And now the div-div component
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
+        data_lambda = pp.initialize_data({}, self.keyword, {pg.WEIGHT: lambda_})
+
+        p0 = pg.PwConstants(self.keyword)
+        lambda_mass = p0.assemble_mass_matrix(sd, data_lambda)
+
+        div = self.assemble_div_matrix(sd)
+        div_div = div.T @ (lambda_mass) @ div
+
+        # Return the resulting matrix
+        return (sym_sym + div_div).tocsc()
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -225,7 +174,8 @@ class VecLagrange1(pg.VecDiscretization):
         data: dict,
     ) -> np.ndarray:
         """
-        Compute the stress tensor for a given displacement field.
+        Compute the stress tensor for a given displacement field at the cell centers as
+        a (3,3,num_cells) tensor.
 
         Args:
             sd (pg.Grid): The spatial discretization object.
@@ -237,30 +187,26 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             ndarray: The stress tensor.
         """
-        # construct the differentials
+        # Construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
 
-        p0 = pg.PwConstants(self.keyword)
-        proj = p0.eval_at_cell_centers(sd)
+        matp0 = pg.MatPwConstants(self.keyword)
+        proj = matp0.eval_at_cell_centers(sd)
+        ident = matp0.assemble_trace_matrix(sd).T
 
-        # retrieve Lamé parameters
+        # Retrieve Lamé parameters
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
-        mu = np.tile(mu, np.square(sd.dim))
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
-        # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * mu * (symgrad @ u), np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += lambda_ * (div @ u)
+        mu = np.tile(mu, sd.dim**2)
+        lambda_ = np.tile(lambda_, sd.dim**2)
 
-        # compute the actual dofs
-        sigma = sigma @ proj
+        # Combine all the terms
+        sigma = 2 * mu * (symgrad @ u) + lambda_ * (ident @ div @ u)
 
-        # create the indices to re-arrange the components for the second
-        # order tensor
-        idx = np.arange(np.square(sd.dim)).reshape((sd.dim, -1), order="F")
-
-        return sigma[idx].T
+        # Reshape and return
+        return (proj @ sigma).reshape((3, 3, -1))
 
 
 class VecLagrange2(pg.VecDiscretization):
