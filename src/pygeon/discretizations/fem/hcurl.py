@@ -254,7 +254,7 @@ class Nedelec1(pg.Discretization):
 
         # Finally, we find the corresponding dof in p1 by generating a lookup matrix
         # that satisfies p1_lookup[node, cell] = dof_index at (node, cell)
-        p1_lookup = pg.PwLinears.get_dof_lookup_array(sd)
+        p1_lookup = pg.PwLinears().get_dof_lookup_array(sd)
 
         # The vector-valued analogue has sd.dim rows
         p1_dofs = p1_lookup[nodes, cells] + p1_lookup.nnz * np.arange(sd.dim)[:, None]

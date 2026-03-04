@@ -66,3 +66,15 @@ def test_point_grid(discr, ref_sd_0d):
     assert discr.assemble_mass_matrix(ref_sd_0d).nnz == 0
     assert discr.assemble_lumped_matrix(ref_sd_0d).nnz == 0
     assert discr.eval_at_cell_centers(ref_sd_0d).shape == (3, 0)
+
+
+def test_broken_div(discr, unit_sd):
+    if isinstance(discr, pg.RT1):
+        return
+
+    div = discr.assemble_diff_matrix(unit_sd)
+    proj = discr.proj_to_PwPolynomials(unit_sd)
+    pwp = pg.get_PwPolynomials(discr.poly_order, pg.VECTOR)()
+    broken_div = pwp.assemble_broken_div_matrix(unit_sd)
+
+    assert np.allclose((div - broken_div @ proj).data, 0)
