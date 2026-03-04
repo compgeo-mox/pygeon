@@ -38,8 +38,13 @@ class Lagrange1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the (grad u, grad v) matrix for the nodal finite elements.
-        This corresponds to the stiffness matrix, except in 2D.
+        Assembles the (K grad u, grad v) matrix for the nodal finite elements. This
+        corresponds to the output of assemble_stiff_matrix, except in 2D. In that case
+        the diff operator is a rotated gradient, leading to a different output for
+        tensor-valued K.
+
+        The scalar (pg.WEIGHT) and tensor-valued (pg.SECOND_ORDER_TENSOR) entries in the
+        data dictionary are used as weights in the inner product.
 
         Args:
             sd (pg.Grid): The grid.
