@@ -459,7 +459,7 @@ class Lagrange2(pg.Discretization):
 
         Returns:
             np.ndarray: The gradient of basis function i at node j is in elements
-            [i, pg.AMBIENT_DIM * (j:J + 1)].
+            [i, 3 * (j:J + 1)].
         """
         # the gradient of our basis functions are given by
         # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )

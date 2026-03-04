@@ -654,7 +654,7 @@ class RT1(pg.Discretization):
 
         Returns:
             np.ndarray: An array Psi in which
-            [i, pg.AMBIENT_DIM*j : pg.AMBIENT_DIM*(j + 1)] contains the values of
+            [i, 3*j : 3*(j + 1)] contains the values of
             basis function phi_i at evaluation point j
         """
         dim = sd.dim
@@ -722,8 +722,8 @@ class RT1(pg.Discretization):
             volume (float): Cell volume.
 
         Returns:
-            np.ndarray: A (pg.AMBIENT_DIM x dim) array with the values of the cell-based
-            basis functions at the cell center.
+            np.ndarray: A (3 x dim) array with the values of the cell-based basis
+            functions at the cell center.
         """
         # Preallocation
         basis = np.empty((pg.AMBIENT_DIM, sd.dim))
@@ -1024,9 +1024,9 @@ class RT1(pg.Discretization):
         range_disc = pg.VecPwQuadratics()
 
         n_dof_per_cell = [0, 9, 18, 30][sd.dim]
-        rearrange = np.reshape(
-            np.arange(n_dof_per_cell), (pg.AMBIENT_DIM, -1)
-        ).ravel(order="F")
+        rearrange = np.reshape(np.arange(n_dof_per_cell), (pg.AMBIENT_DIM, -1)).ravel(
+            order="F"
+        )
 
         for c in range(sd.num_cells):
             nodes_loc, faces_loc, signs_loc = self.reorder_faces(

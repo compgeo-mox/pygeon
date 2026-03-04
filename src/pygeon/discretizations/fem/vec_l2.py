@@ -104,7 +104,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             sps.csc_array: The weighting matrix.
         """
         # Retrieve the underlying numpy array of shape
-        # (pg.AMBIENT_DIM, pg.AMBIENT_DIM, n_cells) and rotate it to the reference plane
+        # (3, 3, n_cells) and rotate it to the reference plane
         # or line. Code taken from pp.SecondOrderTensor.rotate().
         R = sd.rotation_matrix
         rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
@@ -134,7 +134,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             np.ndarray: The values of the degrees of freedom
         """
-        # If the mesh is tilted, then the pg.AMBIENT_DIM-vector from func needs to be
+        # If the mesh is tilted, then the 3-vector from func needs to be
         # rotated.
         rotated_func = lambda x: sd.rotation_matrix @ func(x)
         return super().interpolate(sd, rotated_func)

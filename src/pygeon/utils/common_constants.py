@@ -2,6 +2,8 @@ from typing import Literal
 
 # Common constants for PyGeoN
 AMBIENT_DIM: int = 3
+"""The ambient dimension of the space in which PyGeoN operates. This is a fixed constant
+that defines the maximum dimension of the problems that can be handled by PyGeoN."""
 
 UNITARY_DATA = "unitary_data"
 """Keyword used to identify unitary (identity) data in discretizations"""

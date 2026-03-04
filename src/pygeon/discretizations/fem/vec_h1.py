@@ -175,7 +175,7 @@ class VecLagrange1(pg.VecDiscretization):
     ) -> np.ndarray:
         """
         Compute the stress tensor for a given displacement field at the cell centers as
-        a (pg.AMBIENT_DIM, pg.AMBIENT_DIM, num_cells) tensor.
+        a (3, 3, num_cells) tensor.
 
         Args:
             sd (pg.Grid): The spatial discretization object.

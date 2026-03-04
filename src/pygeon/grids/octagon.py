@@ -30,7 +30,7 @@ class OctagonGrid(pg.Grid):
         if physdims is None:
             physdims = np.array([1.0, 1.0])
 
-        # Define the nodes as a pg.AMBIENT_DIM x num_nodes array
+        # Define the nodes as a 3 x num_nodes array
         nodes = self.compute_nodes(nx, physdims)
 
         # Compute face-node connectivity
