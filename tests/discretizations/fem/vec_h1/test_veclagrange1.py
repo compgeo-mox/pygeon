@@ -89,6 +89,11 @@ def test_div_and_symgrad_for_rotations(discr, unit_sd):
     assert np.allclose(S @ fun_interp, 0)
 
 
+def test_point_grid(discr, ref_sd_0d):
+    with pytest.raises(ValueError):
+        discr.assemble_symgrad_matrix(ref_sd_0d)
+
+
 def test_range_disc(discr):
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(2)
