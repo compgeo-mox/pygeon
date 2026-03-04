@@ -296,14 +296,15 @@ class Lagrange1(pg.Discretization):
         Raises:
             NotImplementedError: If there's no zero discretization in PyGeoN.
         """
-        if dim == 3:
-            return pg.Nedelec0
-        elif dim == 2:
-            return pg.RT0
-        elif dim == 1:
-            return pg.PwConstants
-        else:
-            raise NotImplementedError("There's no zero discretization in PyGeoN")
+        match dim:
+            case 3:
+                return pg.Nedelec0
+            case 2:
+                return pg.RT0
+            case 1:
+                return pg.PwConstants
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")
 
 
 class Lagrange2(pg.Discretization):
@@ -799,11 +800,12 @@ class Lagrange2(pg.Discretization):
         Raises:
             NotImplementedError: There is no zero-dimensional discretization in PyGeoN.
         """
-        if dim == 3:
-            return pg.Nedelec1
-        elif dim == 2:
-            return pg.BDM1
-        elif dim == 1:
-            return pg.PwLinears
-        else:
-            raise NotImplementedError("There's no zero discretization in PyGeoN")
+        match dim:
+            case 3:
+                return pg.Nedelec1
+            case 2:
+                return pg.BDM1
+            case 1:
+                return pg.PwLinears
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")
