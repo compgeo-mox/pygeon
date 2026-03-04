@@ -310,9 +310,6 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         Returns:
             sps.csc_array: The symmetrization operator.
         """
-        # Extract the number of degrees of freedom for the underlying scalar space.
-        scalar_ndof = self.ndof(sd) // (sd.dim**2)
-
         # Construct the symmetrizing operator, depending on the dimension.
         sym = np.eye(sd.dim**2)
         match sd.dim:
@@ -327,6 +324,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
                 sym[np.ix_([5, 7], [5, 7])] = 0.5
             case _:
                 raise ValueError(f"Invalid grid dimension, sd.dim is {sd.dim}.")
+
+        # Extract the number of degrees of freedom for the underlying scalar space.
+        scalar_ndof = self.ndof(sd) // (sd.dim**2)
 
         return sps.kron(sym, sps.eye_array(scalar_ndof), format="csc")
 
