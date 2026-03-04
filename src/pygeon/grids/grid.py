@@ -319,7 +319,7 @@ class Grid(pp.Grid):
         """
         match self.dim:
             case 0:
-                self.edge_tangents = np.zeros((0, 3))
+                self.edge_tangents = np.zeros((0, pg.AMBIENT_DIM))
                 self.edge_lengths = np.zeros(0)
                 self.num_edges = 0
                 return
@@ -365,7 +365,7 @@ class Grid(pp.Grid):
             *_, R, keep_dims, _ = pp.map_geometry.map_grid(self)
             self.rotation_matrix = R[keep_dims, :]
         else:
-            self.rotation_matrix = np.eye(self.dim, 3)
+            self.rotation_matrix = np.eye(self.dim, pg.AMBIENT_DIM)
 
     def copy(self):
         """Create a new instance with some attributes deep-copied from the grid.

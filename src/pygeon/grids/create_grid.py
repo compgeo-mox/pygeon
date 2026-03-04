@@ -175,7 +175,7 @@ def reference_element(dim: int) -> pg.Grid:
         return sd
 
     elif dim == 2:
-        nodes = np.eye(3, k=1)
+        nodes = np.eye(pg.AMBIENT_DIM, k=1)
 
         indices = np.array([1, 2, 0, 2, 0, 1])
         indptr = np.array([0, 2, 4, 6])
@@ -186,7 +186,7 @@ def reference_element(dim: int) -> pg.Grid:
         return pg.Grid(2, nodes, face_nodes, cell_faces, "reference_triangle")
 
     elif dim == 3:
-        nodes = np.eye(3, 4, k=1)
+        nodes = np.eye(pg.AMBIENT_DIM, 4, k=1)
 
         indices = np.array([1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2])
         indptr = np.array([0, 3, 6, 9, 12])

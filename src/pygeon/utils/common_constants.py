@@ -1,5 +1,8 @@
 from typing import Literal
 
+# Common constants for PyGeoN
+AMBIENT_DIM: int = 3
+
 UNITARY_DATA = "unitary_data"
 """Keyword used to identify unitary (identity) data in discretizations"""
 

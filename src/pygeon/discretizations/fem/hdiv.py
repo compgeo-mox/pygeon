@@ -297,7 +297,7 @@ class BDM1(pg.Discretization):
         M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
         M_loc /= (dim + 1) * (dim + 2)
 
-        return np.kron(M_loc, np.eye(3))
+        return np.kron(M_loc, np.eye(pg.AMBIENT_DIM))
 
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -567,7 +567,9 @@ class RT1(pg.Discretization):
                 sd, nodes_loc, signs_loc, sd.cell_volumes[c]
             )
 
-            weight = np.kron(np.eye(M.shape[0] // 3), inv_K.values[:, :, c])
+            weight = np.kron(
+                np.eye(M.shape[0] // pg.AMBIENT_DIM), inv_K.values[:, :, c]
+            )
 
             # Compute the H_div-mass local matrix
             A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
@@ -599,7 +601,7 @@ class RT1(pg.Discretization):
         lagrange2 = pg.Lagrange2()
         M = lagrange2.assemble_local_mass(dim)
 
-        return np.kron(M, np.eye(3))
+        return np.kron(M, np.eye(pg.AMBIENT_DIM))
 
     def reorder_faces(
         self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int
@@ -651,7 +653,8 @@ class RT1(pg.Discretization):
             volume (float): Cell volume.
 
         Returns:
-            np.ndarray: An array Psi in which [i, 3j : 3(j + 1)] contains the values of
+            np.ndarray: An array Psi in which
+            [i, pg.AMBIENT_DIM*j : pg.AMBIENT_DIM*(j + 1)] contains the values of
             basis function phi_i at evaluation point j
         """
         dim = sd.dim
@@ -671,27 +674,33 @@ class RT1(pg.Discretization):
 
         node_edges = np.array([np.nonzero(edge_nodes == n)[0] for n in range(dim + 1)])
 
-        psi_nodes = np.zeros((dim + 1, 3 * (dim + 1)))
-        psi_edges = np.zeros((dim + 1, 3 * n_edges))
+        psi_nodes = np.zeros((dim + 1, pg.AMBIENT_DIM * (dim + 1)))
+        psi_edges = np.zeros((dim + 1, pg.AMBIENT_DIM * n_edges))
 
         for edge, (i, j) in enumerate(edge_nodes):
-            psi_edges[i, 3 * edge : 3 * (edge + 1)] = tangent(i, j) / 4
-            psi_edges[j, 3 * edge : 3 * (edge + 1)] = tangent(j, i) / 4
+            psi_edges[i, pg.AMBIENT_DIM * edge : pg.AMBIENT_DIM * (edge + 1)] = (
+                tangent(i, j) / 4
+            )
+            psi_edges[j, pg.AMBIENT_DIM * edge : pg.AMBIENT_DIM * (edge + 1)] = (
+                tangent(j, i) / 4
+            )
 
         psi_k = np.hstack((psi_nodes, psi_edges))
 
         # Preallocation
-        Psi = np.zeros((dim * (dim + 2), 3 * (dim + 1 + n_edges)))
+        Psi = np.zeros((dim * (dim + 2), pg.AMBIENT_DIM * (dim + 1 + n_edges)))
 
         # Evaluate the basis functions of the face-dofs
         for dof, (i, j) in enumerate(zip(loc_nodes, opp_nodes)):
             # Face-dofs are one at their respective nodes
-            Psi[dof, 3 * i : 3 * (i + 1)] = tangent(j, i)
+            Psi[dof, pg.AMBIENT_DIM * i : pg.AMBIENT_DIM * (i + 1)] = tangent(j, i)
             # Face-dofs are a half at the adjacent edges
             for edge in node_edges[i]:
-                Psi[dof, 3 * (dim + 1 + edge) : 3 * (dim + 1 + edge + 1)] = (
-                    0.5 * tangent(j, i)
-                )
+                Psi[
+                    dof,
+                    pg.AMBIENT_DIM * (dim + 1 + edge) : pg.AMBIENT_DIM
+                    * (dim + 1 + edge + 1),
+                ] = 0.5 * tangent(j, i)
             # See docs/RT1.md
             Psi[dof] -= psi_k[j] - psi_k[i]
             Psi[dof] *= signs[dof]
@@ -713,11 +722,11 @@ class RT1(pg.Discretization):
             volume (float): Cell volume.
 
         Returns:
-            np.ndarray: A (3 x dim) array with the values of the cell-based basis
-            functions at the cell center.
+            np.ndarray: A (pg.AMBIENT_DIM x dim) array with the values of the cell-based
+            basis functions at the cell center.
         """
         # Preallocation
-        basis = np.empty((3, sd.dim))
+        basis = np.empty((pg.AMBIENT_DIM, sd.dim))
 
         # As outlined in docs/RT1, the only nonzero basis function
         # at the center are the cell-based ones, given by
@@ -742,10 +751,10 @@ class RT1(pg.Discretization):
         """
         # If a 0-d grid is given then we return an empty matrix
         if sd.dim == 0:
-            return sps.csc_array((3, 0))
+            return sps.csc_array((pg.AMBIENT_DIM, 0))
 
         # Allocate the data to store matrix P entries
-        size = 3 * sd.dim * sd.num_cells
+        size = pg.AMBIENT_DIM * sd.dim * sd.num_cells
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -765,8 +774,10 @@ class RT1(pg.Discretization):
 
             # Save values for projection P local matrix in the global structure
             loc_idx = slice(idx, idx + P.size)
-            rows_I[loc_idx] = np.repeat(c + np.arange(3) * sd.num_cells, sd.dim)
-            cols_J[loc_idx] = np.tile(cell_dofs, 3)
+            rows_I[loc_idx] = np.repeat(
+                c + np.arange(pg.AMBIENT_DIM) * sd.num_cells, sd.dim
+            )
+            cols_J[loc_idx] = np.tile(cell_dofs, pg.AMBIENT_DIM)
             data_IJ[loc_idx] = P.ravel()
             idx += P.size
 
@@ -1013,7 +1024,9 @@ class RT1(pg.Discretization):
         range_disc = pg.VecPwQuadratics()
 
         n_dof_per_cell = [0, 9, 18, 30][sd.dim]
-        rearrange = np.reshape(np.arange(n_dof_per_cell), (3, -1)).ravel(order="F")
+        rearrange = np.reshape(
+            np.arange(n_dof_per_cell), (pg.AMBIENT_DIM, -1)
+        ).ravel(order="F")
 
         for c in range(sd.num_cells):
             nodes_loc, faces_loc, signs_loc = self.reorder_faces(
@@ -1031,7 +1044,7 @@ class RT1(pg.Discretization):
             loc_dofs = self.local_dofs_of_cell(sd, faces_loc, c)
 
             # Extract local dofs of VecPwQuadratics
-            ran_dofs = range_disc.local_dofs_of_cell(sd, c, 3)
+            ran_dofs = range_disc.local_dofs_of_cell(sd, c, pg.AMBIENT_DIM)
             ran_dofs = ran_dofs[rearrange]
 
             # Save values of the local matrix in the global structure

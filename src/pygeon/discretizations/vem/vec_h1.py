@@ -175,7 +175,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = cell_nodes.sum() * np.power(sd.dim, 3)
+        size = cell_nodes.sum() * np.power(sd.dim, pg.AMBIENT_DIM)
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)

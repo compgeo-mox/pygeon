@@ -458,7 +458,7 @@ class Lagrange2(pg.Discretization):
 
         Returns:
             np.ndarray: The gradient of basis function i at node j is in elements
-            [i, 3 * (j:J + 1)].
+            [i, pg.AMBIENT_DIM * (j:J + 1)].
         """
         # the gradient of our basis functions are given by
         # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
@@ -466,18 +466,24 @@ class Lagrange2(pg.Discretization):
 
         # nodal dofs
         n_nodes = dphi.shape[1]
-        Psi_nodes = np.zeros((n_nodes, 3 * n_nodes))
+        Psi_nodes = np.zeros((n_nodes, pg.AMBIENT_DIM * n_nodes))
         for ind_n in np.arange(n_nodes):
-            Psi_nodes[ind_n, 3 * ind_n : 3 * (ind_n + 1)] = 4 * dphi[:, ind_n]
+            Psi_nodes[ind_n, pg.AMBIENT_DIM * ind_n : pg.AMBIENT_DIM * (ind_n + 1)] = (
+                4 * dphi[:, ind_n]
+            )
         Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
 
         # edge dofs
         n_edges = self.num_edges_per_cell(n_nodes - 1)
-        Psi_edges = np.zeros((n_edges, 3 * n_nodes))
+        Psi_edges = np.zeros((n_edges, pg.AMBIENT_DIM * n_nodes))
 
         for ind_e, (e0, e1) in enumerate(e_nodes):
-            Psi_edges[ind_e, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
-            Psi_edges[ind_e, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
+            Psi_edges[ind_e, pg.AMBIENT_DIM * e0 : pg.AMBIENT_DIM * (e0 + 1)] = (
+                4 * dphi[:, e1]
+            )
+            Psi_edges[ind_e, pg.AMBIENT_DIM * e1 : pg.AMBIENT_DIM * (e1 + 1)] = (
+                4 * dphi[:, e0]
+            )
 
         return np.vstack((Psi_nodes, Psi_edges))
 
@@ -702,7 +708,7 @@ class Lagrange2(pg.Discretization):
             grid.
         """
         if sd.dim == 0:
-            edge_coords = np.empty((3, 0))
+            edge_coords = np.empty((pg.AMBIENT_DIM, 0))
         elif sd.dim == 1:
             edge_coords = sd.cell_centers
         elif sd.dim == 2:
