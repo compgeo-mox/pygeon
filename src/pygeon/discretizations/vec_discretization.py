@@ -1,6 +1,6 @@
 """Module for the vector discretization class."""
 
-from typing import Callable
+from typing import Callable, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -168,10 +168,29 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The divergence matrix.
         """
-        grad = self.base_discr.assemble_broken_grad_matrix(sd).tocsr()
-        blocks = [grad[rows, :] for rows in np.split(np.arange(grad.shape[0]), sd.dim)]
+        grad = self.assemble_broken_grad_matrix(sd)
+        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)()
+        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
+        trace = mat_pwp.assemble_trace_matrix(sd)
 
-        return sps.hstack(blocks, format="csc")
+        return trace @ grad
+
+    def assemble_broken_curl_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken, element-wise curl operator.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The curl matrix.
+        """
+        grad = self.assemble_broken_grad_matrix(sd)
+        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)()
+        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
+        asym = mat_pwp.assemble_asym_matrix(sd)
+
+        return asym @ grad
 
     def vectorize(self, dim: int, matrix: sps.csc_array) -> sps.csc_array:
         """
