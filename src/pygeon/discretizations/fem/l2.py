@@ -123,7 +123,7 @@ class PwPolynomials(pg.Discretization):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken (element-wise) gradient matrix for the given grid.
-        This method should be implemented by the child class.
+        This method should be implemented in the child class.
 
         Args:
             sd (pg.Grid): The grid or a subclass.

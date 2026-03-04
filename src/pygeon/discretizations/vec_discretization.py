@@ -161,6 +161,7 @@ class VecDiscretization(pg.Discretization):
     def assemble_broken_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken, element-wise divergence operator.
+        This operator is only implemented for vector-valued functions.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -168,6 +169,8 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The divergence matrix.
         """
+        assert self.tensor_order == pg.VECTOR
+
         grad = self.assemble_broken_grad_matrix(sd)
         mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
         mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
@@ -178,6 +181,7 @@ class VecDiscretization(pg.Discretization):
     def assemble_broken_curl_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken, element-wise curl operator.
+        This operator is only implemented for vector-valued functions.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -185,6 +189,8 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The curl matrix.
         """
+        assert self.tensor_order == pg.VECTOR
+
         grad = self.assemble_broken_grad_matrix(sd)
         mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
         mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
