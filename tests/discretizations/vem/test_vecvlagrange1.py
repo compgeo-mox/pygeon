@@ -22,11 +22,11 @@ def test_compliance_lagrange1_triangles(discr, unit_sd_2d):
     lag_mass = lag1.assemble_mass_matrix(unit_sd_2d)
     vlag_mass = discr.assemble_mass_matrix(unit_sd_2d)
 
-    lag_diff = lag1.assemble_diff_matrix(unit_sd_2d)
-    vlag_diff = discr.assemble_diff_matrix(unit_sd_2d)
+    lag_stiff = lag1.assemble_stiff_matrix_elasticity(unit_sd_2d)
+    vlag_stiff = discr.assemble_stiff_matrix(unit_sd_2d)
 
     assert np.allclose((lag_mass - vlag_mass).data, 0)
-    assert np.allclose((lag_diff - vlag_diff).data, 0)
+    assert np.allclose((lag_stiff - vlag_stiff).data, 0)
 
 
 def test_zero_penalization_on_triangles(discr, unit_sd_2d):

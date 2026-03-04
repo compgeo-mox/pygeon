@@ -255,6 +255,22 @@ class Discretization(abc.ABC):
             sps.csc_array: The inclusion matrix.
         """
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        proj = self.proj_to_PwPolynomials(sd)
+        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        grad = pwp.assemble_broken_grad_matrix(sd)
+
+        return grad @ proj
+
     def error_l2(
         self,
         sd: pg.Grid,

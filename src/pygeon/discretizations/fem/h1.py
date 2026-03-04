@@ -34,125 +34,41 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Returns the mass matrix for the lowest order Lagrange element
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The mass matrix obtained from the discretization.
-        """
-        # Data allocation
-        size = np.power(sd.dim + 1, 2) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-        local_mass = self.assemble_local_mass(sd.dim)
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
-
-            # Compute the mass-H1 local matrix
-            A = local_mass * sd.cell_volumes[c]
-
-            # Save values for mass-H1 local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrix
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
-        """Compute the local mass matrix on an element with measure 1.
-
-        Args:
-            dim (int): Dimension of the matrix.
-
-        Returns:
-            np.ndarray: Local mass matrix of shape (num_nodes_of_cell,
-            num_nodes_of_cell).
-        """
-        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        return M / ((dim + 1) * (dim + 2))
-
-    def assemble_stiff_matrix(
+    def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the stiffness matrix for the finite element method.
+        Assembles the (K grad u, grad v) matrix for the nodal finite elements. This
+        corresponds to the output of assemble_stiff_matrix, except in 2D. In that case
+        the diff operator is a rotated gradient, leading to a different output for
+        tensor-valued K.
+
+        The scalar (pg.WEIGHT) and tensor-valued (pg.SECOND_ORDER_TENSOR) entries in the
+        data dictionary are used as weights in the inner product.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the
-                matrix.
+            sd (pg.Grid): The grid.
+            data (dict): A dictionary containing the weight for the inner product.
 
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        K = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX)
+        M = pg.VecPwConstants(self.keyword).assemble_mass_matrix(sd, data)
+        grad = self.assemble_grad_to_p0(sd)
 
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
+        return (grad.T @ M @ grad).tocsc()
 
-        if not data or not data.get("is_tangential", False):
-            # Rotate the permeability tensor and delete last dimension
-            if sd.dim < 3:
-                K = K.copy()
-                K.rotate(R)
-                remove_dim = np.where(np.logical_not(dim))[0]
-                K.values = np.delete(K.values, (remove_dim), axis=0)
-                K.values = np.delete(K.values, (remove_dim), axis=1)
+    def assemble_grad_to_p0(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the matrix that computes the gradient as a piecewise constant vector.
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(sd.dim + 1, 2) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
+        Args:
+            sd (pg.Grid): The grid.
 
-        cell_nodes = sd.cell_nodes()
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the stiff-H1 local matrix
-            A = self.local_stiff(
-                K.values[0 : sd.dim, 0 : sd.dim, c],
-                sd.cell_volumes[c],
-                coord_loc,
-                sd.dim,
-            )
-
-            # Save values for stiff-H1 local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        Returns:
+            sps.csc_array: The gradient matrix.
+        """
+        return self.assemble_broken_grad_matrix(sd)
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -246,25 +162,6 @@ class Lagrange1(pg.Discretization):
         else:
             raise ValueError
 
-    def local_stiff(
-        self, K: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
-    ) -> np.ndarray:
-        """
-        Compute the local stiffness matrix for P1.
-
-        Args:
-            K (np.ndarray): Permeability of the cell of (dim, dim) shape.
-            c_volume (np.ndarray): Scalar cell volume.
-            coord (np.ndarray): Coordinates of the cell vertices of (dim+1, dim) shape.
-            dim (int): Dimension of the problem.
-
-        Returns:
-            np.ndarray: Local stiffness matrix of (dim+1, dim+1) shape.
-        """
-        dphi = self.local_grads(coord, dim)
-
-        return c_volume * dphi.T @ K @ dphi
-
     def local_adv(
         self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
     ) -> np.ndarray:
@@ -301,22 +198,6 @@ class Lagrange1(pg.Discretization):
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped mass matrix for the finite element method.
-
-        Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict | None): Optional data dictionary.
-
-        Returns:
-            sps.csc_array: The assembled lumped mass matrix.
-        """
-        volumes = sd.cell_nodes() @ sd.cell_volumes / (sd.dim + 1)
-        return sps.diags_array(volumes).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -448,61 +329,7 @@ class Lagrange2(pg.Discretization):
         Returns:
             ndof: The number of degrees of freedom.
         """
-        if sd.dim == 0:
-            num_edges = 0
-        elif sd.dim == 1:
-            num_edges = sd.num_cells
-        elif sd.dim == 2:
-            num_edges = sd.num_faces
-        elif sd.dim == 3:
-            num_edges = sd.num_ridges
-
-        return sd.num_nodes + num_edges
-
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Returns the mass matrix for the second order Lagrange element
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The mass matrix.
-        """
-        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
-
-        # Data allocation
-        size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        opposite_nodes = sd.compute_opposite_nodes()
-        local_mass = self.assemble_local_mass(sd.dim)
-
-        for c in range(sd.num_cells):
-            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
-            faces = opposite_nodes.indices[loc]
-            nodes = opposite_nodes.data[loc]
-            edges = self.get_edge_dof_indices(sd, c, faces)
-
-            A = local_mass.ravel() * weight[c] * sd.cell_volumes[c]
-
-            loc_ind = np.hstack((nodes, edges))
-
-            cols = np.tile(loc_ind, (loc_ind.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Assemble
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return sd.num_nodes + sd.num_edges
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
@@ -817,55 +644,6 @@ class Lagrange2(pg.Discretization):
 
         # Combine
         return sps.vstack((diff_0, diff_1)).tocsc()
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for evaluating a P2 function at the
-        cell centers of the given grid.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection at the cell centers.
-        """
-        val_at_cc = 1 / (sd.dim + 1)
-        eval_nodes = sd.cell_nodes().T * val_at_cc * (2 * val_at_cc - 1)
-
-        if sd.dim == 0:
-            return sps.csc_array((1, 0))
-        elif sd.dim == 1:
-            eval_edges = sps.eye_array(sd.num_cells).tocsc()
-        elif sd.dim == 2:
-            eval_edges = abs(sd.cell_faces).T
-        elif sd.dim == 3:
-            eval_edges = abs(sd.cell_faces).T @ abs(sd.face_ridges).T
-            eval_edges.data[:] = 1
-
-        eval_edges = eval_edges * 4 * val_at_cc * val_at_cc
-
-        return sps.hstack((eval_nodes, eval_edges)).tocsc()
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped mass matrix for the quadratic Lagrange space.
-        This is based on the integration rule by Eggers and Radu,
-        and is not block-diagonal for this space.
-
-        Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict | None): A dictionary containing the necessary data for
-                assembling the matrix.
-
-        Returns:
-            sps.csc_array: The lumped mass matrix.
-        """
-        Pi = self.proj_to_PwPolynomials(sd)
-        L = pg.PwQuadratics(self.keyword).assemble_lumped_matrix(sd, data)
-
-        return Pi.T @ L @ Pi
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """

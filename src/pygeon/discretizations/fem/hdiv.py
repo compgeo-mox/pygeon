@@ -383,7 +383,7 @@ class BDM1(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        p1 = pg.Lagrange1(self.keyword)
+        p1 = pg.PwLinears(self.keyword)
         local_mass = p1.assemble_local_mass(sd.dim - 1)
 
         vals = np.zeros(self.ndof(sd))
@@ -467,12 +467,10 @@ class BDM1(pg.Discretization):
 
         # Finally, we find the corresponding dof in p1 by generating a lookup matrix
         # that satisfies p1_lookup[node, cell] = dof_index at (node, cell)
-        p1_lookup = sd.cell_nodes().astype("int")
-        p1_ndof = p1_lookup.nnz
-        p1_lookup.data = np.reshape(np.arange(p1_ndof), (sd.num_cells, -1), "F").ravel()
+        p1_lookup = pg.PwLinears().get_dof_lookup_array(sd)
 
         # The vector-valued analogue has sd.dim rows
-        p1_dofs = p1_lookup[nodes, cells] + p1_ndof * np.arange(sd.dim)[:, None]
+        p1_dofs = p1_lookup[nodes, cells] + p1_lookup.nnz * np.arange(sd.dim)[:, None]
         rows_I = p1_dofs.ravel()
 
         return sps.csc_array((data_IJ, (rows_I, cols_J)))

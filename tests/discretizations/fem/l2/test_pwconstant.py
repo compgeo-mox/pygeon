@@ -27,6 +27,11 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert np.allclose((M - P).data, 0)
 
 
+def test_broken_grad(discr, unit_sd):
+    grad = discr.assemble_broken_grad_matrix(unit_sd)
+    assert grad.nnz == 0
+
+
 def test_interpolate(discr, unit_sd_2d):
     func = lambda x: np.sin(x[0])  # Example function
     vals = discr.interpolate(unit_sd_2d, func)

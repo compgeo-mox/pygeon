@@ -43,7 +43,11 @@ def test_stiffness_consistency(discr, unit_sd):
     to the one obtained by mapping to the range discretization"""
 
     Stiff_1 = discr.assemble_stiff_matrix(unit_sd)
-    Stiff_2 = pg.Discretization.assemble_stiff_matrix(discr, unit_sd)
+
+    if isinstance(discr, pg.Lagrange1):
+        Stiff_2 = discr.assemble_grad_grad_matrix(unit_sd)
+    else:
+        Stiff_2 = pg.Discretization.assemble_stiff_matrix(discr, unit_sd)
 
     diff = Stiff_1 - Stiff_2
     assert np.allclose(diff.data, 0)

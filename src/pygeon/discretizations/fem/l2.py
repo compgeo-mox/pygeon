@@ -120,6 +120,19 @@ class PwPolynomials(pg.Discretization):
         """
         return sps.csc_array((0, self.ndof(sd)))
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+        This method should be implemented in the child class.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        raise NotImplementedError
+
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
@@ -313,6 +326,20 @@ class PwConstants(PwPolynomials):
 
         return M.tocsc()
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid,
+        which is zero for the piecewise constants
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        ndof = self.ndof(sd)
+        return sps.csc_array((3 * ndof, ndof))
+
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
@@ -386,8 +413,8 @@ class PwLinears(PwPolynomials):
         Returns:
             np.ndarray: Local mass matrix for piecewise linears.
         """
-        lagrange1 = pg.Lagrange1(self.keyword)
-        return lagrange1.assemble_local_mass(dim)
+        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
+        return M / ((dim + 1) * (dim + 2))
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
@@ -488,6 +515,51 @@ class PwLinears(PwPolynomials):
             cols_J[c] = np.concatenate((dofs_p1, dofs_p1[edge_nodes]))
 
         return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
+
+    def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles a lookup matrix L with the property L[cell, node] = dof_index.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The lookup matrix.
+        """
+        dof_array = sd.cell_nodes().astype("int")
+        ndof = self.ndof(sd)
+        dof_array.data = np.reshape(np.arange(ndof), (sd.num_cells, -1), "F").ravel()
+
+        return dof_array
+
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+        This operator maps to the vector-valued piecewise constants.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        opposite_nodes = sd.compute_opposite_nodes().tocoo()
+        faces = opposite_nodes.row
+        cells = opposite_nodes.col
+        orien = sd.cell_faces[faces, cells]
+        nodes = opposite_nodes.data
+
+        vecp0_dofs = np.arange(sd.dim * sd.num_cells).reshape((sd.dim, -1))
+        rows_I = vecp0_dofs[:, cells].ravel()
+
+        dof_lookup = self.get_dof_lookup_array(sd)
+        cols_J = np.tile(dof_lookup[nodes, cells], sd.dim)
+
+        normals = sd.rotation_matrix @ sd.face_normals
+        grads = -normals[:, faces] * orien / sd.dim
+        data_IJ = grads.ravel()
+
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
 
 class PwQuadratics(PwPolynomials):
