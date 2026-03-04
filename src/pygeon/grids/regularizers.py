@@ -27,7 +27,7 @@ def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
 def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
     """
     Perform Laplace regularization on the grid by solving a graph laplacian over the
-    face-ridges in 2d and ridge-peaks in 3d. The topology of the grid is preserved.
+    face-ridges in 2D and ridge-peaks in 3D. The topology of the grid is preserved.
 
     Args:
         sd (pg.Grid): The grid to regularize.

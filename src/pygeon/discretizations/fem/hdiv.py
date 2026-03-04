@@ -68,7 +68,7 @@ class RT0(pg.Discretization):
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
+        # surface coordinates in 1D and 2D)
         c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
         nodes = nodes[: sd.dim, :]
 

@@ -94,7 +94,7 @@ class Lagrange1(pg.Discretization):
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
+        # surface coordinates in 1D and 2D)
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
         if not data or not data.get("is_tangential", False):
@@ -504,7 +504,7 @@ class Lagrange2(pg.Discretization):
         """
 
         if sd.dim == 1:
-            # The only edge in 1d is the cell
+            # The only edge in 1D is the cell
             edges = np.array([cell])
         elif sd.dim == 2:
             # The edges (0, 1), (0, 2), and (1, 2)

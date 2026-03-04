@@ -11,7 +11,7 @@ import pygeon as pg
 
 class VecVLagrange1(pg.VecDiscretization):
     """
-    Vector Lagrange virtual element discretization for H1 space in 2d.
+    Vector Lagrange virtual element discretization for H1 space in 2D.
 
     This class represents a virtual element discretization for the H1 space using
     vector virtual Lagrange elements. It provides methods for assembling various
