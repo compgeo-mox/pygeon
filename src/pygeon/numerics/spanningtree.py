@@ -286,10 +286,9 @@ class SpanningTreeElasticity(SpanningTree):
 
         match sd.dim:
             case 2:
-                # This operator maps to div-free functions
-                # to capture the scalar rotation
-                # We take the difference between the first basis func
-                # on a face and the second.
+                # This operator maps to div-free functions to capture the scalar
+                # rotation. We take the difference between the first basis function on
+                # a face and the second.
                 P_tn = sps.csc_array(P_div, copy=True)
                 P_tn.data[1::2] = -1
 
@@ -298,13 +297,12 @@ class SpanningTreeElasticity(SpanningTree):
                 P_asym = sps.vstack(n_times_P_tn)
 
             case 3:
-                # Given an orthonormal basis (s, t) of the face,
-                # we generate three matrices that capture asymmetries
-                # in (t, n), (n, s), and (s, t).
+                # Given an orthonormal basis (s, t) of the face, we generate three
+                # matrices that capture asymmetries in (t, n), (n, s), and (s, t).
                 P_asym = np.empty(3, dtype=sps.csc_array)
 
-                # (t, n) Take the difference between
-                # the first dof on a face and the second dof
+                # (t, n) Take the difference between the first dof on a face and the
+                # second dof
                 P_tn = sps.csc_array(P_div, copy=True)
                 # P_tn.data[0::3] = 1
                 P_tn.data[1::3] = -1
@@ -314,8 +312,8 @@ class SpanningTreeElasticity(SpanningTree):
                 n_times_P_tn = [P_tn * fn_i for fn_i in fn_xyz]
                 P_asym[0] = sps.vstack(n_times_P_tn)
 
-                # (s, n) Take the difference between
-                # the first dof on a face and the third dof
+                # (s, n) Take the difference between the first dof on a face and the
+                # third dof
                 P_sn = sps.csc_array(P_div, copy=True)
                 # P_sn.data[0::3] = 1
                 P_sn.data[1::3] = 0

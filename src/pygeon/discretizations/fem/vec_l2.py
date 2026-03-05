@@ -134,8 +134,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             np.ndarray: The values of the degrees of freedom
         """
-        # If the mesh is tilted, then the 3-vector from func needs to be
-        # rotated.
+        # If the mesh is tilted, then the 3-vector from func needs to be rotated.
         rotated_func = lambda x: sd.rotation_matrix @ func(x)
         return super().interpolate(sd, rotated_func)
 
