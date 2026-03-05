@@ -63,7 +63,7 @@ def test_error_l2(discr, unit_sd):
     assert np.isclose(err, 1)
 
     # Test that the error is 0 if num_sol is the interpolant
-    err = discr.error_l2(unit_sd, int_sol, fun)
+    err = discr.error_l2(unit_sd, int_sol, fun, poly_order=None)
     assert np.isclose(err, 0)
 
     # Test that the error is nonzero if first-order integration is used

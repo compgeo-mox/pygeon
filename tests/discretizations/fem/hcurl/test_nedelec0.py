@@ -105,7 +105,7 @@ def test_error_l2(discr, unit_sd_3d):
     err = discr.error_l2(unit_sd_3d, np.zeros_like(int_sol), fun)
     assert np.isclose(err, 1)
 
-    err = discr.error_l2(unit_sd_3d, int_sol, fun)
+    err = discr.error_l2(unit_sd_3d, int_sol, fun, poly_order=None)
     assert np.isclose(err, 0)
 
 
