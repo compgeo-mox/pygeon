@@ -277,13 +277,16 @@ class Discretization(abc.ABC):
         num_sol: np.ndarray,
         ana_sol: Callable[[np.ndarray], np.ndarray],
         relative: bool = True,
-        poly_order: int | None = None,
+        poly_order: int | None = -1,
         data: dict | None = None,
     ) -> float:
         """
         Returns the l2 error computed against an analytical solution given as a
-        function. NOTE: The default implementation uses interpolation which may result
-        in unexpected superconvergence. In that case, we advise specifying poly_order.
+        function. The default behavior interpolates the function as a piecewise
+        polynomial of order at least 1.
+
+        This behavior can be overruled by setting poly_order = None. Then the error is
+        computed using interpolation, which may result in unexpected superconvergence.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -291,14 +294,18 @@ class Discretization(abc.ABC):
             ana_sol (Callable): Function that represents the analytical solution.
             relative (bool, optional): Compute the relative error or not. Defaults to
                 True.
-            poly_order (int, optional): The default is to compare the numerical solution
-                to the interpolation of the given solution. If poly_order is specified,
-                the error is evaluated in a piecewise polynomial space of that order.
+            poly_order (int, optional): If poly_order is specified as an integer,
+                the error is evaluated in a piecewise polynomial space of that order. If
+                it is None, we use interpolation.
 
         Returns:
             float: The computed error.
         """
-        # Default case in which we interpolate the solution and compare
+        # Default case in which we use piecewise linears, at least.
+        if poly_order == -1:
+            poly_order = max(self.poly_order, 1)
+
+        # If poly_order is None, then we use the interpolant of the space.
         if poly_order is None:
             int_sol = self.interpolate(sd, ana_sol)
             mass = self.assemble_mass_matrix(sd, data)
@@ -316,4 +323,6 @@ class Discretization(abc.ABC):
             )
             proj_sol = pg.proj_to_PwPolynomials(self, sd, poly_order) @ num_sol
 
-            return poly_space.error_l2(sd, proj_sol, ana_sol, relative, data=data)
+            return poly_space.error_l2(
+                sd, proj_sol, ana_sol, relative, poly_order=None, data=data
+            )
