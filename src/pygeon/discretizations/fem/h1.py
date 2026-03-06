@@ -232,7 +232,7 @@ class Lagrange1(pg.Discretization):
         """
         if sd.dim == 0:
             return sps.csc_array((1, 0))
-        
+
         eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
 
