@@ -102,7 +102,7 @@ def test_assemble_asym_matrix(discr, unit_sd, constant_fun):
     if unit_sd.dim == 2:
         assert np.allclose(cell_asym_u, 2)
     else:
-        cell_asym_u = cell_asym_u.reshape((3, -1))
+        cell_asym_u = cell_asym_u.reshape((pg.AMBIENT_DIM, -1))
         assert np.allclose(cell_asym_u[0], 1)
         assert np.allclose(cell_asym_u[1], 0)
         assert np.allclose(cell_asym_u[2], 2)
@@ -142,7 +142,7 @@ def test_interp_eval_linears(discr, unit_sd):
 
     interp = discr.interpolate(unit_sd, linear)
     eval = discr.eval_at_cell_centers(unit_sd) @ interp
-    eval = np.reshape(eval, (unit_sd.dim * 3, unit_sd.num_cells))
+    eval = np.reshape(eval, (unit_sd.dim * pg.AMBIENT_DIM, unit_sd.num_cells))
 
     known = np.array(
         [linear(x)[: unit_sd.dim, :].ravel() for x in unit_sd.cell_centers.T]

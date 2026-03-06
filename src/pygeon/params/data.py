@@ -10,7 +10,7 @@ import pygeon as pg
 data_default = {
     pg.SECOND_ORDER_TENSOR: 1,  # Default permeability/conductivity tensor value
     pg.VECTOR_FIELD: np.zeros(
-        3
+        pg.AMBIENT_DIM
     ),  # Default vector field value (advection velocity field)
     pg.LAME_LAMBDA: 1,  # First Lamé parameter (bulk modulus related)
     pg.LAME_MU: 0.5,  # Second Lamé parameter (shear modulus)

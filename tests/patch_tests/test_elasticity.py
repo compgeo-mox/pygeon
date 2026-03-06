@@ -35,7 +35,7 @@ def test_footing_problem(unit_sd):
     bottom = np.hstack([np.isclose(unit_sd.nodes[unit_sd.dim - 1, :], 0)] * unit_sd.dim)
     top = np.isclose(unit_sd.face_centers[unit_sd.dim - 1, :], 1)
 
-    vec = np.zeros(3)
+    vec = np.zeros(pg.AMBIENT_DIM)
     vec[unit_sd.dim - 1] = -1
     fun = lambda _: vec
 

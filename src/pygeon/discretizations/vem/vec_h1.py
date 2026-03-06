@@ -11,7 +11,7 @@ import pygeon as pg
 
 class VecVLagrange1(pg.VecDiscretization):
     """
-    Vector Lagrange virtual element discretization for H1 space in 2d.
+    Vector Lagrange virtual element discretization for H1 space in 2D.
 
     This class represents a virtual element discretization for the H1 space using
     vector virtual Lagrange elements. It provides methods for assembling various
@@ -175,7 +175,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = cell_nodes.sum() * np.power(sd.dim, 3)
+        size = cell_nodes.sum() * np.power(sd.dim, pg.AMBIENT_DIM)
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)

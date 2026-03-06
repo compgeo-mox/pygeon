@@ -44,7 +44,7 @@ def b_vector() -> np.ndarray:
 
 @pytest.fixture()
 def b_matrix(b_vector: np.ndarray) -> np.ndarray:
-    return np.tile(b_vector, (3, 1)).T
+    return np.tile(b_vector, (pg.AMBIENT_DIM, 1)).T
 
 
 def test_block_diag_solver_dense_vec(M_sparse, b_vector):

@@ -88,7 +88,7 @@ def test_lumped_consistency(discr, ref_sd_3d):
     M_lumped = discr.assemble_lumped_matrix(ref_sd_3d)
     M_full = discr.assemble_mass_matrix(ref_sd_3d)
 
-    one_interp = discr.interpolate(ref_sd_3d, lambda _: np.ones(3))
+    one_interp = discr.interpolate(ref_sd_3d, lambda _: np.ones(pg.AMBIENT_DIM))
 
     integral_L = M_lumped @ one_interp
     integral_M = M_full @ one_interp

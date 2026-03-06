@@ -338,7 +338,7 @@ class PwConstants(PwPolynomials):
             sps.csc_array: The assembled broken gradient matrix.
         """
         ndof = self.ndof(sd)
-        return sps.csc_array((3 * ndof, ndof))
+        return sps.csc_array((pg.AMBIENT_DIM * ndof, ndof))
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

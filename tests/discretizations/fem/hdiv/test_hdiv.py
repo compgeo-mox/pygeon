@@ -38,7 +38,7 @@ def test_interp_eval_linears(discr, unit_sd):
 
     interp_q = discr.interpolate(unit_sd, q_linear)
     eval_q = discr.eval_at_cell_centers(unit_sd) @ interp_q
-    eval_q = np.reshape(eval_q, (3, -1))
+    eval_q = np.reshape(eval_q, (pg.AMBIENT_DIM, -1))
 
     known_q = np.array([q_linear(x) for x in unit_sd.cell_centers.T]).T
     assert np.allclose(eval_q, known_q)
@@ -65,7 +65,7 @@ def test_point_grid(discr, ref_sd_0d):
     assert discr.ndof(ref_sd_0d) == 0
     assert discr.assemble_mass_matrix(ref_sd_0d).nnz == 0
     assert discr.assemble_lumped_matrix(ref_sd_0d).nnz == 0
-    assert discr.eval_at_cell_centers(ref_sd_0d).shape == (3, 0)
+    assert discr.eval_at_cell_centers(ref_sd_0d).shape == (pg.AMBIENT_DIM, 0)
 
 
 def test_broken_div(discr, unit_sd):

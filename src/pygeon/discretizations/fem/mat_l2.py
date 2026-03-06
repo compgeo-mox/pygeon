@@ -112,12 +112,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         data_ = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
         R_tensor_order: int
-        if sd.dim == 2:
-            R_tensor_order = pg.SCALAR
-        elif sd.dim == 3:
-            R_tensor_order = pg.VECTOR
-        else:
-            raise ValueError
+        match sd.dim:
+            case 2:
+                R_tensor_order = pg.SCALAR
+            case 3:
+                R_tensor_order = pg.VECTOR
+            case _:
+                raise ValueError("The dimension must be 2 or 3.")
 
         R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
         R_mass = R_space.assemble_mass_matrix(sd, data_)
@@ -181,12 +182,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         mu_c = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU_COSSERAT)
 
         R_tensor_order: int
-        if sd.dim == 2:
-            R_tensor_order = pg.SCALAR
-        elif sd.dim == 3:
-            R_tensor_order = pg.VECTOR
-        else:
-            raise ValueError
+        match sd.dim:
+            case 2:
+                R_tensor_order = pg.SCALAR
+            case 3:
+                R_tensor_order = pg.VECTOR
+            case _:
+                raise ValueError("The dimension must be 2 or 3.")
 
         weight = 0.25 * (1 / mu_c - 1 / mu)
         data_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
@@ -310,9 +312,6 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         Returns:
             sps.csc_array: The symmetrization operator.
         """
-        # Extract the number of degrees of freedom for the underlying scalar space.
-        scalar_ndof = self.ndof(sd) // (sd.dim**2)
-
         # Construct the symmetrizing operator, depending on the dimension.
         sym = np.eye(sd.dim**2)
         match sd.dim:
@@ -327,6 +326,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
                 sym[np.ix_([5, 7], [5, 7])] = 0.5
             case _:
                 raise ValueError(f"Invalid grid dimension, sd.dim is {sd.dim}.")
+
+        # Extract the number of degrees of freedom for the underlying scalar space.
+        scalar_ndof = self.ndof(sd) // (sd.dim**2)
 
         return sps.kron(sym, sps.eye_array(scalar_ndof), format="csc")
 
@@ -396,10 +398,13 @@ class MatPwLinears(MatPwPolynomials):
         """
         # Retrieve the discretization for the rotation, it depends on the dimension
         disc_rot: pg.Discretization
-        if sd.dim == 2:
-            disc_rot = pg.PwConstants(self.keyword)
-        else:
-            disc_rot = pg.VecPwConstants(self.keyword)
+        match sd.dim:
+            case 2:
+                disc_rot = pg.PwConstants(self.keyword)
+            case 3:
+                disc_rot = pg.VecPwConstants(self.keyword)
+            case _:
+                raise ValueError("The dimension must be 2 or 3.")
 
         # The idea is to project the rotation from P0 to P1 to be able to
         # perform the assembly with the P1 asymmetry matrix

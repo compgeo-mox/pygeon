@@ -27,5 +27,5 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert np.allclose((M - L).data, 0)
 
     P_known = M.copy()
-    P_known.resize((3, discr.ndof(ref_sd)))
+    P_known.resize((pg.AMBIENT_DIM, discr.ndof(ref_sd)))
     assert np.allclose((P_known - P).data, 0)

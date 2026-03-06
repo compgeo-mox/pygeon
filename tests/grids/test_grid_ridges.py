@@ -8,7 +8,7 @@ import pygeon as pg
 
 
 def test_grid_0d(ref_sd_0d):
-    # no ridges or peaks are defined in 0d, we should obtain an empty map with
+    # no ridges or peaks are defined in 0D, we should obtain an empty map with
     # correct size
 
     assert ref_sd_0d.num_ridges == 0
@@ -19,7 +19,7 @@ def test_grid_0d(ref_sd_0d):
 
 
 def test_grid_1d(unit_sd_1d):
-    # no ridges or peaks are defined in 1d, we should obtain an empty map with
+    # no ridges or peaks are defined in 1D, we should obtain an empty map with
     # correct size
 
     assert unit_sd_1d.num_ridges == 0

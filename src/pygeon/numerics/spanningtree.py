@@ -284,74 +284,81 @@ class SpanningTreeElasticity(SpanningTree):
         fn /= np.linalg.norm(fn, axis=0)
         fn_xyz = np.split(fn.ravel(), 3)
 
-        if sd.dim == 2:
-            # This operator maps to div-free functions to capture the scalar rotation
-            # We take the difference between the first basis func
-            # on a face and the second.
-            P_tn = sps.csc_array(P_div, copy=True)
-            P_tn.data[1::2] = -1
+        match sd.dim:
+            case 2:
+                # This operator maps to div-free functions to capture the scalar
+                # rotation. We take the difference between the first basis function on
+                # a face and the second.
+                P_tn = sps.csc_array(P_div, copy=True)
+                P_tn.data[1::2] = -1
 
-            # scale with the face normals to obtain tensor-valued functions
-            n_times_P_tn = [P_tn * fn_xyz[i] for i in np.arange(sd.dim)]
-            P_asym = sps.vstack(n_times_P_tn)
+                # scale with the face normals to obtain tensor-valued functions
+                n_times_P_tn = [P_tn * fn_xyz[i] for i in np.arange(sd.dim)]
+                P_asym = sps.vstack(n_times_P_tn)
 
-        elif sd.dim == 3:
-            # Given an orthonormal basis (s, t) of the face,
-            # we generate three matrices that capture asymmetries
-            # in (t, n), (n, s), and (s, t).
-            P_asym = np.empty(3, dtype=sps.csc_array)
+            case 3:
+                # Given an orthonormal basis (s, t) of the face, we generate three
+                # matrices that capture asymmetries in (t, n), (n, s), and (s, t).
+                P_asym = np.empty(3, dtype=sps.csc_array)
 
-            # (t, n) Take the difference between
-            # the first dof on a face and the second dof
-            P_tn = sps.csc_array(P_div, copy=True)
-            # P_tn.data[0::3] = 1
-            P_tn.data[1::3] = -1
-            P_tn.data[2::3] = 0
+                # (t, n) Take the difference between the first dof on a face and the
+                # second dof
+                P_tn = sps.csc_array(P_div, copy=True)
+                # P_tn.data[0::3] = 1
+                P_tn.data[1::3] = -1
+                P_tn.data[2::3] = 0
 
-            # scale with the face normals
-            n_times_P_tn = [P_tn * fn_i for fn_i in fn_xyz]
-            P_asym[0] = sps.vstack(n_times_P_tn)
+                # scale with the face normals
+                n_times_P_tn = [P_tn * fn_i for fn_i in fn_xyz]
+                P_asym[0] = sps.vstack(n_times_P_tn)
 
-            # (s, n) Take the difference between
-            # the first dof on a face and the third dof
-            P_sn = sps.csc_array(P_div, copy=True)
-            # P_sn.data[0::3] = 1
-            P_sn.data[1::3] = 0
-            P_sn.data[2::3] = -1
+                # (s, n) Take the difference between the first dof on a face and the
+                # third dof
+                P_sn = sps.csc_array(P_div, copy=True)
+                # P_sn.data[0::3] = 1
+                P_sn.data[1::3] = 0
+                P_sn.data[2::3] = -1
 
-            # scale with the face normals
-            n_times_P_sn = [P_sn * fn_i for fn_i in fn_xyz]
-            P_asym[1] = sps.vstack(n_times_P_sn)
+                # scale with the face normals
+                n_times_P_sn = [P_sn * fn_i for fn_i in fn_xyz]
+                P_asym[1] = sps.vstack(n_times_P_sn)
 
-            # (s, t) This one is more complicated
-            # Extract the vectors s and t
-            dof_loc = [sd.nodes[:, sd.face_nodes.indices[i::3]] for i in np.arange(3)]
-            s = dof_loc[1] - dof_loc[0]
-            t = np.cross(fn, s, axisa=0, axisb=0, axisc=0)
+                # (s, t) This one is more complicated
+                # Extract the vectors s and t
+                dof_loc = [
+                    sd.nodes[:, sd.face_nodes.indices[i::3]] for i in np.arange(3)
+                ]
+                s = dof_loc[1] - dof_loc[0]
+                t = np.cross(fn, s, axisa=0, axisb=0, axisc=0)
 
-            # Normalize such that both scale as 1/h
-            s /= np.sum(np.square(s), axis=0)
-            t /= 2 * sd.face_areas
+                # Normalize such that both scale as 1/h
+                s /= np.sum(np.square(s), axis=0)
+                t /= 2 * sd.face_areas
 
-            # Generate functions in the s-direction
-            P_s = sps.csc_array(P_div, copy=True)
-            for ind in np.arange(3):
-                P_s.data[ind::3] = np.sum((dof_loc[ind] - sd.face_centers) * s, axis=0)
-            # Scale in the t-direction
-            t_times_P_s = [P_s * t_i for t_i in t]
-            P_asym[2] = sps.vstack(t_times_P_s)
+                # Generate functions in the s-direction
+                P_s = sps.csc_array(P_div, copy=True)
+                for ind in np.arange(3):
+                    P_s.data[ind::3] = np.sum(
+                        (dof_loc[ind] - sd.face_centers) * s, axis=0
+                    )
+                # Scale in the t-direction
+                t_times_P_s = [P_s * t_i for t_i in t]
+                P_asym[2] = sps.vstack(t_times_P_s)
 
-            # Generate functions in the t-direction
-            P_t = sps.csc_array(P_div, copy=True)
-            for ind in np.arange(3):
-                P_t.data[ind::3] = np.sum((dof_loc[ind] - sd.face_centers) * t, axis=0)
-            # Scale in the s-direction
-            s_times_P_t = [P_t * s_i for s_i in s]
-            P_asym[2] -= sps.vstack(s_times_P_t)
+                # Generate functions in the t-direction
+                P_t = sps.csc_array(P_div, copy=True)
+                for ind in np.arange(3):
+                    P_t.data[ind::3] = np.sum(
+                        (dof_loc[ind] - sd.face_centers) * t, axis=0
+                    )
+                # Scale in the s-direction
+                s_times_P_t = [P_t * s_i for s_i in s]
+                P_asym[2] -= sps.vstack(s_times_P_t)
 
-            P_asym = sps.hstack(P_asym)
-        else:
-            raise NotImplementedError("Grid must be 2D or 3D.")
+                P_asym = sps.hstack(P_asym)
+
+            case _:
+                raise NotImplementedError("Grid must be 2D or 3D.")
 
         # combine all the P
         P_div = sps.block_diag([P_div] * sd.dim)
@@ -381,11 +388,14 @@ class SpanningTreeElasticity(SpanningTree):
 
         M_div = vec_p0.assemble_mass_matrix(sd)
 
-        if sd.dim == 2:
-            p0 = pg.PwConstants(key)
-            M_asym = p0.assemble_mass_matrix(sd)
-        elif sd.dim == 3:
-            M_asym = M_div
+        match sd.dim:
+            case 2:
+                p0 = pg.PwConstants(key)
+                M_asym = p0.assemble_mass_matrix(sd)
+            case 3:
+                M_asym = M_div
+            case _:
+                raise NotImplementedError("Grid must be 2D or 3D.")
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
         asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)

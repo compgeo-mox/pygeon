@@ -203,13 +203,13 @@ class EinSteinGrid(pg.Grid):
 
     def as_polygon(self, pts: str) -> np.ndarray:
         """
-        Convert a string to a 2d polygon in homogeneous coordinate
+        Convert a string to a 2D polygon in homogeneous coordinate
 
         Args:
             pts (str): The string representing the polygon points.
 
         Returns:
-            np.ndarray: The 2d polygon in homogeneous coordinate
+            np.ndarray: The 2D polygon in homogeneous coordinate
         """
         coords = np.fromstring(pts.replace(",", " "), sep=" ")
         coords = coords.reshape((2, -1), order="F")
@@ -218,13 +218,13 @@ class EinSteinGrid(pg.Grid):
 
     def as_matrix(self, mat: str) -> np.ndarray:
         """
-        Convert a string to a 2d matrix in homogeneous coordinate
+        Convert a string to a 2D matrix in homogeneous coordinate
 
         Args:
             mat (str): The string representation of the matrix.
 
         Returns:
-            np.ndarray: The 2d matrix in homogeneous coordinate
+            np.ndarray: The 2D matrix in homogeneous coordinate
         """
         matrix = np.fromstring(mat[7:-1], sep=" ")
         matrix = matrix.reshape((2, -1), order="F")

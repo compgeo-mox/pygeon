@@ -94,7 +94,7 @@ class Lagrange1(pg.Discretization):
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
         # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
+        # surface coordinates in 1D and 2D)
         _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
 
         if not data or not data.get("is_tangential", False):
@@ -151,16 +151,17 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The differential matrix.
         """
-        if sd.dim == 3:
-            return sd.ridge_peaks.T.tocsc()
-        elif sd.dim == 2:
-            return sd.face_ridges.T.tocsc()
-        elif sd.dim == 1:
-            return sd.cell_faces.T.tocsc()
-        elif sd.dim == 0:
-            return sps.csc_array((0, 0))
-        else:
-            raise ValueError
+        match sd.dim:
+            case 3:
+                return sd.ridge_peaks.T.tocsc()
+            case 2:
+                return sd.face_ridges.T.tocsc()
+            case 1:
+                return sd.cell_faces.T.tocsc()
+            case 0:
+                return sps.csc_array((0, 0))
+            case _:
+                raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
     def local_adv(
         self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
@@ -231,6 +232,7 @@ class Lagrange1(pg.Discretization):
         """
         if sd.dim == 0:
             return sps.csc_array((1, 0))
+
         eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
 
@@ -296,14 +298,15 @@ class Lagrange1(pg.Discretization):
         Raises:
             NotImplementedError: If there's no zero discretization in PyGeoN.
         """
-        if dim == 3:
-            return pg.Nedelec0
-        elif dim == 2:
-            return pg.RT0
-        elif dim == 1:
-            return pg.PwConstants
-        else:
-            raise NotImplementedError("There's no zero discretization in PyGeoN")
+        match dim:
+            case 3:
+                return pg.Nedelec0
+            case 2:
+                return pg.RT0
+            case 1:
+                return pg.PwConstants
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")
 
 
 class Lagrange2(pg.Discretization):
@@ -466,18 +469,24 @@ class Lagrange2(pg.Discretization):
 
         # nodal dofs
         n_nodes = dphi.shape[1]
-        Psi_nodes = np.zeros((n_nodes, 3 * n_nodes))
+        Psi_nodes = np.zeros((n_nodes, pg.AMBIENT_DIM * n_nodes))
         for ind_n in np.arange(n_nodes):
-            Psi_nodes[ind_n, 3 * ind_n : 3 * (ind_n + 1)] = 4 * dphi[:, ind_n]
+            Psi_nodes[ind_n, pg.AMBIENT_DIM * ind_n : pg.AMBIENT_DIM * (ind_n + 1)] = (
+                4 * dphi[:, ind_n]
+            )
         Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
 
         # edge dofs
         n_edges = self.num_edges_per_cell(n_nodes - 1)
-        Psi_edges = np.zeros((n_edges, 3 * n_nodes))
+        Psi_edges = np.zeros((n_edges, pg.AMBIENT_DIM * n_nodes))
 
         for ind_e, (e0, e1) in enumerate(e_nodes):
-            Psi_edges[ind_e, 3 * e0 : 3 * (e0 + 1)] = 4 * dphi[:, e1]
-            Psi_edges[ind_e, 3 * e1 : 3 * (e1 + 1)] = 4 * dphi[:, e0]
+            Psi_edges[ind_e, pg.AMBIENT_DIM * e0 : pg.AMBIENT_DIM * (e0 + 1)] = (
+                4 * dphi[:, e1]
+            )
+            Psi_edges[ind_e, pg.AMBIENT_DIM * e1 : pg.AMBIENT_DIM * (e1 + 1)] = (
+                4 * dphi[:, e0]
+            )
 
         return np.vstack((Psi_nodes, Psi_edges))
 
@@ -496,21 +505,23 @@ class Lagrange2(pg.Discretization):
         Returns:
             np.ndarray: Indices of the edge degrees of freedom.
         """
+        match sd.dim:
+            case 1:
+                # The only edge in 1D is the cell
+                edges = np.array([cell])
+            case 2:
+                # The edges (0, 1), (0, 2), and (1, 2)
+                # are the faces opposite nodes 2, 1, and 0, respectively.
+                edges = faces[::-1]
+            case 3:
+                # We first find the edges adjacent to the local faces
+                cell_edges = abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
+                edge_inds = np.where(cell_edges)[0]
 
-        if sd.dim == 1:
-            # The only edge in 1d is the cell
-            edges = np.array([cell])
-        elif sd.dim == 2:
-            # The edges (0, 1), (0, 2), and (1, 2)
-            # are the faces opposite nodes 2, 1, and 0, respectively.
-            edges = faces[::-1]
-        elif sd.dim == 3:
-            # We first find the edges adjacent to the local faces
-            cell_edges = abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
-            edge_inds = np.where(cell_edges)[0]
-
-            # Experimentally, we always find the following numbering
-            edges = edge_inds[[5, 4, 2, 3, 1, 0]]
+                # Experimentally, we always find the following numbering
+                edges = edge_inds[[5, 4, 2, 3, 1, 0]]
+            case _:
+                raise ValueError("Dimension must be 1, 2, or 3.")
 
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
@@ -579,47 +590,47 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The differential matrix.
         """
+        match sd.dim:
+            case 0:
+                # In a point, the differential is the trivial map
+                return sps.csc_array((0, 1))
+            case 1:
+                # In 1D, the gradient of the nodal functions scales as 1/h
+                diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()
+                diff_nodes_1 = diff_nodes_0.copy()
 
-        if sd.dim == 0:
-            # In a point, the differential is the trivial map
-            return sps.csc_array((0, 1))
-        elif sd.dim == 1:
-            # In 1D, the gradient of the nodal functions scales as 1/h
-            diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()
-            diff_nodes_1 = diff_nodes_0.copy()
+                # The derivative of the nodal basis functions is equal to 3
+                # on one side of the element and -1 on the other
+                diff_nodes_0.data[0::2] = 3 * diff_nodes_0.data[0::2]
+                diff_nodes_0.data[1::2] = -diff_nodes_0.data[1::2]
+                diff_nodes_1.data[0::2] = -diff_nodes_1.data[0::2]
+                diff_nodes_1.data[1::2] = 3 * diff_nodes_1.data[1::2]
 
-            # The derivative of the nodal basis functions is equal to 3
-            # on one side of the element and -1 on the other
-            diff_nodes_0.data[0::2] = 3 * diff_nodes_0.data[0::2]
-            diff_nodes_0.data[1::2] = -diff_nodes_0.data[1::2]
-            diff_nodes_1.data[0::2] = -diff_nodes_1.data[0::2]
-            diff_nodes_1.data[1::2] = 3 * diff_nodes_1.data[1::2]
+                diff_nodes = sps.vstack((diff_nodes_0, diff_nodes_1))
 
-            diff_nodes = sps.vstack((diff_nodes_0, diff_nodes_1))
+                # The derivative of the edge (cell) basis functions are 4 and -4
+                diff_edges_0 = sps.diags_array(4 / sd.cell_volumes)
+                diff_edges = sps.vstack((diff_edges_0, -diff_edges_0))
 
-            # The derivative of the edge (cell) basis functions are 4 and -4
-            diff_edges_0 = sps.diags_array(4 / sd.cell_volumes)
-            diff_edges = sps.vstack((diff_edges_0, -diff_edges_0))
+                return sps.hstack((diff_nodes, diff_edges)).tocsc()
 
-            return sps.hstack((diff_nodes, diff_edges)).tocsc()
+            # The 2D and 3D cases can be handled in a general way
+            case 2:
+                edge_nodes = sd.face_ridges
+                num_edges = sd.num_faces
+                # The second degree of freedom on an edge
+                # is oriented in the same way as the first
+                second_dof_scaling = 1
 
-        # The 2D and 3D cases can be handled in a general way
-        elif sd.dim == 2:
-            edge_nodes = sd.face_ridges
-            num_edges = sd.num_faces
-            # The second degree of freedom on an edge
-            # is oriented in the same way as the first
-            second_dof_scaling = 1
+            case 3:
+                edge_nodes = sd.ridge_peaks
+                num_edges = sd.num_ridges
+                # By design of Nedelec1, we orient the second dof
+                # on an edge opposite to the first in 3D
+                second_dof_scaling = -1
 
-        elif sd.dim == 3:
-            edge_nodes = sd.ridge_peaks
-            num_edges = sd.num_ridges
-            # By design of Nedelec1, we orient the second dof
-            # on an edge opposite to the first in 3D
-            second_dof_scaling = -1
-
-        else:
-            raise ValueError
+            case _:
+                raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
         # Start of the edge
         # The nodal function associated with the start has derivative -3 here.
@@ -701,14 +712,24 @@ class Lagrange2(pg.Discretization):
             np.ndarray: An array containing the interpolated values at each node of the
             grid.
         """
-        if sd.dim == 0:
-            edge_coords = np.empty((3, 0))
-        elif sd.dim == 1:
-            edge_coords = sd.cell_centers
-        elif sd.dim == 2:
-            edge_coords = sd.face_centers
-        elif sd.dim == 3:
-            edge_coords = sd.nodes @ abs(sd.ridge_peaks) / 2
+        match sd.dim:
+            case 0:
+                # In a point, there are no edges, so we only evaluate at the node
+                edge_coords = np.empty((pg.AMBIENT_DIM, 0))
+            case 1:
+                # In 1D, the edge coordinate is the cell center, which is the midpoint
+                # of the two nodes
+                edge_coords = sd.cell_centers
+            case 2:
+                # In 2D, the edge coordinate is the face center, which is the midpoint
+                # of the two nodes opposite to the face, and is given by sd.face_centers
+                edge_coords = sd.face_centers
+            case 3:
+                # In 3D, the edge coordinate is the midpoint of the two nodes opposite
+                # to the ridge
+                edge_coords = sd.nodes @ abs(sd.ridge_peaks) / 2
+            case _:
+                raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
         coords = np.hstack((sd.nodes, edge_coords))
 
@@ -750,19 +771,22 @@ class Lagrange2(pg.Discretization):
             loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
             loc_n = sd.face_nodes.indices[loc]
 
-            if sd.dim == 2:
-                edges = np.array([face])
-            elif sd.dim == 3:
-                # List local edges
-                edges = sd.face_ridges.indices[loc]
+            match sd.dim:
+                case 2:
+                    edges = np.array([face])
+                case 3:
+                    # List local edges
+                    edges = sd.face_ridges.indices[loc]
 
-                # Swap ordering so that edge 0 is opposite node 2
-                check = sd.face_nodes[:, [face] * 3].astype(bool) - edge_nodes[
-                    :, edges
-                ].astype(bool)
-                edges = edges[np.argsort(check.indices)]
+                    # Swap ordering so that edge 0 is opposite node 2
+                    check = sd.face_nodes[:, [face] * 3].astype(bool) - edge_nodes[
+                        :, edges
+                    ].astype(bool)
+                    edges = edges[np.argsort(check.indices)]
 
-                assert not np.any(edge_nodes[loc_n, edges])
+                    assert not np.any(edge_nodes[loc_n, edges])
+                case _:
+                    raise ValueError("Dimension must be 2 or 3.")
 
             # Evaluate f at the nodes and edges
             f_vals = np.empty(sd.dim + len(edges))
@@ -793,11 +817,12 @@ class Lagrange2(pg.Discretization):
         Raises:
             NotImplementedError: There is no zero-dimensional discretization in PyGeoN.
         """
-        if dim == 3:
-            return pg.Nedelec1
-        elif dim == 2:
-            return pg.BDM1
-        elif dim == 1:
-            return pg.PwLinears
-        else:
-            raise NotImplementedError("There's no zero discretization in PyGeoN")
+        match dim:
+            case 3:
+                return pg.Nedelec1
+            case 2:
+                return pg.BDM1
+            case 1:
+                return pg.PwLinears
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")
