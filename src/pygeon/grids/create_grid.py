@@ -175,7 +175,7 @@ def reference_element(dim: int) -> pg.Grid:
         return sd
 
     elif dim == 2:
-        nodes = np.eye(pg.AMBIENT_DIM, k=1)
+        nodes = np.eye(pg.AMBIENT_DIM, 3, k=1)
 
         indices = np.array([1, 2, 0, 2, 0, 1])
         indptr = np.array([0, 2, 4, 6])
