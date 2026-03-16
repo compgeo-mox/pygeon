@@ -103,9 +103,8 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The weighting matrix.
         """
-        # Retrieve the underlying numpy array of shape
-        # (3, 3, n_cells) and rotate it to the reference plane
-        # or line. Code taken from pp.SecondOrderTensor.rotate().
+        # Retrieve the underlying numpy array of shape (3, 3, n_cells) and rotate it to
+        # the reference plane or line. Code taken from pp.SecondOrderTensor.rotate().
         R = sd.rotation_matrix
         rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
 
