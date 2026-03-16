@@ -174,7 +174,6 @@ def reference_element(dim: int) -> pg.Grid:
             sd = unit_grid(1, 1, as_mdg=False)
             sd.name = "reference_segment"
             return sd
-
         case 2:
             nodes = np.eye(pg.AMBIENT_DIM, 3, k=1)
 
@@ -185,7 +184,6 @@ def reference_element(dim: int) -> pg.Grid:
             cell_faces = sps.csc_array(np.array([1, -1, 1])[:, None])
 
             return pg.Grid(2, nodes, face_nodes, cell_faces, "reference_triangle")
-
         case 3:
             nodes = np.eye(pg.AMBIENT_DIM, 4, k=1)
 
@@ -196,6 +194,5 @@ def reference_element(dim: int) -> pg.Grid:
             cell_faces = sps.csc_array(np.array([1, -1, 1, -1])[:, None])
 
             return pg.Grid(3, nodes, face_nodes, cell_faces, "reference_tetrahedron")
-
         case _:
             raise ValueError("Dimension must be 1, 2, or 3.")

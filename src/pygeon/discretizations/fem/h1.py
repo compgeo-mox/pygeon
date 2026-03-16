@@ -613,7 +613,6 @@ class Lagrange2(pg.Discretization):
                 diff_edges = sps.vstack((diff_edges_0, -diff_edges_0))
 
                 return sps.hstack((diff_nodes, diff_edges)).tocsc()
-
             # The 2D and 3D cases can be handled in a general way
             case 2:
                 edge_nodes = sd.face_ridges
@@ -621,14 +620,12 @@ class Lagrange2(pg.Discretization):
                 # The second degree of freedom on an edge
                 # is oriented in the same way as the first
                 second_dof_scaling = 1
-
             case 3:
                 edge_nodes = sd.ridge_peaks
                 num_edges = sd.num_ridges
                 # By design of Nedelec1, we orient the second dof
                 # on an edge opposite to the first in 3D
                 second_dof_scaling = -1
-
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
 

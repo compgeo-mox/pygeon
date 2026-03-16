@@ -78,7 +78,6 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
                 case 1:
                     rows_I[idx] = sd.num_faces + c
                     data_IJ[idx] = -sd.cell_faces[f, c]
-
                 case 2:
                     other_f = loc_faces[loc_faces != f]
                     mask = np.argsort(face_nodes.indices[face_nodes.indptr[other_f]])
@@ -90,13 +89,11 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
                     data_IJ[idx : idx + sd.dim] = (
                         np.array([1, -1]) * sd.cell_faces[f, c]
                     )
-
                 case 3:
                     fr = sd.face_ridges[:, [f]]
                     loc_ridges = fr.indices
                     rows_I[idx : idx + sd.dim] = new_face_inds[loc_ridges, c].todense()
                     data_IJ[idx : idx + sd.dim] = -sd.cell_faces[f, c] * fr.data
-
                 case _:
                     raise ValueError("The dimension must be 1, 2, or 3.")
 
@@ -122,7 +119,6 @@ def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
             # Each new face is at the location of a new node
             rows_I = new_nodes
             cols_J = np.arange(sd.num_cells)
-
         case 2:
             # Each new face connects a node to a cell-center
             opposite_nodes = sd.compute_opposite_nodes()
@@ -130,7 +126,6 @@ def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
                 (opposite_nodes.data, np.repeat(new_nodes, sd.dim + 1))
             )
             cols_J = np.tile(np.arange(opposite_nodes.data.size), sd.dim)
-
         case 3:
             # Each new face connects a ridge to a cell-center
             cell_ridges = np.abs(sd.face_ridges) @ np.abs(sd.cell_faces)
@@ -143,7 +138,6 @@ def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
             cells = sd.num_nodes + np.repeat(np.arange(sd.num_cells), 6)
             rows_I = np.concatenate((rows_I, cells))
             cols_J = np.concatenate((cols_J, np.arange(ridges.size)))
-
         case _:
             raise ValueError("The dimension must be 1, 2 or 3.")
 

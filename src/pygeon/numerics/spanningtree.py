@@ -295,7 +295,6 @@ class SpanningTreeElasticity(SpanningTree):
                 # scale with the face normals to obtain tensor-valued functions
                 n_times_P_tn = [P_tn * fn_xyz[i] for i in np.arange(sd.dim)]
                 P_asym = sps.vstack(n_times_P_tn)
-
             case 3:
                 # Given an orthonormal basis (s, t) of the face, we generate three
                 # matrices that capture asymmetries in (t, n), (n, s), and (s, t).
@@ -356,7 +355,6 @@ class SpanningTreeElasticity(SpanningTree):
                 P_asym[2] -= sps.vstack(s_times_P_t)
 
                 P_asym = sps.hstack(P_asym)
-
             case _:
                 raise NotImplementedError("Grid must be 2D or 3D.")
 
