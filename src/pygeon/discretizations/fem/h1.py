@@ -714,12 +714,10 @@ class Lagrange2(pg.Discretization):
                 # In a point, there are no edges, so we only evaluate at the node
                 edge_coords = np.empty((pg.AMBIENT_DIM, 0))
             case 1:
-                # In 1D, the edge coordinate is the cell center, which is the midpoint
-                # of the two nodes
+                # In 1D, the edge coordinate is the cell center
                 edge_coords = sd.cell_centers
             case 2:
-                # In 2D, the edge coordinate is the face center, which is the midpoint
-                # of the two nodes opposite to the face, and is given by sd.face_centers
+                # In 2D, the edge coordinate is the face center
                 edge_coords = sd.face_centers
             case 3:
                 # In 3D, the edge coordinate is the midpoint of the two nodes opposite
