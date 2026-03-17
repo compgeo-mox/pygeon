@@ -38,7 +38,6 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 )
                 / 30
             )
-
         case 2:
             M_known = (
                 np.array(
@@ -86,7 +85,6 @@ def test_assemble_diff_matrix(discr, ref_sd):
                     [1.0, 3.0, -4.0],
                 ]
             )
-
         case 2:
             D_known = np.array(
                 [
@@ -134,7 +132,6 @@ def test_assemble_stiff_matrix(discr, ref_sd):
                 )
                 / 6
             )
-
         case 2:
             M_known = (
                 np.array(

@@ -27,7 +27,7 @@ def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
 def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
     """
     Perform Laplace regularization on the grid by solving a graph laplacian over the
-    face-ridges in 2d and ridge-peaks in 3d. The topology of the grid is preserved.
+    face-ridges in 2D and ridge-peaks in 3D. The topology of the grid is preserved.
 
     Args:
         sd (pg.Grid): The grid to regularize.
@@ -37,14 +37,17 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
         The Laplace regularized grid.
     """
     # Construct the Laplacian matrix
-    if sd.dim == 1:
-        incidence = sd.cell_faces
-    elif sd.dim == 2:
-        tags = sd.tags["domain_boundary_faces"]
-        incidence = sd.face_ridges[:, np.logical_not(tags)]
-    else:
-        tags = sd.tags["domain_boundary_ridges"]
-        incidence = sd.ridge_peaks[:, np.logical_not(tags)]
+    match sd.dim:
+        case 1:
+            incidence = sd.cell_faces
+        case 2:
+            tags = sd.tags["domain_boundary_faces"]
+            incidence = sd.face_ridges[:, np.logical_not(tags)]
+        case 3:
+            tags = sd.tags["domain_boundary_ridges"]
+            incidence = sd.ridge_peaks[:, np.logical_not(tags)]
+        case _:
+            raise ValueError("The dimension must be 1, 2, or 3.")
 
     A = incidence @ incidence.T
     A = sps.block_diag([A] * sd.dim, format="csc")

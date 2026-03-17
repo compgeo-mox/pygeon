@@ -31,7 +31,6 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 )
                 / 30
             )
-
         case 2:
             M_known = (
                 np.array(

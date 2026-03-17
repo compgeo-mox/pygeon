@@ -71,13 +71,13 @@ def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
         case 1:
 
             def func(x):
-                ans = np.zeros(3)
+                ans = np.zeros(pg.AMBIENT_DIM)
                 ans[: unit_sd.dim] = x[: unit_sd.dim]
                 return ans
         case 2:
 
             def func(x):
-                ans = np.zeros((3, 3))
+                ans = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
                 ans[: unit_sd.dim, : unit_sd.dim] = np.tile(
                     x[: unit_sd.dim], (unit_sd.dim, 1)
                 )
@@ -99,9 +99,9 @@ def test_lumped_consistency(discr, unit_sd):
         case 0:
             one = lambda _: 1
         case 1:
-            one = lambda _: np.ones(3)
+            one = lambda _: np.ones(pg.AMBIENT_DIM)
         case 2:
-            one = lambda _: np.ones((3, 3))
+            one = lambda _: np.ones((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
 
     one_interp = discr.interpolate(unit_sd, one)
     integral_L = M_lumped @ one_interp

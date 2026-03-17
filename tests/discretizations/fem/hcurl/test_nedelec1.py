@@ -114,7 +114,7 @@ def test_lumped_consistency(discr, unit_sd_3d):
     M_lumped = discr.assemble_lumped_matrix(unit_sd_3d)
     M_full = discr.assemble_mass_matrix(unit_sd_3d)
 
-    one_interp = discr.interpolate(unit_sd_3d, lambda _: np.ones(3))
+    one_interp = discr.interpolate(unit_sd_3d, lambda _: np.ones(pg.AMBIENT_DIM))
 
     integral_L = M_lumped @ one_interp
     integral_M = M_full @ one_interp
@@ -128,7 +128,7 @@ def test_interp_eval_linears(discr, unit_sd_3d):
 
     interp_q = discr.interpolate(unit_sd_3d, q_linear)
     eval_q = discr.eval_at_cell_centers(unit_sd_3d) @ interp_q
-    eval_q = np.reshape(eval_q, (3, -1))
+    eval_q = np.reshape(eval_q, (pg.AMBIENT_DIM, -1))
 
     known_q = np.array([q_linear(x) for x in unit_sd_3d.cell_centers.T]).T
     assert np.allclose(eval_q, known_q)

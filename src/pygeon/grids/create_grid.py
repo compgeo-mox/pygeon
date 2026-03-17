@@ -169,31 +169,30 @@ def reference_element(dim: int) -> pg.Grid:
     Returns:
         pg.Grid: The reference element.
     """
-    if dim == 1:
-        sd = unit_grid(1, 1, as_mdg=False)
-        sd.name = "reference_segment"
-        return sd
+    match dim:
+        case 1:
+            sd = unit_grid(1, 1, as_mdg=False)
+            sd.name = "reference_segment"
+            return sd
+        case 2:
+            nodes = np.eye(pg.AMBIENT_DIM, 3, k=1)
 
-    elif dim == 2:
-        nodes = np.eye(3, k=1)
+            indices = np.array([1, 2, 0, 2, 0, 1])
+            indptr = np.array([0, 2, 4, 6])
+            face_nodes = sps.csc_array((np.ones(6), indices, indptr))
 
-        indices = np.array([1, 2, 0, 2, 0, 1])
-        indptr = np.array([0, 2, 4, 6])
-        face_nodes = sps.csc_array((np.ones(6), indices, indptr))
+            cell_faces = sps.csc_array(np.array([1, -1, 1])[:, None])
 
-        cell_faces = sps.csc_array(np.array([1, -1, 1])[:, None])
+            return pg.Grid(2, nodes, face_nodes, cell_faces, "reference_triangle")
+        case 3:
+            nodes = np.eye(pg.AMBIENT_DIM, 4, k=1)
 
-        return pg.Grid(2, nodes, face_nodes, cell_faces, "reference_triangle")
+            indices = np.array([1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2])
+            indptr = np.array([0, 3, 6, 9, 12])
+            face_nodes = sps.csc_array((np.ones(12), indices, indptr))
 
-    elif dim == 3:
-        nodes = np.eye(3, 4, k=1)
+            cell_faces = sps.csc_array(np.array([1, -1, 1, -1])[:, None])
 
-        indices = np.array([1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2])
-        indptr = np.array([0, 3, 6, 9, 12])
-        face_nodes = sps.csc_array((np.ones(12), indices, indptr))
-
-        cell_faces = sps.csc_array(np.array([1, -1, 1, -1])[:, None])
-
-        return pg.Grid(3, nodes, face_nodes, cell_faces, "reference_tetrahedron")
-    else:
-        raise ValueError("Dimension must be 1, 2, or 3.")
+            return pg.Grid(3, nodes, face_nodes, cell_faces, "reference_tetrahedron")
+        case _:
+            raise ValueError("Dimension must be 1, 2, or 3.")

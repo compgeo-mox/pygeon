@@ -187,7 +187,7 @@ class Discretization(abc.ABC):
         """
         # If there are no degrees of freedom, we return an empty matrix.
         if self.ndof(sd) == 0:
-            return sps.csc_array((3**self.tensor_order, 0))
+            return sps.csc_array((pg.AMBIENT_DIM**self.tensor_order, 0))
 
         Pi = self.proj_to_PwPolynomials(sd)
         Poly_space = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(

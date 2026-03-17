@@ -38,7 +38,7 @@ def test_footing_problem(unit_poly_sd):
     )
     top = np.isclose(unit_poly_sd.face_centers[unit_poly_sd.dim - 1, :], 1)
 
-    vec = np.zeros(3)
+    vec = np.zeros(pg.AMBIENT_DIM)
     vec[unit_poly_sd.dim - 1] = -1
     fun = lambda _: vec
 
