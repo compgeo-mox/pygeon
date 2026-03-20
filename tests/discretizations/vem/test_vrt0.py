@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -30,14 +31,14 @@ def test_mass_matrix(discr, ref_square):
         / 4
     )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_lumped_matrix(discr, ref_square):
     L = discr.assemble_lumped_matrix(ref_square)
     L_known = np.eye(4) / 2
 
-    assert np.allclose(L.todense(), L_known)
+    assert matrix_equals(L.todense(), L_known)
 
 
 def test_assemble_nat_bc(discr, pentagon_sd):
@@ -72,4 +73,4 @@ def test_diff_matrix(discr, ref_square):
     D = discr.assemble_diff_matrix(ref_square)
     D_known = np.array([[-1, 1, -1, 1]])
 
-    assert np.allclose(D.todense(), D_known)
+    assert matrix_equals(D.todense(), D_known)

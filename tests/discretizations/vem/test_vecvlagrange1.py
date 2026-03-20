@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -53,14 +54,14 @@ def test_assemble_mass(discr, ref_square):
         / 336
     )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_div(discr, ref_square):
     div = discr.assemble_div_matrix(ref_square)
     div_known = np.array([[-1, 1, -1, 1, -1, -1, 1, 1]]) / 2
 
-    assert np.allclose(div.todense(), div_known)
+    assert matrix_equals(div.todense(), div_known)
 
 
 def test_assemble_symgrad(discr, ref_square):
@@ -77,7 +78,7 @@ def test_assemble_symgrad(discr, ref_square):
         / 4
     )
 
-    assert np.allclose(symgrad.todense(), symgrad_known)
+    assert matrix_equals(symgrad.todense(), symgrad_known)
 
 
 def test_assemble_divdiv(discr, ref_square):
@@ -98,7 +99,7 @@ def test_assemble_divdiv(discr, ref_square):
         / 4
     )
 
-    assert np.allclose(divdiv.todense(), divdiv_known)
+    assert matrix_equals(divdiv.todense(), divdiv_known)
 
 
 def test_assemble_symgradsymgrad(discr, ref_square):
@@ -119,7 +120,7 @@ def test_assemble_symgradsymgrad(discr, ref_square):
         / 8
     )
 
-    assert np.allclose(symgradsymgrad.todense(), symgradsymgrad_known)
+    assert matrix_equals(symgradsymgrad.todense(), symgradsymgrad_known)
 
 
 def test_interp_and_eval(discr, ref_octagon):

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -71,7 +72,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 / 2520
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_diff_matrix(discr, ref_sd):
@@ -114,7 +115,7 @@ def test_assemble_diff_matrix(discr, ref_sd):
                 ]
             )
 
-    assert np.allclose(D.todense(), D_known)
+    assert matrix_equals(D.todense(), D_known)
 
 
 def test_assemble_stiff_matrix(discr, ref_sd):
@@ -165,7 +166,7 @@ def test_assemble_stiff_matrix(discr, ref_sd):
                 / 30
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_range_discr(discr):

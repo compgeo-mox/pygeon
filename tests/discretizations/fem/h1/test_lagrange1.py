@@ -5,6 +5,7 @@ import porepy as pp
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -59,7 +60,7 @@ def test_assemble_mass_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
                 / 120
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_diff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
@@ -92,7 +93,7 @@ def test_assemble_diff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
                 ]
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
@@ -130,7 +131,7 @@ def test_assemble_stiff_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
                 / 6
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_adv_matrix(
@@ -174,7 +175,7 @@ def test_assemble_adv_matrix(
                 / 24
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
@@ -195,4 +196,4 @@ def test_assemble_lumped_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):
     L = discr.assemble_lumped_matrix(ref_sd)
     L_known = np.eye(ref_sd.dim + 1) / factorial(ref_sd.dim + 1)
 
-    assert np.allclose(L.todense(), L_known)
+    assert matrix_equals(L.todense(), L_known)

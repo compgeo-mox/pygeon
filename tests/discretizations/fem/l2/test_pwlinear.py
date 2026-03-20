@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -53,7 +54,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 / 120
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_lumped_matrix(discr, ref_sd):
@@ -62,7 +63,7 @@ def test_assemble_lumped_matrix(discr, ref_sd):
     L = discr.assemble_lumped_matrix(ref_sd)
     L_known = np.eye(discr.ndof(ref_sd)) / factorial(ref_sd.dim + 1)
 
-    assert np.allclose(L.todense(), L_known)
+    assert matrix_equals(L.todense(), L_known)
 
 
 def test_interpolate(discr, unit_sd_2d):

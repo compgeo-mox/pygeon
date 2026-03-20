@@ -5,6 +5,7 @@ import porepy as pp
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -27,7 +28,7 @@ def test_div_matrix(discr, ref_sd):
         case 3:
             D_known = np.array([[-1, 1, 0, 0, -1, 0, 1, 0, -1, 0, 0, 1]]) / 6
 
-    assert np.allclose(D.todense(), D_known)
+    assert matrix_equals(D.todense(), D_known)
 
 
 def test_symgrad_matrix(discr, ref_sd):
@@ -66,7 +67,7 @@ def test_symgrad_matrix(discr, ref_sd):
                 / 12
             )
 
-    assert np.allclose(D.todense(), D_known)
+    assert matrix_equals(D.todense(), D_known)
 
 
 def test_compute_stress(discr, unit_sd):

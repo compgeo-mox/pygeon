@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -64,11 +65,12 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 / 120
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_lumped(discr, ref_sd):
     L = discr.assemble_lumped_matrix(ref_sd)
+
     match ref_sd.dim:
         case 1:
             L_known = np.array([[1, 0], [0, 1]]) / 2
@@ -107,7 +109,7 @@ def test_assemble_lumped(discr, ref_sd):
                 / 24
             )
 
-    assert np.allclose(L.todense(), L_known)
+    assert matrix_equals(L.todense(), L_known)
 
 
 def test_lumped_consistency(discr, unit_sd_3d):
