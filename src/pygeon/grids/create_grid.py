@@ -40,7 +40,7 @@ def grid_from_domain(
         Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
     """
     mesh_size_min = kwargs.get("mesh_size_min", mesh_size / 10)
-    mesh_kwargs = {"mesh_size_frac": mesh_size, "mesh_size_min": mesh_size_min}
+    mesh_kwargs = {"mesh_size_fracture": mesh_size, "mesh_size_min": mesh_size_min}
 
     # Inspect the signature of the function to get the valid parameters
     sig = inspect.signature(pp.create_fracture_network)
