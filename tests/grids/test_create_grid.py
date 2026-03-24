@@ -156,3 +156,25 @@ def test_as_mdg():
 def test_wrong_input_reference_element():
     with pytest.raises(ValueError):
         pg.reference_element(0)
+
+
+def test_grid_with_fracture():
+    fracture = [pp.LineFracture(np.array([[0.25, 0.75], [0.5, 0.5]]))]
+
+    mdg = pg.unit_grid(2, 0.5, fractures=fracture)
+
+    assert np.isclose(mdg.num_subdomain_cells(), 22)
+    assert np.isclose(mdg.num_subdomain_faces(), 39)
+    assert np.isclose(mdg.num_subdomain_ridges(), 16)
+
+
+def test_grid_with_constraint():
+    constraint = [pp.LineFracture(np.array([[0.25, 0.75], [0.5, 0.5]]))]
+
+    sd = pg.unit_grid(
+        2, 0.5, False, fractures=constraint, constraints=np.arange(len(constraint))
+    )
+
+    assert np.isclose(sd.num_cells, 20)
+    assert np.isclose(sd.num_faces, 34)
+    assert np.isclose(sd.num_nodes, 15)
