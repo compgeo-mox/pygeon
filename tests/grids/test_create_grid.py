@@ -162,6 +162,7 @@ def test_grid_with_fracture():
     fracture = [pp.LineFracture(np.array([[0.25, 0.75], [0.5, 0.5]]))]
 
     mdg = pg.unit_grid(2, 0.5, fractures=fracture)
+    mdg.compute_geometry()
 
     assert np.isclose(mdg.num_subdomain_cells(), 22)
     assert np.isclose(mdg.num_subdomain_faces(), 39)
