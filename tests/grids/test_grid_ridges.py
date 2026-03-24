@@ -82,9 +82,9 @@ def test_mdg_2d():
         bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
         domain = pp.Domain(bounding_box=bbox)
         network = pp.create_fracture_network(fracs, domain)
-        mesh_kwargs = {"mesh_size_fracture": 1, "mesh_size_min": 1}
+        mesh_args = {"cell_size": 1.0, "mesh_size_min": 1.0}
 
-        return network.mesh(mesh_kwargs)
+        return pp.create_mdg("simplex", mesh_args, network)
 
     def known_face_ridges():
         data = np.array([-1, 1, 1, -1, 1, -1])
@@ -112,9 +112,9 @@ def test_mdg_3d():
         bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
         domain = pp.Domain(bounding_box=bbox)
         network = pp.create_fracture_network([f_1], domain=domain)
-        mesh_args = {"mesh_size_fracture": 1, "mesh_size_min": 1}
+        mesh_args = {"cell_size": 1.0, "mesh_size_min": 1.0}
 
-        return network.mesh(mesh_args)
+        return pp.create_mdg("simplex", mesh_args, network)
 
     def known_face_ridges():
         data = np.array([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1])
@@ -152,9 +152,9 @@ def test_mdg_3d_itsc():
         bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
         domain = pp.Domain(bounding_box=bbox)
         network = pp.create_fracture_network([f_1, f_2], domain=domain)
-        mesh_args = {"mesh_size_fracture": 1, "mesh_size_min": 1}
+        mesh_args = {"cell_size": 1.0, "mesh_size_min": 1.0}
 
-        return network.mesh(mesh_args)
+        return pp.create_mdg("simplex", mesh_args, network)
 
     def known_face_ridges_mg():
         return np.array(
