@@ -142,11 +142,11 @@ def test_concave_pentagon_from_pts():
 
 def test_unit_cube2(unit_sd_3d):
     # This hardcoded test may fail if gmsh or porepy decides to update their meshing
-    # algorithm.
+    # algorithm. However, we keep it as the "canary in a mine" to alert us to changes.
 
-    assert np.isclose(unit_sd_3d.num_cells, 100)
-    assert np.isclose(unit_sd_3d.num_faces, 242)
-    assert np.isclose(unit_sd_3d.num_nodes, 45)
+    assert np.isclose(unit_sd_3d.num_cells, 94)
+    assert np.isclose(unit_sd_3d.num_faces, 230)
+    assert np.isclose(unit_sd_3d.num_nodes, 44)
 
 
 def test_as_mdg():
