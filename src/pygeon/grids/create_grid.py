@@ -47,11 +47,9 @@ def grid_from_domain(
     # Create the fracture network
     frac_net = pp.create_fracture_network(domain=domain, **fracnet_kwargs)
 
-    # Inspect the signature of the function to get the valid parameters
-    sig = inspect.signature(pp.create_mdg)
-    gmsh_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
     # Create the mixed-dimensional grid
-    mdg = pp.create_mdg("simplex", mesh_kwargs, frac_net, **gmsh_kwargs)
+    create_mdg_kwargs = {k: v for k, v in kwargs.items() if k not in fracnet_kwargs}
+    mdg = pp.create_mdg("simplex", mesh_kwargs, frac_net, **create_mdg_kwargs)
 
     mdg = pg.convert_from_pp(mdg)
     if as_mdg:
