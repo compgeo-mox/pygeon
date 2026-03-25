@@ -131,7 +131,8 @@ class RT0(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = (sd.num_cells, self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -582,7 +583,8 @@ class RT1(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = (self.ndof(sd), self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def local_inner_product(self, dim: int) -> np.ndarray:
         """
@@ -774,7 +776,8 @@ class RT1(pg.Discretization):
             idx += P.size
 
         # Construct the global matrix
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = (pg.AMBIENT_DIM * sd.num_cells, self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -981,7 +984,8 @@ class RT1(pg.Discretization):
             idx += A.size
 
         # Construct the global matrix
-        cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = [sd.num_cells * sd.dim] * 2
+        cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
