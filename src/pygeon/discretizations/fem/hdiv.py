@@ -517,7 +517,7 @@ class RT1(pg.Discretization):
         Returns:
             np.ndarray: Array of local DOF indices associated with the cell.
         """
-        loc_face = np.hstack([faces_loc] * sd.dim)
+        loc_face = np.tile(faces_loc, sd.dim)
         loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
         loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
 
