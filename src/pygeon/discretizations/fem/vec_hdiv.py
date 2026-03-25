@@ -292,7 +292,7 @@ class VecBDM1(VecHDiv):
             sps.csc_array: The projection matrix to the RT0 space.
         """
         proj = self.base_discr.proj_to_RT0(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
+        return sps.kron(sps.eye_array(sd.dim), proj).tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -305,7 +305,7 @@ class VecBDM1(VecHDiv):
             sps.csc_array: The projection matrix.
         """
         proj = self.base_discr.proj_from_RT0(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
+        return sps.kron(sps.eye_array(sd.dim), proj).tocsc()
 
     def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """

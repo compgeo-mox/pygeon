@@ -50,7 +50,7 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
             raise ValueError("The dimension must be 1, 2, or 3.")
 
     A = incidence @ incidence.T
-    A = sps.block_diag([A] * sd.dim, format="csc")
+    A = sps.kron(sps.eye_array(sd.dim), A).tocsc()
 
     # Assemble right-hand side
     b = -A @ sd.nodes[: sd.dim, :].ravel()
@@ -89,7 +89,7 @@ def graph_laplace_dual_regularization(
     incidence = sps.hstack([sd.cell_faces, ghost_cells])
 
     A = incidence.T @ incidence
-    A = sps.block_diag([A] * sd.dim, format="csc")
+    A = sps.kron(sps.eye_array(sd.dim), A).tocsc()
 
     # Assemble right-hand side
     centers = np.hstack((sd.cell_centers, sd.face_centers[:, bd_faces]))

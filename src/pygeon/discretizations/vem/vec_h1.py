@@ -305,7 +305,7 @@ class VecVLagrange1(pg.VecDiscretization):
             idx += cols.size
 
         scalar_pen = sps.csc_array((data_V, (rows_I, cols_J)))
-        return sps.block_diag([scalar_pen] * sd.dim).tocsc()
+        return sps.kron(sps.eye_array(sd.dim), scalar_pen).tocsc()
 
     def assemble_loc_penalisation_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray

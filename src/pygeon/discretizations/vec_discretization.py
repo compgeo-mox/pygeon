@@ -209,4 +209,4 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The vectorized matrix.
         """
-        return sps.block_diag([matrix] * dim).tocsc()
+        return sps.kron(sps.eye_array(dim), matrix).tocsc()
