@@ -39,20 +39,17 @@ def grid_from_domain(
     Returns:
         Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
     """
-    mesh_size_min = kwargs.get("mesh_size_min", mesh_size / 10)
-    mesh_kwargs = {"mesh_size_frac": mesh_size, "mesh_size_min": mesh_size_min}
+    mesh_kwargs = {"cell_size": mesh_size}
 
     # Inspect the signature of the function to get the valid parameters
     sig = inspect.signature(pp.create_fracture_network)
-    sub_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+    fracnet_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
     # Create the fracture network
-    frac_net = pp.create_fracture_network(domain=domain, **sub_kwargs)
+    frac_net = pp.create_fracture_network(domain=domain, **fracnet_kwargs)
 
-    # Inspect the signature of the function to get the valid parameters
-    sig = inspect.signature(frac_net.mesh)
-    sub_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-    # Create the mesh
-    mdg = frac_net.mesh(mesh_kwargs, **sub_kwargs)
+    # Create the mixed-dimensional grid
+    create_mdg_kwargs = {k: v for k, v in kwargs.items() if k not in fracnet_kwargs}
+    mdg = pp.create_mdg("simplex", mesh_kwargs, frac_net, **create_mdg_kwargs)
 
     mdg = pg.convert_from_pp(mdg)
     if as_mdg:
