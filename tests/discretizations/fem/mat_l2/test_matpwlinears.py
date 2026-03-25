@@ -144,6 +144,8 @@ def test_assemble_mult_matrix_linear(discr, unit_sd):
 
 def test_assemble_corotational_correction(discr, ref_sd):
     if ref_sd.dim < 2:
+        with pytest.raises(ValueError):
+            discr.assemble_corotational_correction(ref_sd, np.empty(0))
         return
 
     if ref_sd.dim == 2:

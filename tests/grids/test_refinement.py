@@ -1,6 +1,7 @@
 """Module contains tests to validate the barycentric split on simplicial grids."""
 
 import numpy as np
+import pytest
 
 import pygeon as pg
 
@@ -16,3 +17,8 @@ def test_barycentric_split(unit_sd):
 
     assert (sd.face_ridges @ sd.cell_faces).nnz == 0
     assert (sd.ridge_peaks @ sd.face_ridges).nnz == 0
+
+
+def test_point_grid(ref_sd_0d):
+    with pytest.raises(ValueError):
+        pg.barycentric_split(ref_sd_0d)
