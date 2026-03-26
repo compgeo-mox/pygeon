@@ -79,7 +79,7 @@ def graph_laplace_dual_regularization(
     bd_faces = sd.tags["domain_boundary_faces"]
 
     # create the new ghost cells based on the boundary faces
-    ghost_cells = sps.diags(bd_faces, dtype=int, format="csc")
+    ghost_cells = sps.diags(bd_faces, dtype=int).tocsc()
     ghost_cells = ghost_cells[:, ghost_cells.nonzero()[1]]
 
     # consider the sign of the normal vector at the boundary and switch it

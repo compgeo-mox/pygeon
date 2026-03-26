@@ -205,7 +205,7 @@ class Nedelec1(pg.Discretization):
         # We first extract the connected cell-edge and edge-node pairs.
         match sd.dim:
             case 1:
-                cell_edges = sps.eye_array(sd.num_cells, format="csc")
+                cell_edges = sps.eye_array(sd.num_cells).tocsc()
                 edge_nodes = sd.cell_nodes()
             case 2:
                 cell_edges = sd.cell_faces

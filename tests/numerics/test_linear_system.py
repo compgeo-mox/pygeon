@@ -8,7 +8,7 @@ import pygeon as pg
 
 def test_simple_problem():
     """Coverage test"""
-    A = sps.eye(4, 4, format="csc")
+    A = sps.eye(4, 4).tocsc()
     b = np.tile(np.arange(4), (3, 1)).T
 
     LS = pg.LinearSystem(A, b)
