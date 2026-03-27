@@ -230,9 +230,6 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The matrix representing the projection at the cell centers.
         """
-        if sd.dim == 0:
-            return sps.csc_array((1, 0))
-
         eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
 
@@ -520,8 +517,6 @@ class Lagrange2(pg.Discretization):
 
                 # Experimentally, we always find the following numbering
                 edges = edge_inds[[5, 4, 2, 3, 1, 0]]
-            case _:
-                raise ValueError("Dimension must be 1, 2, or 3.")
 
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
@@ -723,8 +718,6 @@ class Lagrange2(pg.Discretization):
                 # In 3D, the edge coordinate is the midpoint of the two nodes opposite
                 # to the ridge
                 edge_coords = sd.nodes @ abs(sd.ridge_peaks) / 2
-            case _:
-                raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
         coords = np.hstack((sd.nodes, edge_coords))
 
@@ -780,8 +773,6 @@ class Lagrange2(pg.Discretization):
                     edges = edges[np.argsort(check.indices)]
 
                     assert not np.any(edge_nodes[loc_n, edges])
-                case _:
-                    raise ValueError("Dimension must be 2 or 3.")
 
             # Evaluate f at the nodes and edges
             f_vals = np.empty(sd.dim + len(edges))

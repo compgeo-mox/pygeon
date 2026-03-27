@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -64,7 +65,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 / 1260
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_source(discr, unit_sd_2d):

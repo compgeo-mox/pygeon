@@ -94,8 +94,6 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
                     loc_ridges = fr.indices
                     rows_I[idx : idx + sd.dim] = new_face_inds[loc_ridges, c].todense()
                     data_IJ[idx : idx + sd.dim] = -sd.cell_faces[f, c] * fr.data
-                case _:
-                    raise ValueError("The dimension must be 1, 2, or 3.")
 
             idx += sd.dim
 

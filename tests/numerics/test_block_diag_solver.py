@@ -6,6 +6,7 @@ import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture()
@@ -95,7 +96,7 @@ def test_assemble_inverse(M_sparse):
     expected_invM = np.linalg.inv(M_sparse.toarray())
 
     # Check if the solution is correct
-    assert np.allclose(invM.toarray(), expected_invM)
+    assert matrix_equals(invM.toarray(), expected_invM)
 
 
 @pytest.mark.parametrize(

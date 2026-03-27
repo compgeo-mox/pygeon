@@ -131,7 +131,8 @@ class RT0(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = (sd.num_cells, self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -516,7 +517,7 @@ class RT1(pg.Discretization):
         Returns:
             np.ndarray: Array of local DOF indices associated with the cell.
         """
-        loc_face = np.hstack([faces_loc] * sd.dim)
+        loc_face = np.tile(faces_loc, sd.dim)
         loc_face += np.repeat(np.arange(sd.dim), sd.dim + 1) * sd.num_faces
         loc_cell = sd.dim * sd.num_faces + sd.num_cells * np.arange(sd.dim) + c
 
@@ -537,10 +538,6 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_array: The mass matrix.
         """
-        # If a 0-d grid is given then we return an empty matrix
-        if sd.dim == 0:
-            return sps.csc_array((0, 0))
-
         inv_K = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
@@ -586,7 +583,8 @@ class RT1(pg.Discretization):
             idx += cols.size
 
         # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = (self.ndof(sd), self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def local_inner_product(self, dim: int) -> np.ndarray:
         """
@@ -749,10 +747,6 @@ class RT1(pg.Discretization):
         Returns:
              sps.csc_array: The evaluation matrix.
         """
-        # If a 0-d grid is given then we return an empty matrix
-        if sd.dim == 0:
-            return sps.csc_array((pg.AMBIENT_DIM, 0))
-
         # Allocate the data to store matrix P entries
         size = pg.AMBIENT_DIM * sd.dim * sd.num_cells
         rows_I = np.empty(size, dtype=int)
@@ -782,7 +776,8 @@ class RT1(pg.Discretization):
             idx += P.size
 
         # Construct the global matrix
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = (pg.AMBIENT_DIM * sd.num_cells, self.ndof(sd))
+        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -951,10 +946,6 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        # If a 0-d grid is given then we return an empty matrix
-        if sd.dim == 0:
-            return sps.csc_array((0, 0))
-
         bdm1 = pg.BDM1(self.keyword)
         bdm1_lumped = bdm1.assemble_lumped_matrix(sd, data) / (sd.dim + 2)
 
@@ -993,7 +984,8 @@ class RT1(pg.Discretization):
             idx += A.size
 
         # Construct the global matrix
-        cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)))
+        shape = [sd.num_cells * sd.dim] * 2
+        cell_dof_lumped = sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 

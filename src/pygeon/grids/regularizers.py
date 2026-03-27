@@ -50,7 +50,7 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
             raise ValueError("The dimension must be 1, 2, or 3.")
 
     A = incidence @ incidence.T
-    A = sps.block_diag([A] * sd.dim, format="csc")
+    A = sps.kron(sps.eye_array(sd.dim), A).tocsc()
 
     # Assemble right-hand side
     b = -A @ sd.nodes[: sd.dim, :].ravel()
@@ -79,7 +79,7 @@ def graph_laplace_dual_regularization(
     bd_faces = sd.tags["domain_boundary_faces"]
 
     # create the new ghost cells based on the boundary faces
-    ghost_cells = sps.diags(bd_faces, dtype=int, format="csc")
+    ghost_cells = sps.diags(bd_faces, dtype=int).tocsc()
     ghost_cells = ghost_cells[:, ghost_cells.nonzero()[1]]
 
     # consider the sign of the normal vector at the boundary and switch it
@@ -89,7 +89,7 @@ def graph_laplace_dual_regularization(
     incidence = sps.hstack([sd.cell_faces, ghost_cells])
 
     A = incidence.T @ incidence
-    A = sps.block_diag([A] * sd.dim, format="csc")
+    A = sps.kron(sps.eye_array(sd.dim), A).tocsc()
 
     # Assemble right-hand side
     centers = np.hstack((sd.cell_centers, sd.face_centers[:, bd_faces]))

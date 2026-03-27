@@ -58,3 +58,8 @@ def test_elasticity_regulatization(sd_voronoi):
 
     # Aspect ratios have improved
     assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)
+
+
+def test_point_grid(ref_sd_0d):
+    with pytest.raises(ValueError):
+        pg.graph_laplace_regularization(ref_sd_0d)

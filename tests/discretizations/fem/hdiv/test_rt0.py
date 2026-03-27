@@ -5,6 +5,7 @@ import porepy as pp
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -59,7 +60,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 / 30
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_adv_matrix(discr, ref_sd, vector_field):
@@ -95,7 +96,7 @@ def test_assemble_adv_matrix(discr, ref_sd, vector_field):
                 / 2
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_adv_matrix_default(discr, ref_sd):

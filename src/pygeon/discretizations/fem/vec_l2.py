@@ -118,7 +118,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             for i in range(sd.dim)
         ]
 
-        return sps.block_array(bmat, format="csc")
+        return sps.block_array(bmat).tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

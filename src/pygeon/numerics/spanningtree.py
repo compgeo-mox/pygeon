@@ -359,7 +359,7 @@ class SpanningTreeElasticity(SpanningTree):
                 raise NotImplementedError("Grid must be 2D or 3D.")
 
         # combine all the P
-        P_div = sps.block_diag([P_div] * sd.dim)
+        P_div = sps.kron(sps.eye_array(sd.dim), P_div)
         P = sps.hstack((P_div, P_asym)).tocsc()
 
         # restriction to the flagged faces and restrict P to them
@@ -392,8 +392,6 @@ class SpanningTreeElasticity(SpanningTree):
                 M_asym = p0.assemble_mass_matrix(sd)
             case 3:
                 M_asym = M_div
-            case _:
-                raise NotImplementedError("Grid must be 2D or 3D.")
 
         div = M_div @ vec_bdm1.assemble_diff_matrix(sd)
         asym = M_asym @ vec_bdm1.assemble_asym_matrix(sd, True)
@@ -422,7 +420,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
 
         expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
 
-        return sps.block_diag([expand] * dim_sig_omega).tocsc()
+        return sps.kron(sps.eye_array(dim_sig_omega), expand).tocsc()
 
     def compute_system(self, sd: pg.Grid) -> sps.csc_array:
         """

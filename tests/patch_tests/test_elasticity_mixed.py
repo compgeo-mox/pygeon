@@ -77,8 +77,7 @@ def setup_elasticity_natural_bcs(
             [-div, None, None],
             [asym, None, None],
         ],
-        format="csc",
-    )
+    ).tocsc()
 
     b_faces = sd.tags["domain_boundary_faces"]
     bc = Sigma_h.assemble_nat_bc(sd, u_boundary, b_faces)

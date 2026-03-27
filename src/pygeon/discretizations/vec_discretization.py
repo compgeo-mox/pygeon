@@ -203,9 +203,10 @@ class VecDiscretization(pg.Discretization):
         Vectorizes the given matrix by repeating it for each dimension of the grid.
 
         Args:
+            dim (int): Number of vector components.
             matrix (sps.csc_array): The matrix to be vectorized.
 
         Returns:
             sps.csc_array: The vectorized matrix.
         """
-        return sps.block_diag([matrix] * dim).tocsc()
+        return sps.kron(sps.eye_array(dim), matrix).tocsc()
