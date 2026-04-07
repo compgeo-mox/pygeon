@@ -442,7 +442,10 @@ class PwLinears(PwPolynomials):
         return matr.tocsc()
 
     def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+        self,
+        sd: pg.Grid,
+        func: Callable[[np.ndarray], np.ndarray],
+        use_gauss_quad: bool = True,
     ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
@@ -454,16 +457,21 @@ class PwLinears(PwPolynomials):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        cell_nodes = sd.cell_nodes()
-        vals = np.zeros((sd.num_cells, sd.dim + 1))
+        lookup = self.get_dof_lookup_array(sd).tocoo()
+        dofs = lookup.data
+        inv_dofs = np.argsort(dofs)
 
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        cells = lookup.col[inv_dofs]
+        nodes = lookup.row[inv_dofs]
 
-            vals[c, :] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+        alpha = 1 / np.sqrt(sd.dim + 2) if use_gauss_quad else 1.0
+        gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
 
-        return vals.ravel(order="F")
+        func_at_gauss = np.array([func(x) for x in gauss_pts.T])
+        func_at_cc = self.eval_at_cell_centers(sd) @ func_at_gauss
+        func_at_cc = func_at_cc[cells]
+
+        return func_at_cc + 1 / alpha * (func_at_gauss - func_at_cc)
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
