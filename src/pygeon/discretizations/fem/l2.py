@@ -453,25 +453,42 @@ class PwLinears(PwPolynomials):
         Args:
             sd (pg.Grid): Grid, or a subclass.
             func (Callable): A function that returns the function values at coordinates.
+            use_gauss_quad (bool): Flag to (de)activate interpolation based on Gauss
+                quadrature points. If False, the interpolation uses the nodal values,
+                which may lead to errors if the function is discontinuous.
 
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
         lookup = self.get_dof_lookup_array(sd).tocoo()
         dofs = lookup.data
-        inv_dofs = np.argsort(dofs)
 
-        cells = lookup.col[inv_dofs]
-        nodes = lookup.row[inv_dofs]
+        # Retrieve the (cell, node) pair for each degree of freedom
+        cells = np.empty_like(lookup.col)
+        nodes = np.empty_like(lookup.row)
+        cells[dofs] = lookup.col
+        nodes[dofs] = lookup.row
 
+        # Compute the Gauss points as a weighted average of the node and cell center
+        # coordinates.
         alpha = 1 / np.sqrt(sd.dim + 2) if use_gauss_quad else 1.0
         gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
 
+        # Evaluate the function at the Gauss points.
         func_at_gauss = np.array([func(x) for x in gauss_pts.T])
-        func_at_cc = self.eval_at_cell_centers(sd) @ func_at_gauss
-        func_at_cc = func_at_cc[cells]
 
-        return func_at_cc + 1 / alpha * (func_at_gauss - func_at_cc)
+        # To retrieve the values at the nodes, we first compute the value of the
+        # interpolated function at the cell center. Since the Gauss points are
+        # equidistant from the cell center, we can use eval_at_cc as the averaging
+        # operator.
+        interp_at_cc = self.eval_at_cell_centers(sd) @ func_at_gauss
+
+        # Expand from cell-indices to dof-indices
+        interp_at_cc = interp_at_cc[cells]
+
+        # Extrapolate the linear function from the cell center, through the
+        # Gauss point, to the node.
+        return interp_at_cc + 1 / alpha * (func_at_gauss - interp_at_cc)
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
