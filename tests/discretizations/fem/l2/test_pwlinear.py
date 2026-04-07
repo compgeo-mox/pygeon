@@ -82,7 +82,9 @@ def test_interpolate_heaviside(discr, unit_sd_1d):
     mass = discr.assemble_mass_matrix(unit_sd_1d)
 
     # Test to show that nodal interpolation of a discontinuous function leads to errors.
-    interp_nodal = discr.interpolate(unit_sd_1d, heaviside, use_gauss_quad=False)
+    lagrange1 = pg.Lagrange1()
+    interp_nodal = lagrange1.interpolate(unit_sd_1d, heaviside)
+    interp_nodal = lagrange1.proj_to_PwPolynomials(unit_sd_1d) @ interp_nodal
     assert not np.isclose(interp_nodal @ mass @ interp_nodal, true_norm_squared)
 
     # Test to show that interpolation using Gauss points is more accurate in this case.
