@@ -66,10 +66,10 @@ def test_assemble_lumped_matrix(discr, ref_sd):
     assert matrix_equals(L.todense(), L_known)
 
 
-def test_interpolate(discr, unit_sd_2d):
-    interp = discr.interpolate(unit_sd_2d, lambda x: x[0])
-    P = discr.eval_at_cell_centers(unit_sd_2d)
-    known = unit_sd_2d.cell_centers[0]
+def test_interpolate(discr, unit_sd):
+    interp = discr.interpolate(unit_sd, lambda x: x[0])
+    P = discr.eval_at_cell_centers(unit_sd)
+    known = unit_sd.cell_centers[0]
 
     assert np.allclose(P @ interp, known)
 
