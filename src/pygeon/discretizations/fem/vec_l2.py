@@ -121,7 +121,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         return sps.block_array(bmat).tocsc()
 
     def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], **kwargs
     ) -> np.ndarray:
         """
         Interpolates a vector-valued function onto the finite element space
@@ -135,7 +135,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         """
         # If the mesh is tilted, then the 3-vector from func needs to be rotated.
         rotated_func = lambda x: sd.rotation_matrix @ func(x)
-        return super().interpolate(sd, rotated_func)
+        return super().interpolate(sd, rotated_func, **kwargs)
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1

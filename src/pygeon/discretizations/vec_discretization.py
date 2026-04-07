@@ -106,7 +106,7 @@ class VecDiscretization(pg.Discretization):
         return self.vectorize(sd.dim, proj)
 
     def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], **kwargs
     ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space
@@ -119,7 +119,7 @@ class VecDiscretization(pg.Discretization):
             np.ndarray: The values of the degrees of freedom
         """
         interp = [
-            self.base_discr.interpolate(sd, lambda x: func(x)[d])
+            self.base_discr.interpolate(sd, lambda x: func(x)[d], **kwargs)
             for d in np.arange(sd.dim)
         ]
         return np.hstack(interp)

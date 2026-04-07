@@ -131,7 +131,7 @@ def test_assemble_mult_matrix_linear(discr, unit_sd):
         )
         return result
 
-    known = discr.interpolate(unit_sd, x_squared)
+    known = discr.interpolate(unit_sd, x_squared, use_gauss_quad=False)
 
     # Test the right multiplication
     mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=True)
