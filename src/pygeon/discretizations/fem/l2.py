@@ -442,9 +442,7 @@ class PwLinears(PwPolynomials):
         return matr.tocsc()
 
     def interpolate(
-        self,
-        sd: pg.Grid,
-        func: Callable[[np.ndarray], np.ndarray],
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space by evaluating the function
