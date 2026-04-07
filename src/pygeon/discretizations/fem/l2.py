@@ -445,17 +445,14 @@ class PwLinears(PwPolynomials):
         self,
         sd: pg.Grid,
         func: Callable[[np.ndarray], np.ndarray],
-        use_gauss_quad: bool = True,
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space
+        Interpolates a function onto the finite element space by evaluating the function
+        at the (sd.dim + 1) Gauss points.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             func (Callable): A function that returns the function values at coordinates.
-            use_gauss_quad (bool): Flag to (de)activate interpolation based on Gauss
-                quadrature points. If False, the interpolation uses the nodal values,
-                which may lead to errors if the function is discontinuous.
 
         Returns:
             np.ndarray: The values of the degrees of freedom.
@@ -471,7 +468,7 @@ class PwLinears(PwPolynomials):
 
         # Compute the Gauss points as a weighted average of the node and cell center
         # coordinates.
-        alpha = 1 / np.sqrt(sd.dim + 2) if use_gauss_quad else 1.0
+        alpha = 1 / np.sqrt(sd.dim + 2)
         gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
 
         # Evaluate the function at the Gauss points.
