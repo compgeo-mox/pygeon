@@ -74,6 +74,22 @@ def test_interpolate(discr, unit_sd):
     assert np.allclose(P @ interp, known)
 
 
+def test_interpolate_heaviside(discr, unit_sd_1d):
+    def heaviside(x):
+        return 0 if x[0] < 0.5 else 1
+
+    true_norm_squared = 0.5
+    mass = discr.assemble_mass_matrix(unit_sd_1d)
+
+    # Test to show that nodal interpolation of a discontinuous function leads to errors.
+    interp_nodal = discr.interpolate(unit_sd_1d, heaviside, use_gauss_quad=False)
+    assert not np.isclose(interp_nodal @ mass @ interp_nodal, true_norm_squared)
+
+    # Test to show that interpolation using Gauss points is more accurate in this case.
+    interp_gauss = discr.interpolate(unit_sd_1d, heaviside)
+    assert np.isclose(interp_gauss @ mass @ interp_gauss, true_norm_squared)
+
+
 def test_proj_to_lower_PwPolynomials(discr, unit_sd):
     P0 = pg.PwConstants()
 
