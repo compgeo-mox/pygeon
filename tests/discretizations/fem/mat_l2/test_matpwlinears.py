@@ -117,29 +117,37 @@ def test_assemble_mult_matrix_constant(discr, unit_sd):
     assert np.allclose(mult @ vec, known)
 
 
-def test_assemble_mult_matrix_linear(discr, unit_sd):
+def test_assemble_mult_matrix_heaviside(discr, unit_sd_1d):
     # Linear matrix function
     func = lambda x: np.vstack([x] * pg.AMBIENT_DIM)
-    vec = discr.interpolate(unit_sd, func)
+    linear = discr.interpolate(unit_sd_1d, func)
+
+    # Heaviside
+    func_hs = lambda x: (
+        np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
+        if x[0] < np.median(unit_sd_1d.nodes[0])
+        else np.eye(pg.AMBIENT_DIM)
+    )
+    hs = discr.interpolate(unit_sd_1d, func_hs)
 
     # Known output
-    def x_squared(x):
+    def ramp(x):
         result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
-        result[: unit_sd.dim, : unit_sd.dim] = (
-            func(x)[: unit_sd.dim, : unit_sd.dim]
-            @ func(x)[: unit_sd.dim, : unit_sd.dim]
+        result[: unit_sd_1d.dim, : unit_sd_1d.dim] = (
+            func_hs(x)[: unit_sd_1d.dim, : unit_sd_1d.dim]
+            @ func(x)[: unit_sd_1d.dim, : unit_sd_1d.dim]
         )
         return result
 
-    known = discr.interpolate(unit_sd, x_squared)
+    known = discr.interpolate(unit_sd_1d, ramp)
 
     # Test the right multiplication
-    mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=True)
-    assert np.allclose(mult @ vec, known)
+    mult = discr.assemble_mult_matrix(unit_sd_1d, hs, right_mult=True)
+    assert np.allclose(mult @ linear, known)
 
     # Test the left multiplication
-    mult = discr.assemble_mult_matrix(unit_sd, vec, right_mult=False)
-    assert np.allclose(mult @ vec, known)
+    mult = discr.assemble_mult_matrix(unit_sd_1d, hs, right_mult=False)
+    assert np.allclose(mult @ linear, known)
 
 
 def test_assemble_corotational_correction(discr, ref_sd):
