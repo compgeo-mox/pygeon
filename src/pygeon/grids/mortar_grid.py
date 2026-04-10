@@ -62,16 +62,11 @@ class MortarGrid(pp.MortarGrid):
 
         # Find information about the two-dimensional grid
         if self.dim == 1:
-            R = pp.map_geometry.project_plane_matrix(sd_up.nodes)
-            rot = np.dot(
-                R.T,
-                np.dot(
-                    np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]), R
-                ),
-            )
+            R = sd_up.rotation_matrix
+            rot = R.T @ np.array([[0.0, -1.0], [1.0, 0.0]]) @ R
         else:  # self.dim == 2
-            R = pp.map_geometry.project_plane_matrix(sd_down.nodes)
-            normal_to_sd_down = np.dot(R.T, [0, 0, 1])
+            R = sd_down.rotation_matrix
+            normal_to_sd_down = np.cross(R[0], R[1])
 
         for face_up, cell_down in zip(*sps.find(self.cell_faces)[:-1]):
             # Faces of cell in lower-dim grid
