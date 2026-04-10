@@ -97,7 +97,7 @@ def test_mdg_3d(_mdg_dict):
     assert mg.ridge_peaks.nnz == 2 * (frac_sd.num_nodes - num_tip_nodes)
 
     # TODO: Find bug in the ridge computation so that the following assertion holds
-    # assert mg.face_ridges.nnz == 2 * (frac_sd.num_faces - num_tip_nodes)
+    assert mg.face_ridges.nnz == 2 * (frac_sd.num_faces - num_tip_nodes)
 
 
 def test_mdg_3d_itsc(_mdg_dict):
