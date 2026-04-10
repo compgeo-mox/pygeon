@@ -68,6 +68,10 @@ class MortarGrid(pp.MortarGrid):
             R = sd_down.rotation_matrix
             normal_to_sd_down = np.cross(R[0], R[1])
 
+        # We look at (face_up, cell_down) pairs and match up the adjacent ridges and
+        # peaks. We cannot rely on fast pairing based on coordinates because entities
+        # get duplicated if a fracture crosses through. This way, we ensure that the
+        # connectivity is preserved.
         for face_up, cell_down in zip(*sps.find(self.cell_faces)[:-1]):
             # Faces of cell in lower-dim grid
             cf_down = sd_down.cell_faces
