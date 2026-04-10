@@ -57,11 +57,11 @@ class Grid(pp.Grid):
             None
         """
         super().compute_geometry()
+        self.compute_rotation_matrix()
         self.compute_ridges()
 
         self.compute_edge_properties()
         self.compute_mesh_size()
-        self.compute_rotation_matrix()
 
     def compute_ridges(self) -> None:
         """
@@ -131,8 +131,8 @@ class Grid(pp.Grid):
 
         # We compute the face tangential by mapping the face normal to a reference grid
         # in the xy-plane, rotating locally, and mapping back.
-        R = pp.map_geometry.project_plane_matrix(self.nodes)
-        loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+        R = self.rotation_matrix
+        loc_rot = np.array([[0.0, -1.0], [1.0, 0.0]])
         rot = R.T @ loc_rot @ R
         rotated_normal = rot @ self.face_normals
 
