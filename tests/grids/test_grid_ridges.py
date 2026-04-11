@@ -107,7 +107,6 @@ def test_mdg_3d(mdg):
 def test_mdg_3d_itsc(_mdg_dict):
     mdg = _mdg_dict["fracs_3D"]
 
-    for mg in mdg.interfaces():
-        if mg.dim == 1:
-            assert mg.ridge_peaks.shape == (0, 0)
-            assert mg.face_ridges.shape == (20, 2)
+    for mg in mdg.interfaces(dim=1):
+        assert mg.ridge_peaks.shape == (0, 0)
+        assert mg.face_ridges.shape == (20, 2)
