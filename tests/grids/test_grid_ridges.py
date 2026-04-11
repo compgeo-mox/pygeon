@@ -89,16 +89,19 @@ def test_mdg_2d(mdg_embedded_frac_2d):
 
 def test_mdg_3d(mdg):
     for mg in mdg.interfaces():
-        frac_sd = mg.sd_pair[1]
-        num_tip_nodes = frac_sd.tags["tip_nodes"].sum()
+        sd_down = mg.sd_pair[1]
 
-        # Check that the lower-dimensional faces occur twice
+        # Check that the lower-dimensional faces occur twice, except at tips.
         if mg.dim >= 1:
-            assert mg.face_ridges.nnz == 2 * (frac_sd.num_faces - num_tip_nodes)
+            sums = np.sum(np.abs(mg.face_ridges), axis=0)
+            assert np.allclose(sums[sd_down.tags["tip_faces"]], 0)
+            assert np.allclose(sums[~sd_down.tags["tip_faces"]], 2)
 
-        # Check that the lower-dimensional ridges occur twice
+        # Check that the lower-dimensional ridges occur twice, except at tips.
         if mg.dim >= 2:
-            assert mg.ridge_peaks.nnz == 2 * (frac_sd.num_nodes - num_tip_nodes)
+            sums = np.sum(np.abs(mg.ridge_peaks), axis=0)
+            assert np.allclose(sums[sd_down.tags["tip_nodes"]], 0)
+            assert np.allclose(sums[~sd_down.tags["tip_nodes"]], 2)
 
 
 def test_mdg_3d_itsc(_mdg_dict):
