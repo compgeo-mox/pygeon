@@ -87,23 +87,30 @@ def test_mdg_2d(mdg_embedded_frac_2d):
     assert (mg.face_ridges - known_face_ridges()).nnz == 0
 
 
-def test_mdg_3d(_mdg_dict):
-    mdg = _mdg_dict["embedded_frac_3D"]
-    mg = mdg.interfaces()[0]
+def test_mdg_3d(mdg):
+    for mg in mdg.interfaces():
+        sd_down = mg.sd_pair[1]
 
-    frac_sd = mdg.subdomains()[1]
-    num_tip_nodes = frac_sd.tags["tip_nodes"].sum()
+        # Check that the lower-dimensional faces occur twice, except at tips.
+        if mg.dim >= 1:
+            sums = np.sum(np.abs(mg.face_ridges), axis=0)
+            assert np.allclose(sums[sd_down.tags["tip_faces"]], 0)
+            assert np.allclose(sums[~sd_down.tags["tip_faces"]], 2)
 
-    assert mg.ridge_peaks.nnz == 2 * (frac_sd.num_nodes - num_tip_nodes)
-
-    # TODO: Find bug in the ridge computation so that the following assertion holds
-    # assert mg.face_ridges.nnz == 2 * (frac_sd.num_faces - num_tip_nodes)
+        # Check that the lower-dimensional ridges occur twice, except at tips.
+        if mg.dim >= 2:
+            sums = np.sum(np.abs(mg.ridge_peaks), axis=0)
+            assert np.allclose(sums[sd_down.tags["tip_nodes"]], 0)
+            assert np.allclose(sums[~sd_down.tags["tip_nodes"]], 2)
 
 
 def test_mdg_3d_itsc(_mdg_dict):
     mdg = _mdg_dict["fracs_3D"]
 
-    for mg in mdg.interfaces():
-        if mg.dim == 1:
-            assert mg.ridge_peaks.shape == (0, 0)
-            assert mg.face_ridges.shape == (20, 2)
+    for mg in mdg.interfaces(dim=1):
+        assert mg.ridge_peaks.shape == (0, 0)
+        assert mg.face_ridges.shape == (20, 2)
+
+    for mg in mdg.interfaces(dim=2):
+        assert mg.ridge_peaks.shape == (112, 20)
+        assert mg.face_ridges.shape == (392, 32)
