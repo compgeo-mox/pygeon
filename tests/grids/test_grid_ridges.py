@@ -110,3 +110,7 @@ def test_mdg_3d_itsc(_mdg_dict):
     for mg in mdg.interfaces(dim=1):
         assert mg.ridge_peaks.shape == (0, 0)
         assert mg.face_ridges.shape == (20, 2)
+
+    for mg in mdg.interfaces(dim=2):
+        assert mg.ridge_peaks.shape == (112, 20)
+        assert mg.face_ridges.shape == (392, 32)
