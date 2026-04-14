@@ -62,17 +62,21 @@ class MortarGrid(pp.MortarGrid):
 
         # Find information about the two-dimensional grid
         if self.dim == 1:
-            R = pp.map_geometry.project_plane_matrix(sd_up.nodes)
-            rot = np.dot(
-                R.T,
-                np.dot(
-                    np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]), R
-                ),
-            )
+            R = sd_up.rotation_matrix
+            rot = R.T @ np.array([[0.0, -1.0], [1.0, 0.0]]) @ R
         else:  # self.dim == 2
-            R = pp.map_geometry.project_plane_matrix(sd_down.nodes)
-            normal_to_sd_down = np.dot(R.T, [0, 0, 1])
+            R = sd_down.rotation_matrix
+            normal_to_sd_down = np.cross(R[0], R[1])
 
+        # Pre-computations to remove unnecessary recomputation.
+        cf_csr = sd_up.cell_faces.tocsr()
+        if self.dim == 2:
+            cr_down = sd_down.cell_nodes()
+
+        # We look at (face_up, cell_down) pairs and match up the adjacent ridges and
+        # peaks. We cannot rely on fast pairing based on coordinates because entities
+        # get duplicated if a fracture crosses through. This way, we ensure that the
+        # connectivity is preserved.
         for face_up, cell_down in zip(*sps.find(self.cell_faces)[:-1]):
             # Faces of cell in lower-dim grid
             cf_down = sd_down.cell_faces
@@ -85,11 +89,10 @@ class MortarGrid(pp.MortarGrid):
             ridges_up = fr_up.indices[fr_up.indptr[face_up] : fr_up.indptr[face_up + 1]]
 
             # Swap ridges around so they match with lower-dim faces
+            face_xyz = sd_down.face_centers[:, faces_down]
             if self.dim == 1:
-                face_xyz = sd_down.face_centers[:, faces_down]
                 ridge_xyz = sd_up.nodes[:, ridges_up]
             else:  # self.dim == 2
-                face_xyz = sd_down.nodes @ abs(sd_down.face_ridges[:, faces_down]) / 2
                 ridge_xyz = sd_up.nodes @ abs(sd_up.ridge_peaks[:, ridges_up]) / 2
 
             ridges_up = ridges_up[match_coordinates(face_xyz, ridge_xyz)]
@@ -97,7 +100,6 @@ class MortarGrid(pp.MortarGrid):
             # Ridge-peak connectivity in 3D
             if self.dim == 2:
                 # Ridges of cell in lower-dim grid
-                cr_down = sd_down.cell_nodes()
                 ridges_down = cr_down.indices[
                     cr_down.indptr[cell_down] : cr_down.indptr[cell_down + 1]
                 ]
@@ -118,7 +120,7 @@ class MortarGrid(pp.MortarGrid):
             # vector
 
             # Find the normal vector oriented outward wrt the higher-dim grid
-            is_outward = sd_up.cell_faces.tocsr()[face_up, :].data[0]
+            is_outward = cf_csr[face_up, :].data[0]
             normal_up = sd_up.face_normals[:, face_up] * is_outward
 
             # Find the normal to the lower-dim face
@@ -129,13 +131,13 @@ class MortarGrid(pp.MortarGrid):
                 # we say that orientations align if the rotated mortar
                 # normal corresponds to the normal of the
                 # lower-dimensional face
-                orientations_fr = np.dot(np.dot(rot, normal_up), normal_down)
+                orientations_fr = np.dot(rot @ normal_up, normal_down)
 
             else:  # self.dim == 2
                 # we say that orientations align if the cross product
                 # between the ridge tangent and the mortar normal corresponds
                 # to the normal of the lower-dimensional face
-                tangents = sd_up.nodes @ sd_up.ridge_peaks[:, ridges_up]
+                tangents = sd_up.edge_tangents[:, ridges_up]
                 products = np.cross(tangents, normal_up, axisa=0, axisc=0)
                 orientations_fr = [
                     np.dot(products[:, i], normal_down[:, i])
@@ -144,8 +146,8 @@ class MortarGrid(pp.MortarGrid):
 
                 # The (virtual) line connecting the low-dim ridge to
                 # the high-dim is oriented according to the normal to the fracture plane
-                orientations_rp = -np.dot(normal_up, normal_to_sd_down) * np.ones(
-                    peaks_up.shape
+                orientations_rp = np.full(
+                    peaks_up.shape, -np.dot(normal_up, normal_to_sd_down)
                 )
                 ridge_peaks[peaks_up, ridges_down] += np.sign(orientations_rp)
 
