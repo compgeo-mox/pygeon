@@ -356,6 +356,27 @@ class MatPwConstants(MatPwPolynomials):
         super().__init__(keyword)
         self.base_discr = pg.VecPwConstants(keyword)
 
+    def mat_invert(self, sd: pg.Grid, val: np.ndarray) -> np.ndarray:
+        """
+        Inverts a matrix-valued function in the matrix piecewise constant space.
+
+        Args:
+            sd (pg.Grid): The grid.
+            val (np.ndarray): The matrix-valued function to invert. It is assumed to be
+                piecewise constant and can be provided with shape (ndof,).
+
+        Returns:
+            np.ndarray: The inverted matrix-valued function, with the same shape as val.
+        """
+        # Reshape the input so that we can easily access its components per cell.
+        val_reshaped = val.reshape((sd.dim, sd.dim, -1)) / sd.cell_volumes
+        val_reshaped = np.transpose(val_reshaped, (2, 0, 1))  # shape (n_cells, d, d)
+
+        inv_val = np.linalg.inv(val_reshaped)  # shape (n_cells, d, d)
+
+        inv_val = np.transpose(inv_val, (1, 2, 0))  # shape (d, d, n_cells)
+        return (sd.cell_volumes * inv_val).ravel()
+
 
 class MatPwLinears(MatPwPolynomials):
     """
