@@ -20,7 +20,7 @@ def test_assemble_symmetrizing_matrix(discr, ref_sd_0d):
         discr.assemble_symmetrizing_matrix(ref_sd_0d)
 
 
-def test_mat_invert_2d(discr, unit_sd):
+def test_mat_invert(discr, unit_sd):
 
     fun = lambda _: np.array([[1, 2, 3], [4, 5, 6], [7, 8, 10]])
     mat = discr.interpolate(unit_sd, fun)
