@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # Project information.
 [project]
 name = "pygeon"
-version = "0.5.0"
+version = "1.0.0"
 description = "a Python package for GEO-Numerics"
 readme = "Readme.md"
 license = { text = "GPL" }
@@ -24,8 +24,7 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 dependencies = [
-    "porepy[development,testing] @ git+https://github.com/pmgbergen/porepy.git@develop",
-    "pyvista"
+    "porepy[development,testing] @ git+https://github.com/pmgbergen/porepy.git@develop>=1.13"
 ]
 
 # Information for the build system.
