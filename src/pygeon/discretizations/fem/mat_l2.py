@@ -312,14 +312,12 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         Returns:
             sps.csc_array: The transposition operator.
         """
-        # Create a d x d matrix where element (i, j) has the index of that element in
-        # the flattened array
-        mat = np.arange(sd.dim**2).reshape((sd.dim, sd.dim))
-
-        transp = np.zeros((sd.dim**2, sd.dim**2))
-        for i in range(sd.dim):
-            for j in range(sd.dim):
-                transp[mat[j, i], mat[i, j]] = 1
+        # The transpose operator is exactly the map that switches between "C" and "F"
+        # order
+        rows_I = np.arange(sd.dim**2, dtype=int)
+        cols_J = rows_I.reshape((sd.dim, sd.dim)).ravel(order="F")
+        data_IJ = np.ones_like(rows_I)
+        transp = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
         # Extract the number of degrees of freedom for the underlying scalar space.
         scalar_ndof = self.ndof(sd) // (sd.dim**2)
