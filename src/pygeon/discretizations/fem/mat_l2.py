@@ -302,6 +302,30 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             ]
             return sps.block_array(tiled_blocks).tocsc()
 
+    def assemble_transpose_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles and returns the operator that transposes a matrix-valued function.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The transposition operator.
+        """
+        # Create a d x d matrix where element (i, j) has the index of that element in
+        # the flattened array
+        mat = np.arange(sd.dim**2).reshape((sd.dim, sd.dim))
+
+        transp = np.zeros((sd.dim**2, sd.dim**2))
+        for i in range(sd.dim):
+            for j in range(sd.dim):
+                transp[mat[j, i], mat[i, j]] = 1
+
+        # Extract the number of degrees of freedom for the underlying scalar space.
+        scalar_ndof = self.ndof(sd) // (sd.dim**2)
+
+        return sps.kron(transp, sps.eye_array(scalar_ndof)).tocsc()
+
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles and returns the operator that symmetrizes a matrix-valued function.
