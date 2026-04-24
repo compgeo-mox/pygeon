@@ -150,6 +150,25 @@ def test_assemble_mult_matrix_heaviside(discr, unit_sd_1d):
     assert np.allclose(mult @ linear, known)
 
 
+def test_transpose(discr, unit_sd):
+    # Test to see that transposition and interpolation commute.
+    mat_func = lambda _: np.array(
+        [
+            [1, 2, 0],
+            [3, 4, 7],
+            [5, 6, 8],
+        ]
+    )
+    interp = discr.interpolate(unit_sd, mat_func)
+    transpose = discr.assemble_transpose_matrix(unit_sd)
+    trans_interp = transpose @ interp
+
+    trnsp_func = lambda x: mat_func(x).T
+    interp_trans = discr.interpolate(unit_sd, trnsp_func)
+
+    assert np.allclose(interp_trans, trans_interp)
+
+
 def test_assemble_corotational_correction(discr, ref_sd):
     if ref_sd.dim < 2:
         with pytest.raises(ValueError):
