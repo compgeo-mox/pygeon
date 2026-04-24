@@ -151,7 +151,6 @@ def test_assemble_mult_matrix_heaviside(discr, unit_sd_1d):
 
 
 def test_transpose(discr, unit_sd):
-    discr = pg.MatPwConstants("test")
     # Test to see that transposition and interpolation commute.
     mat_func = lambda _: np.array(
         [
@@ -164,13 +163,7 @@ def test_transpose(discr, unit_sd):
     transpose = discr.assemble_transpose_matrix(unit_sd)
     trans_interp = transpose @ interp
 
-    def trnsp_func(x):
-        result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
-        result[: unit_sd.dim, : unit_sd.dim] = mat_func(x)[
-            : unit_sd.dim, : unit_sd.dim
-        ].T
-        return result
-
+    trnsp_func = lambda x: mat_func(x).T
     interp_trans = discr.interpolate(unit_sd, trnsp_func)
 
     assert np.allclose(interp_trans, trans_interp)
