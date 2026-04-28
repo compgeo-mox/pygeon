@@ -1,6 +1,7 @@
 """Module for the discretizations of the matrix L2 space."""
 
 from functools import cache
+from typing import Callable, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -69,43 +70,25 @@ class SymMatPwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        # Number of dofs of the underlying scalar polynomial space. Full matrix dofs
-        # are ordered component-wise.
-        scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
-        scalar_ndof = scalar_space.ndof(sd)
-
         # Local expansion map from symmetric components to full matrix components.
         # Symmetric dofs are ordered by upper triangular entries in row-major order:
         # 2D (4x3): cols = (0,0), (0,1), (1,1)
         # 3D (9x6): cols = (0,0), (0,1), (0,2), (1,1), (1,2), (2,2)
-        match sd.dim:
-            case 2:
-                sym_adj = np.array(
-                    [
-                        [1, 0, 0],
-                        [0, 1, 0],
-                        [0, 1, 0],
-                        [0, 0, 1],
-                    ],
-                    dtype=float,
-                )
-            case 3:
-                sym_adj = np.array(
-                    [
-                        [1, 0, 0, 0, 0, 0],
-                        [0, 1, 0, 0, 0, 0],
-                        [0, 0, 1, 0, 0, 0],
-                        [0, 1, 0, 0, 0, 0],
-                        [0, 0, 0, 1, 0, 0],
-                        [0, 0, 0, 0, 1, 0],
-                        [0, 0, 1, 0, 0, 0],
-                        [0, 0, 0, 0, 1, 0],
-                        [0, 0, 0, 0, 0, 1],
-                    ],
-                    dtype=float,
-                )
-            case _:
-                raise ValueError("The grid should be either two or three-dimensional")
+        n_entries = (sd.dim + 1) * sd.dim // 2
+
+        # Create a matrix with the symmetric numbering in each entry
+        indices = np.empty((sd.dim, sd.dim), dtype=int)
+        i, j = np.triu_indices(sd.dim)
+        indices[i, j] = np.arange(n_entries)
+        indices[j, i] = np.arange(n_entries)
+
+        # Create the transfer matrix from symmetric to full matrix numbering
+        sym_adj = np.zeros((sd.dim**2, n_entries))
+        sym_adj[np.arange(sd.dim**2), indices.flatten()] = 1
+
+        # Number of dofs of the underlying scalar polynomial space. Full matrix dofs
+        # are ordered component-wise.
+        scalar_ndof = self.base_discr.ndof(sd) // (sd.dim**2)
 
         # Repeat the same component map for all scalar dofs.
         return sps.kron(sym_adj, sps.eye_array(scalar_ndof)).tocsc()
