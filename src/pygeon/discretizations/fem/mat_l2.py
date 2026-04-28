@@ -221,7 +221,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         # 3D: [1 0 0 0 1 0 0 0 1]
         trace = np.eye(sd.dim).reshape((1, -1))
 
-        return sps.kron(trace, sps.eye_array(scalar_ndof)).tocsc()
+        result = sps.kron(trace, sps.eye_array(scalar_ndof)).tocsc()
+        result.eliminate_zeros()
+        return result
 
     def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -252,7 +254,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             case _:
                 raise ValueError("The grid should be either two or three-dimensional")
 
-        return sps.kron(asym, sps.eye_array(scalar_ndof)).tocsc()
+        result = sps.kron(asym, sps.eye_array(scalar_ndof)).tocsc()
+        result.eliminate_zeros()
+        return result
 
     def assemble_mult_matrix(
         self, sd: pg.Grid, mult_mat: np.ndarray, right_mult: bool
@@ -292,7 +296,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             # Right multiplication is achieved by first assembling the block matrix and
             # then applying a Kronecker product to the transpose.
             mult_array = sps.block_array(blocks)
-            return sps.kron(identity, mult_array.T).tocsc()
+            result = sps.kron(identity, mult_array.T).tocsc()
+            result.eliminate_zeros()
+            return result
         else:
             # Left multiplication is achieved by first applying a Kronecker product and
             # then assembling the block matrix.
@@ -352,7 +358,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         # Extract the number of degrees of freedom for the underlying scalar space.
         scalar_ndof = self.ndof(sd) // (sd.dim**2)
 
-        return sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
+        result = sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
+        result.eliminate_zeros()
+        return result
 
 
 class MatPwConstants(MatPwPolynomials):
