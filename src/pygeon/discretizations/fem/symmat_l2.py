@@ -108,9 +108,7 @@ class SymMatPwPolynomials(pg.Discretization):
                 raise ValueError("The grid should be either two or three-dimensional")
 
         # Repeat the same component map for all scalar dofs.
-        result = sps.kron(sym_adj, sps.eye_array(scalar_ndof)).tocsc()
-        result.eliminate_zeros()
-        return result
+        return sps.kron(sym_adj, sps.eye_array(scalar_ndof)).tocsc()
 
     @cache
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
@@ -159,9 +157,7 @@ class SymMatPwPolynomials(pg.Discretization):
                 raise ValueError("The grid should be either two or three-dimensional")
 
         # Repeat the same component map for all scalar dofs.
-        result = sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
-        result.eliminate_zeros()
-        return result
+        return sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
 
     def interpolate(self, sd: pg.Grid, func: callable) -> np.ndarray:
         """
