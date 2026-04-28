@@ -1,7 +1,7 @@
 """Module for the discretizations of the matrix L2 space."""
 
 from functools import cache
-from typing import Callable, Type
+from typing import Callable, Type, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -129,7 +129,7 @@ class SymMatPwPolynomials(pg.Discretization):
         # Repeat the same component map for all scalar dofs.
         return sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
 
-    def interpolate(self, sd: pg.Grid, func: callable) -> np.ndarray:
+    def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
         """
         Interpolates a given matrix-valued function to the symmetric matrix-valued
         piecewise polynomial space. The input function is assumed to be symmetric, but
@@ -215,7 +215,8 @@ class SymMatPwConstants(SymMatPwPolynomials):
         Returns:
             np.ndarray: The inverted matrix-valued function, with the same shape as val.
         """
-        val = self.base_discr.mat_invert(sd, self.proj_to_PwPolynomials(sd) @ val)
+        base_discr = cast(pg.MatPwConstants, self.base_discr)
+        val = base_discr.mat_invert(sd, self.proj_to_PwPolynomials(sd) @ val)
         return self.assemble_symmetrizing_matrix(sd) @ val
 
 
