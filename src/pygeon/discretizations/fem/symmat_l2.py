@@ -8,9 +8,9 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class SymMatPwPolynomials(pg.MatPwPolynomials):
+class SymMatPwPolynomials(pg.Discretization):
     """
-    Base class for matrix-valued piecewise polynomial discretizations.
+    Base class for symmetric matrix-valued piecewise polynomial discretizations.
     """
 
     poly_order: int
@@ -19,13 +19,24 @@ class SymMatPwPolynomials(pg.MatPwPolynomials):
     tensor_order: int = pg.MATRIX
     """Matrix-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
-        Returns the number of degrees of freedom for the symmetric matrix-valued
-        piecewise polynomial discretization.
+        Initialize the symmetric matrix discretization class.
+        The base discretization class is pg.VecPwPolynomials.
 
         Args:
-            sd (pg.Grid): The grid.
+            keyword (str): The keyword for the symmetric matrix discretization class.
+                Default is pg.UNITARY_DATA.
+        """
+        super().__init__(keyword)
+        self.base_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(keyword)
+
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
 
         Returns:
             int: The number of degrees of freedom.
@@ -43,10 +54,11 @@ class SymMatPwPolynomials(pg.MatPwPolynomials):
         Returns:
             int: The number of degrees of freedom per cell.
         """
-        return int((sd.dim + 1) / (2 * sd.dim) * super().ndof_per_cell(sd))
+        scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        return (sd.dim + 1) * sd.dim // 2 * scalar_space.ndof_per_cell(sd)
 
     @cache
-    def assemble_sym_adj_matrix(self, sd: pg.Grid) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the projection matrix from the symmetric matrix-valued piecewise
         polynomial space to the full matrix-valued piecewise polynomial space.
@@ -59,7 +71,8 @@ class SymMatPwPolynomials(pg.MatPwPolynomials):
         """
         # Number of dofs of the underlying scalar polynomial space. Full matrix dofs
         # are ordered component-wise.
-        scalar_ndof = super().ndof(sd) // (sd.dim**2)
+        scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        scalar_ndof = scalar_space.ndof(sd)
 
         # Local expansion map from symmetric components to full matrix components.
         # Symmetric dofs are ordered by upper triangular entries in row-major order:
@@ -100,13 +113,13 @@ class SymMatPwPolynomials(pg.MatPwPolynomials):
         return result
 
     @cache
-    def assemble_sym_matrix(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the projection matrix from the full matrix-valued piecewise
         polynomial space to the symmetric matrix-valued piecewise polynomial space.
         Off-diagonal entries are averaged: sym_{ij} = (full_{ij} + full_{ji}) / 2.
-        This is the left inverse of assemble_sym_adj_matrix, meaning that
-        assemble_sym_matrix @ assemble_sym_adj_matrix = I
+        This is the left inverse of proj_to_PwPolynomials, meaning that
+        assemble_symmetrizing_matrix @ proj_to_PwPolynomials = I
 
         Args:
             sd (pg.Grid): The grid.
@@ -115,7 +128,8 @@ class SymMatPwPolynomials(pg.MatPwPolynomials):
             sps.csc_array: The projection matrix.
         """
         # Number of dofs of the underlying scalar polynomial space.
-        scalar_ndof = super().ndof(sd) // (sd.dim**2)
+        scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        scalar_ndof = scalar_space.ndof(sd)
 
         # Local averaging map from full matrix components to symmetric components.
         # Transpose of the expansion map, with off-diagonal rows scaled by 1/2.
@@ -162,24 +176,58 @@ class SymMatPwPolynomials(pg.MatPwPolynomials):
         Returns:
             np.ndarray: The interpolated function, with shape (ndof,).
         """
-        val = super().interpolate(sd, func)  # shape (ndof_full,)
-        return self.assemble_sym_matrix(sd) @ val  # shape (ndof_sym,)
+        val = self.base_discr.interpolate(sd, func)  # shape (ndof_full,)
+        return self.assemble_symmetrizing_matrix(sd) @ val  # shape (ndof_sym,)
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix for evaluating the discretization at the cell centers.
+        Assembles the matrix corresponding to the differential operator.
+
+        This method takes a grid object and returns the differential matrix
+        corresponding to the given grid.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid object or its subclass.
 
         Returns:
-             sps.csc_array: The evaluation matrix.
+            sps.csc_array: The differential matrix.
         """
-        val = super().eval_at_cell_centers(sd)  # shape (n_cells, ndof_full)
-        return val @ self.assemble_sym_adj_matrix(sd)  # shape (n_cells, ndof_sym)
+        return sps.csc_array((0, self.ndof(sd)))
+
+    def assemble_nat_bc(
+        self,
+        sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Assembles the natural boundary condition vector, equal to zero.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            func (Callable[[np.ndarray], np.ndarray]): The function defining the
+                 natural boundary condition.
+            b_faces (np.ndarray): The array of boundary faces.
+
+        Returns:
+            np.ndarray: The assembled natural boundary condition vector.
+        """
+        return np.zeros(self.ndof(sd))
+
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the discretization class for the range of the differential.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Raises:
+            NotImplementedError: There is no zero discretization available in PyGeoN.
+        """
+        raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
 
-class SymMatPwConstants(SymMatPwPolynomials, pg.MatPwConstants):
+class SymMatPwConstants(SymMatPwPolynomials):
     """
     A class representing the discretization using symmetric matrix piecewise constant
     functions.
@@ -187,21 +235,6 @@ class SymMatPwConstants(SymMatPwPolynomials, pg.MatPwConstants):
 
     poly_order = 0
     """Polynomial degree of the basis functions"""
-
-    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
-        Initialize the symmetric matrix discretization class.
-        The base discretization class is pg.PwConstants.
-
-        Args:
-            keyword (str): The keyword for the symmetric matrix discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        self.base_discr = pg.VecPwConstants(keyword)
 
     def mat_invert(self, sd: pg.Grid, val: np.ndarray) -> np.ndarray:
         """
@@ -216,8 +249,8 @@ class SymMatPwConstants(SymMatPwPolynomials, pg.MatPwConstants):
         Returns:
             np.ndarray: The inverted matrix-valued function, with the same shape as val.
         """
-        val = super().mat_invert(sd, self.assemble_sym_adj_matrix(sd) @ val)
-        return self.assemble_sym_matrix(sd) @ val
+        val = self.base_discr.mat_invert(sd, self.proj_to_PwPolynomials(sd) @ val)
+        return self.assemble_symmetrizing_matrix(sd) @ val
 
 
 class SymMatPwLinears(SymMatPwPolynomials):
@@ -229,21 +262,6 @@ class SymMatPwLinears(SymMatPwPolynomials):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
-        Initialize the symmetric matrix discretization class.
-        The base discretization class is pg.PwLinears.
-
-        Args:
-            keyword (str): The keyword for the symmetric matrix discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        self.base_discr = pg.VecPwLinears(keyword)
-
 
 class SymMatPwQuadratics(SymMatPwPolynomials):
     """
@@ -253,18 +271,3 @@ class SymMatPwQuadratics(SymMatPwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
-        Initialize the symmetric matrix discretization class.
-        The base discretization class is pg.PwQuadratics.
-
-        Args:
-            keyword (str): The keyword for the symmetric matrix discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        self.base_discr = pg.VecPwQuadratics(keyword)
