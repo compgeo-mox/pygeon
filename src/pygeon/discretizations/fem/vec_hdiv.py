@@ -93,12 +93,8 @@ class VecHDiv(pg.VecDiscretization):
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
-
-        param = {pg.LAME_LAMBDA: np.inf, pg.LAME_MU: mu}
-        data_ = pp.initialize_data({}, self.keyword, param)
-
-        return self.assemble_mass_matrix_elasticity(sd, data_)
+        method_name = "assemble_deviator_matrix"
+        return self._apply_pwpolynomials_method(sd, method_name, data)
 
     def assemble_mass_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
