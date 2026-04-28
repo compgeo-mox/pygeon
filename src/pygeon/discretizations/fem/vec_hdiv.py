@@ -79,8 +79,8 @@ class VecHDiv(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for vector BDM1 for an incompressible
-        material, which is given by (A sigma, tau) where
+        Assembles and returns the mass matrix for an incompressible material, which is
+        given by (A sigma, tau) where
         A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
         with mu the Lamé constants and coeff = 1 / dim
 
