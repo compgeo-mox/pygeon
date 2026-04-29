@@ -17,6 +17,9 @@ import pygeon as pg
         pg.MatPwConstants,
         pg.MatPwLinears,
         pg.MatPwQuadratics,
+        pg.SymMatPwConstants,
+        pg.SymMatPwLinears,
+        pg.SymMatPwQuadratics,
     ]
 )
 def discr(request: pytest.FixtureRequest) -> pg.Discretization:
