@@ -23,7 +23,7 @@ class SymMatPwPolynomials(pg.Discretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the symmetric matrix discretization class.
-        The base discretization class is pg.VecPwPolynomials.
+        The base discretization class is pg.MatPwPolynomials.
 
         Args:
             keyword (str): The keyword for the symmetric matrix discretization class.
@@ -108,6 +108,9 @@ class SymMatPwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
+        if sd.dim == 0:
+            raise ValueError(f"Invalid grid dimension, sd.dim is {sd.dim}.")
+
         # Local averaging map from full matrix components to symmetric components.
         # Transpose of the expansion map, with off-diagonal rows scaled by 1/2.
         num_entries = (sd.dim + 1) * sd.dim // 2
