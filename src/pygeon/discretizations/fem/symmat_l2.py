@@ -1,4 +1,4 @@
-"""Module for the discretizations of the matrix L2 space."""
+"""Module for the discretizations of the symmetric matrix L2 space."""
 
 from functools import cache
 from typing import Callable, Type, cast
