@@ -160,6 +160,21 @@ class SymMatPwPolynomials(pg.Discretization):
         """
         return sps.csc_array((0, self.ndof(sd)))
 
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, _data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the stiffness matrix for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+            data (dict | None): Additional data for the assembly process.
+
+        Returns:
+            sps.csc_array: The assembled stiffness matrix.
+        """
+        return sps.csc_array((self.ndof(sd), self.ndof(sd)))
+
     def assemble_nat_bc(
         self,
         sd: pg.Grid,
