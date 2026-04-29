@@ -73,6 +73,29 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         # Compose all the parts and return them
         return D - B.T @ M @ B
 
+    def assemble_deviator_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles and returns the mass matrix for an incompressible material, which is
+        given by (A sigma, tau) where
+        A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
+        with mu the Lamé constants and coeff = 1 / dim
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): Data for the assembly.
+
+        Returns:
+            sps.csc_array: The mass matrix obtained from the discretization.
+        """
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+
+        param = {pg.LAME_LAMBDA: np.inf, pg.LAME_MU: mu}
+        data_ = pp.initialize_data({}, self.keyword, param)
+
+        return self.assemble_mass_matrix_elasticity(sd, data_)
+
     def assemble_mass_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
