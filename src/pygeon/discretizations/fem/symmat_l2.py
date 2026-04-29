@@ -129,6 +129,20 @@ class SymMatPwPolynomials(pg.Discretization):
         # Repeat the same component map for all scalar dofs.
         return sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
 
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to +1 order discretization in the space of matrix
+        valued piecewise polynomials, without symmetrization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+        """
+        proj = self.base_discr.proj_to_higher_PwPolynomials(sd)
+        return proj @ self.proj_to_PwPolynomials(sd)
+
     def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
         """
         Interpolates a given matrix-valued function to the symmetric matrix-valued
