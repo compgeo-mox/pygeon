@@ -146,8 +146,8 @@ class SymMatPwPolynomials(pg.Discretization):
     def interpolate(self, sd: pg.Grid, func: Callable) -> np.ndarray:
         """
         Interpolates a given matrix-valued function to the symmetric matrix-valued
-        piecewise polynomial space. The input function is assumed to be symmetric, but
-        this is not enforced.
+        piecewise polynomial space. The full matrix-valued interpolant is projected
+        onto the symmetric subspace, i.e. the symmetric part is taken.
 
         Args:
             sd (pg.Grid): The grid.
