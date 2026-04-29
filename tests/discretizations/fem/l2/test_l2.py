@@ -84,7 +84,7 @@ def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
                 ans[: unit_sd.dim, : unit_sd.dim] = np.tile(
                     x[: unit_sd.dim], (unit_sd.dim, 1)
                 )
-                return ans
+                return ans + ans.T  # Make it symmetric for the SymMat case
 
     known_vals = np.vstack([func(x).ravel() for x in unit_sd.cell_centers.T]).T
 
