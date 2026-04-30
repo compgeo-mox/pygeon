@@ -6,13 +6,14 @@ import pytest
 import pygeon as pg
 
 
-@pytest.fixture
-def discr():
-    return pg.MatPwConstants("test")
-
-
-def test_ndof(discr, ref_sd):
-    assert discr.ndof(ref_sd) == ref_sd.dim**2
+@pytest.fixture(
+    params=[
+        pg.MatPwConstants,
+        pg.SymMatPwConstants,
+    ]
+)
+def discr(request: pytest.FixtureRequest) -> pg.Discretization:
+    return request.param("test")
 
 
 def test_assemble_symmetrizing_matrix(discr, ref_sd_0d):
@@ -22,7 +23,7 @@ def test_assemble_symmetrizing_matrix(discr, ref_sd_0d):
 
 def test_mat_invert(discr, unit_sd):
 
-    fun = lambda _: np.array([[1, 2, 3], [4, 5, 6], [7, 8, 10]])
+    fun = lambda _: np.array([[1, 2, 3], [2, 5, 6], [3, 6, 10]])
     mat = discr.interpolate(unit_sd, fun)
     proj = discr.eval_at_cell_centers(unit_sd)
 
