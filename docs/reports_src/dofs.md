@@ -159,7 +159,7 @@ size $N_\text{dof}^{\text{scalar}}$.
 
 Equivalently, the global DOF index for component $(i,j)$ of scalar DOF $k$ is:
 
-$$\text{global index} = (i \cdot d + j) \cdot n + k$$
+$$\text{global index} = (i \cdot d + j) \cdot N_\text{dof}^{\text{scalar}} + k$$
 
 Note that `VecBDM1` / `VecRT0` classes serve as matrix-valued $H(\text{div})$ spaces
 for tensors but their degrees of freedom are vector-valued; 
