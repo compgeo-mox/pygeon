@@ -1,4 +1,4 @@
-# Degrees of Freedom in PyGeoN
+# Degrees of Freedom
 
 This document describes the degrees of freedom (DOFs) for each finite element space
 available in PyGeoN, and how they are laid out in the global solution vector.
