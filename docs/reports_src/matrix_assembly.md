@@ -9,14 +9,14 @@ space and yields a uniform assembly pipeline.
 
 ## Mass Matrix
 
-Let $\Pi : V_h \to P_h$ be the projection from the finite element space to the
-corresponding piecewise polynomial space (implemented as `proj_to_PwPolynomials`). Then
+Let $\Pi : V_h \to P_h$ be the projection from the finite element space $V_h$ to the
+corresponding piecewise polynomial space $P_h$ (implemented as `proj_to_PwPolynomials`). Then the mass matrix of the space $V_h$ is computed as
 
 $$M_{V_h} = \Pi^\top M_{P_h} \Pi,$$
 
 where $M_{P_h}$ is the (cell-local) mass matrix of $P_h$. 
 
-The same pattern is used for the lumped mass matrix.
+The same pattern is used for the lumped mass matrix, where the lumped-$M_{P_h}$ is considered instead of $M_{P_h}$.
 
 ## Stiffness Matrix
 
