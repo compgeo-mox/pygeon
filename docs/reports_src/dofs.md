@@ -7,7 +7,7 @@ available in PyGeoN, and how they are laid out in the global solution vector.
 
 ## Scalar spaces
 
-### `Lagrange1` — $H^1$, piecewise linear ([link](../../src/pygeon/discretizations/fem/h1.py#L13))
+### `Lagrange1` — $H^1$, piecewise linear ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/h1.py#L13))
 
 One DOF per mesh **node**.
 
@@ -17,7 +17,7 @@ $$N_\text{dof} = N_\text{nodes}$$
 
 **DOF ordering.** DOF $n$ has global index $n$ (directly indexed by node number).
 
-### `Lagrange2` — $H^1$, piecewise quadratic ([link](../../src/pygeon/discretizations/fem/h1.py#L309))
+### `Lagrange2` — $H^1$, piecewise quadratic ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/h1.py#L309))
 
 One DOF per mesh **node** and one DOF per mesh **edge**.
 
@@ -27,7 +27,7 @@ $$N_\text{dof} = N_\text{nodes} + N_\text{edges}$$
 
 **DOF ordering.** All nodal DOFs come first (index = node number), followed by all edge DOFs (global index of edge $e$ = $N_\text{nodes} + e$).
 
-### `PwConstants` — $L^2$, piecewise constant ([link](../../src/pygeon/discretizations/fem/l2.py#L248))
+### `PwConstants` — $L^2$, piecewise constant ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L248))
 
 One DOF per mesh **cell**.
 
@@ -37,7 +37,7 @@ $$N_\text{dof} = N_\text{cells}$$
 
 **DOF ordering.** DOF $c$ has global index $c$ (directly indexed by cell number).
 
-### `PwLinears` — $L^2$, piecewise linear (broken) ([link](../../src/pygeon/discretizations/fem/l2.py#L386))
+### `PwLinears` — $L^2$, piecewise linear (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L386))
 
 $(d+1)$ DOFs per cell (one per local node), totalling:
 
@@ -47,7 +47,7 @@ $$N_\text{dof} = (d+1) \, N_\text{cells}$$
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
 
-### `PwQuadratics` — $L^2$, piecewise quadratic (broken) ([link](../../src/pygeon/discretizations/fem/l2.py#L585))
+### `PwQuadratics` — $L^2$, piecewise quadratic (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L585))
 
 Piecewise degree-2 polynomials, discontinuous across cell boundaries. The local basis
 consists of all monomials of degree $\leq 2$, giving $\tfrac{(d+1)(d+2)}{2}$ DOFs per
@@ -59,7 +59,7 @@ $$N_\text{dof} = \frac{(d+1)(d+2)}{2}\,N_\text{cells}$$
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
 
-### `RT0` — $H(\text{div})$, lowest-order Raviart–Thomas ([link](../../src/pygeon/discretizations/fem/hdiv.py#L13))
+### `RT0` — $H(\text{div})$, lowest-order Raviart–Thomas ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hdiv.py#L13))
 
 One DOF per mesh **face**.
 
@@ -71,7 +71,7 @@ $$N_\text{dof} = N_\text{faces}$$
 
 **Note.** Even if `RT0` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
-### `BDM1` — $H(\text{div})$, first-order Brezzi–Douglas–Marini ([link](../../src/pygeon/discretizations/fem/hdiv.py#L257))
+### `BDM1` — $H(\text{div})$, first-order Brezzi–Douglas–Marini ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hdiv.py#L257))
 
 Like RT0 the normal flux across each face is the key quantity, but here the flux is
 allowed to vary *linearly* over the face. This requires one DOF per (face, node) pair.
@@ -88,7 +88,7 @@ is $f + i\,N_\text{faces}$, $i = 0,\ldots,d-1$.
 
 **Note.** Even if `BDM1` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
-### `RT1` — $H(\text{div})$, first-order Raviart–Thomas ([link](../../src/pygeon/discretizations/fem/hdiv.py#L480))
+### `RT1` — $H(\text{div})$, first-order Raviart–Thomas ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hdiv.py#L480))
 
 $d$ DOFs per face and $d$ DOFs per cell.
 
@@ -104,7 +104,7 @@ $(c, k)$: $d\,N_\text{faces} + c + k\,N_\text{cells}$.
 
 **Note.** Even if `RT1` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
-### `Nedelec0` — $H(\text{curl})$, lowest-order Nédélec ([link](../../src/pygeon/discretizations/fem/hcurl.py#L11))
+### `Nedelec0` — $H(\text{curl})$, lowest-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L11))
 
 One DOF per mesh **edge**.
 
@@ -116,7 +116,7 @@ $$N_\text{dof} = N_\text{edges}$$
 
 **Note.** Even if `Nedelec0` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
-### `Nedelec1` — $H(\text{curl})$, first-order Nédélec ([link](../../src/pygeon/discretizations/fem/hcurl.py#L161))
+### `Nedelec1` — $H(\text{curl})$, first-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L161))
 
 Analogous to BDM1 but for tangential circulations: the tangential component along each
 edge is allowed to vary linearly, requiring one DOF per (edge, node) pair. Each edge
@@ -147,8 +147,9 @@ $x$-component, then all DOFs of the $y$-component, and so on.
 
 ## Matrix-valued spaces
 
-A matrix-valued space `Mat<X>` wraps the corresponding piecewise polynomial
-space `<X>` and replicates its DOFs for each entry of the $d \times d$ tensor.
+The matrix-valued piecewise polynomial spaces (`MatPwConstants`, `MatPwLinears`,
+`MatPwQuadratics`) wrap the corresponding scalar piecewise polynomial spaces and
+replicate their DOFs for each entry of the $d \times d$ tensor.
 
 $$N_\text{dof} = d^2 \cdot N_\text{dof}^{\text{scalar}}$$
 
@@ -165,14 +166,12 @@ Note that `VecBDM1` / `VecRT0` classes serve as matrix-valued $H(\text{div})$ sp
 for tensors but their degrees of freedom are vector-valued; 
 their DOF layout follows the same row-major block structure.
 
-## Symmetric matrix space
+## Symmetrizing a matrix-valued space
 
-For symmetric tensors only ${d(d+1)}/{2}$ independent components are stored per
-scalar DOF, so:
-
-$$N_\text{dof} = \frac{d(d+1)}{2} \cdot N_\text{dof}^{\text{scalar}}$$
-
-**DOF ordering.** The independent components are the upper-triangular entries listed in
-row-major order. Each component occupies a block of $N_\text{dof}^{\text{scalar}}$ entries with the same
-cell-fastest ordering as the underlying scalar space. The global index of component $k$
-and scalar DOF $s$ is therefore $k \cdot N_\text{dof}^{\text{scalar}} + s$.
+The matrix-valued spaces (`MatPwConstants`, `MatPwLinears`, `MatPwQuadratics`)
+always store all $d^2$ components per scalar DOF and do not use a reduced-DOF
+representation for symmetric tensors. Instead, symmetry is enforced via the
+`assemble_symmetrizing_matrix` method of `MatPwPolynomials`, which returns the
+linear operator that maps a full $d^2$-block DOF vector to its symmetric part by
+averaging off-diagonal pairs: $\sigma_{ij} \mapsto \tfrac{1}{2}(\sigma_{ij} +
+\sigma_{ji})$ for $i \neq j$, leaving diagonal entries unchanged.
