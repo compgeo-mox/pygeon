@@ -2,10 +2,10 @@
 discretization."""
 
 import numpy as np
-import porepy as pp
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -23,11 +23,11 @@ def test_compliance_lagrange1_triangles(discr, unit_sd_2d):
     lag_mass = lag1.assemble_mass_matrix(unit_sd_2d)
     vlag_mass = discr.assemble_mass_matrix(unit_sd_2d)
 
-    lag_diff = lag1.assemble_diff_matrix(unit_sd_2d)
-    vlag_diff = discr.assemble_diff_matrix(unit_sd_2d)
+    lag_stiff = lag1.assemble_stiff_matrix_elasticity(unit_sd_2d)
+    vlag_stiff = discr.assemble_stiff_matrix(unit_sd_2d)
 
     assert np.allclose((lag_mass - vlag_mass).data, 0)
-    assert np.allclose((lag_diff - vlag_diff).data, 0)
+    assert np.allclose((lag_stiff - vlag_stiff).data, 0)
 
 
 def test_zero_penalization_on_triangles(discr, unit_sd_2d):
@@ -54,14 +54,14 @@ def test_assemble_mass(discr, ref_square):
         / 336
     )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_assemble_div(discr, ref_square):
     div = discr.assemble_div_matrix(ref_square)
     div_known = np.array([[-1, 1, -1, 1, -1, -1, 1, 1]]) / 2
 
-    assert np.allclose(div.todense(), div_known)
+    assert matrix_equals(div.todense(), div_known)
 
 
 def test_assemble_symgrad(discr, ref_square):
@@ -78,7 +78,7 @@ def test_assemble_symgrad(discr, ref_square):
         / 4
     )
 
-    assert np.allclose(symgrad.todense(), symgrad_known)
+    assert matrix_equals(symgrad.todense(), symgrad_known)
 
 
 def test_assemble_divdiv(discr, ref_square):
@@ -99,7 +99,7 @@ def test_assemble_divdiv(discr, ref_square):
         / 4
     )
 
-    assert np.allclose(divdiv.todense(), divdiv_known)
+    assert matrix_equals(divdiv.todense(), divdiv_known)
 
 
 def test_assemble_symgradsymgrad(discr, ref_square):
@@ -120,7 +120,7 @@ def test_assemble_symgradsymgrad(discr, ref_square):
         / 8
     )
 
-    assert np.allclose(symgradsymgrad.todense(), symgradsymgrad_known)
+    assert matrix_equals(symgradsymgrad.todense(), symgradsymgrad_known)
 
 
 def test_interp_and_eval(discr, ref_octagon):

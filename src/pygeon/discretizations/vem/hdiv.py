@@ -53,7 +53,7 @@ class VRT0(pg.RT0):
             sps.csc_array: The mass matrix.
         """
         perm = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         data = data if data is not None else {}
         data = pp.initialize_data(data, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
@@ -75,7 +75,7 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.VECTOR)
+        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX)
         data = pp.initialize_data({}, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         discr = self.ref_discr(self.keyword)
@@ -103,7 +103,7 @@ class VBDM1(pg.BDM1):
     """Vector-valued discretization"""
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for the Virtual Element Method (VEM).
@@ -197,7 +197,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -230,7 +230,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -249,7 +249,7 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError
 
@@ -272,7 +272,7 @@ class VBDM1(pg.BDM1):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        p1 = pg.Lagrange1(self.keyword)
+        p1 = pg.PwLinears(self.keyword)
         local_mass = p1.assemble_local_mass(sd.dim - 1)
 
         dof = self.get_dof_enumeration(sd)
@@ -317,6 +317,6 @@ class VBDM1(pg.BDM1):
 
         Raises:
             NotImplementedError: This method is not implemented and should be
-            overridden in a subclass.
+                overridden in a subclass.
         """
         raise NotImplementedError

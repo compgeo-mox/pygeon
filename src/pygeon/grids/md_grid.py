@@ -17,19 +17,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     entities.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        """
-        Initialize a MixedDimensionalGrid object.
-
-        Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            None
-        """
-        super(MixedDimensionalGrid, self).__init__(*args, **kwargs)
-
     def compute_geometry(self) -> None:
         """
         Compute geometric entities and tags for the subdomains and interfaces.

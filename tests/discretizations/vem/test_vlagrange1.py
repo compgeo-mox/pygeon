@@ -5,6 +5,7 @@ import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -57,9 +58,9 @@ def test_on_pentagon(discr, pentagon_sd):
         np.array([[1050.0, 30.0, 40.0], [0.0, 441.0, 0.0], [0.0, 0.0, 441.0]]) / 1050
     )
 
-    assert np.allclose(B, B_known)
-    assert np.allclose(D, D_known)
-    assert np.allclose(G, G_known)
+    assert matrix_equals(B, B_known)
+    assert matrix_equals(D, D_known)
+    assert matrix_equals(G, G_known)
 
 
 def test_diff_matrix(discr, pentagon_sd):
@@ -90,7 +91,7 @@ def test_interpolate(discr, pentagon_sd):
 
 def test_assemble_nat_bc(discr, pentagon_sd):
     b_nodes = pentagon_sd.tags["domain_boundary_nodes"]
-    vals = discr.assemble_nat_bc(pentagon_sd, lambda x: np.ones(1), b_nodes)
+    vals = discr.assemble_nat_bc(pentagon_sd, lambda _x: np.ones(1), b_nodes)
 
     vals_known = np.array([3.5, 2.5, 2.25, 2.0, 2.75])
 

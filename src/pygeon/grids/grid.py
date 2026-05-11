@@ -6,6 +6,8 @@ import numpy as np
 import porepy as pp
 import scipy.sparse as sps
 
+import pygeon as pg
+
 """
 Acknowledgments:
     The functionalities related to the ridge computations are modified from
@@ -30,7 +32,7 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        super(Grid, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.face_nodes: sps.csc_array
         self.cell_faces: sps.csc_array
 
@@ -54,7 +56,8 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        super(Grid, self).compute_geometry()
+        super().compute_geometry()
+        self.compute_rotation_matrix()
         self.compute_ridges()
 
         self.compute_edge_properties()
@@ -128,8 +131,8 @@ class Grid(pp.Grid):
 
         # We compute the face tangential by mapping the face normal to a reference grid
         # in the xy-plane, rotating locally, and mapping back.
-        R = pp.map_geometry.project_plane_matrix(self.nodes)
-        loc_rot = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+        R = self.rotation_matrix
+        loc_rot = np.array([[0.0, -1.0], [1.0, 0.0]])
         rot = R.T @ loc_rot @ R
         rotated_normal = rot @ self.face_normals
 
@@ -286,6 +289,10 @@ class Grid(pp.Grid):
         if recompute or not hasattr(self, "opposite_nodes"):
             cell_nodes = self.cell_nodes()
 
+            if self.dim == 0:
+                self.opposite_nodes = sps.csc_array((0, 1), dtype=int)
+                return self.opposite_nodes
+
             if not np.all(cell_nodes.sum(axis=0) == self.dim + 1):
                 raise NotImplementedError(
                     "Grid is not simplicial; cannot compute opposite node."
@@ -312,8 +319,9 @@ class Grid(pp.Grid):
         """
         match self.dim:
             case 0:
-                self.edge_tangents = np.zeros((0, 3))
+                self.edge_tangents = np.zeros((0, pg.AMBIENT_DIM))
                 self.edge_lengths = np.zeros(0)
+                self.num_edges = 0
                 return
             case 1:
                 edge_nodes = self.cell_faces
@@ -324,6 +332,7 @@ class Grid(pp.Grid):
 
         self.edge_tangents = self.nodes @ edge_nodes
         self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
+        self.num_edges = self.edge_lengths.size
 
     def compute_mesh_size(self) -> None:
         """
@@ -340,3 +349,31 @@ class Grid(pp.Grid):
             self.mesh_size = 0.0
         else:
             self.mesh_size = float(np.mean(self.edge_lengths))
+
+    def compute_rotation_matrix(self) -> None:
+        """
+        Computes and stores the rotation matrix that maps the subdomain to the xy-plane
+        or x-axis.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        if np.any(self.nodes[self.dim :, :]):
+            *_, R, keep_dims, _ = pp.map_geometry.map_grid(self)
+            self.rotation_matrix = R[keep_dims, :]
+        else:
+            self.rotation_matrix = np.eye(self.dim, pg.AMBIENT_DIM)
+
+    def copy(self):
+        """Create a new instance with some attributes deep-copied from the grid.
+
+        Returns:
+            A deep copy of ``self``. Some predefined attributes are also copied.
+
+        """
+        h = super().copy()
+        pg.convert_from_pp(h)
+        return h

@@ -77,8 +77,7 @@ def setup_elasticity_natural_bcs(
             [-div, None, None],
             [asym, None, None],
         ],
-        format="csc",
-    )
+    ).tocsc()
 
     b_faces = sd.tags["domain_boundary_faces"]
     bc = Sigma_h.assemble_nat_bc(sd, u_boundary, b_faces)
@@ -116,7 +115,7 @@ def test_elasticity_stretching(unit_sd, spaces, use_lumped):
         return
 
     u_stretch = lambda x: np.array([x[0], 0, 0])
-    r_stretch = lambda _: np.zeros(3) if unit_sd.dim == 3 else 0
+    r_stretch = lambda _: np.zeros(pg.AMBIENT_DIM) if unit_sd.dim == 3 else 0
     s_stretch = lambda _: np.array([[1.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
 
     S_h, U_h, R_h = spaces

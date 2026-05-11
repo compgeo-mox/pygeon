@@ -3,7 +3,6 @@
 from typing import Callable, cast
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -80,8 +79,24 @@ def peak_mass(
 
 def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
     """
-    Construct the default discretization operator depending on n_minus_k.
+    Construct the default discretization operator depending on ``n_minus_k``.
     These correspond to the Whitney forms.
+
+    Args:
+        sd (pg.Grid): Grid on which the discretization is defined.
+        n_minus_k (int): Difference between space dimension and form order.
+
+    Returns:
+        pg.Discretization: One of:
+
+            - pg.PwConstants: if ``n_minus_k == 0``.
+            - pg.RT0: if ``n_minus_k == 1``.
+            - pg.Lagrange1: if ``n_minus_k == sd.dim``.
+            - pg.Nedelec0: if ``n_minus_k == 2`` (valid for ``sd.dim == 3``).
+
+    Raises:
+        ValueError: If ``n_minus_k`` is not supported for the given grid
+            dimension.
     """
     keyword = kwargs.get("keyword", pg.UNITARY_DATA)
     if n_minus_k == 0:

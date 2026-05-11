@@ -8,7 +8,7 @@ import pygeon as pg
 
 
 def test_grid_0d(ref_sd_0d):
-    # no ridges or peaks are defined in 0d, we should obtain an empty map with
+    # no ridges or peaks are defined in 0D, we should obtain an empty map with
     # correct size
 
     assert ref_sd_0d.num_ridges == 0
@@ -19,7 +19,7 @@ def test_grid_0d(ref_sd_0d):
 
 
 def test_grid_1d(unit_sd_1d):
-    # no ridges or peaks are defined in 1d, we should obtain an empty map with
+    # no ridges or peaks are defined in 1D, we should obtain an empty map with
     # correct size
 
     assert unit_sd_1d.num_ridges == 0
@@ -73,110 +73,44 @@ def test_grid_3d_tet():
     assert sd.num_peaks == (N + 1) ** 3
 
 
-def test_mdg_2d():
-    def setup_problem():
-        p = np.array([[0.0, 1.0], [0.5, 0.5]])
-
-        fracs = [pp.LineFracture(p)]
-
-        bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1}
-        domain = pp.Domain(bounding_box=bbox)
-        network = pp.create_fracture_network(fracs, domain)
-        mesh_kwargs = {"mesh_size_frac": 1, "mesh_size_min": 1}
-
-        return network.mesh(mesh_kwargs)
-
+def test_mdg_2d(mdg_embedded_frac_2d):
     def known_face_ridges():
-        data = np.array([-1, 1, 1, -1, 1, -1])
-        indices = np.array([0, 1, 10, 11, 2, 3])
-        indptr = np.array([0, 2, 4, 6])
+        data = np.array([1, -1])
+        indices = np.array([10, 11])
+        indptr = np.array([0, 0, 2, 2])
 
         return sps.csc_array((data, indices, indptr), (16, 3))
 
-    mdg = setup_problem()
-    pg.convert_from_pp(mdg)
-    mdg.compute_geometry()
-
-    mg = mdg.interfaces()[0]
+    mg = mdg_embedded_frac_2d.interfaces()[0]
 
     assert mg.ridge_peaks.shape == (0, 0)
     assert (mg.face_ridges - known_face_ridges()).nnz == 0
 
 
-def test_mdg_3d():
-    def setup_mdg():
-        f_1 = pp.PlaneFracture(
-            np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
-        )
-
-        bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
-        domain = pp.Domain(bounding_box=bbox)
-        network = pp.create_fracture_network([f_1], domain=domain)
-        mesh_args = {"mesh_size_frac": 1, "mesh_size_min": 1}
-
-        return network.mesh(mesh_args)
-
-    def known_face_ridges():
-        data = np.array([-1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1])
-        indices = np.array([0, 6, 1, 7, 5, 11, 12, 17, 16, 21, 22, 27, 26, 31, 35, 39])
-        indptr = np.array([0, 2, 4, 6, 8, 10, 12, 14, 16])
-
-        return sps.csc_array((data, indices, indptr), (98, 8))
-
-    def known_ridge_peaks():
-        data = np.array([1, -1, 1, -1, 1, -1, 1, -1, 1, -1])
-        indices = np.array([0, 1, 2, 3, 4, 5, 6, 7, 26, 27])
-        indptr = np.array([0, 2, 4, 6, 8, 10])
-
-        return sps.csc_array((data, indices, indptr), (28, 5))
-
-    mdg = setup_mdg()
-    pg.convert_from_pp(mdg)
-    mdg.compute_geometry()
-
-    mg = mdg.interfaces()[0]
-
-    assert (mg.ridge_peaks - known_ridge_peaks()).nnz == 0
-    assert (mg.face_ridges - known_face_ridges()).nnz == 0
-
-
-def test_mdg_3d_itsc():
-    def setup_mdg():
-        f_1 = pp.PlaneFracture(
-            np.array([[0, 1, 1, 0], [0, 0, 1, 1], [0.5, 0.5, 0.5, 0.5]])
-        )
-        f_2 = pp.PlaneFracture(
-            np.array([[0, 1, 1, 0], [0.5, 0.5, 0.5, 0.5], [0, 0, 1, 1]])
-        )
-
-        bbox = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
-        domain = pp.Domain(bounding_box=bbox)
-        network = pp.create_fracture_network([f_1, f_2], domain=domain)
-        mesh_args = {"mesh_size_frac": 1, "mesh_size_min": 1}
-
-        return network.mesh(mesh_args)
-
-    def known_face_ridges_mg():
-        return np.array(
-            [
-                [0, 0],
-                [0, 0],
-                [0, 0],
-                [0, 0],
-                [0, -1],
-                [0, 1],
-                [1, 0],
-                [-1, 0],
-                [0, 0],
-                [0, 0],
-            ]
-        )
-
-    mdg = setup_mdg()
-    pg.convert_from_pp(mdg)
-    mdg.compute_geometry()
-
+def test_mdg_3d(mdg):
     for mg in mdg.interfaces():
-        if mg.dim == 1:
-            assert mg.ridge_peaks.shape == (0, 0)
-            assert np.all(mg.face_ridges.todense() == known_face_ridges_mg())
+        sd_down = mg.sd_pair[1]
+
+        # Check that the lower-dimensional faces occur twice, except at tips.
+        if mg.dim >= 1:
+            sums = np.sum(np.abs(mg.face_ridges), axis=0)
+            assert np.allclose(sums[sd_down.tags["tip_faces"]], 0)
+            assert np.allclose(sums[~sd_down.tags["tip_faces"]], 2)
+
+        # Check that the lower-dimensional ridges occur twice, except at tips.
+        if mg.dim >= 2:
+            sums = np.sum(np.abs(mg.ridge_peaks), axis=0)
+            assert np.allclose(sums[sd_down.tags["tip_nodes"]], 0)
+            assert np.allclose(sums[~sd_down.tags["tip_nodes"]], 2)
+
+
+def test_mdg_3d_itsc(_mdg_dict):
+    mdg = _mdg_dict["fracs_3D"]
+
+    for mg in mdg.interfaces(dim=1):
+        assert mg.ridge_peaks.shape == (0, 0)
+        assert mg.face_ridges.shape == (20, 2)
+
+    for mg in mdg.interfaces(dim=2):
+        assert mg.ridge_peaks.shape == (112, 20)
+        assert mg.face_ridges.shape == (392, 32)

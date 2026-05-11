@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -31,7 +32,6 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 )
                 / 30
             )
-
         case 2:
             M_known = (
                 np.array(
@@ -65,7 +65,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
                 / 1260
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_source(discr, unit_sd_2d):
@@ -73,3 +73,8 @@ def test_source(discr, unit_sd_2d):
     source = discr.source_term(unit_sd_2d, func)
 
     assert np.isclose(source.sum(), 2)
+
+
+def test_broken_grad(discr, unit_sd_2d):
+    with pytest.raises(NotImplementedError):
+        discr.assemble_broken_grad_matrix(unit_sd_2d)

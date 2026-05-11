@@ -4,7 +4,6 @@ import abc
 from typing import Callable, Type
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -15,6 +14,12 @@ class PwPolynomials(pg.Discretization):
     PwPolynomials is a subclass of pg.Discretization that represents
     an abstract element wise polynomial discretization.
     """
+
+    poly_order: int
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -115,8 +120,21 @@ class PwPolynomials(pg.Discretization):
         """
         return sps.csc_array((0, self.ndof(sd)))
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+        This method should be implemented in the child class.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        raise NotImplementedError
+
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
@@ -131,7 +149,10 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
     def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
+        self,
+        sd: pg.Grid,
+        _func: Callable[[np.ndarray], np.ndarray],
+        _b_faces: np.ndarray,
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition vector, equal to zero.
@@ -197,6 +218,18 @@ class PwPolynomials(pg.Discretization):
         return sps.eye_array(self.ndof(sd)).tocsc()
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projects the discretization to -1 order discretization.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The projection matrix.
+
+        Raises:
+            NotImplementedError: If the method is not implemented in a subclass.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -215,16 +248,13 @@ class PwPolynomials(pg.Discretization):
 class PwConstants(PwPolynomials):
     """
     Discretization class for the piecewise constants.
-    NB! Each degree of freedom is the integral over the cell.
+    NOTE: Each degree of freedom is the integral over the cell.
     """
 
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
-
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_cell(self, _sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell.
 
@@ -236,7 +266,7 @@ class PwConstants(PwPolynomials):
         """
         return 1
 
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
+    def assemble_local_mass(self, _dim: int) -> np.ndarray:
         """
         Computes the local mass matrix for piecewise constants
 
@@ -296,6 +326,20 @@ class PwConstants(PwPolynomials):
 
         return M.tocsc()
 
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid,
+        which is zero for the piecewise constants
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        ndof = self.ndof(sd)
+        return sps.csc_array((pg.AMBIENT_DIM * ndof, ndof))
+
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
@@ -338,66 +382,6 @@ class PwConstants(PwPolynomials):
         """
         return sps.diags_array(1 / sd.cell_volumes).tocsc()
 
-    def error_l2(
-        self,
-        sd: pg.Grid,
-        num_sol: np.ndarray,
-        ana_sol: Callable[[np.ndarray], np.ndarray],
-        relative: bool = True,
-        etype: str = "specific",
-        data: dict | None = None,
-    ) -> float:
-        """
-        Returns the l2 error computed against an analytical solution given as a
-        function.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-            num_sol (np.ndarray): Vector of the numerical solution.
-            ana_sol (Callable[[np.ndarray], np.ndarray]): Function that represents the
-                analytical solution.
-            relative (bool): Compute the relative error or not.
-                Defaults to True.
-            etype (str): Type of error computed. Defaults to
-            "specific".
-
-        Returns:
-            float: The computed error.
-        """
-        if etype == "standard":
-            return super().error_l2(sd, num_sol, ana_sol, relative, etype)
-
-        int_sol = np.array([ana_sol(x) for x in sd.nodes.T])
-        proj = self.eval_at_cell_centers(sd)
-        num_sol = proj @ num_sol
-
-        norm = self._cell_error(sd, np.zeros_like(num_sol), int_sol) if relative else 1
-        return self._cell_error(sd, num_sol, int_sol) / norm
-
-    def _cell_error(
-        self, sd: pg.Grid, num_sol: np.ndarray, int_sol: np.ndarray
-    ) -> float:
-        """
-        Calculate the error for each cell in the finite element mesh.
-
-        Args:
-            sd (pg.Grid): The finite element mesh.
-            num_sol (np.ndarray): The numerical solution.
-            int_sol (np.ndarray): The interpolated solution.
-
-        Returns:
-            float: The error for each cell.
-        """
-        cell_nodes = sd.cell_nodes()
-        err = 0
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
-            diff = int_sol[nodes_loc] - num_sol[c]
-
-            err += sd.cell_volumes[c] * diff @ diff.T
-        return np.sqrt(err / (sd.dim + 1))
-
 
 class PwLinears(PwPolynomials):
     """
@@ -406,9 +390,6 @@ class PwLinears(PwPolynomials):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
@@ -432,8 +413,8 @@ class PwLinears(PwPolynomials):
         Returns:
             np.ndarray: Local mass matrix for piecewise linears.
         """
-        lagrange1 = pg.Lagrange1(self.keyword)
-        return lagrange1.assemble_local_mass(dim)
+        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
+        return M / ((dim + 1) * (dim + 2))
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
@@ -464,7 +445,8 @@ class PwLinears(PwPolynomials):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space
+        Interpolates a function onto the finite element space by evaluating the function
+        at the (sd.dim + 1) Gauss points.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -473,16 +455,35 @@ class PwLinears(PwPolynomials):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        cell_nodes = sd.cell_nodes()
-        vals = np.zeros((sd.num_cells, sd.dim + 1))
+        lookup = self.get_dof_lookup_array(sd).tocoo()
+        dofs = lookup.data
 
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        # Retrieve the (cell, node) pair for each degree of freedom
+        cells = np.empty_like(lookup.col)
+        nodes = np.empty_like(lookup.row)
+        cells[dofs] = lookup.col
+        nodes[dofs] = lookup.row
 
-            vals[c, :] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+        # Compute the Gauss points as a weighted average of the node and cell center
+        # coordinates.
+        alpha = 1 / np.sqrt(sd.dim + 2)
+        gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
 
-        return vals.ravel(order="F")
+        # Evaluate the function at the Gauss points.
+        func_at_gauss = np.array([func(x) for x in gauss_pts.T])
+
+        # To retrieve the values at the nodes, we first compute the value of the
+        # interpolated function at the cell center. Since the Gauss points are
+        # equidistant from the cell center, we can use eval_at_cc as the averaging
+        # operator.
+        interp_at_cc = self.eval_at_cell_centers(sd) @ func_at_gauss
+
+        # Expand from cell-indices to dof-indices
+        interp_at_cc = interp_at_cc[cells]
+
+        # Extrapolate the linear function from the cell center, through the
+        # Gauss point, to the node.
+        return interp_at_cc + 1 / alpha * (func_at_gauss - interp_at_cc)
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -535,6 +536,51 @@ class PwLinears(PwPolynomials):
 
         return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
 
+    def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles a lookup matrix L with the property L[cell, node] = dof_index.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The lookup matrix.
+        """
+        dof_array = sd.cell_nodes().astype("int")
+        ndof = self.ndof(sd)
+        dof_array.data = np.reshape(np.arange(ndof), (sd.num_cells, -1), "F").ravel()
+
+        return dof_array
+
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+        This operator maps to the vector-valued piecewise constants.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        opposite_nodes = sd.compute_opposite_nodes().tocoo()
+        faces = opposite_nodes.row
+        cells = opposite_nodes.col
+        orien = sd.cell_faces[faces, cells]
+        nodes = opposite_nodes.data
+
+        vecp0_dofs = np.arange(sd.dim * sd.num_cells).reshape((sd.dim, -1))
+        rows_I = vecp0_dofs[:, cells].ravel()
+
+        dof_lookup = self.get_dof_lookup_array(sd)
+        cols_J = np.tile(dof_lookup[nodes, cells], sd.dim)
+
+        normals = sd.rotation_matrix @ sd.face_normals
+        grads = -normals[:, faces] * orien / sd.dim
+        data_IJ = grads.ravel()
+
+        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+
 
 class PwQuadratics(PwPolynomials):
     """
@@ -544,9 +590,6 @@ class PwQuadratics(PwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """

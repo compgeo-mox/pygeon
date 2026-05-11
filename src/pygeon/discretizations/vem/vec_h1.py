@@ -3,7 +3,6 @@
 from typing import Type
 
 import numpy as np
-import porepy as pp
 import scipy.linalg as spl
 import scipy.sparse as sps
 
@@ -12,7 +11,7 @@ import pygeon as pg
 
 class VecVLagrange1(pg.VecDiscretization):
     """
-    Vector Lagrange virtual element discretization for H1 space in 2d.
+    Vector Lagrange virtual element discretization for H1 space in 2D.
 
     This class represents a virtual element discretization for the H1 space using
     vector virtual Lagrange elements. It provides methods for assembling various
@@ -24,15 +23,20 @@ class VecVLagrange1(pg.VecDiscretization):
     The stress tensor and strain tensor are represented as vectors unrolled row-wise.
     In 2D, the stress tensor has a length of 4.
 
-    We are considering the following structure of the stress tensor in 2d
+    We are considering the following structure of the stress tensor in 2D:
 
-    sigma = [[sigma_xx, sigma_xy],
-             [sigma_yx, sigma_yy]]
+    .. math::
 
-    which is represented in the code unrolled row-wise as a vector of length 4
+        \\sigma = \\begin{bmatrix}
+            \\sigma_{xx} & \\sigma_{xy} \\\\
+            \\sigma_{yx} & \\sigma_{yy}
+        \\end{bmatrix}
 
-    sigma = [sigma_xx, sigma_xy,
-             sigma_yx, sigma_yy]
+    which is represented in the code unrolled row-wise as a vector of length 4:
+
+    .. math::
+
+        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
     The strain tensor follows the same approach.
     """
@@ -171,7 +175,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         # Allocate the data to store matrix entries, that's the most efficient
         # way to create a sparse matrix.
-        size = cell_nodes.sum() * np.power(sd.dim, 3)
+        size = cell_nodes.sum() * np.power(sd.dim, pg.AMBIENT_DIM)
         rows_I = np.empty(size, dtype=int)
         cols_J = np.empty(size, dtype=int)
         data_IJ = np.empty(size)
@@ -263,7 +267,7 @@ class VecVLagrange1(pg.VecDiscretization):
         return symgrad.T @ tensor_mass @ symgrad
 
     def assemble_penalisation_matrix(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the penalisation matrix.
@@ -301,7 +305,7 @@ class VecVLagrange1(pg.VecDiscretization):
             idx += cols.size
 
         scalar_pen = sps.csc_array((data_V, (rows_I, cols_J)))
-        return sps.block_diag([scalar_pen] * sd.dim).tocsc()
+        return sps.kron(sps.eye_array(sd.dim), scalar_pen).tocsc()
 
     def assemble_loc_penalisation_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
@@ -325,24 +329,6 @@ class VecVLagrange1(pg.VecDiscretization):
         I_minus_Pi = np.eye(nodes.size) - D @ proj
 
         return I_minus_Pi.T @ I_minus_Pi
-
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix corresponding to the differential operator.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_array: The differential matrix.
-
-        Notes:
-            Duplicate of pg.VecLagrange1.assemble_diff_matrix
-        """
-        div = self.assemble_div_matrix(sd)
-        symgrad = self.assemble_symgrad_matrix(sd)
-
-        return sps.block_array([[symgrad], [div]]).tocsc()
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -380,7 +366,7 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Raises:
             NotImplementedError: There is no range discretization for the vector
-            Lagrangian 1 in PyGeoN.
+                Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector VLagrangian 1 in PyGeoN"

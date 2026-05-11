@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -15,7 +16,7 @@ def test_ndof(discr, unit_sd):
     assert discr.ndof(unit_sd) == unit_sd.dim * unit_sd.num_faces
 
 
-def test_asssemble_mass_matrix(discr, ref_sd):
+def test_assemble_mass_matrix(discr, ref_sd):
     M = discr.assemble_mass_matrix(ref_sd)
 
     match ref_sd.dim:
@@ -64,7 +65,7 @@ def test_asssemble_mass_matrix(discr, ref_sd):
                 / 30
             )
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)
 
 
 def test_range_discr_class(discr):

@@ -1,6 +1,6 @@
 """Module for the vector discretization class."""
 
-from typing import Callable
+from typing import Callable, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -10,22 +10,12 @@ import pygeon as pg
 
 class VecDiscretization(pg.Discretization):
     """
-    A class representing a vector discretization.
+    A class representing a vectorized discretization for a given base discretization.
+    The base needs to be specified in the __init__ function.
     """
 
-    def __init__(self, keyword: str) -> None:
-        """
-        Initializes the VecDiscretization class.
-
-        Args:
-            keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        self.base_discr: pg.Discretization
+    base_discr: pg.Discretization
+    """The scalar discretization method."""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -136,13 +126,13 @@ class VecDiscretization(pg.Discretization):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Evaluate the finite element solution at the cell centers of the given grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): The grid on which to evaluate the solution.
+            sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_array: The finite element solution evaluated at the cell centers.
+             sps.csc_array: The evaluation matrix.
         """
         P = self.base_discr.eval_at_cell_centers(sd)
         return self.vectorize(sd.dim, P)
@@ -168,14 +158,55 @@ class VecDiscretization(pg.Discretization):
         ]
         return np.hstack(nat_bc)
 
+    def assemble_broken_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken, element-wise divergence operator.
+        This operator is only implemented for vector-valued functions.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The divergence matrix.
+        """
+        assert self.tensor_order == pg.VECTOR
+
+        grad = self.assemble_broken_grad_matrix(sd)
+        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
+        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
+        trace = mat_pwp.assemble_trace_matrix(sd)
+
+        return trace @ grad
+
+    def assemble_broken_curl_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken, element-wise curl operator.
+        This operator is only implemented for vector-valued functions.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The curl matrix.
+        """
+        assert self.tensor_order == pg.VECTOR
+
+        grad = self.assemble_broken_grad_matrix(sd)
+        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
+        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
+        asym = mat_pwp.assemble_asym_matrix(sd)
+
+        return asym @ grad
+
     def vectorize(self, dim: int, matrix: sps.csc_array) -> sps.csc_array:
         """
         Vectorizes the given matrix by repeating it for each dimension of the grid.
 
         Args:
+            dim (int): Number of vector components.
             matrix (sps.csc_array): The matrix to be vectorized.
 
         Returns:
             sps.csc_array: The vectorized matrix.
         """
-        return sps.block_diag([matrix] * dim).tocsc()
+        return sps.kron(sps.eye_array(dim), matrix).tocsc()

@@ -21,9 +21,9 @@ def apa_format_rst(entry):
 
     lines = [f"{authors} ({year}). *{title}*. {journal}."]
     if doi:
-        lines.append(f"DOI: `https://doi.org/{doi} <https://doi.org/{doi}>`_")
+        lines.append(f"DOI: `https://doi.org/{doi} <https://doi.org/{doi}>`__")
     if url:
-        lines.append(f"Repo: `Link <{url}>`_")
+        lines.append(f"Repo: `Link <{url}>`__")
 
     return "\n".join(lines)
 

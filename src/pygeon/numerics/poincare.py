@@ -13,7 +13,7 @@ from pygeon.numerics.linear_system import create_restriction
 class Poincare:
     """
     Class for generating Poincaré operators p
-    that satisfy pd + dp = I
+    that satisfy :math:`pd + dp = I`
     with d the exterior derivative, following
     the construction from https://arxiv.org/abs/2410.08830
     """
@@ -160,14 +160,14 @@ class Poincare:
 
     def decompose(self, k: int, f: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Use the Poincaré operators to decompose f = pd(f) + dp(f)
+        Use the Poincaré operators to decompose :math:`f = pd(f) + dp(f)`
 
         Args:
             k (int): Order of the k-form f.
             f (np.ndarray): The function to be decomposed.
 
         Returns:
-            Tuple[np.ndarray]: The decomposition of f as (dp(f), pd(f))
+            Tuple[np.ndarray]: The decomposition of f as :math:`(dp(f), pd(f))`
         """
         n_minus_k = self.dim - k
 

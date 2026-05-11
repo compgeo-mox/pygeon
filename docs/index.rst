@@ -79,13 +79,6 @@ Contents
    papers
    license
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Developer Docs
-   :glob:
-
-   readthedocs/*.md
-
 Indices and tables
 ==================
 

@@ -31,7 +31,8 @@
                 "terminal.integrated.shell.linux": "/bin/bash",
                 "editor.defaultFormatter": "charliermarsh.ruff",
                 "notebook.formatOnSave.enabled": true,
-                "notebook.defaultFormatter": "charliermarsh.ruff"
+                "notebook.defaultFormatter": "charliermarsh.ruff",
+                "terminal.integrated.defaultProfile.linux": "bash"
             }
         }
     }

@@ -8,10 +8,10 @@ This section contains the complete API documentation for PyGeoN.
 
    discretizations
    filters
-   geometry
    grids
    numerics
    utils
+   viz
 
 Main Package
 ------------

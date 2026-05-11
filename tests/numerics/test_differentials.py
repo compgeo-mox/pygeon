@@ -1,6 +1,8 @@
 """Module contains tests to validate the differential operators."""
 
 import numpy as np
+import pytest
+import scipy.sparse as sps
 
 import pygeon as pg
 
@@ -41,3 +43,20 @@ def test_cochain_unit_cart(unit_cart_sd):
 
 def test_cochain_mdg(mdg):
     check_cochain_property(mdg)
+
+
+def test_wrong_type_exterior_derivative():
+    with pytest.raises(TypeError):
+        pg.grad([])
+
+
+def test_negative_nminusk_input(unit_sd_2d):
+    with pytest.warns():
+        pg.numerics.differentials.exterior_derivative(unit_sd_2d, -1)
+
+
+def test_as_bmat(mdg_embedded_frac_2d):
+    div = pg.div(mdg_embedded_frac_2d)
+    div_bmat = pg.div(mdg_embedded_frac_2d, as_bmat=True)
+
+    assert np.allclose((div - sps.bmat(div_bmat)).data, 0)

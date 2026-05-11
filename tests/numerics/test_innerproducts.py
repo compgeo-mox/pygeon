@@ -51,6 +51,20 @@ def test_matrix_aliases(mdg, n_minus_k):
     assert M.shape == L.shape
 
 
+def test_keywords(mdg_embedded_frac_2d):
+    """
+    Coverage tests if either the discretization or the keyword is provided
+    """
+    # Given keyword
+    pg.cell_mass(mdg_embedded_frac_2d, keyword="given_keyword")
+
+    # Given discretization that is not PwConstants
+    discr = pg.PwLinears("given_keyword")
+    M = pg.cell_mass(mdg_embedded_frac_2d, discr=discr)
+    ndof = sum(discr.ndof(sd) for sd in mdg_embedded_frac_2d.subdomains())
+    assert M.shape == (ndof, ndof)
+
+
 def test_wrong_value(unit_sd_3d):
     with pytest.raises(ValueError):
         pg.numerics.innerproducts.default_discr(unit_sd_3d, -1)

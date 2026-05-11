@@ -1,10 +1,10 @@
 """Module contains specific tests for the vector P2 discretization."""
 
-import numpy as np
 import pytest
 import scipy.linalg as spla
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture
@@ -30,4 +30,4 @@ def test_assemble_mass_matrix(discr, ref_sd):
 
     M_known = spla.block_diag(*([M_base] * factor))
 
-    assert np.allclose(M.todense(), M_known)
+    assert matrix_equals(M.todense(), M_known)

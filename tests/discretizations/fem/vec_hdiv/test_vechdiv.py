@@ -52,6 +52,16 @@ def test_assemble_elasticity_matrices(discr, unit_sd, data, constant_fun):
     assert np.isclose(u.T @ L @ u, known)
 
 
+def test_assemble_deviator_matrix(discr, unit_sd, data, constant_fun):
+    if unit_sd.dim == 1:
+        return
+    M = discr.assemble_deviator_matrix(unit_sd, data)
+    u = discr.interpolate(unit_sd, constant_fun)
+
+    known = 22 if unit_sd.dim == 2 else 71 / 3
+    assert np.isclose(u.T @ M @ u, known)
+
+
 def test_assemble_cosserat_matrices(discr, unit_sd, data, constant_fun):
     if unit_sd.dim == 1:
         return
@@ -92,7 +102,7 @@ def test_assemble_asym_matrix(discr, unit_sd, constant_fun):
     if unit_sd.dim == 2:
         assert np.allclose(cell_asym_u, 2)
     else:
-        cell_asym_u = cell_asym_u.reshape((3, -1))
+        cell_asym_u = cell_asym_u.reshape((pg.AMBIENT_DIM, -1))
         assert np.allclose(cell_asym_u[0], 1)
         assert np.allclose(cell_asym_u[1], 0)
         assert np.allclose(cell_asym_u[2], 2)
@@ -132,7 +142,7 @@ def test_interp_eval_linears(discr, unit_sd):
 
     interp = discr.interpolate(unit_sd, linear)
     eval = discr.eval_at_cell_centers(unit_sd) @ interp
-    eval = np.reshape(eval, (unit_sd.dim * 3, unit_sd.num_cells))
+    eval = np.reshape(eval, (unit_sd.dim * pg.AMBIENT_DIM, unit_sd.num_cells))
 
     known = np.array(
         [linear(x)[: unit_sd.dim, :].ravel() for x in unit_sd.cell_centers.T]
@@ -170,3 +180,11 @@ def test_linear_asym(discr, unit_sd):
     asym_interp = asym_space.interpolate(unit_sd, func_asym)
 
     assert np.allclose(asym @ func_interp, asym_interp)
+
+
+def test_cosserat_1d(discr, unit_sd_1d):
+    with pytest.raises(ValueError):
+        discr.assemble_mass_matrix_cosserat(unit_sd_1d, None)
+
+    with pytest.raises(ValueError):
+        discr.assemble_lumped_matrix_cosserat(unit_sd_1d, None)

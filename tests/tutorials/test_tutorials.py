@@ -31,7 +31,7 @@ if HAVE_NBCONVERT:
         and we'll also call preprocess explicitly as an extra guarantee.
         """
 
-        def preprocess_cell(self, cell, resources, index):
+        def preprocess_cell(self, cell, resources):
             # Only act on code cells
             if cell.cell_type != "code":
                 return cell, resources
@@ -55,8 +55,8 @@ if HAVE_NBCONVERT:
         def preprocess(self, nb, resources):
             # run preprocess_cell on all cells and filter out marked ones
             new_cells = []
-            for index, cell in enumerate(nb.cells):
-                cell, resources = self.preprocess_cell(cell, resources, index)
+            for cell in nb.cells:
+                cell, resources = self.preprocess_cell(cell, resources)
                 # exclude cells either explicitly marked, or now empty code cells
                 if cell.cell_type == "code" and cell.metadata.get(
                     "nb_ignored_by_comment"

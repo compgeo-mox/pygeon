@@ -27,6 +27,11 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert np.allclose((M - P).data, 0)
 
 
+def test_broken_grad(discr, unit_sd):
+    grad = discr.assemble_broken_grad_matrix(unit_sd)
+    assert grad.nnz == 0
+
+
 def test_interpolate(discr, unit_sd_2d):
     func = lambda x: np.sin(x[0])  # Example function
     vals = discr.interpolate(unit_sd_2d, func)
@@ -47,17 +52,20 @@ def test_proj_to_lower_PwPolynomials(discr, unit_sd_2d):
         discr.proj_to_lower_PwPolynomials(unit_sd_2d)
 
 
-def test_error_l2(discr, unit_cart_sd):
+def test_error_l2(discr, unit_sd):
     def fun(x):
         return x[0] + 2 * x[1]
 
-    int_sol = discr.interpolate(unit_cart_sd, fun)
+    int_sol = discr.interpolate(unit_sd, fun)
 
-    err = discr.error_l2(unit_cart_sd, np.zeros_like(int_sol), fun)
+    # Test that the relative error is 1 for a zero distribution
+    err = discr.error_l2(unit_sd, np.zeros_like(int_sol), fun)
     assert np.isclose(err, 1)
 
-    err = discr.error_l2(unit_cart_sd, int_sol, fun, etype="standard")
+    # Test that the error is 0 if num_sol is the interpolant
+    err = discr.error_l2(unit_sd, int_sol, fun, poly_order=None)
     assert np.isclose(err, 0)
 
-    err = discr.error_l2(unit_cart_sd, int_sol, fun, etype="specific")
+    # Test that the error is nonzero if first-order integration is used
+    err = discr.error_l2(unit_sd, int_sol, fun, poly_order=1)
     assert not np.isclose(err, 0)

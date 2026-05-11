@@ -35,3 +35,15 @@ def test_interp_eval_constants(discr, unit_sd_3d):
     f_interp = P @ discr.interpolate(unit_sd_3d, f)
 
     assert np.allclose(f_interp, f_known)
+
+
+def test_broken_curl(discr, unit_sd_3d):
+    range_disc = discr.get_range_discr_class(unit_sd_3d.dim)()
+    proj_0 = pg.proj_to_PwPolynomials(range_disc, unit_sd_3d, discr.poly_order - 1)
+    curl = discr.assemble_diff_matrix(unit_sd_3d)
+
+    proj_1 = discr.proj_to_PwPolynomials(unit_sd_3d)
+    pwp = pg.get_PwPolynomials(discr.poly_order, pg.VECTOR)()
+    broken_curl = pwp.assemble_broken_curl_matrix(unit_sd_3d)
+
+    assert np.allclose((proj_0 @ curl - broken_curl @ proj_1).data, 0)

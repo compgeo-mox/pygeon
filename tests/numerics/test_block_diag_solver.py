@@ -6,6 +6,7 @@ import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
+from tests.helpers import matrix_equals
 
 
 @pytest.fixture()
@@ -44,7 +45,7 @@ def b_vector() -> np.ndarray:
 
 @pytest.fixture()
 def b_matrix(b_vector: np.ndarray) -> np.ndarray:
-    return np.tile(b_vector, (3, 1)).T
+    return np.tile(b_vector, (pg.AMBIENT_DIM, 1)).T
 
 
 def test_block_diag_solver_dense_vec(M_sparse, b_vector):
@@ -95,7 +96,7 @@ def test_assemble_inverse(M_sparse):
     expected_invM = np.linalg.inv(M_sparse.toarray())
 
     # Check if the solution is correct
-    assert np.allclose(invM.toarray(), expected_invM)
+    assert matrix_equals(invM.toarray(), expected_invM)
 
 
 @pytest.mark.parametrize(
@@ -123,3 +124,11 @@ def test_lumped_inv_cosserat(ref_sd, data):
     L_inv.eliminate_zeros()
 
     assert L_inv.nnz <= max_nnz[ref_sd.dim]
+
+
+def test_with_zero_rows(M_sparse, B_sparse):
+    B = B_sparse.copy()
+    B[:2, :] = 0
+    sol = pg.block_diag_solver(M_sparse, B)
+
+    assert np.allclose((M_sparse @ sol - B).data, 0)
