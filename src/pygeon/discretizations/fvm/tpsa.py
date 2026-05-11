@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sps
+
 import pygeon as pg
 
 
@@ -8,39 +9,46 @@ def rotation_dim(dim: int) -> int:
 
 
 class TPSA:
+    def __init__(self, keyword=pg.UNITARY_DATA):
+        self.keyword = keyword
+
     def ndof(self, sd: pg.Grid):
         return sd.num_cells * sum([sd.dim, rotation_dim(sd.dim), 1])
+
+    def compute_find_cf(self, sd):
+        self.find_cf = sps.find(sd.cell_faces)
+        self.unit_normals = sd.face_normals / sd.face_areas
 
     def assemble_elasticity_matrix(self, sd: pg.Grid, data: dict) -> None:
         """
         Assemble the TPSA matrix, given material constants in the data dictionary.
-        Also sets the reference pressure, if available.
         """
 
         # Extract the spring constant
         self.delta_bdry_over_mu = data.get(
             "inv_spring_constant", np.zeros(sd.num_faces)
         )
+        self.compute_find_cf(sd)
 
         # We precompute delta_k^i / mu here
-        self.delta_ki_over_mu = self.assemble_delta_ki_over_mu(sd, data[pg.LAME_MU])
+        self.delta_over_mu = self.assemble_delta_over_mu(sd, data)
         self.dk_mu = self.assemble_delta_mu_k()
 
         # Generate the first order terms in (3.9)
-        M = self.assemble_first_order_terms(data, scale_factor=self.scaling)
+        M = self.assemble_first_order_terms(data)
 
         # Precompute the operator that multiplies with the area
         # and applies the divergence
-        div_F = sps.csc_array(sd.cell_faces.T) * sd.face_areas
+        div_F = pg.div(sd) * sd.face_areas
 
         # Assemble the remaining terms in (3.9)
-        A = self.assemble_second_order_terms(sd, div_F, scale_factor=self.scaling)
+        A = self.assemble_second_order_terms(sd, div_F)
 
         # Assemble the matrix from (3.9)
         self.system = sps.csc_array(A - M)
 
     def assemble_second_order_terms(
-        self, sd: pg.Grid, div_F: sps.sparray, scale_factor: float = 1.0
+        self, sd: pg.Grid, div_F: sps.sparray
     ) -> sps.sparray:
         """
         Assemble the second-order terms
@@ -52,8 +60,8 @@ class TPSA:
         # Assemble the blocks of (3.7) where
         # A_ij is the block coupling variable i and j.
         mu_bar = self.harmonic_avg()
-        A_uu = -2 * div_F * (mu_bar / scale_factor) @ sd.cell_faces
-        A[0, 0] = sps.block_diag([A_uu] * sd.dim)
+        A_uu = -2 * div_F * mu_bar @ sd.cell_faces
+        A[0, 0] = sps.kron(np.eye(sd.dim), A_uu)
 
         # The blocks in the first column depend on the averaging operator Xi
         Xi = self.assemble_xi()
@@ -63,20 +71,20 @@ class TPSA:
         Xi_tilde = self.convert_to_xi_tilde(Xi)
         A[0, 1], A[0, 2] = self.assemble_off_diagonal_terms(Xi_tilde, div_F, False)
 
-        A[2, 2] = -div_F * (0.5 * self.dk_mu * scale_factor) @ sd.cell_faces
+        A[2, 2] = -div_F * (0.5 * self.dk_mu) @ sd.cell_faces
 
         # Assembly by blocks
         return sps.block_array(A).tocsc()
 
-    def assemble_delta_ki_over_mu(self, sd: pg.Grid, mu: np.ndarray) -> np.ndarray:
+    def assemble_delta_over_mu(self, sd: pg.Grid, data: dict) -> np.ndarray:
         """
         Compute delta_k^i / mu from (2.1) for every physical face-cell pair.
-        Boundary conditions are handled later
+        Boundary conditions are handled later.
         """
-
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         faces, cells, orient = self.find_cf
 
-        def compute_delta_ki(indices=slice(None)):
+        def compute_delta(indices=slice(None)):
             return np.sum(
                 (
                     (
@@ -88,39 +96,40 @@ class TPSA:
                 axis=0,
             )
 
-        delta_ki = compute_delta_ki()
+        delta = compute_delta()
 
         # Check if any cell centers are placed outside the cell
-        if np.any(delta_ki <= 0):
+        if np.any(delta <= 0):
             print(
                 "Moving {} extra-cellular centers to the mean of the nodes".format(
-                    np.sum(delta_ki <= 0)
+                    np.sum(delta <= 0)
                 )
             )
-            for cell in cells[delta_ki <= 0]:
-                cf_pairs = cells == cell
+            cell_nodes = sd.cell_nodes()
+            cf_pairs = np.zeros_like(cells, dtype=bool)
+
+            for cell in cells[delta <= 0]:
+                cf_pairs |= cells == cell
 
                 # Define a cell-center based on the mean of the nodes
-                xyz = sd.xyz_from_active_index(cell)
-                sd.cell_centers[:, cell] = np.mean(xyz, axis=1)
+                nodes = cell_nodes.indices[
+                    cell_nodes.indptr[cell] : cell_nodes.indptr[cell + 1]
+                ]
+                sd.cell_centers[:, cell] = np.mean(sd.nodes[:, nodes], axis=1)
 
-                # Recompute the deltas with the updated cell center
-                delta_ki[cf_pairs] = compute_delta_ki(cf_pairs)
+            # Recompute the deltas with the updated cell center
+            delta[cf_pairs] = compute_delta(cf_pairs)
 
-            if np.any(delta_ki <= 0):
+            if np.any(delta <= 0):
                 # Report on the first problematic cell for visual inspection
-                first_cell = cells[np.argmax(delta_ki <= 0)]
-                ijk = sd.ijk_from_active_index(first_cell)
-                glob_ind = sd.global_index(*ijk)
+                glob_ind = cells[delta <= 0]
 
-                print(
-                    "There are {} extra-cellular centers".format(np.sum(delta_ki <= 0))
-                )
-                print("Inspect cell with global index {}\n".format(glob_ind))
+                print("There are {} extra-cellular centers".format(np.sum(delta <= 0)))
+                print("Inspect cells with index {}".format(glob_ind))
             else:
-                print("Fixed all cell-centers\n")
+                print("Fixed all cell-centers")
 
-        return delta_ki / mu[cells]
+        return delta / mu[cells]
 
     def assemble_delta_mu_k(self) -> np.ndarray:
         """
@@ -130,8 +139,8 @@ class TPSA:
         This is double the delta^mu_k of (3.5)
         """
 
-        faces, _, _ = self.find_cf
-        dk_mu = self.delta_ki_over_mu
+        faces, *_ = self.find_cf
+        dk_mu = self.delta_over_mu
 
         # Incorporate the spring bc by extending the vectors
         faces = np.concatenate((faces, np.flatnonzero(self.sd.tags["sprng_bdry"])))
@@ -158,8 +167,8 @@ class TPSA:
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face
         """
 
-        faces, _, _ = self.find_cf
-        dk_mu = self.delta_ki_over_mu
+        faces, *_ = self.find_cf
+        dk_mu = self.delta_over_mu
 
         # Incorporate the spring bc by extending the vectors
         faces = np.concatenate((faces, np.flatnonzero(self.sd.tags["sprng_bdry"])))
@@ -183,10 +192,10 @@ class TPSA:
         """
 
         faces, cells, _ = self.find_cf
-        Xi = sps.csc_array((self.dk_mu[faces] / self.delta_ki_over_mu, (faces, cells)))
+        Xi = sps.csc_array((self.dk_mu[faces] / self.delta_over_mu, (faces, cells)))
 
         # Displacement bc are handled by dk_mu = 0
-        # Traction bc are handled since dk_mu * mu / delta_ki = 1
+        # Traction bc are handled since dk_mu * mu / delta = 1
         # Spring bc are handled because the spring constant is in dk_mu
 
         return Xi
@@ -236,17 +245,15 @@ class TPSA:
 
         return R_Xi, n_Xi
 
-    def assemble_first_order_terms(
-        self, data: dict, scale_factor: float = 1.0
-    ) -> sps.csc_array:
+    def assemble_first_order_terms(self, data: dict) -> sps.csc_array:
         """
         The first-order terms on the diagonal of (3.9)
         """
 
         volumes = self.sd.cell_volumes
         M_u = np.zeros(self.ndofs[0])
-        M_r = np.tile(scale_factor * volumes / data[pg.LAME_MU], self.dim_r)
-        M_p = scale_factor * volumes / data[pg.LAME_LAMBDA]
+        M_r = np.tile(volumes / data[pg.LAME_MU], self.dim_r)
+        M_p = volumes / data[pg.LAME_LAMBDA]
 
         diagonal = np.concatenate((M_u, M_r, M_p))
 
@@ -369,7 +376,7 @@ class TPSA:
             pg.LAME_LAMBDA
         ]
 
-    def assemble_dual_var_map(self, scale_factor: float = 1.0) -> sps.sparray:
+    def assemble_dual_var_map(self) -> sps.sparray:
         """
         Assemble the matrix from (3.7) that maps primary to dual variables
         This function is only used for post-processing the stress
@@ -378,4 +385,4 @@ class TPSA:
         # Precompute the operator that multiplies with the area
         areas = sps.diags_array(self.sd.face_areas)
 
-        return self.assemble_second_order_terms(areas, scale_factor)
+        return self.assemble_second_order_terms(areas)
