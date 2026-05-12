@@ -33,7 +33,7 @@ One DOF per mesh **cell**.
 
 $$N_\text{dof} = N_\text{cells}$$
 
-**DOF meaning.** Each DOF is the cell-volume-weighted average of the function over the cell.
+**DOF meaning.** Each DOF is the integral over the cell of the function.
 
 **DOF ordering.** DOF $c$ has global index $c$ (directly indexed by cell number).
 
@@ -69,7 +69,6 @@ $$N_\text{dof} = N_\text{faces}$$
 
 **DOF ordering.** DOF $f$ has global index $f$ (directly indexed by face number).
 
-**Note.** Even if `RT0` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
 ### `BDM1` — $H(\text{div})$, first-order Brezzi–Douglas–Marini ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hdiv.py#L257))
 
@@ -86,7 +85,6 @@ $N_\text{faces}$ entries correspond to the first node of each face, the next
 $N_\text{faces}$ entries to the second node, and so on. The global index of DOF $(f,i)$
 is $f + i\,N_\text{faces}$, $i = 0,\ldots,d-1$.
 
-**Note.** Even if `BDM1` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
 ### `RT1` — $H(\text{div})$, first-order Raviart–Thomas ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hdiv.py#L480))
 
@@ -102,7 +100,6 @@ block, each further divided into $d$ sub-blocks of uniform size.
 Global index of face DOF $(f, k)$: $f + k\,N_\text{faces}$; global index of cell DOF
 $(c, k)$: $d\,N_\text{faces} + c + k\,N_\text{cells}$.
 
-**Note.** Even if `RT1` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
 ### `Nedelec0` — $H(\text{curl})$, lowest-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L11))
 
@@ -114,7 +111,6 @@ $$N_\text{dof} = N_\text{edges}$$
 
 **DOF ordering.** DOF $e$ has global index $e$ (directly indexed by edge number).
 
-**Note.** Even if `Nedelec0` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
 ### `Nedelec1` — $H(\text{curl})$, first-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L161))
 
@@ -129,7 +125,6 @@ $$N_\text{dof} = 2\,N_\text{edges}$$
 **DOF ordering.** Two blocks of $N_\text{edges}$ each (one per endpoint): the global
 index of DOF $(e, i)$ is $e + i\,N_\text{edges}$, $i \in \{0, 1\}$.
 
-**Note.** Even if `Nedelec1` is a space for vector-valued functions, the degrees of freedom have a scalar meaning.
 
 ## Vector-valued spaces
 
@@ -167,12 +162,8 @@ Note that `VecBDM1` / `VecRT0` classes serve as matrix-valued $H(\text{div})$ sp
 for tensors but their degrees of freedom are vector-valued; 
 their DOF layout follows the same row-major block structure.
 
-## Symmetrizing a matrix-valued space
+## Symmetric a matrix-valued space
 
-The matrix-valued spaces (`MatPwConstants`, `MatPwLinears`, `MatPwQuadratics`)
-always store all $d^2$ components per scalar DOF and do not use a reduced-DOF
-representation for symmetric tensors. Instead, symmetry is enforced via the
-`assemble_symmetrizing_matrix` method of `MatPwPolynomials`, which returns the
-linear operator that maps a full $d^2$-block DOF vector to its symmetric part by
-averaging off-diagonal pairs: $\sigma_{ij} \mapsto \tfrac{1}{2}(\sigma_{ij} +
-\sigma_{ji})$ for $i \neq j$, leaving diagonal entries unchanged.
+In the symmetric matrix-valued spaces (`SymMatPwConstants`, `SymMatPwLinears`, 
+`SymMatPwQuadratics`) only the upper triangular part of the DOF is stored following the 
+row-major block structure as in the matrix-valued spaces. 
