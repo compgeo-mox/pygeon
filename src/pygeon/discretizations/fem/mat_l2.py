@@ -439,6 +439,39 @@ class MatPwConstants(MatPwPolynomials):
         inv_val = np.transpose(inv_val, (1, 2, 0))  # shape (d, d, n_cells)
         return (sd.cell_volumes * inv_val).ravel()
 
+    def assemble_upper_convected_distortion(
+        self, sd: pg.Grid, grad_v: np.ndarray
+    ) -> sps.csc_array:
+        """
+        Assembles the term - grad_v * A  - A * grad_v.T, with grad_v a matrix-valued
+        function in the matrix piecewise constant space.
+
+        This term appears in the upper-convected derivative of a matrix-valued
+        function, and it is the distortion part of the upper-convected derivative.
+
+        Args:
+            sd (pg.Grid): The grid.
+            grad_v (np.ndarray): The gradient of the velocity, a matrix-valued function
+                in the matrix piecewise constant space.
+
+        Returns:
+            sps.csc_array: The upper convected distortion matrix obtained from the
+                discretization.
+        """
+        grad_v_val = self.eval_at_cell_centers(sd) @ grad_v
+
+        # We can assemble the two terms separately and then sum them together. The
+        # first term is given by grad_v * A, which is requires a left multiplication
+        # with the velocity gradient.
+        grad_v_A = self.assemble_mult_matrix(sd, grad_v_val, left_mult=True)
+
+        # The second term is given by A * grad_v.T, which requires a right
+        # multiplication with the transposed velocity gradient.
+        grad_v_T = self.assemble_transpose_matrix(sd) @ grad_v_val
+        A_grad_v_T = self.assemble_mult_matrix(sd, grad_v_T, right_mult=True)
+
+        return -(grad_v_A + A_grad_v_T)
+
 
 class MatPwLinears(MatPwPolynomials):
     """
@@ -502,7 +535,7 @@ class MatPwLinears(MatPwPolynomials):
         # Assemble the multiplication matrices A*Omega and Omega*A used in the
         # corotational correction
         A_omega = self.assemble_mult_matrix(sd, omega, right_mult=True)
-        omega_A = self.assemble_mult_matrix(sd, omega, right_mult=False)
+        omega_A = self.assemble_mult_matrix(sd, omega, left_mult=True)
 
         # Return the corotational correction matrix
         return A_omega - omega_A
