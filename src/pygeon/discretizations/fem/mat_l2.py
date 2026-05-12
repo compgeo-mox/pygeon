@@ -278,7 +278,12 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         return sps.kron(asym, sps.eye_array(scalar_ndof)).tocsc()
 
     def assemble_mult_matrix(
-        self, sd: pg.Grid, mult_mat: np.ndarray, right_mult: bool
+        self,
+        sd: pg.Grid,
+        mult_mat: np.ndarray,
+        *,
+        right_mult: bool | None = None,
+        left_mult: bool | None = None,
     ) -> sps.csc_array:
         """
         Assembles and returns the matrix that multiplies with an elementwise
@@ -289,12 +294,24 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             mult_mat (np.ndarray): The matrix to multiply with. It is assumed to be
                 a piecewise constant matrix and can be provided with shape
                 (d, d, n_cells), (d, d, n_dof), or their flattened equivalents.
-            right_mult (bool): If True, performs right multiplication. If False, left
-                multiplication.
+            right_mult (bool, optional): If True, performs right multiplication (A @ X).
+                Exactly one of 'right_mult' or 'left_mult' must be True.
+            left_mult (bool, optional): If True, performs left multiplication (X @ A).
+                Exactly one of 'right_mult' or 'left_mult' must be True.
 
         Returns:
             sps.csc_array: The multiplication matrix obtained from the discretization.
+
+        Raises:
+            ValueError: If exactly one of 'right_mult' or 'left_mult' is not True.
         """
+        # Validate that exactly one multiplication direction is specified
+        if (right_mult is True) + (left_mult is True) != 1:
+            raise ValueError(
+                "Exactly one of 'right_mult' or 'left_mult' must be True. "
+                f"Got right_mult={right_mult}, left_mult={left_mult}."
+            )
+
         # Reshape the multiplication matrix so that we can easily access its components
         # per cell.
         mult_mat = mult_mat.reshape((sd.dim, sd.dim, -1))
