@@ -1,4 +1,5 @@
 import numpy as np
+import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -9,79 +10,91 @@ def rotation_dim(dim: int) -> int:
 
 
 class TPSA:
-    def __init__(self, keyword=pg.UNITARY_DATA):
+    def __init__(self, keyword=pg.UNITARY_DATA) -> None:
         self.keyword = keyword
 
-    def ndof(self, sd: pg.Grid):
+    def ndof(self, sd) -> int:
         return sd.num_cells * sum([sd.dim, rotation_dim(sd.dim), 1])
-
-    def compute_find_cf(self, sd):
-        self.find_cf = sps.find(sd.cell_faces)
-        self.unit_normals = sd.face_normals / sd.face_areas
 
     def assemble_elasticity_matrix(self, sd: pg.Grid, data: dict) -> None:
         """
         Assemble the TPSA matrix, given material constants in the data dictionary.
         """
+        # Precomputations of the geometry
+        self.find_cf = sps.find(sd.cell_faces)
+        self.unit_normals = sd.face_normals / sd.face_areas
 
-        # Extract the spring constant
-        self.delta_bdry_over_mu = data.get(
-            "inv_spring_constant", np.zeros(sd.num_faces)
-        )
-        self.compute_find_cf(sd)
-
-        # We precompute delta_k^i / mu here
-        self.delta_over_mu = self.assemble_delta_over_mu(sd, data)
-        self.dk_mu = self.assemble_delta_mu_k()
+        # Extract the Lamé parameters
+        lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        lame_lambda = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
         # Generate the first order terms in (3.9)
-        M = self.assemble_first_order_terms(data)
+        M = self.assemble_first_order_terms(sd, lame_mu, lame_lambda)
 
-        # Precompute the operator that multiplies with the area
-        # and applies the divergence
-        div_F = pg.div(sd) * sd.face_areas
+        # Precomputations that use grid and parameter values
+        self.compute_weighted_dists(sd, lame_mu)
+
+        faces, deltas = self.extend_faces_and_distances(sd, data)
+        self.compute_delta_mu_k(faces, deltas)
+        self.compute_harmonic_avg_mu(faces, deltas)
 
         # Assemble the remaining terms in (3.9)
-        A = self.assemble_second_order_terms(sd, div_F)
+        A = self.assemble_second_order_terms(sd)
 
         # Assemble the matrix from (3.9)
         self.system = sps.csc_array(A - M)
 
-    def assemble_second_order_terms(
-        self, sd: pg.Grid, div_F: sps.sparray
-    ) -> sps.sparray:
+        return self.system
+
+    def assemble_first_order_terms(
+        self, sd: pg.Grid, lame_mu: np.ndarray, lame_lambda: np.ndarray
+    ) -> sps.csc_array:
+        """
+        The first-order terms on the diagonal of (3.9)
+        """
+        M_u = np.zeros(sd.dim * sd.num_cells)
+        M_r = np.tile(sd.cell_volumes / lame_mu, rotation_dim(sd.dim))
+        M_p = sd.cell_volumes / lame_lambda
+
+        diagonal = np.concatenate((M_u, M_r, M_p))
+
+        return sps.diags_array(diagonal).tocsc()
+
+    def assemble_second_order_terms(self, sd: pg.Grid) -> sps.sparray:
         """
         Assemble the second-order terms
         """
+        # Precompute the operator that multiplies with the area
+        # and applies the divergence
+        div_F = pg.div(sd) * sd.face_areas
 
         # Preallocate the main matrix
         A = np.empty((3, 3), dtype=sps.sparray)
 
         # Assemble the blocks of (3.7) where
         # A_ij is the block coupling variable i and j.
-        mu_bar = self.harmonic_avg()
-        A_uu = -2 * div_F * mu_bar @ sd.cell_faces
-        A[0, 0] = sps.kron(np.eye(sd.dim), A_uu)
+        A_uu = [-2 * div_F * mu_bar @ sd.cell_faces for mu_bar in self.mu_bar]
+        A[0, 0] = sps.block_diag(A_uu)
 
         # The blocks in the first column depend on the averaging operator Xi
         Xi = self.assemble_xi()
-        A[1, 0], A[2, 0] = self.assemble_off_diagonal_terms(Xi, div_F, True)
+        A[1, 0], A[2, 0] = self.assemble_off_diagonal_terms(sd, Xi, div_F, True)
 
         # The blocks in the first row depend on the complementary operator Xi_tilde
         Xi_tilde = self.convert_to_xi_tilde(Xi)
-        A[0, 1], A[0, 2] = self.assemble_off_diagonal_terms(Xi_tilde, div_F, False)
+        A[0, 1], A[0, 2] = self.assemble_off_diagonal_terms(sd, Xi_tilde, div_F, False)
 
-        A[2, 2] = -div_F * (0.5 * self.dk_mu) @ sd.cell_faces
+        delta_diff = 0.5 * np.min(self.delta_mu_k, axis=0)
+        A[2, 2] = -div_F * delta_diff @ sd.cell_faces
 
         # Assembly by blocks
         return sps.block_array(A).tocsc()
 
-    def assemble_delta_over_mu(self, sd: pg.Grid, data: dict) -> np.ndarray:
+    def compute_weighted_dists(self, sd: pg.Grid, lame_mu: np.ndarray) -> np.ndarray:
         """
         Compute delta_k^i / mu from (2.1) for every physical face-cell pair.
         Boundary conditions are handled later.
         """
-        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         faces, cells, orient = self.find_cf
 
         def compute_delta(indices=slice(None)):
@@ -129,70 +142,70 @@ class TPSA:
             else:
                 print("Fixed all cell-centers")
 
-        return delta / mu[cells]
+        self.weighted_dists = delta / lame_mu[cells]
 
-    def assemble_delta_mu_k(self) -> np.ndarray:
+    def extend_faces_and_distances(self, sd, data):
+        # Incorporate the spring bc by extending the vectors
+        faces = self.find_cf[0]
+        dists = self.weighted_dists
+        bdry_faces = sd.tags["domain_boundary_faces"]
+
+        ext_faces = np.concatenate((faces, np.flatnonzero(bdry_faces)))
+
+        # TODO: This will eventually be replaced by a pg.get_face_data
+        data_key = data[pp.PARAMETERS][self.keyword]
+        bdry_weighted_dists = data_key.get(
+            "inv_spring_constant", np.zeros(sd.num_faces)
+        )
+
+        # We allow for different types of boundary conditions in the different
+        # directions.
+        if bdry_weighted_dists.ndim <= 1:
+            bdry_weighted_dists = np.tile(bdry_weighted_dists, (sd.dim, 1))
+
+        tiled_dists = np.tile(dists, (bdry_weighted_dists.shape[0], 1))
+        ext_dists = np.hstack((tiled_dists, bdry_weighted_dists[:, bdry_faces]))
+
+        return ext_faces, ext_dists
+
+    def compute_delta_mu_k(self, faces, dists) -> None:
         """
         Compute ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
         for each face k with cells (i,j)
 
         This is double the delta^mu_k of (3.5)
         """
-
-        faces, *_ = self.find_cf
-        dk_mu = self.delta_over_mu
-
-        # Incorporate the spring bc by extending the vectors
-        faces = np.concatenate((faces, np.flatnonzero(self.sd.tags["sprng_bdry"])))
-        dk_mu = np.concatenate(
-            (dk_mu, self.delta_bdry_over_mu[self.sd.tags["sprng_bdry"]])
-        )
-
         # Compute the reciprocal
-        mu_dk = np.empty_like(dk_mu)
-        positive_del = dk_mu != 0
+        inv_dists = np.empty_like(dists)
+        positive_dist = dists != 0
 
-        mu_dk[positive_del] = 1 / dk_mu[positive_del]
-        mu_dk[~positive_del] = np.inf
-
-        delta_mu_k = 1 / np.bincount(faces, weights=mu_dk)
+        inv_dists[positive_dist] = 1 / dists[positive_dist]
+        inv_dists[~positive_dist] = np.inf
 
         # Displacement boundaries have infinite mu/delta
         # Traction bc are handled naturally because mu/delta = 0 there.
+        output_list = [1 / np.bincount(faces, weights=row) for row in inv_dists]
+        self.delta_mu_k = np.array(output_list)
 
-        return delta_mu_k
-
-    def harmonic_avg(self) -> np.ndarray:
+    def compute_harmonic_avg_mu(self, faces, dists) -> np.ndarray:
         """
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face
         """
-
-        faces, *_ = self.find_cf
-        dk_mu = self.delta_over_mu
-
-        # Incorporate the spring bc by extending the vectors
-        faces = np.concatenate((faces, np.flatnonzero(self.sd.tags["sprng_bdry"])))
-        dk_mu = np.concatenate(
-            (dk_mu, self.delta_bdry_over_mu[self.sd.tags["sprng_bdry"]])
-        )
-
-        mu_bar_over_dk = 1 / (np.bincount(faces, weights=dk_mu))
-
-        # Traction bc
-        mu_bar_over_dk[self.sd.tags["free_bdry"]] = 0
-
         # Displacement bc are handled naturally as a subset of spring_bdry
-        # with zero (inverse) spring constant
+        # with zero (inverse) spring constant.
+        # Tractions are handled with infinite spring constant.
+        output_list = [1 / np.bincount(faces, weights=row) for row in dists]
+        self.mu_bar = np.array(output_list)
 
-        return mu_bar_over_dk
-
-    def assemble_xi(self) -> sps.sparray:
+    def assemble_xi(self) -> list:
         """
         Compute the averaging operator Xi from (2.5)
         """
-
         faces, cells, _ = self.find_cf
-        Xi = sps.csc_array((self.dk_mu[faces] / self.delta_over_mu, (faces, cells)))
+        Xi = [
+            sps.csc_array((delta[faces] / self.weighted_dists, (faces, cells)))
+            for delta in self.delta_mu_k
+        ]
 
         # Displacement bc are handled by dk_mu = 0
         # Traction bc are handled since dk_mu * mu / delta = 1
@@ -200,13 +213,13 @@ class TPSA:
 
         return Xi
 
-    def convert_to_xi_tilde(self, Xi: sps.sparray) -> sps.sparray:
+    def convert_to_xi_tilde(self, Xi: list) -> sps.sparray:
         """
         Compute the converse averaging operator Xi_tilde from (2.6)
         This is an in-place operation to save memory
         """
-
-        Xi.data = 1 - Xi.data
+        for Xi_i in Xi:
+            Xi_i.data = 1 - Xi_i.data
         return Xi
 
     def assemble_off_diagonal_terms(
@@ -216,11 +229,11 @@ class TPSA:
         div_F: sps.sparray,
         map_from_u: bool = True,
     ) -> tuple[sps.sparray, sps.sparray]:
-        nx, ny, nz = [(div_F * ni) @ Xi for ni in self.unit_normals]
         """
         Assemble the off-diagonal terms n times Xi and n cdot Xi in (3.7)
         These are computed together because their construction uses similar components.
         """
+        nx, ny, nz = [(div_F * ni) @ Xi_i for (ni, Xi_i) in zip(self.unit_normals, Xi)]
 
         # Compute n times Xi
         if sd.dim == 3:
@@ -245,20 +258,7 @@ class TPSA:
 
         return R_Xi, n_Xi
 
-    def assemble_first_order_terms(self, data: dict) -> sps.csc_array:
-        """
-        The first-order terms on the diagonal of (3.9)
-        """
-
-        volumes = self.sd.cell_volumes
-        M_u = np.zeros(self.ndofs[0])
-        M_r = np.tile(volumes / data[pg.LAME_MU], self.dim_r)
-        M_p = volumes / data[pg.LAME_LAMBDA]
-
-        diagonal = np.concatenate((M_u, M_r, M_p))
-
-        return sps.diags_array(diagonal).tocsc()
-
+    #### Solving
     def assemble_isotropic_stress_source(self, data: dict, w: np.ndarray) -> np.ndarray:
         """
         Assemble the right-hand side for a given isotropic stress field w,
