@@ -54,6 +54,7 @@ from pygeon.discretizations.fem.mat_l2 import (
 )
 
 from pygeon.discretizations.fvm.tpsa import TPSA
+from pygeon.discretizations.fvm.bcs import TPSA_BC
 
 from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1
