@@ -1,41 +1,67 @@
 import numpy as np
 import porepy as pp
-import scipy.sparse as sps
+import pytest
 
 import pygeon as pg
 
-sd = pp.CartGrid([10, 10, 10], [1, 1, 1])
-sd = pg.convert_from_pp(sd)
-sd.compute_geometry()
 
-bdry_faces = sd.tags["domain_boundary_faces"]
+@pytest.fixture
+def sd_and_sol():
+    sd = pp.CartGrid([5, 5, 5], [1, 1, 1])
+    sd = pg.convert_from_pp(sd)
+    sd.compute_geometry()
 
-spring = np.zeros((3, sd.num_faces))
+    u_known = np.zeros_like(sd.cell_centers)
+    u_known[0] = sd.cell_centers[-1]
 
-tpsa = pg.TPSA()
+    r_known = np.zeros_like(sd.cell_centers)
+    r_known[1, :] = -1
 
-data = pp.initialize_data({}, tpsa.keyword, {pg.LAME_LAMBDA: np.inf})
-bcs = pg.TPSA_BC(sd, data, tpsa.keyword)
+    p_known = np.zeros(sd.num_cells)
+    x_known = np.hstack((u_known.ravel(), r_known.ravel(), p_known))
+    return sd, x_known
 
-tract_indices = np.zeros((3, sd.num_faces), dtype=bool)
-tract_indices[-1, bdry_faces] = True
-tract_indices[:, np.isclose(sd.face_centers[-1], 1)] = False
-tract_indices[:, np.isclose(sd.face_centers[-1], 0)] = False
 
-bcs.set_traction_bcs(tract_indices)
+def test_displacement_bcs(sd_and_sol):
+    sd, x_known = sd_and_sol
 
-M = tpsa.assemble_elasticity_matrix(sd, data)
+    tpsa = pg.TPSA("test")
 
-gravity = np.concatenate((np.zeros(2 * sd.num_cells), np.ones(sd.num_cells)))
-rhs = tpsa.assemble_body_force(sd, gravity)
+    data = pp.initialize_data({}, "test", {pg.LAME_LAMBDA: 1, pg.LAME_MU: 1})
+    bcs = pg.TPSA_BC(sd, data, "test")
 
-x = sps.linalg.spsolve(M, rhs)
-u, r, p = np.split(x, np.cumsum(tpsa.ndofs(sd))[:-1])
+    bdry_faces = sd.tags["domain_boundary_faces"]
+    u_0 = np.zeros_like(sd.face_centers)
+    u_0[0] = sd.face_centers[-1]
+    bcs.set_displacement_bcs(bdry_faces, u_0)
 
-u_plot = u.reshape((sd.dim, -1))
-r_plot = r.reshape((sd.dim, -1))
+    M = tpsa.assemble_elasticity_matrix(sd, data)
+    rhs = tpsa.assemble_rhs_boundary_terms(sd, data)
 
-save = pp.Exporter(sd, "tpsa_sol")
-save.write_vtu([("disp", u_plot), ("vort", r_plot)])
+    assert np.allclose(M @ x_known, rhs)
 
-pass
+
+def test_traction_bcs(sd_and_sol):
+    sd, x_known = sd_and_sol
+
+    tpsa = pg.TPSA("test")
+
+    data = pp.initialize_data({}, "test", {pg.LAME_LAMBDA: 1, pg.LAME_MU: 1})
+    bcs = pg.TPSA_BC(sd, data, "test")
+
+    bdry_faces = sd.tags["domain_boundary_faces"]
+    bottom = np.isclose(sd.face_centers[-1], 0)
+    bcs.set_displacement_bcs(bottom)
+
+    sig_0 = np.zeros((3, 3))
+    sig_0[0, 2] = 1
+    sig_0[2, 0] = 1
+    sig_0 = sig_0 @ sd.face_normals / sd.face_areas
+
+    tract_faces = np.logical_xor(bottom, bdry_faces)
+    bcs.set_traction_bcs(tract_faces, sig_0)
+
+    M = tpsa.assemble_elasticity_matrix(sd, data)
+    rhs = tpsa.assemble_rhs_boundary_terms(sd, data)
+
+    assert np.allclose(M @ x_known, rhs)

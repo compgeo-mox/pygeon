@@ -20,16 +20,19 @@ class TPSA:
     def ndof(self, sd) -> int:
         return self.ndofs(sd).sum()
 
+    def extract_bcs(self, sd: pg.Grid, data: dict) -> pg.TPSA_BC:
+        # See if there is already a BoundaryConditions object in the data dict
+        if "bcs" in data[pp.PARAMETERS][self.keyword]:
+            bcs = data[pp.PARAMETERS][self.keyword]["bcs"]
+        else:  # We create a default one
+            bcs = pg.TPSA_BC(sd, data, self.keyword)
+        return bcs
+
     def assemble_elasticity_matrix(self, sd: pg.Grid, data: dict) -> None:
         """
         Assemble the TPSA matrix, given material constants in the data dictionary.
         """
-
-        # See if there is already a BoundaryConditions object in the data dict
-        if "bcs" in data[pp.PARAMETERS][self.keyword]:
-            self.bcs = data[pp.PARAMETERS][self.keyword]["bcs"]
-        else:  # We create a default one
-            self.bcs = pg.TPSA_BC(sd, data, self.keyword)
+        bcs = self.extract_bcs(sd, data)
 
         # Precomputations of the geometry
         self.find_cf = sps.find(sd.cell_faces)
@@ -45,7 +48,7 @@ class TPSA:
         # Precomputations that use grid and parameter values
         self.compute_weighted_dists(sd, lame_mu)
 
-        faces, deltas = self.extend_faces_and_distances(sd)
+        faces, deltas = self.extend_faces_and_distances(sd, bcs)
         self.compute_delta_mu_k(faces, deltas)
         self.compute_harmonic_avg_mu(faces, deltas)
 
@@ -80,46 +83,57 @@ class TPSA:
         """
         Assemble the second-order terms
         """
-
         # Preallocate the main matrix
         A = np.empty((3, 3), dtype=sps.sparray)
 
         # Assemble the blocks of (3.7) where
         # A_ij is the block coupling variable i and j.
-        A_uu = [-2 * mu_bar[:, None] * sd.cell_faces for mu_bar in self.mu_bar]
+        A_uu = [
+            -2 * mu_bar[:, None] * sd.cell_faces for mu_bar in self.mu_bar_over_delta
+        ]
         A[0, 0] = sps.block_diag(A_uu)
 
         # Assemble the boundary terms of (A2.25)
-        A[1, 1] = self.assemble_boundary_terms(sd)
+        A[1, 1] = self.assemble_lhs_bdry_terms(sd)
 
         # The blocks in the first column depend on the averaging operator Xi
         Xi = self.assemble_xi()
-        A[1, 0], A[2, 0] = self.assemble_off_diagonal_terms(sd, Xi, True)
+        R_Xi, n_Xi = self.assemble_RXi_and_NXi(sd, Xi, map_from_u=True)
+        A[1, 0] = -R_Xi
+        A[2, 0] = n_Xi
 
         # The blocks in the first row depend on the complementary operator Xi_tilde
         Xi_tilde = self.convert_to_xi_tilde(Xi)
-        A[0, 1], A[0, 2] = self.assemble_off_diagonal_terms(sd, Xi_tilde, False)
+        R_Xi_t, n_Xi_t = self.assemble_RXi_and_NXi(sd, Xi_tilde, map_from_u=False)
+        A[0, 1] = -R_Xi_t
+        A[0, 2] = n_Xi_t
 
-        delta_diff = 0.5 * np.min(self.delta_mu_k, axis=0)
-        A[2, 2] = -delta_diff[:, None] * sd.cell_faces
+        # Stabilization for the pressure
+        delta_min = np.min(self.delta_mu_k, axis=0)
+        A[2, 2] = -delta_min[:, None] * sd.cell_faces
 
         # Assembly by blocks
         return sps.block_array(A).tocsc()
 
-    def assemble_boundary_terms(self, sd):
-
+    def assemble_rot(self):
         nx, ny, nz = [sps.diags_array(n_i) for n_i in self.unit_normals]
 
-        R = sps.block_array(
+        return sps.block_array(
             [
                 [None, -nz, ny],
                 [nz, None, -nx],
                 [-ny, nx, None],
             ]
         )
+
+    def assemble_ndot(self):
+        return sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals])
+
+    def assemble_lhs_bdry_terms(self, sd):
+        R = self.assemble_rot()
         R_squared = R @ R
 
-        bdry_deltas = 0.5 * self.delta_mu_k * sd.tags["domain_boundary_faces"]
+        bdry_deltas = self.delta_mu_k * sd.tags["domain_boundary_faces"]
         delta = bdry_deltas.flatten()
 
         codiv = sps.kron(sps.eye_array(3), sd.cell_faces)
@@ -179,7 +193,7 @@ class TPSA:
 
         self.weighted_dists = delta / lame_mu[cells]
 
-    def extend_faces_and_distances(self, sd):
+    def extend_faces_and_distances(self, sd: pg.Grid, bcs: pg.TPSA_BC):
         # Incorporate the spring bc by extending the vectors
         faces = self.find_cf[0]
 
@@ -189,16 +203,16 @@ class TPSA:
         # We allow for different types of boundary conditions in the x, y, z directions.
         # We therefore have three instances of the distances, one for each direction.
         tiled_dists = np.tile(self.weighted_dists, (pg.AMBIENT_DIM, 1))
-        ext_dists = np.hstack((tiled_dists, self.bcs.weighted_dists[:, bdry_faces]))
+        ext_dists = np.hstack((tiled_dists, bcs.weighted_dists[:, bdry_faces]))
 
         return ext_faces, ext_dists
 
     def compute_delta_mu_k(self, faces, dists) -> None:
         """
-        Compute ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
+        Compute 0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
         for each face k with cells (i,j)
 
-        This is double the delta^mu_k of (3.5)
+        This is the delta^mu_k of (3.5)
         """
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
@@ -210,7 +224,7 @@ class TPSA:
         # Displacement boundaries have infinite mu/delta
         # Traction bc are handled naturally because mu/delta = 0 there.
         output_list = [1 / np.bincount(faces, weights=row) for row in inv_dists]
-        self.delta_mu_k = np.array(output_list)
+        self.delta_mu_k = np.array(output_list) / 2
 
     def compute_harmonic_avg_mu(self, faces, dists) -> np.ndarray:
         """
@@ -220,7 +234,7 @@ class TPSA:
         # with zero (inverse) spring constant.
         # Tractions are handled with infinite spring constant.
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
-        self.mu_bar = np.array(output_list)
+        self.mu_bar_over_delta = np.array(output_list)
 
     def assemble_xi(self) -> list:
         """
@@ -228,7 +242,7 @@ class TPSA:
         """
         faces, cells, _ = self.find_cf
         Xi = [
-            sps.csc_array((delta[faces] / self.weighted_dists, (faces, cells)))
+            sps.csc_array((2 * delta[faces] / self.weighted_dists, (faces, cells)))
             for delta in self.delta_mu_k
         ]
 
@@ -247,7 +261,7 @@ class TPSA:
             Xi_i.data = 1 - Xi_i.data
         return Xi
 
-    def assemble_off_diagonal_terms(
+    def assemble_RXi_and_NXi(
         self,
         sd: pg.Grid,
         Xi: sps.sparray,
@@ -261,7 +275,7 @@ class TPSA:
 
         # Compute n times Xi
         if sd.dim == 3:
-            R_Xi = -sps.block_array(
+            R_Xi = sps.block_array(
                 [
                     [None, -nz, ny],
                     [nz, None, -nx],
@@ -270,9 +284,9 @@ class TPSA:
             )
         else:  # 2D
             if map_from_u:  # Maps from u to r
-                R_Xi = -sps.hstack([-ny, nx])
+                R_Xi = sps.hstack([-ny, nx])
             else:  # Maps from r to u
-                R_Xi = -sps.vstack([ny, -nx])
+                R_Xi = sps.vstack([ny, -nx])
 
         # Compute n cdot Xi
         if map_from_u:  # Maps from u to p
@@ -282,6 +296,48 @@ class TPSA:
 
         return R_Xi, n_Xi
 
+    def assemble_rhs_boundary_terms(self, sd: pg.Grid, data: dict):
+
+        # Preallocation
+        rhs = np.empty((3, 2), dtype=sps.sparray)
+
+        # Ingredients with the normal
+        R = self.assemble_rot()
+        ndot = self.assemble_ndot()
+
+        Delta_B = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
+
+        Xi = self.assemble_xi()
+        Xi_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
+
+        Xi_tilde = self.convert_to_xi_tilde(Xi)
+        Xi_tilde_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
+
+        mu_bar = self.mu_bar_over_delta.ravel()
+
+        dmuk = self.delta_mu_k.ravel()[:, None]
+        dmuk_min = np.min(self.delta_mu_k, axis=0)[:, None]
+
+        # Traction terms
+        rhs[0, 0] = sps.diags_array(Xi_tilde_B)
+        rhs[1, 0] = dmuk * R * Delta_B
+        rhs[2, 0] = -dmuk_min * ndot * Delta_B
+
+        # Displacement terms
+        rhs[0, 1] = -2 * sps.diags_array(mu_bar * Delta_B)
+        rhs[1, 1] = -R * Xi_B
+        rhs[2, 1] = ndot * Xi_B
+
+        bcs = self.extract_bcs(sd, data)
+        g = np.hstack((bcs.trac.ravel(), bcs.disp.ravel()))
+
+        # Precompute the operator that multiplies with the area
+        # and applies the divergence
+        div_F = pg.div(sd) * sd.face_areas
+        div_F = sps.kron(np.eye(7), div_F)
+
+        return -div_F @ sps.block_array(rhs) @ g
+
     #### Solving
     def assemble_fluid_pressure_source(
         self, sd: pg.Grid, data: dict, w: np.ndarray
@@ -290,29 +346,13 @@ class TPSA:
         Assemble the right-hand side for a given isotropic stress field w,
         like a fluid pressure
         """
+        lame_lambda = pg.get_cell_data(sd, data, pg.LAME_LAMBDA)
+        alpha = pg.get_cell_data(sd, data, pg.BIOT_ALPHA)
 
         rhs = np.zeros(self.ndof(sd))
-        rhs[-self.ndofs[-1] :] = (
-            self.sd.cell_volumes * data["alpha"] / data[pg.LAME_LAMBDA] * w
-        )
+        rhs[-self.ndofs[-1] :] = self.sd.cell_volumes * alpha / lame_lambda * w
 
         return rhs
-
-    def assemble_gravity_force(self, sd: pg.Grid, data: dict) -> np.ndarray:
-        """
-        Assemble a gravity force.
-
-        This function is not used in the main simulations because we assume that the
-        medium is in equilibrium at initial time
-        """
-
-        w = np.zeros(self.ndofs(sd)[0])
-        indices_uz = np.arange(
-            (self.sd.dim - 1) * self.sd.num_cells, self.sd.dim * self.sd.num_cells
-        )
-        w[indices_uz] = data["gravity"]
-
-        return self.assemble_body_force(w)
 
     def assemble_body_force(self, sd: pg.Grid, f: np.ndarray) -> np.ndarray:
         """
@@ -329,113 +369,3 @@ class TPSA:
         rhs_p = np.zeros(self.ndofs(sd)[2])
 
         return np.concatenate((rhs_u, rhs_r, rhs_p))
-
-    def solve(
-        self,
-        sd: pg.Grid,
-        data: dict,
-        pressure_source: np.ndarray,
-        solver,
-        body_force=None,
-    ) -> tuple[np.ndarray]:
-        """
-        Solve the system, using the scaling given in self.scaling
-        """
-        diff_pressure = pressure_source - self.ref_pressure
-        rhs = self.assemble_isotropic_stress_source(data, diff_pressure)
-
-        if body_force is not None:
-            rhs += self.assemble_body_force(body_force)
-
-        scale_scalar = data.get("scaling", 1.0)
-        scale_vector = np.concatenate(
-            (
-                np.full(self.ndofs(sd)[0], 1 / np.sqrt(scale_scalar)),
-                np.full(self.ndofs(sd)[1] + self.ndofs(sd)[2], np.sqrt(scale_scalar)),
-            )
-        )
-        rhs *= scale_vector
-
-        sol, info = solver.solve(rhs)
-        assert info == 0, "Solver was unsuccessful"
-
-        sol *= scale_vector
-        u, r, p = np.split(sol, np.cumsum(self.ndofs(sd))[:-1])
-
-        return u, r, p
-
-    def recover_volumetric_change(
-        self, solid_p: np.ndarray, fluid_p: np.ndarray, data: dict
-    ) -> np.ndarray:
-        """
-        Post-process the volumetric change fromt he solid and fluid pressures
-        """
-
-        return (solid_p + data["alpha"] * (fluid_p - self.ref_pressure)) / data[
-            pg.LAME_LAMBDA
-        ]
-
-    # def assemble_dual_var_map(self) -> sps.sparray:
-    #     """
-    #     Assemble the matrix from (3.7) that maps primary to dual variables
-    #     This function is only used for post-processing the stress
-    #     """
-
-    #     # Precompute the operator that multiplies with the area
-    #     areas = sps.diags_array(self.sd.face_areas)
-
-    #     return self.dual_var_map(areas)
-
-
-class TPSA_BC:
-    def __init__(self, sd: pg.Grid, data: dict, keyword: str):
-        self.weighted_dists = np.zeros((pg.AMBIENT_DIM, sd.num_faces))
-        self.disp = np.zeros_like(self.weighted_dists)
-        self.trac = np.zeros_like(self.weighted_dists)
-
-        data[pp.PARAMETERS][keyword].update({"bcs": self})
-
-    def _set_bcs(
-        self,
-        indices: np.ndarray | None,
-        input: np.ndarray | None,
-        internal_var: np.ndarray,
-        dist: np.ndarray | float,
-    ):
-        if input is None:
-            input = np.zeros_like(self.weighted_dists)
-        if indices is None:
-            indices = np.zeros_like(self.weighted_dists, dtype=bool)
-
-        assert input.shape == self.weighted_dists.shape, (
-            "Input must be of shape (3, num_faces)"
-        )
-
-        internal_var[indices] = input[indices]
-
-        if isinstance(dist, float):
-            self.weighted_dists[indices] = dist
-        else:
-            self.weighted_dists[indices] = dist[indices]
-
-    def set_displacement_bcs(
-        self,
-        indices: np.ndarray | None = None,
-        u_0: np.ndarray | None = None,
-    ):
-        self._set_bcs(indices, u_0, self.disp, 0)
-
-    def set_traction_bcs(
-        self,
-        indices: np.ndarray | None = None,
-        sig_0: np.ndarray | None = None,
-    ):
-        self._set_bcs(indices, sig_0, self.trac, np.inf)
-
-    def set_spring_bcs(
-        self,
-        dists: np.ndarray,
-        indices: np.ndarray | None = None,
-        u_0: np.ndarray | None = None,
-    ):
-        self._set_bcs(indices, u_0, self.disp, dists)
