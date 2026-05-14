@@ -283,7 +283,7 @@ class TPSA:
         return R_Xi, n_Xi
 
     #### Solving
-    def assemble_isotropic_stress_source(
+    def assemble_fluid_pressure_source(
         self, sd: pg.Grid, data: dict, w: np.ndarray
     ) -> np.ndarray:
         """
@@ -291,11 +291,12 @@ class TPSA:
         like a fluid pressure
         """
 
-        rhs_u = np.zeros(self.ndofs(sd)[0])
-        rhs_r = np.zeros(self.ndofs(sd)[1])
-        rhs_p = self.sd.cell_volumes * data["alpha"] / data[pg.LAME_LAMBDA] * w
+        rhs = np.zeros(self.ndof(sd))
+        rhs[-self.ndofs[-1] :] = (
+            self.sd.cell_volumes * data["alpha"] / data[pg.LAME_LAMBDA] * w
+        )
 
-        return np.concatenate((rhs_u, rhs_r, rhs_p))
+        return rhs
 
     def assemble_gravity_force(self, sd: pg.Grid, data: dict) -> np.ndarray:
         """
@@ -384,3 +385,57 @@ class TPSA:
     #     areas = sps.diags_array(self.sd.face_areas)
 
     #     return self.dual_var_map(areas)
+
+
+class TPSA_BC:
+    def __init__(self, sd: pg.Grid, data: dict, keyword: str):
+        self.weighted_dists = np.zeros((pg.AMBIENT_DIM, sd.num_faces))
+        self.disp = np.zeros_like(self.weighted_dists)
+        self.trac = np.zeros_like(self.weighted_dists)
+
+        data[pp.PARAMETERS][keyword].update({"bcs": self})
+
+    def _set_bcs(
+        self,
+        indices: np.ndarray | None,
+        input: np.ndarray | None,
+        internal_var: np.ndarray,
+        dist: np.ndarray | float,
+    ):
+        if input is None:
+            input = np.zeros_like(self.weighted_dists)
+        if indices is None:
+            indices = np.zeros_like(self.weighted_dists, dtype=bool)
+
+        assert input.shape == self.weighted_dists.shape, (
+            "Input must be of shape (3, num_faces)"
+        )
+
+        internal_var[indices] = input[indices]
+
+        if isinstance(dist, float):
+            self.weighted_dists[indices] = dist
+        else:
+            self.weighted_dists[indices] = dist[indices]
+
+    def set_displacement_bcs(
+        self,
+        indices: np.ndarray | None = None,
+        u_0: np.ndarray | None = None,
+    ):
+        self._set_bcs(indices, u_0, self.disp, 0)
+
+    def set_traction_bcs(
+        self,
+        indices: np.ndarray | None = None,
+        sig_0: np.ndarray | None = None,
+    ):
+        self._set_bcs(indices, sig_0, self.trac, np.inf)
+
+    def set_spring_bcs(
+        self,
+        dists: np.ndarray,
+        indices: np.ndarray | None = None,
+        u_0: np.ndarray | None = None,
+    ):
+        self._set_bcs(indices, u_0, self.disp, dists)
