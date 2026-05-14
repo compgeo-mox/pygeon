@@ -165,38 +165,39 @@ class Grid(pp.Grid):
         self.num_peaks = self.num_nodes
 
         # Pre-allocation
-        ridges: np.ndarray = np.ndarray((2, self.face_nodes.nnz), dtype=int)
+        ridges = np.empty((2, self.face_nodes.nnz), dtype=int)
 
-        fr_indptr = np.zeros(self.num_faces + 1, dtype=int)
-        for face in np.arange(self.num_faces):
-            # find indices for nodes of this face
-            loc = self.face_nodes.indices[
-                self.face_nodes.indptr[face] : self.face_nodes.indptr[face + 1]
-            ]
-            fr_indptr[face + 1] = fr_indptr[face] + loc.size
+        # Define ridges between each pair of nodes assuming ordering in face_nodes is
+        # done according to right-hand rule
+        ridges[0] = self.face_nodes.indices
+        ridges[1] = np.roll(ridges[0], -1)
+        ridges[1, self.face_nodes.indptr[1:] - 1] = ridges[
+            0, self.face_nodes.indptr[:-1]
+        ]
 
-            # Define ridges between each pair of nodes
-            # assuming ordering in face_nodes is done
-            # according to right-hand rule
-            ridges[:, fr_indptr[face] : fr_indptr[face + 1]] = np.vstack(
-                (loc, np.roll(loc, -1))
-            )
+        # There are as many face-ridge pairs as face-node pairs
+        fr_indptr = self.face_nodes.indptr
 
         # Save orientation of each ridge w.r.t. the face
         orientations = np.sign(ridges[1, :] - ridges[0, :])
 
-        # Ridges are oriented from low to high node indices
+        # Ridges are oriented from low to high node indices, i.e. [0,1], [0,2], [1,2].
         ridges.sort(axis=0)
 
-        # Identify the ridges based on unique pairs of peaks
-        ridges, _, indices = pp.array_operations.uniquify_point_set(ridges, tol=1e-8)
+        # Identify the ridges based on unique pairs of peaks. We do this by creating a
+        # sparse array. If ridge r has nodes (x_i, x_j) then A_ij = index_r. This way we
+        # can easily look up the unique index of a ridge based on its nodes.
+        ridge_index = sps.coo_array(
+            (np.ones(ridges.shape[1]), (ridges[0], ridges[1])), dtype=int
+        )
+        ridge_index.sum_duplicates()
+        ridge_index.data = np.arange(ridge_index.nnz)
 
-        # Sort the ridges by first peak index and second index
-        # i.e. [0,1], [0,2], [1,2]
-        reorder = np.lexsort((ridges[1], ridges[0]))
-        ridges = ridges[:, reorder]
-        indices = np.argsort(reorder)[indices]
+        # Extract the indices of the found ridges
+        indices = ridge_index.tocsr()[ridges[0], ridges[1]]
 
+        # We can now replace the ridges array to the one without duplicates
+        ridges = np.vstack((ridge_index.row, ridge_index.col))
         self.num_ridges = np.size(ridges, 1)
 
         # Generate ridge-peak connectivity such that
@@ -204,7 +205,8 @@ class Grid(pp.Grid):
         # ridge j points to/away from peak i
         indptr = np.arange(0, ridges.size + 1, 2)
         ind = np.ravel(ridges, order="F")
-        data = -((-1) ** np.arange(ridges.size))
+        data = np.ones(ridges.size)
+        data[::2] *= -1
         self.ridge_peaks = sps.csc_array((data, ind, indptr), dtype=int)
 
         # Generate face_ridges such that
