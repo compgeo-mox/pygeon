@@ -1,5 +1,5 @@
 # Use the official Ubuntu image as a base
-FROM --platform=linux/amd64 ubuntu:latest
+FROM ubuntu:latest
 
 # Set the working directory
 ARG USERNAME=user
@@ -15,7 +15,8 @@ RUN sed -i 's/^# deb/deb/' /etc/apt/sources.list
 RUN apt-get update -y
 RUN apt-get install -y \
     wget git bash libc6 apt-utils build-essential gfortran bzip2 ca-certificates \
-    libglu1-mesa ffmpeg libsm6 libxext6 libxrender1 libxcursor1 libxft2 libfontconfig1
+    libgl1 libglu1-mesa libgeos-dev libffi-dev ffmpeg libsm6 libxext6 libxrender1 \
+    libxcursor1 libxft2 libfontconfig1
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Use bash shell instead
