@@ -458,7 +458,12 @@ class MatPwConstants(MatPwPolynomials):
             sps.csc_array: The upper convected distortion matrix obtained from the
                 discretization.
         """
+        # Transform from dof to actual values
         grad_v_val = self.eval_at_cell_centers(sd) @ grad_v
+        # Depending on the grid dimension, we need to extract the relevant components of
+        # the velocity gradient
+        grad_v_val = grad_v_val.reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
+        grad_v_val = grad_v_val[: sd.dim, : sd.dim].ravel()
 
         # We can assemble the two terms separately and then sum them together. The
         # first term is given by grad_v * A, which is requires a left multiplication
