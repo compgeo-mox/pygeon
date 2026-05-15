@@ -24,7 +24,7 @@ class TPSA:
         # See if there is already a BoundaryConditions object in the data dict
         if "bcs" in data[pp.PARAMETERS][self.keyword]:
             bcs = data[pp.PARAMETERS][self.keyword]["bcs"]
-        else:  # We create a default one
+        else:  # We create a default one that places itself in the data dict
             bcs = pg.TPSA_BC(sd, data, self.keyword)
         return bcs
 
@@ -103,7 +103,7 @@ class TPSA:
         A[2, 0] = n_Xi
 
         # The blocks in the first row depend on the complementary operator Xi_tilde
-        Xi_tilde = self.convert_to_xi_tilde(Xi)
+        Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
         R_Xi_t, n_Xi_t = self.assemble_RXi_and_NXi(sd, Xi_tilde, map_from_u=False)
         A[0, 1] = -R_Xi_t
         A[0, 2] = n_Xi_t
@@ -126,9 +126,6 @@ class TPSA:
             ]
         )
 
-    def assemble_ndot(self):
-        return sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals])
-
     def assemble_lhs_bdry_terms(self, sd):
         R = self.assemble_rot()
         R_squared = R @ R
@@ -139,7 +136,7 @@ class TPSA:
         codiv = sps.kron(sps.eye_array(3), sd.cell_faces)
         return -delta[:, None] * R_squared @ codiv
 
-    def compute_weighted_dists(self, sd: pg.Grid, lame_mu: np.ndarray) -> np.ndarray:
+    def compute_weighted_dists(self, sd: pg.Grid, weights: np.ndarray) -> np.ndarray:
         """
         Compute delta_k^i / mu from (2.1) for every physical face-cell pair.
         Boundary conditions are handled later.
@@ -191,10 +188,10 @@ class TPSA:
             else:
                 print("Fixed all cell-centers")
 
-        self.weighted_dists = delta / lame_mu[cells]
+        self.weighted_dists = delta / weights[cells]
 
     def extend_faces_and_distances(self, sd: pg.Grid, bcs: pg.TPSA_BC):
-        # Incorporate the spring bc by extending the vectors
+        # Incorporate the Robin bc by extending the vectors
         faces = self.find_cf[0]
 
         bdry_faces = sd.tags["domain_boundary_faces"]
@@ -216,10 +213,10 @@ class TPSA:
         """
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
-        positive_dist = dists != 0
+        zero_dist = dists = 0
 
-        inv_dists[positive_dist] = 1 / dists[positive_dist]
-        inv_dists[~positive_dist] = np.inf
+        inv_dists[~zero_dist] = 1 / dists[zero_dist]
+        inv_dists[zero_dist] = np.inf
 
         # Displacement boundaries have infinite mu/delta
         # Traction bc are handled naturally because mu/delta = 0 there.
@@ -252,7 +249,7 @@ class TPSA:
 
         return Xi
 
-    def convert_to_xi_tilde(self, Xi: list) -> sps.sparray:
+    def convert_to_xi_tilde_inplace(self, Xi: list) -> sps.sparray:
         """
         Compute the converse averaging operator Xi_tilde from (2.6)
         This is an in-place operation to save memory
@@ -303,14 +300,14 @@ class TPSA:
 
         # Ingredients with the normal
         R = self.assemble_rot()
-        ndot = self.assemble_ndot()
+        ndot = sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals])
 
         Delta_B = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
 
         Xi = self.assemble_xi()
         Xi_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
 
-        Xi_tilde = self.convert_to_xi_tilde(Xi)
+        Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
         Xi_tilde_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
 
         mu_bar = self.mu_bar_over_delta.ravel()
