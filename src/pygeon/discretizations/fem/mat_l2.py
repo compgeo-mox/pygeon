@@ -422,7 +422,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         grad_v_val = grad_v_val[: sd.dim, : sd.dim].ravel()
 
         # We can assemble the two terms separately and then sum them together. The
-        # first term is given by grad_v * A, which is requires a left multiplication
+        # first term is given by grad_v * A, which requires a left multiplication
         # with the velocity gradient.
         grad_v_A = self.assemble_mult_matrix(sd, grad_v_val, left_mult=True)
 
