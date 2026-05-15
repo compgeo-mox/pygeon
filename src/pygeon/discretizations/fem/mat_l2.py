@@ -394,6 +394,45 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         return sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
 
+    def assemble_upper_convected_distortion(
+        self, sd: pg.Grid, grad_v: np.ndarray
+    ) -> sps.csc_array:
+        """
+        Assembles the term - grad_v * A  - A * grad_v.T, with grad_v a matrix-valued
+        function in the matrix piecewise constant space.
+
+        This term appears in the upper-convected derivative of a matrix-valued
+        function, and it is the distortion part of the upper-convected derivative.
+
+        Args:
+            sd (pg.Grid): The grid.
+            grad_v (np.ndarray): The gradient of the velocity, a matrix-valued function
+                in the matrix piecewise constant space.
+
+        Returns:
+            sps.csc_array: The upper convected distortion matrix obtained from the
+                discretization.
+        """
+        # Transform from dof to actual values
+        disc_grad_v = pg.MatPwConstants(self.keyword)
+        grad_v_val = disc_grad_v.eval_at_cell_centers(sd) @ grad_v
+        # Depending on the grid dimension, we need to extract the relevant components of
+        # the velocity gradient
+        grad_v_val = grad_v_val.reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
+        grad_v_val = grad_v_val[: sd.dim, : sd.dim].ravel()
+
+        # We can assemble the two terms separately and then sum them together. The
+        # first term is given by grad_v * A, which is requires a left multiplication
+        # with the velocity gradient.
+        grad_v_A = self.assemble_mult_matrix(sd, grad_v_val, left_mult=True)
+
+        # The second term is given by A * grad_v.T, which requires a right
+        # multiplication with the transposed velocity gradient.
+        grad_v_T = disc_grad_v.assemble_transpose_matrix(sd) @ grad_v_val
+        A_grad_v_T = self.assemble_mult_matrix(sd, grad_v_T, right_mult=True)
+
+        return -(grad_v_A + A_grad_v_T)
+
 
 class MatPwConstants(MatPwPolynomials):
     """
@@ -438,44 +477,6 @@ class MatPwConstants(MatPwPolynomials):
 
         inv_val = np.transpose(inv_val, (1, 2, 0))  # shape (d, d, n_cells)
         return (sd.cell_volumes * inv_val).ravel()
-
-    def assemble_upper_convected_distortion(
-        self, sd: pg.Grid, grad_v: np.ndarray
-    ) -> sps.csc_array:
-        """
-        Assembles the term - grad_v * A  - A * grad_v.T, with grad_v a matrix-valued
-        function in the matrix piecewise constant space.
-
-        This term appears in the upper-convected derivative of a matrix-valued
-        function, and it is the distortion part of the upper-convected derivative.
-
-        Args:
-            sd (pg.Grid): The grid.
-            grad_v (np.ndarray): The gradient of the velocity, a matrix-valued function
-                in the matrix piecewise constant space.
-
-        Returns:
-            sps.csc_array: The upper convected distortion matrix obtained from the
-                discretization.
-        """
-        # Transform from dof to actual values
-        grad_v_val = self.eval_at_cell_centers(sd) @ grad_v
-        # Depending on the grid dimension, we need to extract the relevant components of
-        # the velocity gradient
-        grad_v_val = grad_v_val.reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
-        grad_v_val = grad_v_val[: sd.dim, : sd.dim].ravel()
-
-        # We can assemble the two terms separately and then sum them together. The
-        # first term is given by grad_v * A, which is requires a left multiplication
-        # with the velocity gradient.
-        grad_v_A = self.assemble_mult_matrix(sd, grad_v_val, left_mult=True)
-
-        # The second term is given by A * grad_v.T, which requires a right
-        # multiplication with the transposed velocity gradient.
-        grad_v_T = self.assemble_transpose_matrix(sd) @ grad_v_val
-        A_grad_v_T = self.assemble_mult_matrix(sd, grad_v_T, right_mult=True)
-
-        return -(grad_v_A + A_grad_v_T)
 
 
 class MatPwLinears(MatPwPolynomials):
