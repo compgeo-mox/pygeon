@@ -4,11 +4,10 @@ import porepy as pp
 import pygeon as pg
 
 
-class FVM_BC:
+class FiniteVolumeBC:
     dim_of_bc_vals: int
 
-    def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
-        self.weighted_dists = np.zeros((pg.AMBIENT_DIM, sd.num_faces))
+    def __init__(self, data: dict, keyword: str) -> None:
         data[pp.PARAMETERS][keyword].update({"bcs": self})
 
     def _set_bcs(
@@ -23,7 +22,7 @@ class FVM_BC:
         if indices is None:
             indices = np.zeros_like(self.weighted_dists, dtype=bool)
 
-        if indices.ndim == 1:
+        if indices.ndim == 1 and self.dim_of_bc_vals > 1:
             indices = np.tile(indices, (self.dim_of_bc_vals, 1))
 
         assert input.shape == self.weighted_dists.shape, (
@@ -38,11 +37,12 @@ class FVM_BC:
             self.weighted_dists[indices] = dist[indices]
 
 
-class TPSA_BC(FVM_BC):
+class ElasticityBC(FiniteVolumeBC):
     dim_of_bc_vals = pg.AMBIENT_DIM
 
     def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
-        super().__init__(sd, data, keyword)
+        super().__init__(data, keyword)
+        self.weighted_dists = np.zeros((self.dim_of_bc_vals, sd.num_faces))
         self.disp = np.zeros_like(self.weighted_dists)
         self.trac = np.zeros_like(self.weighted_dists)
 
@@ -69,11 +69,12 @@ class TPSA_BC(FVM_BC):
         self._set_bcs(indices, u_0, self.disp, dists)
 
 
-class TPFA_BC(FVM_BC):
+class FlowBC(FiniteVolumeBC):
     dim_of_bc_vals = 1
 
     def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
-        super().__init__(sd, data, keyword)
+        super().__init__(data, keyword)
+        self.weighted_dists = np.zeros(sd.num_faces)
         self.pres = np.zeros_like(self.weighted_dists)
         self.flux = np.zeros_like(self.weighted_dists)
 
@@ -89,7 +90,7 @@ class TPFA_BC(FVM_BC):
         indices: np.ndarray | None = None,
         q_0: np.ndarray | None = None,
     ) -> None:
-        self._set_bcs(indices, q_0, self.trac, np.inf)
+        self._set_bcs(indices, q_0, self.flux, np.inf)
 
     def set_robin_bcs(
         self,

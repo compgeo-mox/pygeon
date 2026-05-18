@@ -1,5 +1,6 @@
+from typing import Callable
+
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -9,61 +10,60 @@ def rotation_dim(dim: int) -> int:
     return dim * (dim - 1) // 2
 
 
-class TPSA:
-    def __init__(self, keyword=pg.UNITARY_DATA) -> None:
-        self.keyword = keyword
+class TPSA(pg.FiniteVolumeDiscretization):
+    bc_type = pg.ElasticityBC
 
-    def ndofs(self, sd: pg.Grid) -> np.ndarray:
-        ndof_per_cell = np.array([sd.dim, rotation_dim(sd.dim), 1])
-        return sd.num_cells * ndof_per_cell
+    def ndof_components(self, sd: pg.Grid) -> np.ndarray:
+        return sd.num_cells * np.array([sd.dim, rotation_dim(sd.dim), 1])
 
-    def ndof(self, sd) -> int:
-        return self.ndofs(sd).sum()
-
-    def extract_bcs(self, sd: pg.Grid, data: dict) -> pg.TPSA_BC:
-        # See if there is already a BoundaryConditions object in the data dict
-        if "bcs" in data[pp.PARAMETERS][self.keyword]:
-            bcs = data[pp.PARAMETERS][self.keyword]["bcs"]
-        else:  # We create a default one that places itself in the data dict
-            bcs = pg.TPSA_BC(sd, data, self.keyword)
-        return bcs
+    def ndof_per_cell(self, sd) -> int:
+        return sd.dim + rotation_dim(sd.dim) + 1
 
     def assemble_elasticity_matrix(self, sd: pg.Grid, data: dict) -> None:
         """
         Assemble the TPSA matrix, given material constants in the data dictionary.
         """
-        bcs = self.extract_bcs(sd, data)
-
-        # Precomputations of the geometry
-        self.find_cf = sps.find(sd.cell_faces)
-        self.unit_normals = sd.face_normals / sd.face_areas
 
         # Extract the Lamé parameters
         lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lame_lambda = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
+        # Precomputations without boundary conditions
+        self.fvm_precomputations(sd, lame_mu)
+
+        #
+        bcs = self.extract_bcs(sd, data)
+        faces, deltas = self.extend_faces_and_distances(sd, bcs)
+
+        self.compute_delta_mu_k(faces, deltas)
+        self.compute_harmonic_avg(faces, deltas)
+
+        # Assemble the remaining terms in (3.9)
+        A = self.div_F(sd) @ self.assemble_dual_var_map(sd)
+
         # Generate the zero'th order terms in (3.9)
         M = self.assemble_mass_terms(sd, lame_mu, lame_lambda)
 
-        # Precomputations that use grid and parameter values
-        self.compute_weighted_dists(sd, lame_mu)
-
-        faces, deltas = self.extend_faces_and_distances(sd, bcs)
-        self.compute_delta_mu_k(faces, deltas)
-        self.compute_harmonic_avg_mu(faces, deltas)
-
-        # Precompute the operator that multiplies with the area
-        # and applies the divergence
-        div_F = pg.div(sd) * sd.face_areas
-        div_F = sps.kron(np.eye(7), div_F)
-
-        # Assemble the remaining terms in (3.9)
-        A = div_F @ self.assemble_dual_var_map(sd)
-
         # Assemble the matrix from (3.9)
-        self.system = sps.csc_array(A - M)
+        return sps.csc_array(A - M)
 
-        return self.system
+    def compute_weighted_dists(self, sd: pg.Grid, weights: np.ndarray) -> np.ndarray:
+        """
+        Compute delta_k^i / mu from (2.1) for every physical face-cell pair. Boundary
+        conditions are handled later.
+        """
+        faces, cells, orient = self.find_cf[sd]
+        unit_normals = self.unit_normals[sd]
+
+        delta = np.sum(
+            (
+                (sd.face_centers[:, faces] - sd.cell_centers[:, cells])
+                * (orient * unit_normals[:, faces])
+            ),
+            axis=0,
+        )
+
+        return delta / weights[cells]
 
     def assemble_mass_terms(
         self, sd: pg.Grid, lame_mu: np.ndarray, lame_lambda: np.ndarray
@@ -97,7 +97,7 @@ class TPSA:
         A[1, 1] = self.assemble_lhs_bdry_terms(sd)
 
         # The blocks in the first column depend on the averaging operator Xi
-        Xi = self.assemble_xi()
+        Xi = self.assemble_xi(sd)
         R_Xi, n_Xi = self.assemble_RXi_and_NXi(sd, Xi, map_from_u=True)
         A[1, 0] = -R_Xi
         A[2, 0] = n_Xi
@@ -115,8 +115,8 @@ class TPSA:
         # Assembly by blocks
         return sps.block_array(A).tocsc()
 
-    def assemble_rot(self):
-        nx, ny, nz = [sps.diags_array(n_i) for n_i in self.unit_normals]
+    def assemble_rot(self, sd):
+        nx, ny, nz = [sps.diags_array(n_i) for n_i in self.unit_normals[sd]]
 
         return sps.block_array(
             [
@@ -127,7 +127,7 @@ class TPSA:
         )
 
     def assemble_lhs_bdry_terms(self, sd):
-        R = self.assemble_rot()
+        R = self.assemble_rot(sd)
         R_squared = R @ R
 
         bdry_deltas = self.delta_mu_k * sd.tags["domain_boundary_faces"]
@@ -136,69 +136,16 @@ class TPSA:
         codiv = sps.kron(sps.eye_array(3), sd.cell_faces)
         return -delta[:, None] * R_squared @ codiv
 
-    def compute_weighted_dists(self, sd: pg.Grid, weights: np.ndarray) -> np.ndarray:
-        """
-        Compute delta_k^i / mu from (2.1) for every physical face-cell pair.
-        Boundary conditions are handled later.
-        """
-        faces, cells, orient = self.find_cf
-
-        def compute_delta(indices=slice(None)):
-            return np.sum(
-                (
-                    (
-                        sd.face_centers[:, faces[indices]]
-                        - sd.cell_centers[:, cells[indices]]
-                    )
-                    * (orient[indices] * self.unit_normals[:, faces[indices]])
-                ),
-                axis=0,
-            )
-
-        delta = compute_delta()
-
-        # Check if any cell centers are placed outside the cell
-        if np.any(delta <= 0):
-            print(
-                f"Moving {np.sum(delta <= 0)} extra-cellular centers to the \
-                    mean of the nodes"
-            )
-            cell_nodes = sd.cell_nodes()
-            cf_pairs = np.zeros_like(cells, dtype=bool)
-
-            for cell in cells[delta <= 0]:
-                cf_pairs |= cells == cell
-
-                # Define a cell-center based on the mean of the nodes
-                nodes = cell_nodes.indices[
-                    cell_nodes.indptr[cell] : cell_nodes.indptr[cell + 1]
-                ]
-                sd.cell_centers[:, cell] = np.mean(sd.nodes[:, nodes], axis=1)
-
-            # Recompute the deltas with the updated cell center
-            delta[cf_pairs] = compute_delta(cf_pairs)
-
-            if np.any(delta <= 0):
-                # Report on the first problematic cell for visual inspection
-                glob_ind = cells[delta <= 0]
-
-                print(f"There are {np.sum(delta <= 0)} extra-cellular centers")
-                print(f"Inspect cells with index {glob_ind}")
-            else:
-                print("Fixed all cell-centers")
-
-        self.weighted_dists = delta / weights[cells]
-
-    def extend_faces_and_distances(self, sd: pg.Grid, bcs: pg.TPSA_BC):
+    def extend_faces_and_distances(self, sd: pg.Grid, bcs: pg.ElasticityBC):
         # Incorporate the Robin bc by extending the vectors
-        faces = self.find_cf[0]
+        faces, *_ = self.find_cf[sd]
 
         bdry_faces = sd.tags["domain_boundary_faces"]
         ext_faces = np.concatenate((faces, np.flatnonzero(bdry_faces)))
 
         # We allow for different types of boundary conditions in the x, y, z directions.
         # We therefore have three instances of the distances, one for each direction.
-        tiled_dists = np.tile(self.weighted_dists, (pg.AMBIENT_DIM, 1))
+        tiled_dists = np.tile(self.weighted_dists[sd], (pg.AMBIENT_DIM, 1))
         ext_dists = np.hstack((tiled_dists, bcs.weighted_dists[:, bdry_faces]))
 
         return ext_faces, ext_dists
@@ -222,7 +169,7 @@ class TPSA:
         output_list = [1 / np.bincount(faces, weights=row) for row in inv_dists]
         self.delta_mu_k = np.array(output_list) / 2
 
-    def compute_harmonic_avg_mu(self, faces, dists) -> np.ndarray:
+    def compute_harmonic_avg(self, faces, dists) -> np.ndarray:
         """
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face
         """
@@ -232,13 +179,13 @@ class TPSA:
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
         self.mu_bar_over_delta = np.array(output_list)
 
-    def assemble_xi(self) -> list:
+    def assemble_xi(self, sd) -> list:
         """
         Compute the averaging operator Xi from (2.5)
         """
-        faces, cells, _ = self.find_cf
+        faces, cells, _ = sps.find(sd.cell_faces)
         Xi = [
-            sps.csc_array((2 * delta[faces] / self.weighted_dists, (faces, cells)))
+            sps.csc_array((2 * delta[faces] / self.weighted_dists[sd], (faces, cells)))
             for delta in self.delta_mu_k
         ]
 
@@ -267,7 +214,9 @@ class TPSA:
         Assemble the off-diagonal terms n times Xi and n cdot Xi in (3.7)
         These are computed together because their construction uses similar components.
         """
-        nx, ny, nz = [ni[:, None] * Xi_i for (ni, Xi_i) in zip(self.unit_normals, Xi)]
+        nx, ny, nz = [
+            ni[:, None] * Xi_i for (ni, Xi_i) in zip(self.unit_normals[sd], Xi)
+        ]
 
         # Compute n times Xi
         if sd.dim == 3:
@@ -298,12 +247,12 @@ class TPSA:
         rhs = np.empty((3, 2), dtype=sps.sparray)
 
         # Ingredients with the normal
-        R = self.assemble_rot()
-        ndot = sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals])
+        R = self.assemble_rot(sd)
+        ndot = sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals[sd]])
 
         Delta_B = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
 
-        Xi = self.assemble_xi()
+        Xi = self.assemble_xi(sd)
         Xi_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
 
         Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
@@ -327,12 +276,7 @@ class TPSA:
         bcs = self.extract_bcs(sd, data)
         g = np.hstack((bcs.trac.ravel(), bcs.disp.ravel()))
 
-        # Precompute the operator that multiplies with the area
-        # and applies the divergence
-        div_F = pg.div(sd) * sd.face_areas
-        div_F = sps.kron(np.eye(7), div_F)
-
-        return -div_F @ sps.block_array(rhs) @ g
+        return -self.div_F(sd) @ sps.block_array(rhs) @ g
 
     #### Solving
     def assemble_fluid_pressure_source(
@@ -346,22 +290,20 @@ class TPSA:
         alpha = pg.get_cell_data(sd, data, pg.BIOT_ALPHA)
 
         rhs = np.zeros(self.ndof(sd))
-        rhs[-self.ndofs[-1] :] = self.sd.cell_volumes * alpha / lame_lambda * w
+        rhs[-self.ndof_components[-1] :] = (
+            self.sd.cell_volumes * alpha / lame_lambda * w
+        )
 
         return rhs
 
-    def assemble_body_force(self, sd: pg.Grid, f: np.ndarray) -> np.ndarray:
+    def assemble_body_force(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Assemble the right-hand side for a given body force f(x,y,z)
-        We assume that these are numbered as
-            f[0]   = f_x(x_0)
-            f[1]   = f_x(x_1)
-            ...
-            f[n_c] = f_y(x_0)
-            ...
         """
-        rhs_u = np.tile(sd.cell_volumes, sd.dim) * f
-        rhs_r = np.zeros(self.ndofs(sd)[1])
-        rhs_p = np.zeros(self.ndofs(sd)[2])
+        rhs_u = pg.PwConstants().interpolate(sd, func)
+        rhs_r = np.zeros(self.ndof_components(sd)[1])
+        rhs_p = np.zeros(self.ndof_components(sd)[2])
 
         return np.concatenate((rhs_u, rhs_r, rhs_p))

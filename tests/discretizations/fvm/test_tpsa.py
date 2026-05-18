@@ -28,7 +28,7 @@ def test_displacement_bcs(sd_and_sol):
     tpsa = pg.TPSA("test")
 
     data = pp.initialize_data({}, "test", {pg.LAME_LAMBDA: 1, pg.LAME_MU: 1})
-    bcs = pg.TPSA_BC(sd, data, "test")
+    bcs = pg.ElasticityBC(sd, data, "test")
 
     bdry_faces = sd.tags["domain_boundary_faces"]
     u_0 = np.zeros_like(sd.face_centers)
@@ -47,7 +47,7 @@ def test_traction_bcs(sd_and_sol):
     tpsa = pg.TPSA("test")
 
     data = pp.initialize_data({}, "test", {pg.LAME_LAMBDA: 1, pg.LAME_MU: 1})
-    bcs = pg.TPSA_BC(sd, data, "test")
+    bcs = pg.ElasticityBC(sd, data, "test")
 
     bdry_faces = sd.tags["domain_boundary_faces"]
     bottom = np.isclose(sd.face_centers[-1], 0)

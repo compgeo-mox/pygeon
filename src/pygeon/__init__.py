@@ -53,7 +53,12 @@ from pygeon.discretizations.fem.mat_l2 import (
     MatPwQuadratics,
 )
 
-from pygeon.discretizations.fvm.bcs import TPSA_BC, TPFA_BC
+from pygeon.discretizations.fvm.boundary_conditions import (
+    FiniteVolumeBC,
+    ElasticityBC,
+    FlowBC,
+)
+from pygeon.discretizations.fvm.fvm_disc import FiniteVolumeDiscretization
 from pygeon.discretizations.fvm.tpsa import TPSA
 from pygeon.discretizations.fvm.tpfa import TPFA
 
