@@ -160,9 +160,8 @@ class TPSA:
         # Check if any cell centers are placed outside the cell
         if np.any(delta <= 0):
             print(
-                "Moving {} extra-cellular centers to the mean of the nodes".format(
-                    np.sum(delta <= 0)
-                )
+                f"Moving {np.sum(delta <= 0)} extra-cellular centers to the \
+                    mean of the nodes"
             )
             cell_nodes = sd.cell_nodes()
             cf_pairs = np.zeros_like(cells, dtype=bool)
@@ -183,8 +182,8 @@ class TPSA:
                 # Report on the first problematic cell for visual inspection
                 glob_ind = cells[delta <= 0]
 
-                print("There are {} extra-cellular centers".format(np.sum(delta <= 0)))
-                print("Inspect cells with index {}".format(glob_ind))
+                print(f"There are {np.sum(delta <= 0)} extra-cellular centers")
+                print(f"Inspect cells with index {glob_ind}")
             else:
                 print("Fixed all cell-centers")
 
@@ -213,9 +212,9 @@ class TPSA:
         """
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
-        zero_dist = dists = 0
+        zero_dist = dists == 0
 
-        inv_dists[~zero_dist] = 1 / dists[zero_dist]
+        inv_dists[~zero_dist] = 1 / dists[~zero_dist]
         inv_dists[zero_dist] = np.inf
 
         # Displacement boundaries have infinite mu/delta
