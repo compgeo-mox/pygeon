@@ -1,3 +1,5 @@
+from typing import cast
+
 import numpy as np
 import porepy as pp
 
@@ -7,8 +9,9 @@ import pygeon as pg
 class FiniteVolumeBC:
     dim_of_bc_vals: int
 
-    def __init__(self, data: dict, keyword: str) -> None:
-        data[pp.PARAMETERS][keyword].update({"bcs": self})
+    def __init__(self, _: pg.Grid, data: dict, keyword: str) -> None:
+        data[pp.PARAMETERS][keyword].update({"bc": self})
+        self.weighted_dists: np.ndarray
 
     def _set_bcs(
         self,
@@ -34,14 +37,14 @@ class FiniteVolumeBC:
         if isinstance(dist, np.ScalarType):
             self.weighted_dists[indices] = dist
         else:
-            self.weighted_dists[indices] = dist[indices]
+            self.weighted_dists[indices] = cast(np.ndarray, dist)[indices]
 
 
 class ElasticityBC(FiniteVolumeBC):
     dim_of_bc_vals = pg.AMBIENT_DIM
 
     def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
-        super().__init__(data, keyword)
+        super().__init__(sd, data, keyword)
         self.weighted_dists = np.zeros((self.dim_of_bc_vals, sd.num_faces))
         self.disp = np.zeros_like(self.weighted_dists)
         self.trac = np.zeros_like(self.weighted_dists)
@@ -73,7 +76,7 @@ class FlowBC(FiniteVolumeBC):
     dim_of_bc_vals = 1
 
     def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
-        super().__init__(data, keyword)
+        super().__init__(sd, data, keyword)
         self.weighted_dists = np.zeros(sd.num_faces)
         self.pres = np.zeros_like(self.weighted_dists)
         self.flux = np.zeros_like(self.weighted_dists)
@@ -98,4 +101,4 @@ class FlowBC(FiniteVolumeBC):
         indices: np.ndarray | None = None,
         p_0: np.ndarray | None = None,
     ) -> None:
-        self._set_bcs(indices, p_0, self.disp, dists)
+        self._set_bcs(indices, p_0, self.pres, dists)

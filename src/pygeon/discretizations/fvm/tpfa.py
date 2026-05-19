@@ -1,30 +1,34 @@
+from typing import cast
+
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
 
 
 class TPFA(pg.FiniteVolumeDiscretization):
-    bc_type = pg.FlowBC
+    def __init__(self, keyword=pg.UNITARY_DATA) -> None:
+        super().__init__(keyword)
+        self.bc_type = pg.FlowBC
 
-    def ndof_per_cell(self, *_) -> int:
+        self.K_bar: dict[pg.Grid, np.ndarray] = {}
+
+    def ndof_per_cell(self, _) -> int:
         return 1
 
-    def assemble_flow_matrix(self, sd: pg.Grid, data: dict):
+    def assemble_flow_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         perm = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, 2)
 
         # Precomputations without boundary conditions
         self.fvm_precomputations(sd, perm.values)
 
-        bcs = self.extract_bcs(sd, data)
-        faces, deltas = self.extend_faces_and_distances(sd, bcs)
+        faces, deltas = self.extend_faces_and_distances(sd, data)
 
-        self.compute_harmonic_avg(faces, deltas)
+        self.compute_harmonic_avg(sd, faces, deltas)
 
-        codiv = sd.cell_faces
+        A = self.assemble_dual_var_map(sd)
 
-        return self.div_F(sd) @ (self.K_bar_over_delta[:, None] * codiv)
+        return self.div_F(sd) @ A
 
     def compute_weighted_dists(self, sd: pg.Grid, perm: np.ndarray) -> np.ndarray:
         """
@@ -46,16 +50,19 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         return delta / K_nn
 
-    def compute_harmonic_avg(self, faces, dists):
+    def compute_harmonic_avg(self, sd, faces, dists) -> None:
         """
         Compute the harmonic average of K divided by delta_k, at each face
         """
-        self.K_bar_over_delta = np.array(1 / np.bincount(faces, weights=dists))
+        self.K_bar[sd] = np.array(1 / np.bincount(faces, weights=dists))
 
-    def assemble_rhs_boundary_terms(self, sd: pg.Grid, data: dict):
+    def assemble_dual_var_map(self, sd: pg.Grid) -> sps.sparray:
+        return self.K_bar[sd][:, None] * sd.cell_faces
+
+    def assemble_rhs_bdry_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         rhs = np.empty(2, dtype=sps.sparray)
 
-        K_bar = self.K_bar_over_delta
+        K_bar = self.K_bar[sd]
 
         rhs[0] = sps.diags_array((K_bar == 0).astype(float))
 
@@ -63,44 +70,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         rhs[1] = sps.diags_array(K_bar * Delta_B)
 
         bcs = self.extract_bcs(sd, data)
+        bcs = cast(pg.FlowBC, bcs)
         g = np.hstack((bcs.flux, bcs.pres))
 
-        return -pg.div(sd) * sd.face_areas @ sps.hstack(rhs) @ g
-
-
-if __name__ == "__main__":
-    dims = {
-        "xmin": 0,
-        "xmax": 1,
-        "ymin": 0,
-        "ymax": 1,
-        "zmin": -1,
-        "zmax": 0,
-    }
-    sd = pp.CartGrid([5, 5, 5], dims)
-    sd = pg.convert_from_pp(sd)
-    sd.compute_geometry()
-
-    K_vals = np.tile(np.array([1, 2, 3]), (sd.num_cells, 1)).T
-    K = pp.SecondOrderTensor(*K_vals)
-
-    tpfa = TPFA("test")
-
-    data = pp.initialize_data({}, "test")
-    bcs = pg.FlowBC(sd, data, "test")
-
-    p_0 = sd.face_centers[-1]
-
-    bdry_faces = sd.tags["domain_boundary_faces"]
-    bottom = np.isclose(sd.face_centers[-1], 0)
-    bcs.set_pressure_bcs(bottom, np.ones_like(p_0))
-
-    flux_faces = np.logical_xor(bottom, bdry_faces)
-    bcs.set_flux_bcs(flux_faces)
-
-    M = tpfa.assemble_flow_matrix(sd, data)
-    rhs = tpfa.assemble_rhs_boundary_terms(sd, data)
-
-    sol = sps.linalg.spsolve(M, rhs)
-
-    pass
+        return -self.div_F(sd) @ sps.hstack(rhs) @ g
