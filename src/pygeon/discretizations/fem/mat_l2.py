@@ -278,7 +278,12 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         return sps.kron(asym, sps.eye_array(scalar_ndof)).tocsc()
 
     def assemble_mult_matrix(
-        self, sd: pg.Grid, mult_mat: np.ndarray, right_mult: bool
+        self,
+        sd: pg.Grid,
+        mult_mat: np.ndarray,
+        *,
+        right_mult: bool | None = None,
+        left_mult: bool | None = None,
     ) -> sps.csc_array:
         """
         Assembles and returns the matrix that multiplies with an elementwise
@@ -289,12 +294,24 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             mult_mat (np.ndarray): The matrix to multiply with. It is assumed to be
                 a piecewise constant matrix and can be provided with shape
                 (d, d, n_cells), (d, d, n_dof), or their flattened equivalents.
-            right_mult (bool): If True, performs right multiplication. If False, left
-                multiplication.
+            right_mult (bool, optional): If True, performs right multiplication (A @ X).
+                Exactly one of 'right_mult' or 'left_mult' must be True.
+            left_mult (bool, optional): If True, performs left multiplication (X @ A).
+                Exactly one of 'right_mult' or 'left_mult' must be True.
 
         Returns:
             sps.csc_array: The multiplication matrix obtained from the discretization.
+
+        Raises:
+            ValueError: If exactly one of 'right_mult' or 'left_mult' is not True.
         """
+        # Validate that exactly one multiplication direction is specified
+        if (right_mult is True) + (left_mult is True) != 1:
+            raise ValueError(
+                "Exactly one of 'right_mult' or 'left_mult' must be True. "
+                f"Got right_mult={right_mult}, left_mult={left_mult}."
+            )
+
         # Reshape the multiplication matrix so that we can easily access its components
         # per cell.
         mult_mat = mult_mat.reshape((sd.dim, sd.dim, -1))
@@ -376,6 +393,42 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         scalar_ndof = self.ndof(sd) // (sd.dim**2)
 
         return sps.kron(sym, sps.eye_array(scalar_ndof)).tocsc()
+
+    def assemble_upper_convected_distortion(
+        self, sd: pg.Grid, grad_v: np.ndarray
+    ) -> sps.csc_array:
+        """
+        Assembles the term - grad_v * A  - A * grad_v.T, with grad_v a matrix-valued
+        function in the matrix piecewise constant space.
+
+        This term appears in the upper-convected derivative of a matrix-valued
+        function, and it is the distortion part of the upper-convected derivative.
+
+        Args:
+            sd (pg.Grid): The grid.
+            grad_v (np.ndarray): The gradient of the velocity, a matrix-valued function
+                in the matrix piecewise constant space.
+
+        Returns:
+            sps.csc_array: The upper convected distortion matrix obtained from the
+                discretization.
+        """
+        # Transform from dof to actual values
+        grad_v_val = grad_v.reshape((sd.dim**2, -1)) / sd.cell_volumes
+        grad_v_val = grad_v_val.ravel()
+
+        # We can assemble the two terms separately and then sum them together. The
+        # first term is given by grad_v * A, which requires a left multiplication
+        # with the velocity gradient.
+        grad_v_A = self.assemble_mult_matrix(sd, grad_v_val, left_mult=True)
+
+        # The second term is given by A * grad_v.T, which requires a right
+        # multiplication with the transposed velocity gradient.
+        disc_grad_v = pg.MatPwConstants(self.keyword)
+        grad_v_T = disc_grad_v.assemble_transpose_matrix(sd) @ grad_v_val
+        A_grad_v_T = self.assemble_mult_matrix(sd, grad_v_T, right_mult=True)
+
+        return -(grad_v_A + A_grad_v_T)
 
 
 class MatPwConstants(MatPwPolynomials):
@@ -485,7 +538,7 @@ class MatPwLinears(MatPwPolynomials):
         # Assemble the multiplication matrices A*Omega and Omega*A used in the
         # corotational correction
         A_omega = self.assemble_mult_matrix(sd, omega, right_mult=True)
-        omega_A = self.assemble_mult_matrix(sd, omega, right_mult=False)
+        omega_A = self.assemble_mult_matrix(sd, omega, left_mult=True)
 
         # Return the corotational correction matrix
         return A_omega - omega_A
