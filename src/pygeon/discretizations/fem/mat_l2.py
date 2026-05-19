@@ -414,12 +414,8 @@ class MatPwPolynomials(pg.VecPwPolynomials):
                 discretization.
         """
         # Transform from dof to actual values
-        disc_grad_v = pg.MatPwConstants(self.keyword)
-        grad_v_val = disc_grad_v.eval_at_cell_centers(sd) @ grad_v
-        # Depending on the grid dimension, we need to extract the relevant components of
-        # the velocity gradient
-        grad_v_val = grad_v_val.reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
-        grad_v_val = grad_v_val[: sd.dim, : sd.dim].ravel()
+        grad_v_val = grad_v.reshape((sd.dim**2, -1)) / sd.cell_volumes
+        grad_v_val = grad_v_val.ravel()
 
         # We can assemble the two terms separately and then sum them together. The
         # first term is given by grad_v * A, which requires a left multiplication
@@ -428,6 +424,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         # The second term is given by A * grad_v.T, which requires a right
         # multiplication with the transposed velocity gradient.
+        disc_grad_v = pg.MatPwConstants(self.keyword)
         grad_v_T = disc_grad_v.assemble_transpose_matrix(sd) @ grad_v_val
         A_grad_v_T = self.assemble_mult_matrix(sd, grad_v_T, right_mult=True)
 
