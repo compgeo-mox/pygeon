@@ -74,3 +74,6 @@ class TPFA(pg.FiniteVolumeDiscretization):
         g = np.hstack((bcs.flux, bcs.pres))
 
         return -self.div_F(sd) @ sps.hstack(rhs) @ g
+
+    def assemble_source(self, sd: pg.Grid, source: callable) -> np.ndarray:
+        return pg.PwConstants().interpolate(sd, source)
