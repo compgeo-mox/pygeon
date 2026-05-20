@@ -104,19 +104,19 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         # The blocks in the first column depend on the averaging operator Xi
         Xi = self.assemble_xi(sd)
-        R_Xi, n_Xi = self.assemble_RXi_and_NXi(sd, Xi, map_from_u=True)
+        R_Xi, n_Xi = self.assemble_first_column(sd, Xi)
         A[1, 0] = -R_Xi
         A[2, 0] = n_Xi
 
         # The blocks in the first row depend on the complementary operator Xi_tilde
         Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
-        R_Xi_t, n_Xi_t = self.assemble_RXi_and_NXi(sd, Xi_tilde, map_from_u=False)
+        R_Xi_t, n_Xi_t = self.assemble_first_row(sd, Xi_tilde)
         A[0, 1] = -R_Xi_t
         A[0, 2] = n_Xi_t
 
         # Stabilization for the pressure
-        delta_min = np.min(self.delta_mu_k[sd], axis=0)
-        A[2, 2] = -delta_min[:, None] * sd.cell_faces
+        delta_n = np.sum(self.unit_normals[sd] ** 2 * self.delta_mu_k[sd], axis=0)
+        A[2, 2] = -delta_n[:, None] * sd.cell_faces
 
         # Assembly by blocks
         return sps.block_array(A).tocsc()
@@ -131,6 +131,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
                 [-ny, nx, None],
             ]
         ).tocsc()
+
+    def assemble_ndot(self, sd: pg.Grid) -> sps.csc_array:
+        return sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals[sd]])
 
     def assemble_lhs_bdry_terms(self, sd: pg.Grid) -> sps.sparray:
         R = self.assemble_rot(sd)
@@ -220,40 +223,45 @@ class TPSA(pg.FiniteVolumeDiscretization):
             Xi_i.data = 1 - Xi_i.data
         return Xi
 
-    def assemble_RXi_and_NXi(
+    def assemble_first_column(
         self,
         sd: pg.Grid,
-        Xi: sps.sparray,
-        map_from_u: bool = True,
+        Xi_list: list,
     ) -> tuple[sps.sparray, sps.sparray]:
         """
         Assemble the off-diagonal terms n times Xi and n cdot Xi in (3.7)
         These are computed together because their construction uses similar components.
         """
-        nx, ny, nz = [
-            ni[:, None] * Xi_i for (ni, Xi_i) in zip(self.unit_normals[sd], Xi)
-        ]
+        Xi = sps.block_diag(Xi_list)
+        R_Xi = self.assemble_rot(sd) @ Xi
+        n_Xi = self.assemble_ndot(sd) @ Xi
 
-        # Compute n times Xi
+        return R_Xi, n_Xi
+
+    def assemble_first_row(
+        self,
+        sd: pg.Grid,
+        Xi_list: list,
+    ) -> tuple[sps.sparray, sps.sparray]:
+        """
+        Assemble the off-diagonal terms n times Xi and n cdot Xi in (3.7)
+        These are computed together because their construction uses similar components.
+        """
+        nx, ny, nz = [ni[:, None] for ni in self.unit_normals[sd]]
+        Xx, Xy, Xz = Xi_list
+
         if sd.dim == 3:
             R_Xi = sps.block_array(
                 [
-                    [None, -nz, ny],
-                    [nz, None, -nx],
-                    [-ny, nx, None],
+                    [None, -nz * Xx, ny * Xx],
+                    [nz * Xy, None, -nx * Xy],
+                    [-ny * Xz, nx * Xz, None],
                 ]
             )
         else:  # 2D
-            if map_from_u:  # Maps from u to r
-                R_Xi = sps.hstack([-ny, nx])
-            else:  # Maps from r to u
-                R_Xi = sps.vstack([ny, -nx])
+            R_Xi = sps.vstack([ny * Xx, -nx * Xy])
 
-        # Compute n cdot Xi
-        if map_from_u:  # Maps from u to p
-            n_Xi = sps.hstack([nx, ny, nz][: sd.dim])
-        else:  # Maps from p to u
-            n_Xi = sps.vstack([nx, ny, nz][: sd.dim])
+        n_Xi = sps.vstack([nx * Xx, ny * Xy, nz * Xz][: sd.dim])
 
         return R_Xi, n_Xi
 
@@ -264,7 +272,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         # Ingredients with the normal
         R = self.assemble_rot(sd)
-        ndot = sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals[sd]])
+        ndot = self.assemble_ndot(sd)
 
         Delta_B = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
 
