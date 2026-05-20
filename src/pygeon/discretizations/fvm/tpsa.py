@@ -11,7 +11,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
     An implementation of the two-point stress approximation method of Nordbotten and
     Keilegavlen (2025)
 
-    Numbers refer to equations in the manuscript:
+    Equation numbers refer to the manuscript:
     https://doi.org/10.1016/j.camwa.2025.07.035
     """
 
@@ -24,9 +24,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         return sd.dim + rotation_dim(sd.dim) + 1
-
-    def ndof_per_component(self, sd: pg.Grid) -> np.ndarray:
-        return sd.num_cells * np.array([sd.dim, rotation_dim(sd.dim), 1])
 
     def assemble_elasticity_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
@@ -115,7 +112,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         A[0, 2] = n_Xi_t
 
         # Stabilization for the pressure
-        delta_n = np.sum(self.unit_normals[sd] ** 2 * self.delta_mu_k[sd], axis=0)
+        delta_n = np.sum(
+            self.unit_normals[sd][: sd.dim] ** 2 * self.delta_mu_k[sd], axis=0
+        )
         A[2, 2] = -delta_n[:, None] * sd.cell_faces
 
         # Assembly by blocks
@@ -124,25 +123,36 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_rot(self, sd: pg.Grid) -> sps.csc_array:
         nx, ny, nz = [sps.diags_array(n_i) for n_i in self.unit_normals[sd]]
 
-        return sps.block_array(
-            [
-                [None, -nz, ny],
-                [nz, None, -nx],
-                [-ny, nx, None],
-            ]
-        ).tocsc()
+        match sd.dim:
+            case 3:
+                return sps.block_array(
+                    [
+                        [None, -nz, ny],
+                        [nz, None, -nx],
+                        [-ny, nx, None],
+                    ]
+                ).tocsc()
+            case 2:
+                return sps.hstack([-ny, nx])
+            case _:
+                raise ValueError("The dimension must be 2 or 3.")
 
     def assemble_ndot(self, sd: pg.Grid) -> sps.csc_array:
-        return sps.hstack([sps.diags_array(n_i) for n_i in self.unit_normals[sd]])
+        return sps.hstack(
+            [sps.diags_array(n_i) for n_i in self.unit_normals[sd][: sd.dim]]
+        )
 
     def assemble_lhs_bdry_terms(self, sd: pg.Grid) -> sps.sparray:
+        if sd.dim == 2:
+            return None
+
         R = self.assemble_rot(sd)
         R_squared = R @ R
 
         bdry_deltas = self.delta_mu_k[sd] * sd.tags["domain_boundary_faces"]
         delta = bdry_deltas.flatten()
 
-        codiv = sps.kron(sps.eye_array(3), sd.cell_faces)
+        codiv = sps.kron(sps.eye_array(sd.dim), sd.cell_faces)
         return -delta[:, None] * R_squared @ codiv
 
     def extend_faces_and_distances(
@@ -160,8 +170,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         # We allow for different types of boundary conditions in the x, y, z directions.
         # We therefore have three instances of the distances, one for each direction.
-        tiled_dists = np.tile(self.weighted_dists[sd], (pg.AMBIENT_DIM, 1))
-        ext_dists = np.hstack((tiled_dists, bcs.weighted_dists[:, bdry_faces]))
+        tiled_dists = np.tile(self.weighted_dists[sd], (sd.dim, 1))
+        ext_dists = np.hstack((tiled_dists, bcs.weighted_dists[: sd.dim, bdry_faces]))
 
         return ext_faces, ext_dists
 
@@ -248,24 +258,30 @@ class TPSA(pg.FiniteVolumeDiscretization):
         These are computed together because their construction uses similar components.
         """
         nx, ny, nz = [ni[:, None] for ni in self.unit_normals[sd]]
-        Xx, Xy, Xz = Xi_list
 
-        if sd.dim == 3:
-            R_Xi = sps.block_array(
-                [
-                    [None, -nz * Xx, ny * Xx],
-                    [nz * Xy, None, -nx * Xy],
-                    [-ny * Xz, nx * Xz, None],
-                ]
-            )
-        else:  # 2D
-            R_Xi = sps.vstack([ny * Xx, -nx * Xy])
-
-        n_Xi = sps.vstack([nx * Xx, ny * Xy, nz * Xz][: sd.dim])
+        match sd.dim:
+            case 3:
+                Xx, Xy, Xz = Xi_list
+                R_Xi = sps.block_array(
+                    [
+                        [None, -nz * Xx, ny * Xx],
+                        [nz * Xy, None, -nx * Xy],
+                        [-ny * Xz, nx * Xz, None],
+                    ]
+                )
+                n_Xi = sps.vstack([nx * Xx, ny * Xy, nz * Xz])
+            case 2:
+                Xx, Xy = Xi_list
+                R_Xi = sps.vstack([ny * Xx, -nx * Xy])
+                n_Xi = sps.vstack([nx * Xx, ny * Xy])
 
         return R_Xi, n_Xi
 
     def assemble_rhs_boundary_terms(self, sd: pg.Grid, data: dict):
+
+        assert sd in self.unit_normals, (
+            "The elasticity matrix has to be assembled first."
+        )
 
         # Preallocation
         rhs = np.empty((3, 2), dtype=sps.sparray)
@@ -284,13 +300,12 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         mu_bar = self.mu_bar[sd].ravel()
 
-        dmuk = self.delta_mu_k[sd].ravel()[:, None]
-        dmuk_min = np.min(self.delta_mu_k[sd], axis=0)[:, None]
+        dmuk = self.delta_mu_k[sd].ravel()
 
         # Traction terms
         rhs[0, 0] = sps.diags_array(Xi_tilde_B)
-        rhs[1, 0] = dmuk * R * Delta_B
-        rhs[2, 0] = -dmuk_min * ndot * Delta_B
+        rhs[1, 0] = R * dmuk * Delta_B
+        rhs[2, 0] = -ndot * dmuk * Delta_B
 
         # Displacement terms
         rhs[0, 1] = -2 * sps.diags_array(mu_bar * Delta_B)
@@ -299,7 +314,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         bcs = self.extract_bcs(sd, data)
         bcs = cast(pg.ElasticityBC, bcs)
-        g = np.hstack((bcs.trac.ravel(), bcs.disp.ravel()))
+        g = np.hstack((bcs.trac[: sd.dim].ravel(), bcs.disp[: sd.dim].ravel()))
 
         return -self.div_F(sd) @ sps.block_array(rhs) @ g
 
@@ -310,9 +325,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Assemble the right-hand side for a given body force f(x,y,z)
         """
         rhs = np.zeros(self.ndof(sd))
-        rhs[: sd.dim * sd.num_cells] = pg.PwConstants().interpolate(sd, func)
+        rhs[: sd.dim * sd.num_cells] = -pg.VecPwConstants().interpolate(sd, func)
 
         return rhs
+
+    def split_solution(self, sd: pg.Grid, sol: np.ndarray):
+        ndofs = sd.num_cells * np.array([sd.dim, rotation_dim(sd.dim)])
+
+        return np.split(sol, np.cumsum(ndofs))
 
 
 def rotation_dim(dim: int) -> int:
