@@ -1,5 +1,6 @@
 import numpy as np
 import porepy as pp
+import scipy.sparse as sps
 
 import pygeon as pg
 
@@ -47,3 +48,16 @@ def test_flux_bcs(unit_cart_sd):
     rhs = tpfa.assemble_rhs_bdry_terms(unit_cart_sd, data)
 
     assert np.allclose(M @ p_known, rhs)
+
+
+def test_robin_bcs(unit_cart_sd):
+    tpfa, data, bcs, bdry_faces = setup(unit_cart_sd)
+
+    bcs.set_robin_bcs(1, bdry_faces)
+
+    rhs = tpfa.assemble_source(unit_cart_sd, lambda _: 1)
+    M = tpfa.assemble_flow_matrix(unit_cart_sd, data)
+
+    sol = sps.linalg.spsolve(M, rhs)
+
+    assert np.all(sol > 0)
