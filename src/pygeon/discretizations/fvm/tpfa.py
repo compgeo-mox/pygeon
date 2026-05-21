@@ -16,6 +16,10 @@ class TPFA(pg.FiniteVolumeDiscretization):
     def ndof_per_cell(self, _) -> int:
         return 1
 
+    def interpolate(self, sd: pg.Grid, pressure: Callable) -> np.ndarray:
+        interp = pg.PwConstants().interpolate(sd, pressure)
+        return interp / sd.cell_volumes
+
     def assemble_flow_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         perm = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, 2)
 

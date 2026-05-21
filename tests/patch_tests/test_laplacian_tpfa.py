@@ -18,7 +18,7 @@ def setup(sd):
 
 def test_pressure_bcs(unit_cart_sd):
     tpfa, data, bcs, bdry_faces = setup(unit_cart_sd)
-    p_known = unit_cart_sd.cell_centers[0]
+    p_known = tpfa.interpolate(unit_cart_sd, lambda x: x[0])
 
     bcs.set_pressure_bcs(bdry_faces, unit_cart_sd.face_centers[0])
 
@@ -30,16 +30,12 @@ def test_pressure_bcs(unit_cart_sd):
 
 def test_flux_bcs(unit_cart_sd):
     tpfa, data, bcs, bdry_faces = setup(unit_cart_sd)
-    p_known = unit_cart_sd.cell_centers[0]
+    p_known = tpfa.interpolate(unit_cart_sd, lambda x: x[0])
 
     bottom = np.isclose(unit_cart_sd.face_centers[0], 0)
     bcs.set_pressure_bcs(bottom, unit_cart_sd.face_centers[0])
 
-    q_known = (
-        -unit_cart_sd.face_centers[0]
-        * unit_cart_sd.face_normals[0]
-        / unit_cart_sd.face_areas
-    )
+    q_known = pg.VRT0().interpolate(unit_cart_sd, lambda _: np.array([-1, 0, 0]))
 
     flux_faces = np.logical_xor(bottom, bdry_faces)
     bcs.set_flux_bcs(flux_faces, q_known)

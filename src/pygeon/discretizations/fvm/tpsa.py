@@ -25,6 +25,21 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         return sd.dim + rotation_dim(sd.dim) + 1
 
+    def interpolate(
+        self,
+        sd: pg.Grid,
+        displacement: Callable,
+        rotation: Callable,
+        solid_pressure: Callable,
+    ) -> np.ndarray:
+        u = pg.VecPwConstants().interpolate(sd, displacement)
+        r = pg.get_PwPolynomials(0, sd.dim - 2)().interpolate(sd, rotation)
+        p = pg.PwConstants().interpolate(sd, solid_pressure)
+
+        interp = np.hstack((u, r, p))
+
+        return interp / np.tile(sd.cell_volumes, self.ndof_per_cell(sd))
+
     def assemble_elasticity_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assemble the TPSA matrix, given material constants in the data dictionary.
@@ -97,7 +112,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         A[0, 0] = sps.block_diag(A_uu)
 
         # Assemble the boundary terms of (A2.25)
-        A[1, 1] = self.assemble_lhs_bdry_terms(sd)
+        A[1, 1] = self.assemble_rot_rot_bdry_terms(sd)
 
         # The blocks in the first column depend on the averaging operator Xi
         Xi = self.assemble_xi(sd)
@@ -145,7 +160,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             [sps.diags_array(n_i) for n_i in self.unit_normals[sd][: sd.dim]]
         )
 
-    def assemble_lhs_bdry_terms(self, sd: pg.Grid) -> sps.sparray:
+    def assemble_rot_rot_bdry_terms(self, sd: pg.Grid) -> sps.sparray:
         if sd.dim == 2:
             return None
 
