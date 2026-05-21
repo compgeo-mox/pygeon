@@ -20,9 +20,11 @@ class FiniteVolumeDiscretization(abc.ABC):
     def ndof(self, sd) -> int:
         return self.ndof_per_cell(sd) * sd.num_cells
 
-    def div_F(self, sd) -> sps.csc_array:
-        div_F = pg.div(sd) * sd.face_areas
-        return sps.kron(np.eye(self.ndof_per_cell(sd)), div_F, format="csc")
+    def div(self, sd) -> sps.csc_array:
+        return sps.kron(np.eye(self.ndof_per_cell(sd)), pg.div(sd), format="csc")
+
+    def face_area_scaling(self, sd) -> np.ndarray:
+        return np.tile(sd.face_areas, self.ndof_per_cell(sd))
 
     def fvm_precomputations(self, sd: pg.Grid, weight: np.ndarray) -> None:
         self.find_cf[sd] = sps.find(sd.cell_faces)

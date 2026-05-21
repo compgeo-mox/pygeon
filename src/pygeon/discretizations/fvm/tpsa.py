@@ -44,7 +44,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self.compute_harmonic_avg(sd, faces, deltas)
 
         # Assemble the remaining terms in (3.9)
-        A = self.div_F(sd) @ self.assemble_dual_var_map(sd)
+        A = self.div(sd) @ self.assemble_dual_var_map(sd)
 
         # Generate the zero'th order terms in (3.9)
         M = self.assemble_mass_terms(sd, lame_mu, lame_lambda)
@@ -117,8 +117,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         )
         A[2, 2] = -delta_n[:, None] * sd.cell_faces
 
+        # Scaling by the face areas
+        f_areas = self.face_area_scaling(sd)[:, None]
+
         # Assembly by blocks
-        return sps.block_array(A).tocsc()
+        return f_areas * sps.block_array(A).tocsc()
 
     def assemble_rot(self, sd: pg.Grid) -> sps.csc_array:
         nx, ny, nz = [sps.diags_array(n_i) for n_i in self.unit_normals[sd]]
@@ -146,14 +149,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
         if sd.dim == 2:
             return None
 
-        R = self.assemble_rot(sd)
-        R_squared = R @ R
-
         bdry_deltas = self.delta_mu_k[sd] * sd.tags["domain_boundary_faces"]
         delta = bdry_deltas.flatten()
 
+        R = self.assemble_rot(sd)
+        R_squared = (R * delta) @ R
+
         codiv = sps.kron(sps.eye_array(sd.dim), sd.cell_faces)
-        return -delta[:, None] * R_squared @ codiv
+        return -R_squared @ codiv
 
     def extend_faces_and_distances(
         self,
@@ -239,8 +242,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_list: list,
     ) -> tuple[sps.sparray, sps.sparray]:
         """
-        Assemble the off-diagonal terms n times Xi and n cdot Xi in (3.7)
-        These are computed together because their construction uses similar components.
+        Assemble the off-diagonal terms in the first column of (3.7)
         """
         Xi = sps.block_diag(Xi_list)
         R_Xi = self.assemble_rot(sd) @ Xi
@@ -254,7 +256,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_list: list,
     ) -> tuple[sps.sparray, sps.sparray]:
         """
-        Assemble the off-diagonal terms n times Xi and n cdot Xi in (3.7)
+        Assemble the off-diagonal terms in the first row of (3.7)
         These are computed together because their construction uses similar components.
         """
         nx, ny, nz = [ni[:, None] for ni in self.unit_normals[sd]]
@@ -299,7 +301,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_tilde_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
 
         mu_bar = self.mu_bar[sd].ravel()
-
         dmuk = self.delta_mu_k[sd].ravel()
 
         # Traction terms
@@ -314,9 +315,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         bcs = self.extract_bcs(sd, data)
         bcs = cast(pg.ElasticityBC, bcs)
-        g = np.hstack((bcs.trac[: sd.dim].ravel(), bcs.disp[: sd.dim].ravel()))
 
-        return -self.div_F(sd) @ sps.block_array(rhs) @ g
+        trac = bcs.dual_var[: sd.dim] / sd.face_areas
+        disp = bcs.primary_var[: sd.dim]
+
+        g = np.hstack((trac.ravel(), disp.ravel()))
+        f_areas = self.face_area_scaling(sd)
+
+        return -self.div(sd) * f_areas @ sps.block_array(rhs) @ g
 
     def assemble_body_force(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

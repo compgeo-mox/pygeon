@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Callable, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -28,7 +28,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         A = self.assemble_dual_var_map(sd)
 
-        return self.div_F(sd) @ A
+        return self.div(sd) @ A
 
     def compute_weighted_dists(self, sd: pg.Grid, perm: np.ndarray) -> np.ndarray:
         """
@@ -57,13 +57,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
         self.K_bar[sd] = np.array(1 / np.bincount(faces, weights=dists))
 
     def assemble_dual_var_map(self, sd: pg.Grid) -> sps.sparray:
-        return self.K_bar[sd][:, None] * sd.cell_faces
+        return (self.face_area_scaling(sd) * self.K_bar[sd])[:, None] * sd.cell_faces
 
     def assemble_rhs_bdry_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         rhs = np.empty(2, dtype=sps.sparray)
 
         K_bar = self.K_bar[sd]
-
         rhs[0] = sps.diags_array((K_bar == 0).astype(float))
 
         Delta_B = -sd.cell_faces.sum(axis=1)
@@ -71,9 +70,13 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         bcs = self.extract_bcs(sd, data)
         bcs = cast(pg.FlowBC, bcs)
-        g = np.hstack((bcs.flux, bcs.pres))
 
-        return -self.div_F(sd) @ sps.hstack(rhs) @ g
+        pres = bcs.primary_var
+        flux = bcs.dual_var / sd.face_areas
 
-    def assemble_source(self, sd: pg.Grid, source: callable) -> np.ndarray:
+        g = np.concatenate((flux, pres))
+
+        return -(self.div(sd) * sd.face_areas) @ sps.hstack(rhs) @ g
+
+    def assemble_source(self, sd: pg.Grid, source: Callable) -> np.ndarray:
         return pg.PwConstants().interpolate(sd, source)
