@@ -39,13 +39,13 @@ def test_1D(discr, unit_sd_1d):
 def test_assemble_rhs_first(discr, unit_sd_3d):
     data = pp.initialize_data({}, discr.keyword)
     with pytest.raises(AssertionError):
-        discr.assemble_rhs_boundary_terms(unit_sd_3d, data)
+        discr.assemble_rhs_boundary_vector(unit_sd_3d, data)
 
 
 def test_without_bcs(discr, unit_sd_3d):
     data = pp.initialize_data({}, discr.keyword)
     discr.assemble_elasticity_matrix(unit_sd_3d, data)
-    rhs = discr.assemble_rhs_boundary_terms(unit_sd_3d, data)
+    rhs = discr.assemble_rhs_boundary_vector(unit_sd_3d, data)
 
     assert np.allclose(rhs, 0)
 
@@ -56,7 +56,7 @@ def test_without_indices(discr, unit_sd_3d):
     bcs.set_displacement_bcs()
 
     discr.assemble_elasticity_matrix(unit_sd_3d, data)
-    rhs = discr.assemble_rhs_boundary_terms(unit_sd_3d, data)
+    rhs = discr.assemble_rhs_boundary_vector(unit_sd_3d, data)
 
     assert np.allclose(rhs, 0)
 
@@ -66,4 +66,4 @@ def test_external_cell_center(ref_sd_3d, discr):
     sd.cell_centers = sd.cell_centers + 100
 
     with pytest.warns(UserWarning):
-        discr.fvm_precomputations(sd, np.ones(1))
+        discr.finite_volume_precomputations(sd, np.ones(1))
