@@ -26,7 +26,7 @@ class FiniteVolumeDiscretization(abc.ABC):
     def face_area_scaling(self, sd) -> np.ndarray:
         return np.tile(sd.face_areas, self.ndof_per_cell(sd))
 
-    def fvm_precomputations(self, sd: pg.Grid, weight: np.ndarray) -> None:
+    def finite_volume_precomputations(self, sd: pg.Grid, weight: np.ndarray) -> None:
         self.find_cf[sd] = sps.find(sd.cell_faces)
         self.unit_normals[sd] = sd.face_normals / sd.face_areas
         self.weighted_dists[sd] = self.compute_weighted_dists(sd, weight)
@@ -46,23 +46,34 @@ class FiniteVolumeDiscretization(abc.ABC):
             bcs = self.bc_type(sd, data, self.keyword)
         return bcs
 
-    def extend_faces_and_distances(self, sd: pg.Grid, data: dict) -> tuple:
-        # Incorporate the bc by extending the face and distance vectors
-        bcs = self.extract_bcs(sd, data)
-
-        faces, *_ = self.find_cf[sd]
-        bdry_faces = sd.tags["domain_boundary_faces"]
-        ext_faces = np.hstack((faces, np.flatnonzero(bdry_faces)))
-        ext_dists = np.concatenate(
-            (self.weighted_dists[sd], bcs.weighted_dists[bdry_faces])
-        )
-
-        return ext_faces, ext_dists
-
     @abc.abstractmethod
     def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """ """
+        """
+        Returns the number of degrees of freedom per cell.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            int: The number of degrees of freedom per cell.
+        """
 
     @abc.abstractmethod
     def compute_weighted_dists(self, sd: pg.Grid, weights: np.ndarray) -> np.ndarray:
-        """ """
+        """
+        Returns the weighted distance delta_k^i / weight_i for every physical cell-face
+        pair (i, k). To be implemented in the child class.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            weights (np.ndarray): The weights, typically related to material parameters
+
+        Returns:
+            np.ndarray: The weighted distances
+        """
+
+    @abc.abstractmethod
+    def extend_faces_and_distances(self, sd: pg.Grid, data: dict) -> tuple:
+        """
+        Extend the face and distance arrays to incorporate boundary conditions.
+        """

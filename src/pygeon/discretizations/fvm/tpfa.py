@@ -24,7 +24,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         perm = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, 2)
 
         # Precomputations without boundary conditions
-        self.fvm_precomputations(sd, perm.values)
+        self.finite_volume_precomputations(sd, perm.values)
 
         faces, deltas = self.extend_faces_and_distances(sd, data)
 
@@ -54,6 +54,19 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         return delta / K_nn
 
+    def extend_faces_and_distances(self, sd: pg.Grid, data: dict) -> tuple:
+        # Incorporate the bc by extending the face and distance vectors
+        bcs = self.extract_bcs(sd, data)
+
+        faces, *_ = self.find_cf[sd]
+        bdry_faces = sd.tags["domain_boundary_faces"]
+        ext_faces = np.hstack((faces, np.flatnonzero(bdry_faces)))
+        ext_dists = np.concatenate(
+            (self.weighted_dists[sd], bcs.weighted_dists[bdry_faces])
+        )
+
+        return ext_faces, ext_dists
+
     def compute_harmonic_avg(self, sd, faces, dists) -> None:
         """
         Compute the harmonic average of K divided by delta_k, at each face
@@ -63,7 +76,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
     def assemble_dual_var_map(self, sd: pg.Grid) -> sps.sparray:
         return (self.face_area_scaling(sd) * self.K_bar[sd])[:, None] * sd.cell_faces
 
-    def assemble_rhs_bdry_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_rhs_boundary_vector(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         rhs = np.empty(2, dtype=sps.sparray)
 
         K_bar = self.K_bar[sd]
