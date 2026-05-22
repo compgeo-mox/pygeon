@@ -52,6 +52,12 @@ from pygeon.discretizations.fem.mat_l2 import (
     MatPwLinears,
     MatPwQuadratics,
 )
+from pygeon.discretizations.fem.symmat_l2 import (
+    SymMatPwPolynomials,
+    SymMatPwConstants,
+    SymMatPwLinears,
+    SymMatPwQuadratics,
+)
 
 from pygeon.discretizations.fvm.boundary_conditions import (
     FiniteVolumeBC,

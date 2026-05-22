@@ -111,7 +111,7 @@ def test_assemble_mult_matrix_constant(discr, unit_sd):
         )
         return result
 
-    mult = discr.assemble_mult_matrix(unit_sd, mult_mat.ravel(), right_mult=False)
+    mult = discr.assemble_mult_matrix(unit_sd, mult_mat.ravel(), left_mult=True)
 
     known = discr.interpolate(unit_sd, left_func)
     assert np.allclose(mult @ vec, known)
@@ -146,7 +146,7 @@ def test_assemble_mult_matrix_heaviside(discr, unit_sd_1d):
     assert np.allclose(mult @ linear, known)
 
     # Test the left multiplication
-    mult = discr.assemble_mult_matrix(unit_sd_1d, hs, right_mult=False)
+    mult = discr.assemble_mult_matrix(unit_sd_1d, hs, left_mult=True)
     assert np.allclose(mult @ linear, known)
 
 
