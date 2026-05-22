@@ -136,20 +136,6 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def compute_weighted_dists(self, sd: pg.Grid, weights: np.ndarray) -> np.ndarray:
-        """
-        Returns the weighted distance delta_k^i / weight_i for every physical cell-face
-        pair (i, k). To be implemented in the child class.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            weights (np.ndarray): The weights, typically related to material parameters
-
-        Returns:
-            np.ndarray: The weighted distances
-        """
-
-    @abc.abstractmethod
     def extend_faces_and_distances(
         self, sd: pg.Grid, data: dict
     ) -> Tuple[np.ndarray, np.ndarray]:

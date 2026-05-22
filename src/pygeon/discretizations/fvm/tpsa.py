@@ -94,15 +94,24 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def perform_precomputations(self, sd: pg.Grid, data: dict) -> dict:
 
-        prec = {}
-        prec["find_cf"] = sps.find(sd.cell_faces)
-        prec["weighted_dists"] = self.compute_weighted_dists(sd, data, prec)
-        prec["extended_fd"] = self.extend_faces_and_distances(sd, data, prec)
-        prec["delta_mu_k"] = self.compute_delta_mu_k(*prec["extended_fd"])
+        find_cf = sps.find(sd.cell_faces)
+        weighted_dists = self.compute_weighted_dists(sd, data, find_cf)
+        faces, dists = self.extend_faces_and_distances(
+            sd, data, find_cf[0], weighted_dists
+        )
+        delta_mu_k = self.compute_delta_mu_k(faces, dists)
+        mu_bar = self.compute_harmonic_avg(faces, dists)
+
+        prec = {
+            "find_cf": find_cf,
+            "weighted_dists": weighted_dists,
+            "delta_mu_k": delta_mu_k,
+            "mu_bar": mu_bar,
+        }
 
         return prec
 
-    def compute_weighted_dists(self, sd: pg.Grid, data: dict, prec: dict) -> np.ndarray:
+    def compute_weighted_dists(self, sd: pg.Grid, data: dict, find_cf) -> np.ndarray:
         """
         Computes delta_k^i / mu_i from (2.1) for every physical face-cell pair (k, i).
         Boundary conditions are handled later
@@ -114,7 +123,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             np.ndarray: The weighted distances
         """
-        faces, cells, orient = prec["find_cf"]
+        faces, cells, orient = find_cf
         unit_normals = sd.face_normals / sd.face_areas
 
         delta = np.sum(
@@ -129,7 +138,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return delta / lame_mu[cells]
 
     def extend_faces_and_distances(
-        self, sd: pg.Grid, data: dict, prec: dict
+        self, sd: pg.Grid, data: dict, faces, weighted_dists
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Incorporate the boundary conditions by extending the face and distance arrays.
@@ -143,8 +152,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
             dists (np.ndarray): The extended array of weighted distances
         """
         bcs = self.get_bcs_from_data(sd, data)
-        weighted_dists = prec["weighted_dists"]
-        faces, *_ = prec["find_cf"]
 
         # Incorporate the bcs by extending the vectors
         bdry_faces = sd.tags["domain_boundary_faces"]
@@ -157,7 +164,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return ext_faces, ext_dists
 
-    def compute_delta_mu_k(self, prec: dict) -> np.ndarray:
+    def compute_delta_mu_k(self, faces, dists) -> np.ndarray:
         """
         Compute the delta^mu_k of (3.5) given by
         0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
@@ -168,7 +175,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
-        faces, dists = prec["extended_fd"]
 
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
@@ -183,7 +189,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         output_list = [1 / np.bincount(faces, weights=row) for row in inv_dists]
         return np.array(output_list) / 2
 
-    def compute_harmonic_avg(self, prec: dict) -> np.ndarray:
+    def compute_harmonic_avg(self, faces, dists) -> np.ndarray:
         """
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face
 
@@ -192,7 +198,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
-        faces, dists = prec["extended_fd"]
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
         return np.array(output_list)
 
@@ -214,7 +219,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         # Assemble the blocks of (3.7) where A_ij is the block coupling variable i and
         # j. The canonical order of the variables is [u, r, p]
-        mu_bar = self.compute_harmonic_avg(prec)
+        mu_bar = prec["mu_bar"]
         A_uu = [-2 * mu[:, None] * sd.cell_faces for mu in mu_bar]
         A[0, 0] = sps.block_diag(A_uu)
 
@@ -238,10 +243,13 @@ class TPSA(pg.FiniteVolumeDiscretization):
         delta_n = np.sum(unit_normals**2 * prec["delta_mu_k"], axis=0)
         A[2, 2] = -delta_n[:, None] * sd.cell_faces
 
-        # Scaling by the face areas
-        f_areas = self.face_area_scaling(sd)[:, None]
+        A_csc = sps.block_array(A, format="csc")
 
-        return f_areas * sps.block_array(A, format="csr")
+        # Scaling by the face areas
+        f_areas = self.face_area_scaling(sd)
+        A_csc.data *= f_areas[A_csc.indices]
+
+        return A_csc
 
     def assemble_mass_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
@@ -305,7 +313,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
             sps.csc_array: The n cdot matrix
         """
         unit_normals = sd.face_normals / sd.face_areas
-        return sps.hstack([sps.diags_array(n_i) for n_i in unit_normals[: sd.dim]])
+        return sps.hstack(
+            [sps.diags_array(n_i) for n_i in unit_normals[: sd.dim]], format="csc"
+        )
 
     def assemble_rot_rot_bdry_terms(self, sd: pg.Grid, prec: dict) -> sps.sparray:
         """
@@ -466,7 +476,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
         Xi_tilde_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
 
-        mu_bar = self.compute_harmonic_avg(prec).ravel()
+        mu_bar = prec["mu_bar"].ravel()
         dmuk = prec["delta_mu_k"].ravel()
 
         # Traction terms
@@ -479,9 +489,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         A_rhs[1, 1] = -R * Xi_bdry
         A_rhs[2, 1] = ndot * Xi_bdry
 
-        f_areas = self.face_area_scaling(sd)[:, None]
+        f_areas = self.face_area_scaling(sd)
+        A_csc = sps.block_array(A_rhs, format="csc")
+        A_csc.data *= f_areas[A_csc.indices]
 
-        return f_areas * sps.block_array(A_rhs, format="csc")
+        return A_csc
 
     def assemble_body_force(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
