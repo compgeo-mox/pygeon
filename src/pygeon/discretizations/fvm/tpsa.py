@@ -1,4 +1,4 @@
-from typing import Callable, cast
+from typing import Callable
 
 import numpy as np
 import scipy.sparse as sps
@@ -8,10 +8,10 @@ import pygeon as pg
 
 class TPSA(pg.FiniteVolumeDiscretization):
     """
-    An implementation of the two-point stress approximation method for elasticity of
-    Nordbotten and Keilegavlen (2025). The assembly is vectorized.
+    A vectorized implementation of the two-point stress approximation method for
+    elasticity of Nordbotten and Keilegavlen (2025).
 
-    Equation numbers in the comments refer to the manuscript:
+    Equation numbers in the comments and docstrings refer to the manuscript:
     https://doi.org/10.1016/j.camwa.2025.07.035
     """
 
@@ -301,7 +301,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_rot_rot_bdry_terms(self, sd: pg.Grid) -> sps.sparray:
         """
-        The operator R^n \delta R^n that is on the [2, 2] block of (A2.25).
+        The operator R^n \delta R^n that is on the [1, 1] block of (A2.25).
 
         There is a slight discrepancy with the paper, because simplified boundary
         conditions are assumed there. This implementation is the generalization to more
@@ -325,6 +325,16 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_xi(self, sd: pg.Grid) -> list:
         """
         Compute the averaging operator Xi from (2.5)
+
+        Displacement bc are handled by delta_mu_k = 0. Traction bc are handled since 2 *
+        delta_mu_k * mu / delta = 1. Spring bc are handled because the spring constant
+        is contained in delta_mu_k.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+
+        Returns:
+            list: The averaging operators in the coordinate directions
         """
         faces, cells, _ = self.find_cf[sd]
         Xi = [
@@ -332,16 +342,18 @@ class TPSA(pg.FiniteVolumeDiscretization):
             for delta in self.delta_mu_k[sd]
         ]
 
-        # Displacement bc are handled by dk_mu = 0
-        # Traction bc are handled since dk_mu * mu / delta = 1
-        # Spring bc are handled because the spring constant is in dk_mu
-
         return Xi
 
     def convert_to_xi_tilde_inplace(self, Xi: list) -> sps.sparray:
         """
-        Compute the converse averaging operator Xi_tilde from (2.6)
-        This is an in-place operation to save memory
+        Compute the complementary averaging operator Xi_tilde from (2.6).
+        NOTE: This is an in-place operation.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+
+        Returns:
+            list: The tilde averaging operators in the coordinate directions
         """
         for Xi_i in Xi:
             Xi_i.data = 1 - Xi_i.data
@@ -353,7 +365,16 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_list: list,
     ) -> tuple[sps.sparray, sps.sparray]:
         """
-        Assemble the off-diagonal terms in the first column of (3.7)
+        Assemble the off-diagonal terms in the first column of (3.7). These are computed
+        together because their construction uses similar components.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            Xi_list (list): The averaging operators in the coordinate directions
+
+        Returns:
+            R_xi (sps.csc_array): The operator that averages and then crosses with n
+            n_xi (sps.csc_array): The operator that averages and then dots with n
         """
         Xi = sps.block_diag(Xi_list)
         R_Xi = self.assemble_rot(sd) @ Xi
@@ -367,8 +388,19 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_list: list,
     ) -> tuple[sps.sparray, sps.sparray]:
         """
-        Assemble the off-diagonal terms in the first row of (3.7)
-        These are computed together because their construction uses similar components.
+        Assemble the off-diagonal terms in the first row of (3.7). These are computed
+        together because their construction uses similar components.
+
+        This is a generalization compared to the paper to handle more involved boundary
+        conditions.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            Xi_list (list): The tilde averaging operators in the coordinate directions
+
+        Returns:
+            R_xi (sps.csc_array): The operator that crosses with n and then averages
+            n_xi (sps.csc_array): The operator that multiplies with n and then averages
         """
         nx, ny, nz = [ni[:, None] for ni in self.unit_normals[sd]]
 
@@ -390,25 +422,19 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return R_Xi, n_Xi
 
-    def assemble_rhs_boundary_vector(self, sd: pg.Grid, data: dict):
+    def _assemble_rhs_boundary_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assemble the second matrix on the right-hand side of (A2.25).
 
-        assert sd in self.unit_normals, (
-            "The elasticity matrix has to be assembled first."
-        )
+        Slight generalization: the [1, 0] and [2, 0] blocks first weigh with delta and
+        then rot/dot with n.
 
-        A_rhs = self._assemble_rhs_boundary_matrix(sd)
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
 
-        bcs = self.extract_bcs(sd, data)
-        bcs = cast(pg.ElasticityBC, bcs)
-
-        trac = bcs.dual_var[: sd.dim] / sd.face_areas
-        disp = bcs.primary_var[: sd.dim]
-
-        g = np.hstack((trac.ravel(), disp.ravel()))
-
-        return -self.div(sd) @ A_rhs @ g
-
-    def _assemble_rhs_boundary_matrix(self, sd: pg.Grid):
+        Returns:
+            sps.csc_array: the matrix to be multiplied with the boundary data g
+        """
         # Preallocation
         A_rhs = np.empty((3, 2), dtype=sps.sparray)
 
@@ -439,24 +465,51 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         f_areas = self.face_area_scaling(sd)[:, None]
 
-        return f_areas * sps.block_array(A_rhs)
+        return f_areas * sps.block_array(A_rhs, format="csc")
 
     def assemble_body_force(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Assemble the right-hand side for a given body force f(x,y,z)
+        Assemble the right-hand side for a given body force func(x,y,z)
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): The body force function.
+
+        Returns:
+            np.ndarray: the right-hand side vector
         """
         rhs = np.zeros(self.ndof(sd))
         rhs[: sd.dim * sd.num_cells] = -pg.VecPwConstants().interpolate(sd, func)
 
         return rhs
 
-    def split_solution(self, sd: pg.Grid, sol: np.ndarray):
+    def split_solution(self, sd: pg.Grid, sol: np.ndarray) -> tuple:
+        """
+        Split a given TPSA solution into its displacement, rotation, and solid pressure
+        components
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            sol (np.ndarray): The solution to be split
+
+        Returns:
+            tuple: The solution components
+        """
         ndofs = sd.num_cells * np.array([sd.dim, rotation_dim(sd.dim)])
 
         return np.split(sol, np.cumsum(ndofs))
 
 
 def rotation_dim(dim: int) -> int:
+    """
+    Helper function to determine the dimension of the rotation space
+
+    Args:
+        dim (int): dimension of the problem
+
+    Returns:
+        int: dimension of the rotation space
+    """
     return dim * (dim - 1) // 2
