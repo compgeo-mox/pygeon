@@ -495,7 +495,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return rhs
 
-    def split_solution(self, sd: pg.Grid, sol: np.ndarray) -> tuple:
+    def split_solution(self, sd: pg.Grid, sol: np.ndarray) -> list:
         """
         Split a given TPSA solution into its displacement, rotation, and solid pressure
         components
@@ -505,7 +505,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             sol (np.ndarray): The solution to be split
 
         Returns:
-            tuple: The solution components
+            list: The solution components
         """
         ndofs = sd.num_cells * np.array([sd.dim, rotation_dim(sd.dim)])
 
