@@ -33,6 +33,7 @@ def setup(request):
     # Generate data and a boundary condition object
     data = pp.initialize_data({}, "test", {pg.LAME_LAMBDA: 1, pg.LAME_MU: 1})
     bcs = pg.ElasticityBC(sd, data, "test")
+    bdry_faces = sd.tags["domain_boundary_faces"]
 
     def sig_fun(_):
         sigma = np.zeros((3, 3))
@@ -40,11 +41,8 @@ def setup(request):
         sigma[dim - 1, 0] = 1
         return sigma
 
-    # Compute the
-    bdry_faces = sd.tags["domain_boundary_faces"]
-    u_0 = np.array([displacement(x) for x in sd.face_centers.T]).T
-    sig_0 = np.zeros_like(u_0)
-    sig_0[:dim] = pg.VecRT0().interpolate(sd, sig_fun).reshape((dim, -1))
+    u_0 = np.array([displacement(x) for x in sd.face_centers.T]).T[:dim]
+    sig_0 = pg.VecRT0().interpolate(sd, sig_fun).reshape((dim, -1))
 
     return tpsa, sd, x_known, data, bcs, bdry_faces, u_0, sig_0
 
@@ -84,7 +82,7 @@ def test_traction_and_disp_bcs(setup):
     tpsa, sd, x_known, data, bcs, bdry_faces, u_0, sig_0 = setup
 
     bottom = np.isclose(sd.face_centers[sd.dim - 1], 0)
-    disp_faces = np.tile(bottom, (3, 1))
+    disp_faces = np.tile(bottom, (sd.dim, 1))
     bcs.set_displacement_bcs(disp_faces, u_0)
 
     trac_faces = np.logical_xor(disp_faces, bdry_faces)
@@ -101,7 +99,7 @@ def test_sliding_bcs(setup):
     tpsa, sd, x_known, data, bcs, bdry_faces, u_0, sig_0 = setup
 
     bottom = np.isclose(sd.face_centers[sd.dim - 1], 0)
-    disp_faces = np.tile(bottom, (3, 1))
+    disp_faces = np.tile(bottom, (sd.dim, 1))
     disp_faces[sd.dim - 1] = bdry_faces
     bcs.set_displacement_bcs(disp_faces, u_0)
 
@@ -112,8 +110,10 @@ def test_sliding_bcs(setup):
 
 
 def test_spring_bcs(setup):
-    # Sanity test to ensure that a body force produces a displacement in the same
-    # direction
+    """
+    Sanity test to ensure that a body force produces a displacement in the same
+    direction
+    """
     tpsa, sd, x_known, data, bcs, bdry_faces, u_0, sig_0 = setup
 
     bcs.set_spring_bcs(np.ones_like(bcs.weighted_dists), bdry_faces)

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -16,6 +16,16 @@ class TPSA(pg.FiniteVolumeDiscretization):
     """
 
     def __init__(self, keyword=pg.UNITARY_DATA) -> None:
+        """
+        Initialize the TPSA object.
+
+        Args:
+            keyword (str): The keyword used to identify the discretization method.
+                Default is pg.UNITARY_DATA.
+
+        Returns:
+            None
+        """
         super().__init__(keyword)
         self.bc_type = pg.ElasticityBC
 
@@ -124,18 +134,21 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def extend_faces_and_distances(
         self, sd: pg.Grid, data: dict
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Exten            sd (pg.Grid): Grid, or a subclass.
+        Incorporate the boundary conditions by extending the face and distance arrays.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
             data (dict): The data dictionary.
 
         Returns:
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
-        bcs = self.extract_bcs(sd, data)
+        bcs = self.get_bcs_from_data(sd, data)
 
-        # Incorporate the Robin bc by extending the vectors
+        # Incorporate the bcs by extending the vectors
         faces, *_ = self.find_cf[sd]
 
         bdry_faces = sd.tags["domain_boundary_faces"]
@@ -186,9 +199,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
-        # Displacement bc are handled naturally as a subset of spring_bdry
-        # with zero (inverse) spring constant.
-        # Tractions are handled with infinite spring constant.
         output_list = [1 / np.bincount(faces, weights=row) for row in weighted_dists]
         self.mu_bar[sd] = np.array(output_list)
 
@@ -363,7 +373,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self,
         sd: pg.Grid,
         Xi_list: list,
-    ) -> tuple[sps.sparray, sps.sparray]:
+    ) -> Tuple[sps.sparray, sps.sparray]:
         """
         Assemble the off-diagonal terms in the first column of (3.7). These are computed
         together because their construction uses similar components.
@@ -386,7 +396,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self,
         sd: pg.Grid,
         Xi_list: list,
-    ) -> tuple[sps.sparray, sps.sparray]:
+    ) -> Tuple[sps.sparray, sps.sparray]:
         """
         Assemble the off-diagonal terms in the first row of (3.7). These are computed
         together because their construction uses similar components.
@@ -422,7 +432,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return R_Xi, n_Xi
 
-    def _assemble_rhs_boundary_matrix(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_bdry_dual_var_map(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assemble the second matrix on the right-hand side of (A2.25).
 
@@ -442,26 +452,26 @@ class TPSA(pg.FiniteVolumeDiscretization):
         R = self.assemble_rot(sd)
         ndot = self.assemble_ndot(sd)
 
-        Delta_B = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
+        Delta_bdry = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
 
         Xi = self.assemble_xi(sd)
-        Xi_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
+        Xi_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
 
         Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
-        Xi_tilde_B = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
+        Xi_tilde_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
 
         mu_bar = self.mu_bar[sd].ravel()
         dmuk = self.delta_mu_k[sd].ravel()
 
         # Traction terms
-        A_rhs[0, 0] = sps.diags_array(Xi_tilde_B)
-        A_rhs[1, 0] = R * dmuk * Delta_B
-        A_rhs[2, 0] = -ndot * dmuk * Delta_B
+        A_rhs[0, 0] = sps.diags_array(Xi_tilde_bdry)
+        A_rhs[1, 0] = R * dmuk * Delta_bdry
+        A_rhs[2, 0] = -ndot * dmuk * Delta_bdry
 
         # Displacement terms
-        A_rhs[0, 1] = -2 * sps.diags_array(mu_bar * Delta_B)
-        A_rhs[1, 1] = -R * Xi_B
-        A_rhs[2, 1] = ndot * Xi_B
+        A_rhs[0, 1] = -2 * sps.diags_array(mu_bar * Delta_bdry)
+        A_rhs[1, 1] = -R * Xi_bdry
+        A_rhs[2, 1] = ndot * Xi_bdry
 
         f_areas = self.face_area_scaling(sd)[:, None]
 

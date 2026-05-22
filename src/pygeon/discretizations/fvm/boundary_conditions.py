@@ -33,7 +33,8 @@ class FiniteVolumeBC:
             indices = np.tile(indices, (self.dim_of_bc_vals, 1))
 
         assert input.shape == self.weighted_dists.shape, (
-            f"Input must be of shape {self.weighted_dists.shape}"
+            f"Boundary values must be of shape {self.weighted_dists.shape}, "
+            f"not {input.shape}."
         )
 
         internal_var[indices] = input[indices]
@@ -51,9 +52,8 @@ class FiniteVolumeBC:
 
 
 class ElasticityBC(FiniteVolumeBC):
-    dim_of_bc_vals = pg.AMBIENT_DIM
-
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
+        self.dim_of_bc_vals = sd.dim
         self.weighted_dists = np.zeros((self.dim_of_bc_vals, sd.num_faces))
         super().__init__(sd, data, keyword)
 
@@ -81,9 +81,8 @@ class ElasticityBC(FiniteVolumeBC):
 
 
 class FlowBC(FiniteVolumeBC):
-    dim_of_bc_vals = 1
-
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
+        self.dim_of_bc_vals = 1
         self.weighted_dists = np.zeros(sd.num_faces)
         super().__init__(sd, data, keyword)
 
