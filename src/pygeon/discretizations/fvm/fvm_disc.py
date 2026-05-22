@@ -26,9 +26,6 @@ class FiniteVolumeDiscretization(abc.ABC):
             None
         """
         self.keyword = keyword
-        self.find_cf: dict[pg.Grid, np.ndarray] = {}
-        self.unit_normals: dict[pg.Grid, np.ndarray] = {}
-        self.weighted_dists: dict[pg.Grid, np.ndarray] = {}
         self.bc_type: Type[pg.FiniteVolumeBC]
 
     def ndof(self, sd) -> int:
@@ -69,7 +66,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         return np.tile(sd.face_areas, self.ndof_per_cell(sd))
 
-    def finite_volume_precomputations(self, sd: pg.Grid, weight: np.ndarray) -> None:
+    def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
         Saves the cell-face connectivity of the grid, the unit normal vectors, and
         weighted distances as attributes of the Discretization object. This avoids
@@ -79,14 +76,11 @@ class FiniteVolumeDiscretization(abc.ABC):
             sd (pg.Grid): The grid object.
             weight (np.ndarray): The physical parameter weights.
         """
-        self.find_cf[sd] = sps.find(sd.cell_faces)
-        self.unit_normals[sd] = sd.face_normals / sd.face_areas
-        self.weighted_dists[sd] = self.compute_weighted_dists(sd, weight)
 
         # Check if any cell centers are placed outside the cell
-        if np.any(self.weighted_dists[sd] <= 0):
+        if np.any(weight <= 0):
             warnings.warn(
-                f"There are {(self.weighted_dists[sd] <= 0).sum()} extra-cellular \
+                f"There are {(weight <= 0).sum()} extra-cellular \
                     cell centers."
             )
 
@@ -119,9 +113,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             np.ndarray: The right-hand side vector
         """
-        assert sd in self.unit_normals, "The system matrix has to be assembled first."
-
-        A_rhs = self.assemble_bdry_dual_var_map(sd)
+        A_rhs = self.assemble_bdry_dual_var_map(sd, data)
 
         bcs = self.get_bcs_from_data(sd, data)
         dual = bcs.dual_var / sd.face_areas

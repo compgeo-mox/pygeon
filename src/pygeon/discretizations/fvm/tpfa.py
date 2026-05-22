@@ -25,8 +25,6 @@ class TPFA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.FlowBC
 
-        self.K_bar: dict[pg.Grid, np.ndarray] = {}
-
     def ndof_per_cell(self, _) -> int:
         """
         Returns the number of degrees of freedom per cell, in this case one.
@@ -66,20 +64,9 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The TPFA discretization matrix.
         """
-        perm = pg.get_cell_data(sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, 2)
+        return self.div(sd) @ self.assemble_dual_var_map(sd, data)
 
-        # Precomputations without boundary conditions
-        self.finite_volume_precomputations(sd, perm.values)
-
-        faces, deltas = self.extend_faces_and_distances(sd, data)
-
-        self.compute_harmonic_avg(sd, faces, deltas)
-
-        A = self.assemble_dual_var_map(sd)
-
-        return self.div(sd) @ A
-
-    def compute_weighted_dists(self, sd: pg.Grid, perm: np.ndarray) -> np.ndarray:
+    def compute_weighted_dists(self, sd: pg.Grid, data: dict) -> np.ndarray:
         """
         Compute delta_k^i / K_nn for every physical face-cell pair. Boundary conditions
         are handled later.
@@ -92,18 +79,22 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             np.ndarray: The weighted distances
         """
-        faces, cells, orient = self.find_cf[sd]
-        normals = self.unit_normals[sd][:, faces]
-
-        K_nn = np.einsum("ijk,ik,jk->k", perm[:, :, cells], normals, normals)
+        faces, cells, orient = sps.find(sd.cell_faces)
+        unit_normals = sd.face_normals / sd.face_areas
+        unit_normals = unit_normals[:, faces]
 
         delta = np.sum(
             (
                 (sd.face_centers[:, faces] - sd.cell_centers[:, cells])
-                * (orient * normals)
+                * (orient * unit_normals)
             ),
             axis=0,
         )
+
+        perm = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, 2
+        ).values
+        K_nn = np.einsum("ijk,ik,jk->k", perm[:, :, cells], unit_normals, unit_normals)
 
         return delta / K_nn
 
@@ -122,19 +113,17 @@ class TPFA(pg.FiniteVolumeDiscretization):
             dists (np.ndarray): The extended array of weighted distances
         """
         bcs = self.get_bcs_from_data(sd, data)
+        weighted_dists = self.compute_weighted_dists(sd, data)
 
-        faces, *_ = self.find_cf[sd]
+        faces, *_ = sps.find(sd.cell_faces)
         bdry_faces = sd.tags["domain_boundary_faces"]
         ext_faces = np.hstack((faces, np.flatnonzero(bdry_faces)))
-        ext_dists = np.concatenate(
-            (self.weighted_dists[sd], bcs.weighted_dists[bdry_faces])
-        )
+
+        ext_dists = np.concatenate((weighted_dists, bcs.weighted_dists[bdry_faces]))
 
         return ext_faces, ext_dists
 
-    def compute_harmonic_avg(
-        self, sd: pg.Grid, faces: np.ndarray, dists: np.ndarray
-    ) -> None:
+    def compute_harmonic_avg(self, sd: pg.Grid, data: dict) -> None:
         """
         Compute the harmonic average of K divided by delta_k, at each face
 
@@ -143,9 +132,11 @@ class TPFA(pg.FiniteVolumeDiscretization):
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
-        self.K_bar[sd] = np.array(1 / np.bincount(faces, weights=dists))
+        faces, dists = self.extend_faces_and_distances(sd, data)
 
-    def assemble_dual_var_map(self, sd: pg.Grid) -> sps.sparray:
+        return np.array(1 / np.bincount(faces, weights=dists))
+
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.sparray:
         """
         Assemble the mapping from cell-based primary variables to face-based dual
         variables.
@@ -156,10 +147,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The matrix mapping primary to dual variables
         """
-        scaling = (self.face_area_scaling(sd) * self.K_bar[sd])[:, None]
+        K_bar = self.compute_harmonic_avg(sd, data)
+
+        scaling = (self.face_area_scaling(sd) * K_bar)[:, None]
         return (scaling * sd.cell_faces).tocsc()
 
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid):
+    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict):
         """
         Assembles the matrix that maps from the boundary condition values to the dual
         variables on the boundary faces. This implementation handles Dirichlet, Robin,
@@ -173,10 +166,10 @@ class TPFA(pg.FiniteVolumeDiscretization):
         """
         A_rhs = np.empty(2, dtype=sps.sparray)
 
-        K_bar = self.K_bar[sd]
+        K_bar = self.compute_harmonic_avg(sd, data)
 
         delta_bdry = np.zeros(sd.num_faces)
-        delta_bdry[self.find_cf[sd][0]] = self.weighted_dists[sd]
+        delta_bdry[sps.find(sd.cell_faces)[0]] = self.compute_weighted_dists(sd, data)
 
         Xi_tilde_bdry = 1 - delta_bdry * K_bar
         Xi_tilde_bdry *= sd.tags["domain_boundary_faces"]

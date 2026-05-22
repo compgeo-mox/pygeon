@@ -29,9 +29,6 @@ class TPSA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.ElasticityBC
 
-        self.delta_mu_k: dict[pg.Grid, np.ndarray] = {}
-        self.mu_bar: dict[pg.Grid, np.ndarray] = {}
-
     def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell.
@@ -85,29 +82,16 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The TPSA discretization matrix.
         """
-        # Extract the Lamé parameters from the data dictionary
-        lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
-        lame_lambda = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
-
-        # Precomputations that are independent of boundary conditions
-        self.finite_volume_precomputations(sd, lame_mu)
-
-        # Extend the face and distance vectors to incorporate boundary conditions
-        faces, deltas = self.extend_faces_and_distances(sd, data)
-
-        self.compute_delta_mu_k(sd, faces, deltas)
-        self.compute_harmonic_avg(sd, faces, deltas)
-
         # Assemble the second order terms in (3.9)
-        A = self.div(sd) @ self.assemble_dual_var_map(sd)
+        A = self.div(sd) @ self.assemble_dual_var_map(sd, data)
 
         # Generate the accumulation terms in (3.9)
-        M = self.assemble_mass_terms(sd, lame_mu, lame_lambda)
+        M = self.assemble_mass_terms(sd, data)
 
         # Assemble the matrix from (3.9)
         return (A - M).tocsc()
 
-    def compute_weighted_dists(self, sd: pg.Grid, weights: np.ndarray) -> np.ndarray:
+    def compute_weighted_dists(self, sd: pg.Grid, data: dict) -> np.ndarray:
         """
         Computes delta_k^i / mu_i from (2.1) for every physical face-cell pair (k, i).
         Boundary conditions are handled later
@@ -119,8 +103,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             np.ndarray: The weighted distances
         """
-        faces, cells, orient = self.find_cf[sd]
-        unit_normals = self.unit_normals[sd]
+        faces, cells, orient = sps.find(sd.cell_faces)
+        unit_normals = sd.face_normals / sd.face_areas
 
         delta = np.sum(
             (
@@ -130,7 +114,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
             axis=0,
         )
 
-        return delta / weights[cells]
+        lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        return delta / lame_mu[cells]
 
     def extend_faces_and_distances(
         self, sd: pg.Grid, data: dict
@@ -147,34 +132,33 @@ class TPSA(pg.FiniteVolumeDiscretization):
             dists (np.ndarray): The extended array of weighted distances
         """
         bcs = self.get_bcs_from_data(sd, data)
+        weighted_dists = self.compute_weighted_dists(sd, data)
 
         # Incorporate the bcs by extending the vectors
-        faces, *_ = self.find_cf[sd]
-
+        faces, *_ = sps.find(sd.cell_faces)
         bdry_faces = sd.tags["domain_boundary_faces"]
         ext_faces = np.concatenate((faces, np.flatnonzero(bdry_faces)))
 
         # We allow for different types of boundary conditions in the x, y, z directions.
         # We therefore have three instances of the distances, one for each direction.
-        tiled_dists = np.tile(self.weighted_dists[sd], (sd.dim, 1))
+        tiled_dists = np.tile(weighted_dists, (sd.dim, 1))
         ext_dists = np.hstack((tiled_dists, bcs.weighted_dists[: sd.dim, bdry_faces]))
 
         return ext_faces, ext_dists
 
-    def compute_delta_mu_k(
-        self, sd: pg.Grid, faces: np.ndarray, dists: np.ndarray
-    ) -> None:
+    def compute_delta_mu_k(self, sd: pg.Grid, data: dict) -> np.ndarray:
         """
         Compute the delta^mu_k of (3.5) given by
         0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
-        for each face k with neighboring cells (i,j). The result is saved in
-        the dictionary self.delta_mu_k under the key sd.
+        for each face k with neighboring cells (i,j).
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
+        faces, dists = self.extend_faces_and_distances(sd, data)
+
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
         zero_dist = dists == 0
@@ -186,11 +170,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         # Traction bc are handled naturally because mu/delta = 0 there.
         output_list = [1 / np.bincount(faces, weights=row) for row in inv_dists]
-        self.delta_mu_k[sd] = np.array(output_list) / 2
+        return np.array(output_list) / 2
 
-    def compute_harmonic_avg(
-        self, sd: pg.Grid, faces: np.ndarray, weighted_dists: np.ndarray
-    ) -> None:
+    def compute_harmonic_avg(self, sd: pg.Grid, data: dict) -> np.ndarray:
         """
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face
 
@@ -199,10 +181,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
         """
-        output_list = [1 / np.bincount(faces, weights=row) for row in weighted_dists]
-        self.mu_bar[sd] = np.array(output_list)
+        faces, dists = self.extend_faces_and_distances(sd, data)
+        output_list = [1 / np.bincount(faces, weights=row) for row in dists]
+        return np.array(output_list)
 
-    def assemble_dual_var_map(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assemble the mapping from cell-based primary variables to face-based dual
         variables.
@@ -218,14 +201,15 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         # Assemble the blocks of (3.7) where A_ij is the block coupling variable i and
         # j. The canonical order of the variables is [u, r, p]
-        A_uu = [-2 * mu_bar[:, None] * sd.cell_faces for mu_bar in self.mu_bar[sd]]
+        mu_bar = self.compute_harmonic_avg(sd, data)
+        A_uu = [-2 * mu[:, None] * sd.cell_faces for mu in mu_bar]
         A[0, 0] = sps.block_diag(A_uu)
 
         # Assemble the boundary terms of (A2.25)
-        A[1, 1] = self.assemble_rot_rot_bdry_terms(sd)
+        A[1, 1] = self.assemble_rot_rot_bdry_terms(sd, data)
 
         # The blocks in the first column depend on the averaging operator Xi
-        Xi = self.assemble_xi(sd)
+        Xi = self.assemble_xi(sd, data)
         R_Xi, n_Xi = self.assemble_first_column(sd, Xi)
         A[1, 0] = -R_Xi
         A[2, 0] = n_Xi
@@ -237,9 +221,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         A[0, 2] = n_Xi_t
 
         # Stabilization for the solid pressure
-        delta_n = np.sum(
-            self.unit_normals[sd][: sd.dim] ** 2 * self.delta_mu_k[sd], axis=0
-        )
+        delta_mu_k = self.compute_delta_mu_k(sd, data)
+        unit_normals = sd.face_normals[: sd.dim] / sd.face_areas
+        delta_n = np.sum(unit_normals**2 * delta_mu_k, axis=0)
         A[2, 2] = -delta_n[:, None] * sd.cell_faces
 
         # Scaling by the face areas
@@ -247,9 +231,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return (f_areas * sps.block_array(A)).tocsc()
 
-    def assemble_mass_terms(
-        self, sd: pg.Grid, lame_mu: np.ndarray, lame_lambda: np.ndarray
-    ) -> sps.csc_array:
+    def assemble_mass_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         The first-order terms on the diagonal of (3.9). This is a diagonal matrix.
 
@@ -261,6 +243,10 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The diagonal mass matrix
         """
+        # Extract the Lamé parameters from the data dictionary
+        lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        lame_lambda = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
+
         M_u = np.zeros(sd.dim * sd.num_cells)
         M_r = np.tile(sd.cell_volumes / lame_mu, rotation_dim(sd.dim))
         M_p = sd.cell_volumes / lame_lambda
@@ -279,7 +265,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The R^n matrix
         """
-        nx, ny, nz = [sps.diags_array(n_i) for n_i in self.unit_normals[sd]]
+        unit_normals = sd.face_normals / sd.face_areas
+        nx, ny, nz = [sps.diags_array(n_i) for n_i in unit_normals]
 
         match sd.dim:
             case 3:
@@ -305,11 +292,10 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The n cdot matrix
         """
-        return sps.hstack(
-            [sps.diags_array(n_i) for n_i in self.unit_normals[sd][: sd.dim]]
-        )
+        unit_normals = sd.face_normals / sd.face_areas
+        return sps.hstack([sps.diags_array(n_i) for n_i in unit_normals[: sd.dim]])
 
-    def assemble_rot_rot_bdry_terms(self, sd: pg.Grid) -> sps.sparray:
+    def assemble_rot_rot_bdry_terms(self, sd: pg.Grid, data: dict) -> sps.sparray:
         """
         The operator R^n \delta R^n that is on the [1, 1] block of (A2.25).
 
@@ -323,7 +309,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The double rotation matrix
         """
-        bdry_deltas = self.delta_mu_k[sd] * sd.tags["domain_boundary_faces"]
+        delta_mu_k = self.compute_delta_mu_k(sd, data)
+
+        bdry_deltas = delta_mu_k * sd.tags["domain_boundary_faces"]
         delta = bdry_deltas.flatten()
 
         R = self.assemble_rot(sd)
@@ -332,7 +320,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         codiv = sps.kron(sps.eye_array(rotation_dim(sd.dim)), sd.cell_faces)
         return minus_R_squared @ codiv
 
-    def assemble_xi(self, sd: pg.Grid) -> list:
+    def assemble_xi(self, sd: pg.Grid, data: dict) -> list:
         """
         Compute the averaging operator Xi from (2.5)
 
@@ -346,10 +334,13 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Returns:
             list: The averaging operators in the coordinate directions
         """
-        faces, cells, _ = self.find_cf[sd]
+        faces, cells, _ = sps.find(sd.cell_faces)
+        weighted_dists = self.compute_weighted_dists(sd, data)
+        delta_mu_k = self.compute_delta_mu_k(sd, data)
+
         Xi = [
-            sps.csc_array((2 * delta[faces] / self.weighted_dists[sd], (faces, cells)))
-            for delta in self.delta_mu_k[sd]
+            sps.csc_array((2 * delta[faces] / weighted_dists, (faces, cells)))
+            for delta in delta_mu_k
         ]
 
         return Xi
@@ -412,7 +403,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
             R_xi (sps.csc_array): The operator that crosses with n and then averages
             n_xi (sps.csc_array): The operator that multiplies with n and then averages
         """
-        nx, ny, nz = [ni[:, None] for ni in self.unit_normals[sd]]
+        unit_normals = sd.face_normals / sd.face_areas
+        nx, ny, nz = [ni[:, None] for ni in unit_normals]
 
         match sd.dim:
             case 3:
@@ -432,7 +424,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return R_Xi, n_Xi
 
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assemble the second matrix on the right-hand side of (A2.25).
 
@@ -454,14 +446,15 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         Delta_bdry = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
 
-        Xi = self.assemble_xi(sd)
+        Xi = self.assemble_xi(sd, data)
         Xi_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
 
         Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
         Xi_tilde_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
 
-        mu_bar = self.mu_bar[sd].ravel()
-        dmuk = self.delta_mu_k[sd].ravel()
+        mu_bar = self.compute_harmonic_avg(sd, data).ravel()
+        delta_mu_k = self.compute_delta_mu_k(sd, data)
+        dmuk = delta_mu_k.ravel()
 
         # Traction terms
         A_rhs[0, 0] = sps.diags_array(Xi_tilde_bdry)
