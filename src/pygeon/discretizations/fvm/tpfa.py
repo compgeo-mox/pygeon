@@ -146,7 +146,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         return ext_faces, ext_dists
 
-    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.sparray:
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assemble the mapping from cell-based primary variables to face-based dual
         variables.
@@ -175,7 +175,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: the matrix to be multiplied with the boundary data g
         """
-        A_rhs = np.empty(2, dtype=sps.sparray)
+        A_rhs = np.empty(2, dtype=sps.csc_array)
 
         cached_arrays = self.precompute_arrays(sd, data)
         K_eff = cached_arrays["perm_effective"]
@@ -188,12 +188,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Xi_tilde_bdry = 1 - delta_bdry * K_eff
         Xi_tilde_bdry *= sd.tags["domain_boundary_faces"]
 
-        A_rhs[0] = sps.diags_array(Xi_tilde_bdry)
+        A_rhs[0] = sps.diags_array(sd.face_areas * Xi_tilde_bdry, format="csc")
 
         Delta_B = sd.cell_faces.sum(axis=1)
-        A_rhs[1] = -sps.diags_array(K_eff * Delta_B)
+        A_rhs[1] = -sps.diags_array(sd.face_areas * K_eff * Delta_B, format="csc")
 
-        return sd.face_areas[:, None] * sps.hstack(A_rhs, format="csc")
+        return sps.hstack(A_rhs, format="csc")
 
     def assemble_source(self, sd: pg.Grid, source: Callable) -> np.ndarray:
         """

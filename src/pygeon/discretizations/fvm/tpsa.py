@@ -222,14 +222,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
             sps.csc_array: The matrix mapping primary to dual variables
         """
         # Preallocate the block matrix
-        A = np.empty((3, 3), dtype=sps.sparray)
+        A = np.empty((3, 3), dtype=sps.csc_array)
         cached_arrays = self.precompute_arrays(sd, data)
 
         # Assemble the blocks of (3.7) where A_ij is the block coupling variable i and
         # j. The canonical order of the variables is [u, r, p]
         mu_effective = cached_arrays["mu_effective"]
         A_uu = [-2 * mu[:, None] * sd.cell_faces for mu in mu_effective]
-        A[0, 0] = sps.block_diag(A_uu)
+        A[0, 0] = sps.block_diag(A_uu, format="csc")
 
         # Assemble the boundary terms of (A2.25)
         A[1, 1] = self.assemble_rot_rot_bdry_terms(sd, cached_arrays)
@@ -249,7 +249,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         # Stabilization for the solid pressure
         unit_normals = sd.face_normals[: sd.dim] / sd.face_areas
         delta_n = np.sum(unit_normals**2 * cached_arrays["delta_mu_k"], axis=0)
-        A[2, 2] = -delta_n[:, None] * sd.cell_faces
+
+        # Scale cell faces with delta_n
+        A_pp = sd.cell_faces.astype(float).tocsc()
+        A_pp.data *= -delta_n[A_pp.indices]
+        A[2, 2] = A_pp
 
         A_csc = sps.block_array(A, format="csc")
 
@@ -303,7 +307,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_rot_rot_bdry_terms(
         self, sd: pg.Grid, cached_arrays: dict
-    ) -> sps.sparray:
+    ) -> sps.csc_array:
         """
         The operator R^n \delta R^n that is on the [1, 1] block of (A2.25).
 
@@ -326,7 +330,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         minus_R_squared = (R * delta) @ R.T
 
         codiv = sps.kron(sps.eye_array(rotation_dim(sd.dim)), sd.cell_faces)
-        return minus_R_squared @ codiv
+        return (minus_R_squared @ codiv).tocsc()
 
     def assemble_Xi(self, cached_arrays: dict) -> list:
         """
@@ -353,7 +357,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return Xi
 
-    def convert_to_xi_tilde_inplace(self, Xi: list) -> sps.sparray:
+    def convert_to_xi_tilde_inplace(self, Xi: list) -> list:
         """
         Compute the complementary averaging operator Xi_tilde from (2.6).
         NOTE: This is an in-place operation.
@@ -372,7 +376,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self,
         sd: pg.Grid,
         Xi_list: list,
-    ) -> Tuple[sps.sparray, sps.sparray]:
+    ) -> Tuple[sps.csc_array, sps.csc_array]:
         """
         Assemble the off-diagonal terms in the first column of (3.7). These are computed
         together because their construction uses similar components.
@@ -385,7 +389,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             R_xi (sps.csc_array): The operator that averages and then crosses with n
             n_xi (sps.csc_array): The operator that averages and then dots with n
         """
-        Xi = sps.block_diag(Xi_list)
+        Xi = sps.block_diag(Xi_list, format="csc")
         R_Xi = self.assemble_rot(sd) @ Xi
         n_Xi = self.assemble_ndot(sd) @ Xi
 
@@ -395,7 +399,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self,
         sd: pg.Grid,
         Xi_list: list,
-    ) -> Tuple[sps.sparray, sps.sparray]:
+    ) -> Tuple[sps.csc_array, sps.csc_array]:
         """
         Assemble the off-diagonal terms in the first row of (3.7). These are computed
         together because their construction uses similar components.
@@ -422,13 +426,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
                         [None, -nz * Xx, ny * Xx],
                         [nz * Xy, None, -nx * Xy],
                         [-ny * Xz, nx * Xz, None],
-                    ]
+                    ],
+                    format="csc",
                 )
-                n_Xi = sps.vstack([nx * Xx, ny * Xy, nz * Xz])
+                n_Xi = sps.vstack([nx * Xx, ny * Xy, nz * Xz], format="csc")
             case 2:
                 Xx, Xy = [Xi.tocsr() for Xi in Xi_list]
-                R_Xi = sps.vstack([ny * Xx, -nx * Xy])
-                n_Xi = sps.vstack([nx * Xx, ny * Xy])
+                R_Xi = sps.vstack([ny * Xx, -nx * Xy], format="csc")
+                n_Xi = sps.vstack([nx * Xx, ny * Xy], format="csc")
 
         return R_Xi, n_Xi
 
@@ -446,7 +451,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             sps.csc_array: the matrix to be multiplied with the boundary data g
         """
         # Preallocation
-        A_rhs = np.empty((3, 2), dtype=sps.sparray)
+        A_rhs = np.empty((3, 2), dtype=sps.csc_array)
         cached_arrays = self.precompute_arrays(sd, data)
 
         # Ingredients with the normal

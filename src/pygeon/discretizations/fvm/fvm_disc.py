@@ -71,7 +71,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             sps.csc_array: The divergence operator
         """
-        return sps.kron(np.eye(self.ndof_per_cell(sd)), pg.div(sd), format="csc")
+        return sps.kron(sps.eye_array(self.ndof_per_cell(sd)), pg.div(sd), format="csc")
 
     def face_area_scaling(self, sd) -> np.ndarray:
         """
