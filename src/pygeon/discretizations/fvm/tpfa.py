@@ -52,7 +52,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         interp = pg.PwConstants().interpolate(sd, pressure)
         return interp / sd.cell_volumes
 
-    def assemble_flow_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_accumulation_terms(self, sd: pg.Grid, _data: dict) -> sps.csc_array:
         """
         Assemble the TPFA matrix for Darcy flow, using the material parameters in the
         data dictionary.
@@ -64,9 +64,34 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The TPFA discretization matrix.
         """
-        return self.div(sd) @ self.assemble_dual_var_map(sd, data)
+        return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
-    def compute_weighted_dists(self, sd: pg.Grid, data: dict) -> np.ndarray:
+    def precompute_arrays(self, sd: pg.Grid, data: dict) -> dict:
+
+        find_cell_faces = sps.find(sd.cell_faces)
+        weighted_dists = self.compute_weighted_dists(sd, data, find_cell_faces)
+        self.check_nonnegative_weights(weighted_dists)
+
+        faces, dists = self.extend_faces_and_distances(
+            sd, data, find_cell_faces[0], weighted_dists
+        )
+
+        # With the extended face and distance arrays, we can compute the effective
+        # permeability
+        perm_effective = super().compute_harmonic_avg(faces, dists)
+
+        # Gather these vectors in a dictionary for easy access in the assembly procedure
+        cached_arrays = {
+            "find_cell_faces": find_cell_faces,
+            "weighted_dists": weighted_dists,
+            "perm_effective": perm_effective,
+        }
+
+        return cached_arrays
+
+    def compute_weighted_dists(
+        self, sd: pg.Grid, data: dict, find_cell_faces: Tuple
+    ) -> np.ndarray:
         """
         Compute delta_k^i / K_nn for every physical face-cell pair. Boundary conditions
         are handled later.
@@ -79,7 +104,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             np.ndarray: The weighted distances
         """
-        faces, cells, orient = sps.find(sd.cell_faces)
+        faces, cells, orient = find_cell_faces
         unit_normals = sd.face_normals / sd.face_areas
         unit_normals = unit_normals[:, faces]
 
@@ -99,7 +124,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         return delta / K_nn
 
     def extend_faces_and_distances(
-        self, sd: pg.Grid, data: dict
+        self, sd: pg.Grid, data: dict, faces: np.ndarray, weighted_dists: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Incorporate the boundary conditions by extending the face and distance arrays.
@@ -113,28 +138,13 @@ class TPFA(pg.FiniteVolumeDiscretization):
             dists (np.ndarray): The extended array of weighted distances
         """
         bcs = self.get_bcs_from_data(sd, data)
-        weighted_dists = self.compute_weighted_dists(sd, data)
 
-        faces, *_ = sps.find(sd.cell_faces)
         bdry_faces = sd.tags["domain_boundary_faces"]
         ext_faces = np.hstack((faces, np.flatnonzero(bdry_faces)))
 
         ext_dists = np.concatenate((weighted_dists, bcs.weighted_dists[bdry_faces]))
 
         return ext_faces, ext_dists
-
-    def compute_harmonic_avg(self, sd: pg.Grid, data: dict) -> None:
-        """
-        Compute the harmonic average of K divided by delta_k, at each face
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-            faces (np.ndarray): The extended array of faces
-            dists (np.ndarray): The extended array of weighted distances
-        """
-        faces, dists = self.extend_faces_and_distances(sd, data)
-
-        return np.array(1 / np.bincount(faces, weights=dists))
 
     def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.sparray:
         """
@@ -147,9 +157,10 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: The matrix mapping primary to dual variables
         """
-        K_bar = self.compute_harmonic_avg(sd, data)
+        cached_arrays = self.precompute_arrays(sd, data)
+        K_eff = cached_arrays["perm_effective"]
 
-        scaling = (self.face_area_scaling(sd) * K_bar)[:, None]
+        scaling = (self.face_area_scaling(sd) * K_eff)[:, None]
         return (scaling * sd.cell_faces).tocsc()
 
     def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict):
@@ -166,18 +177,21 @@ class TPFA(pg.FiniteVolumeDiscretization):
         """
         A_rhs = np.empty(2, dtype=sps.sparray)
 
-        K_bar = self.compute_harmonic_avg(sd, data)
+        cached_arrays = self.precompute_arrays(sd, data)
+        K_eff = cached_arrays["perm_effective"]
 
         delta_bdry = np.zeros(sd.num_faces)
-        delta_bdry[sps.find(sd.cell_faces)[0]] = self.compute_weighted_dists(sd, data)
+        delta_bdry[cached_arrays["find_cell_faces"][0]] = cached_arrays[
+            "weighted_dists"
+        ]
 
-        Xi_tilde_bdry = 1 - delta_bdry * K_bar
+        Xi_tilde_bdry = 1 - delta_bdry * K_eff
         Xi_tilde_bdry *= sd.tags["domain_boundary_faces"]
 
         A_rhs[0] = sps.diags_array(Xi_tilde_bdry)
 
         Delta_B = sd.cell_faces.sum(axis=1)
-        A_rhs[1] = -sps.diags_array(K_bar * Delta_B)
+        A_rhs[1] = -sps.diags_array(K_eff * Delta_B)
 
         return sd.face_areas[:, None] * sps.hstack(A_rhs, format="csc")
 

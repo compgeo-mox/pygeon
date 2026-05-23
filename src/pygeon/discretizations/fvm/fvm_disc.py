@@ -40,6 +40,26 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         return self.ndof_per_cell(sd) * sd.num_cells
 
+    def assemble_system_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+        """
+        Assemble the system matrix, using the material parameters in the data dictionary.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary.
+
+        Returns:
+            sps.csc_array: The discretization matrix.
+        """
+        # Assemble the zero'th order accumulation terms
+        M = self.assemble_accumulation_terms(sd, data)
+
+        # Assemble the second order terms, given by div(dual variables)
+        A = self.div(sd) @ self.assemble_dual_var_map(sd, data)
+
+        # Assemble the matrix
+        return (M + A).tocsc()
+
     def div(self, sd) -> sps.csc_array:
         """
         Assembles the block-diagonal divergence operator acting on all the face-based
@@ -78,11 +98,22 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
 
         # Check if any cell centers are placed outside the cell
-        if np.any(weight <= 0):
+        if np.any(weight < 0):
             warnings.warn(
-                f"There are {(weight <= 0).sum()} extra-cellular \
+                f"There are {(weight < 0).sum()} extra-cellular \
                     cell centers."
             )
+
+    def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
+        """
+        Compute the quantity, at each face
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            faces (np.ndarray): The extended array of faces
+            dists (np.ndarray): The extended array of weighted distances
+        """
+        return np.array(1 / np.bincount(faces, weights=dists))
 
     def get_bcs_from_data(self, sd: pg.Grid, data: dict) -> pg.FiniteVolumeBC:
         """
@@ -136,23 +167,15 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def extend_faces_and_distances(
-        self, sd: pg.Grid, data: dict
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Incorporate the boundary conditions by extending the face and distance arrays.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
-
-        Returns:
-            faces (np.ndarray): The extended array of faces
-            dists (np.ndarray): The extended array of weighted distances
-        """
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+        """ """
 
     @abc.abstractmethod
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid) -> sps.csc_array:
+    def assemble_accumulation_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+        """ """
+
+    @abc.abstractmethod
+    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
         """
         Assembles the matrix that maps from the boundary condition values to the dual
         variables on the boundary faces.

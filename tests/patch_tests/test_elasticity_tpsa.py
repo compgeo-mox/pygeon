@@ -48,7 +48,7 @@ def setup(request):
 
 
 def check_residual(tpsa, sd, data, x_known):
-    M = tpsa.assemble_elasticity_matrix(sd, data)
+    M = tpsa.assemble_system_matrix(sd, data)
     rhs = tpsa.assemble_rhs_boundary_vector(sd, data)
 
     assert np.allclose(M @ x_known, rhs)
@@ -119,7 +119,7 @@ def test_spring_bcs(setup):
     bcs.set_spring_bcs(np.ones_like(bcs.weighted_dists), bdry_faces)
     tpsa = pg.TPSA("test")
 
-    M = tpsa.assemble_elasticity_matrix(sd, data)
+    M = tpsa.assemble_system_matrix(sd, data)
     rhs = tpsa.assemble_rhs_boundary_vector(sd, data)
     rhs += tpsa.assemble_body_force(sd, lambda _: np.array([1, 0, 0]))
 

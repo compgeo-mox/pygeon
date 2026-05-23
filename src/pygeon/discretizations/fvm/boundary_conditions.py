@@ -15,7 +15,7 @@ class FiniteVolumeBC:
     dim_of_bc_vals: int
     """Dimension of the boundary values, typically 1 or the dimension of the domain"""
 
-    def __init__(self, _: pg.Grid, data: dict, keyword: str) -> None:
+    def __init__(self, _sd: pg.Grid, data: dict, keyword: str) -> None:
         """
         Initializes the FiniteVolumeBC object and places itself in the data dictionary
 

@@ -30,32 +30,26 @@ def test_body_force(discr, unit_sd_3d):
     assert np.allclose(bf, known_bf)
 
 
-def test_1D(discr, unit_sd_1d):
+def test_1D(discr: pg.TPSA, unit_sd_1d):
     data = pp.initialize_data({}, discr.keyword)
     with pytest.raises(ValueError):
-        discr.assemble_elasticity_matrix(unit_sd_1d, data)
+        discr.assemble_system_matrix(unit_sd_1d, data)
 
 
-def test_assemble_rhs_first(discr, unit_sd_3d):
+def test_without_bcs(discr: pg.TPSA, unit_sd_3d):
     data = pp.initialize_data({}, discr.keyword)
-    with pytest.raises(AssertionError):
-        discr.assemble_rhs_boundary_vector(unit_sd_3d, data)
-
-
-def test_without_bcs(discr, unit_sd_3d):
-    data = pp.initialize_data({}, discr.keyword)
-    discr.assemble_elasticity_matrix(unit_sd_3d, data)
+    discr.assemble_system_matrix(unit_sd_3d, data)
     rhs = discr.assemble_rhs_boundary_vector(unit_sd_3d, data)
 
     assert np.allclose(rhs, 0)
 
 
-def test_without_indices(discr, unit_sd_3d):
+def test_without_indices(discr: pg.TPSA, unit_sd_3d):
     data = pp.initialize_data({}, discr.keyword)
     bcs = pg.ElasticityBC(unit_sd_3d, data, discr.keyword)
     bcs.set_displacement_bcs()
 
-    discr.assemble_elasticity_matrix(unit_sd_3d, data)
+    discr.assemble_system_matrix(unit_sd_3d, data)
     rhs = discr.assemble_rhs_boundary_vector(unit_sd_3d, data)
 
     assert np.allclose(rhs, 0)
@@ -64,6 +58,7 @@ def test_without_indices(discr, unit_sd_3d):
 def test_external_cell_center(ref_sd_3d, discr):
     sd = ref_sd_3d.copy()
     sd.cell_centers = sd.cell_centers + 100
+    data = pp.initialize_data({}, discr.keyword)
 
     with pytest.warns(UserWarning):
-        discr.finite_volume_precomputations(sd, np.ones(1))
+        discr.precompute_arrays(sd, data)

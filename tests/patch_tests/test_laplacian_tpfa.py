@@ -18,7 +18,7 @@ def setup(sd):
 
 
 def check_residual(tpfa, sd, data, x_known):
-    M = tpfa.assemble_flow_matrix(sd, data)
+    M = tpfa.assemble_system_matrix(sd, data)
     rhs = tpfa.assemble_rhs_boundary_vector(sd, data)
 
     assert np.allclose(M @ x_known, rhs)
@@ -58,7 +58,7 @@ def test_robin_bcs(unit_cart_sd):
     bcs.set_robin_bcs(1, bdry_faces)
 
     rhs = tpfa.assemble_source(unit_cart_sd, lambda _: 1)
-    M = tpfa.assemble_flow_matrix(unit_cart_sd, data)
+    M = tpfa.assemble_system_matrix(unit_cart_sd, data)
 
     sol = sps.linalg.spsolve(M, rhs)
 
