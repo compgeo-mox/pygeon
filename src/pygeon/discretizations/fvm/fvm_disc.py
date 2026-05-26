@@ -1,6 +1,6 @@
 import abc
 import warnings
-from typing import Tuple, Type
+from typing import Type
 
 import numpy as np
 import porepy as pp
@@ -40,9 +40,11 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         return self.ndof_per_cell(sd) * sd.num_cells
 
-    def assemble_system_matrix(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_system_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
-        Assemble the system matrix, using the material parameters in the data dictionary.
+        Assemble the system matrix, using the material parameters in the data dictionary
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -88,16 +90,12 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
-        Saves the cell-face connectivity of the grid, the unit normal vectors, and
-        weighted distances as attributes of the Discretization object. This avoids
-        unnecessary recomputations.
+        Simple check to see if all the cell centers are internal to the cells
 
         Args:
             sd (pg.Grid): The grid object.
             weight (np.ndarray): The physical parameter weights.
         """
-
-        # Check if any cell centers are placed outside the cell
         if np.any(weight < 0):
             warnings.warn(
                 f"There are {(weight < 0).sum()} extra-cellular \
@@ -106,7 +104,9 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         """
-        Compute the quantity, at each face
+        Compute the quantity
+        (1 / delta_i + 1 / delta_j)^-1
+        at each face between cells i and j
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -115,7 +115,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         return np.array(1 / np.bincount(faces, weights=dists))
 
-    def get_bcs_from_data(self, sd: pg.Grid, data: dict) -> pg.FiniteVolumeBC:
+    def get_bcs_from_data(self, sd: pg.Grid, data: dict | None) -> pg.FiniteVolumeBC:
         """
         Extracts the FiniteVolumeBC object from the data dictionary, if it exists.
         Else, it creates a new one and inserts it in data.
@@ -127,13 +127,18 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             pg.FiniteVolumeBC: The boundary condition object
         """
+        if not data:
+            data = pp.initialize_data({}, self.keyword)
+
         if "bc" in data[pp.PARAMETERS][self.keyword]:
             bcs = data[pp.PARAMETERS][self.keyword]["bc"]
         else:
             bcs = self.bc_type(sd, data, self.keyword)
         return bcs
 
-    def assemble_rhs_boundary_vector(self, sd: pg.Grid, data: dict) -> np.ndarray:
+    def assemble_rhs_boundary_vector(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> np.ndarray:
         """
         Assembles the right-hand side vector related to the boundary conditions.
 

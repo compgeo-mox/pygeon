@@ -9,6 +9,12 @@ import pygeon as pg
 class TPFA(pg.FiniteVolumeDiscretization):
     """
     A simple implementation of the two-point flux approximation method for Darcy flow.
+
+    Our implementation differs from Porepy (v1.13) because we take the normal distance
+    between face and cell centers, instead of the Euclidean distance, cf. Aavatsmark
+    (2002) or the DuMuX documentation on tpfa.
+
+    Degrees of freedom are given by the cell center values.
     """
 
     def __init__(self, keyword=pg.UNITARY_DATA) -> None:
@@ -25,7 +31,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.FlowBC
 
-    def ndof_per_cell(self, _) -> int:
+    def ndof_per_cell(self, _sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell, in this case one.
 
@@ -37,25 +43,29 @@ class TPFA(pg.FiniteVolumeDiscretization):
         """
         return 1
 
-    def interpolate(self, sd: pg.Grid, pressure: Callable) -> np.ndarray:
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Interpolates a scalar function onto the grid
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
-            pressure (Callable): A function that returns the pressure values
+            func (Callable): A function that returns the pressure values
                 at coordinates.
 
         Returns:
             np.ndarray: The values of the degrees of freedom
         """
-        interp = pg.PwConstants().interpolate(sd, pressure)
+        interp = pg.PwConstants().interpolate(sd, func)
         return interp / sd.cell_volumes
 
     def assemble_accumulation_terms(self, sd: pg.Grid, _data: dict) -> sps.csc_array:
         """
-        Assemble the TPFA matrix for Darcy flow, using the material parameters in the
-        data dictionary.
+        Assembles the accumulation terms such as the storativity
+        S_0 dp/dt
+
+        For now, it is zero, but this can be overwritten by a child class
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -66,21 +76,38 @@ class TPFA(pg.FiniteVolumeDiscretization):
         """
         return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
-    def precompute_arrays(self, sd: pg.Grid, data: dict) -> dict:
+    def precompute_arrays(self, sd: pg.Grid, data: dict | None = None) -> dict:
+        """
+        Precomputations on the grid for easy access later.
 
+        This function is typically called twice, once for the left-hand side, and once
+        for the right.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary.
+
+        Returns:
+            dict: The precomputed arrays
+        """
+        # Retrieve cell-face connectivity
         find_cell_faces = sps.find(sd.cell_faces)
+
+        # Computed the weighted distances
         weighted_dists = self.compute_weighted_dists(sd, data, find_cell_faces)
         self.check_nonnegative_weights(weighted_dists)
 
+        # Extend the face and distance arrays to incorporate boundary conditions
         faces, dists = self.extend_faces_and_distances(
             sd, data, find_cell_faces[0], weighted_dists
         )
 
         # With the extended face and distance arrays, we can compute the effective
-        # permeability
-        perm_effective = super().compute_harmonic_avg(faces, dists)
+        # permeability, also on the boundary
+        perm_effective = self.compute_harmonic_avg(faces, dists)
 
-        # Gather these vectors in a dictionary for easy access in the assembly procedure
+        # Gather these vectors in a dictionary for easy access in the assembly
+        # procedures
         cached_arrays = {
             "find_cell_faces": find_cell_faces,
             "weighted_dists": weighted_dists,
@@ -90,11 +117,11 @@ class TPFA(pg.FiniteVolumeDiscretization):
         return cached_arrays
 
     def compute_weighted_dists(
-        self, sd: pg.Grid, data: dict, find_cell_faces: Tuple
+        self, sd: pg.Grid, data: dict | None, find_cell_faces: Tuple
     ) -> np.ndarray:
         """
-        Compute delta_k^i / K_nn for every physical face-cell pair. Boundary conditions
-        are handled later.
+        Compute delta_k^i / normal_perm for every physical face-cell pair. Boundary
+        conditions are handled later.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -108,6 +135,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         unit_normals = sd.face_normals / sd.face_areas
         unit_normals = unit_normals[:, faces]
 
+        # Compute the normal distance between face and cell center
         delta = np.sum(
             (
                 (sd.face_centers[:, faces] - sd.cell_centers[:, cells])
@@ -116,12 +144,15 @@ class TPFA(pg.FiniteVolumeDiscretization):
             axis=0,
         )
 
+        # Compute the normal permeability per cell-face pair
         perm = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, 2
         ).values
-        K_nn = np.einsum("ijk,ik,jk->k", perm[:, :, cells], unit_normals, unit_normals)
+        perm_nn = np.einsum(
+            "ijk,ik,jk->k", perm[:, :, cells], unit_normals, unit_normals
+        )
 
-        return delta / K_nn
+        return delta / perm_nn
 
     def extend_faces_and_distances(
         self, sd: pg.Grid, data: dict, faces: np.ndarray, weighted_dists: np.ndarray
@@ -132,13 +163,16 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Args:
             sd (pg.Grid): Grid, or a subclass.
             data (dict): The data dictionary.
+            faces (np.ndarray): The array of face indices
+            weighted_dists (np.ndarray): The array of weighted distances
 
         Returns:
-            faces (np.ndarray): The extended array of faces
-            dists (np.ndarray): The extended array of weighted distances
+            np.ndarray: The extended array of face indices
+            np.ndarray: The extended array of weighted distances
         """
         bcs = self.get_bcs_from_data(sd, data)
 
+        # Incorporate the bcs by extending the vectors
         bdry_faces = sd.tags["domain_boundary_faces"]
         ext_faces = np.hstack((faces, np.flatnonzero(bdry_faces)))
 
@@ -160,10 +194,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
         cached_arrays = self.precompute_arrays(sd, data)
         K_eff = cached_arrays["perm_effective"]
 
-        scaling = (self.face_area_scaling(sd) * K_eff)[:, None]
-        return (scaling * sd.cell_faces).tocsc()
+        A_csc = sd.cell_faces.astype(float).tocsc()
+        A_csc.data *= (sd.face_areas * K_eff)[A_csc.indices]
 
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict):
+        return A_csc
+
+    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict | None = None):
         """
         Assembles the matrix that maps from the boundary condition values to the dual
         variables on the boundary faces. This implementation handles Dirichlet, Robin,
@@ -175,27 +211,37 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             sps.csc_array: the matrix to be multiplied with the boundary data g
         """
+        # Preallocation and precomputations
         A_rhs = np.empty(2, dtype=sps.csc_array)
-
         cached_arrays = self.precompute_arrays(sd, data)
         K_eff = cached_arrays["perm_effective"]
 
+        # Find out the weighted distances on the exterior of the domain. The interior
+        # deltas will be filtered out later.
         delta_bdry = np.zeros(sd.num_faces)
         delta_bdry[cached_arrays["find_cell_faces"][0]] = cached_arrays[
             "weighted_dists"
         ]
 
+        # Compute the complementary averaging operator from the TPSA paper (2.6) and
+        # filter over the boundary faces. Xi_tilde is one on flux boundaries and zero on
+        # pressure boundaries.
         Xi_tilde_bdry = 1 - delta_bdry * K_eff
         Xi_tilde_bdry *= sd.tags["domain_boundary_faces"]
 
+        # The flux variable gets multiplied by Xi_tilde and the face area
         A_rhs[0] = sps.diags_array(sd.face_areas * Xi_tilde_bdry, format="csc")
 
+        # For the pressure boundary conditions, we only need to know the sign of the
+        # normal and the effective permeability
         Delta_B = sd.cell_faces.sum(axis=1)
         A_rhs[1] = -sps.diags_array(sd.face_areas * K_eff * Delta_B, format="csc")
 
         return sps.hstack(A_rhs, format="csc")
 
-    def assemble_source(self, sd: pg.Grid, source: Callable) -> np.ndarray:
+    def assemble_source(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
         """
         Assemble the right-hand side for a given source func(x,y,z)
 
@@ -206,4 +252,4 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Returns:
             np.ndarray: the right-hand side vector
         """
-        return pg.PwConstants().interpolate(sd, source)
+        return pg.PwConstants().interpolate(sd, func)

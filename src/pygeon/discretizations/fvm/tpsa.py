@@ -11,6 +11,19 @@ class TPSA(pg.FiniteVolumeDiscretization):
     A vectorized implementation of the two-point stress approximation method for
     elasticity of Nordbotten and Keilegavlen (2025).
 
+    Degrees of freedom are given by the cell center values and the variables are ordered
+    as [ux, uy, uz, rx, ry, rz, p], with the cell index varying fastest.
+
+    Our implementation differs from Porepy (v1.13) in the imposition of boundary
+    conditions. In particular, we made the following changes:
+        - The order of R and Xi_tilde in the [0, 1] block of (A.2.25)
+        - The order of n and Xi_tilde in the [0, 2] block of (A.2.25)
+        - Changed "delta R^2" to "R delta R" in the [1, 1] block of (A.2.25)
+        - Used the delta^mu_k in the normal direction in the [2, 2] block of (A.2.25)
+
+    These augmentations are necessary for consistency with rolling boundary conditions.
+    We moreover used signed distances between face and cell centers.
+
     Equation numbers in the comments and docstrings refer to the manuscript:
     https://doi.org/10.1016/j.camwa.2025.07.035
     """
@@ -44,9 +57,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def interpolate(
         self,
         sd: pg.Grid,
-        displacement: Callable,
-        rotation: Callable,
-        solid_pressure: Callable,
+        displacement: Callable[[np.ndarray], np.ndarray],
+        rotation: Callable[[np.ndarray], np.ndarray],
+        solid_pressure: Callable[[np.ndarray], np.ndarray],
     ) -> np.ndarray:
         """
         Interpolates a triplet of functions onto the finite volume space
@@ -87,6 +100,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lame_lambda = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
+        # Define the diagonal entries
         M_u = np.zeros(sd.dim * sd.num_cells)
         M_r = np.tile(sd.cell_volumes / lame_mu, rotation_dim(sd.dim))
         M_p = sd.cell_volumes / lame_lambda
@@ -95,12 +109,28 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return -sps.diags_array(diagonal).tocsc()
 
-    def precompute_arrays(self, sd: pg.Grid, data: dict) -> dict:
+    def precompute_arrays(self, sd: pg.Grid, data: dict | None = None) -> dict:
+        """
+        Precomputations on the grid for easy access later.
 
+        This function is typically called twice, once for the left-hand side, and once
+        for the right.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary.
+
+        Returns:
+            dict: The precomputed arrays
+        """
+        # Retrieve cell-face connectivity
         find_cell_faces = sps.find(sd.cell_faces)
+
+        # Computed the weighted distances
         weighted_dists = self.compute_weighted_dists(sd, data, find_cell_faces)
         self.check_nonnegative_weights(weighted_dists)
 
+        # Extend the face and distance arrays to incorporate boundary conditions
         faces, dists = self.extend_faces_and_distances(
             sd, data, find_cell_faces[0], weighted_dists
         )
@@ -109,7 +139,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         delta_mu_k = self.compute_delta_mu_k(faces, dists)
         mu_effective = self.compute_harmonic_avg(faces, dists)
 
-        # Gather these vectors in a dictionary for easy access in the assembly procedure
+        # Gather these vectors in a dictionary for easy access in the assembly
+        # procedures
         cached_arrays = {
             "find_cell_faces": find_cell_faces,
             "weighted_dists": weighted_dists,
@@ -120,7 +151,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return cached_arrays
 
     def compute_weighted_dists(
-        self, sd: pg.Grid, data: dict, find_cell_faces: Tuple
+        self, sd: pg.Grid, data: dict | None, find_cell_faces: Tuple
     ) -> np.ndarray:
         """
         Computes delta_k^i / mu_i from (2.1) for every physical face-cell pair (k, i).
@@ -136,6 +167,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         faces, cells, orient = find_cell_faces
         unit_normals = sd.face_normals / sd.face_areas
 
+        # Compute the signed normal distance between face and cell center
         delta = np.sum(
             (
                 (sd.face_centers[:, faces] - sd.cell_centers[:, cells])
@@ -144,11 +176,17 @@ class TPSA(pg.FiniteVolumeDiscretization):
             axis=0,
         )
 
+        # Extract the lamé parameter mu
         lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+
         return delta / lame_mu[cells]
 
     def extend_faces_and_distances(
-        self, sd: pg.Grid, data: dict, faces: np.ndarray, weighted_dists: np.ndarray
+        self,
+        sd: pg.Grid,
+        data: dict | None,
+        faces: np.ndarray,
+        weighted_dists: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Incorporate the boundary conditions by extending the face and distance arrays.
@@ -156,10 +194,12 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Args:
             sd (pg.Grid): Grid, or a subclass.
             data (dict): The data dictionary.
+            faces (np.ndarray): The array of face indices
+            weighted_dists (np.ndarray): The array of weighted distances
 
         Returns:
-            faces (np.ndarray): The extended array of faces
-            dists (np.ndarray): The extended array of weighted distances
+            np.ndarray: The extended array of face indices
+            np.ndarray: The extended array of weighted distances
         """
         bcs = self.get_bcs_from_data(sd, data)
 
@@ -174,7 +214,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return ext_faces, ext_dists
 
-    def compute_delta_mu_k(self, faces, dists) -> np.ndarray:
+    def compute_delta_mu_k(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         """
         Compute the delta^mu_k of (3.5) given by
         0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
@@ -182,8 +222,10 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
-            faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
+
+        Returns
+            np.ndarray: The array of delta^mu_k
         """
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
@@ -200,12 +242,16 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         """
-        Compute the harmonic average of mu from (3.5), divided by delta_k, at each face
+        Compute the harmonic average of mu from (3.5), divided by delta_k, at each face:
+        mu_effective = ( delta_k^i / mu_i + delta_k^j / mu_j)^-1
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             faces (np.ndarray): The extended array of faces
             dists (np.ndarray): The extended array of weighted distances
+
+        Returns
+            np.ndarray: The face-wise harmonic average of mu
         """
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
         return np.array(output_list)
@@ -250,7 +296,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         unit_normals = sd.face_normals[: sd.dim] / sd.face_areas
         delta_n = np.sum(unit_normals**2 * cached_arrays["delta_mu_k"], axis=0)
 
-        # Scale cell faces with delta_n
+        # Scale the codivergence (cell-faces) with -delta_n
         A_pp = sd.cell_faces.astype(float).tocsc()
         A_pp.data *= -delta_n[A_pp.indices]
         A[2, 2] = A_pp
@@ -437,7 +483,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return R_Xi, n_Xi
 
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_bdry_dual_var_map(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assemble the second matrix on the right-hand side of (A2.25).
 
@@ -479,8 +527,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         A_rhs[1, 1] = -R * Xi_bdry
         A_rhs[2, 1] = ndot * Xi_bdry
 
-        f_areas = self.face_area_scaling(sd)
         A_csc = sps.block_array(A_rhs, format="csc")
+
+        f_areas = self.face_area_scaling(sd)
         A_csc.data *= f_areas[A_csc.indices]
 
         return A_csc
