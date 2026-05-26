@@ -172,15 +172,19 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
 
     @abc.abstractmethod
-    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
         """ """
 
     @abc.abstractmethod
-    def assemble_accumulation_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_accumulation_terms(
+        self, sd: pg.Grid, data: dict | None
+    ) -> sps.csc_array:
         """ """
 
     @abc.abstractmethod
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_bdry_dual_var_map(
+        self, sd: pg.Grid, data: dict | None
+    ) -> sps.csc_array:
         """
         Assembles the matrix that maps from the boundary condition values to the dual
         variables on the boundary faces.

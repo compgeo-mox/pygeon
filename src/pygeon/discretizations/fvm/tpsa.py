@@ -84,7 +84,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         return interp / np.tile(sd.cell_volumes, self.ndof_per_cell(sd))
 
-    def assemble_accumulation_terms(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_accumulation_terms(
+        self, sd: pg.Grid, data: dict | None
+    ) -> sps.csc_array:
         """
         The zero'th order terms on the diagonal of (3.9). This is a diagonal matrix.
 
@@ -256,7 +258,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
         return np.array(output_list)
 
-    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
         """
         Assemble the mapping from cell-based primary variables to face-based dual
         variables.

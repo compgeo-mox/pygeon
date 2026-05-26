@@ -60,7 +60,9 @@ class TPFA(pg.FiniteVolumeDiscretization):
         interp = pg.PwConstants().interpolate(sd, func)
         return interp / sd.cell_volumes
 
-    def assemble_accumulation_terms(self, sd: pg.Grid, _data: dict) -> sps.csc_array:
+    def assemble_accumulation_terms(
+        self, sd: pg.Grid, _data: dict | None
+    ) -> sps.csc_array:
         """
         Assembles the accumulation terms such as the storativity
         S_0 dp/dt
@@ -155,7 +157,11 @@ class TPFA(pg.FiniteVolumeDiscretization):
         return delta / perm_nn
 
     def extend_faces_and_distances(
-        self, sd: pg.Grid, data: dict, faces: np.ndarray, weighted_dists: np.ndarray
+        self,
+        sd: pg.Grid,
+        data: dict | None,
+        faces: np.ndarray,
+        weighted_dists: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Incorporate the boundary conditions by extending the face and distance arrays.
@@ -180,7 +186,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         return ext_faces, ext_dists
 
-    def assemble_dual_var_map(self, sd: pg.Grid, data: dict) -> sps.csc_array:
+    def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
         """
         Assemble the mapping from cell-based primary variables to face-based dual
         variables.
