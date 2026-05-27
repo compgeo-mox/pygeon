@@ -21,7 +21,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         - Changed "delta R^2" to "R delta R" in the [1, 1] block of (A.2.25)
         - Used the delta^mu_k in the normal direction in the [2, 2] block of (A.2.25)
 
-    These augmentations are necessary for consistency with rolling boundary conditions.
+    These adaptations are necessary for consistency with rolling boundary conditions.
     We moreover used signed distances between face and cell centers.
 
     Equation numbers in the comments and docstrings refer to the manuscript:
@@ -109,6 +109,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         diagonal = np.concatenate((M_u, M_r, M_p))
 
+        # Negate, cf. (3.9), and return
         return -sps.diags_array(diagonal).tocsc()
 
     def precompute_arrays(self, sd: pg.Grid, data: dict | None = None) -> dict:
@@ -233,13 +234,15 @@ class TPSA(pg.FiniteVolumeDiscretization):
         inv_dists = np.empty_like(dists)
         zero_dist = dists == 0
 
+        # Traction bc are handled naturally because mu/delta = 0 there.
         inv_dists[~zero_dist] = 1 / dists[~zero_dist]
 
-        # Displacement boundaries have infinite mu/delta
+        # Displacement boundaries have zero delta, so infinite mu/delta
         inv_dists[zero_dist] = np.inf
 
-        # Traction bc are handled naturally because mu/delta = 0 there.
+        # Do a reciprocal on the bincount, this results in nonnegative, bounded values
         output_list = [1 / np.bincount(faces, weights=row) for row in inv_dists]
+
         return np.array(output_list) / 2
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
@@ -359,18 +362,20 @@ class TPSA(pg.FiniteVolumeDiscretization):
         """
         The operator R^n \delta R^n that is on the [1, 1] block of (A2.25).
 
-        There is a slight discrepancy with the paper, because simplified boundary
-        conditions are assumed there. This implementation is the generalization to more
-        involved boundary conditions, such as rollers.
+        There is a slight discrepancy with the paper, because a simpler class of
+        boundary conditions are assumed there. This implementation is the generalization
+        to more involved boundary conditions, such as rollers.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            cached_arrays (dict): The output of self.precompute_arrays
 
         Returns:
             sps.csc_array: The double rotation matrix
         """
         delta_mu_k = cached_arrays["delta_mu_k"]
 
+        # Extract the delta^mu_k on the boundaries
         bdry_deltas = delta_mu_k * sd.tags["domain_boundary_faces"]
         delta = bdry_deltas.flatten()
 
@@ -390,6 +395,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            cached_arrays (dict): The output of self.precompute_arrays
 
         Returns:
             list: The averaging operators in the coordinate directions
@@ -453,7 +459,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         together because their construction uses similar components.
 
         This is a generalization compared to the paper to handle more involved boundary
-        conditions.
+        conditions. In particular, we have to change the order of the operators
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -496,33 +502,35 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
 
         Returns:
             sps.csc_array: the matrix to be multiplied with the boundary data g
         """
-        # Preallocation
+        # Preallocation and precomputation
         A_rhs = np.empty((3, 2), dtype=sps.csc_array)
         cached_arrays = self.precompute_arrays(sd, data)
+        delta_mu_k = cached_arrays["delta_mu_k"].ravel()
+        mu_effective = cached_arrays["mu_effective"].ravel()
 
         # Ingredients with the normal
         R = self.assemble_rot(sd)
         ndot = self.assemble_ndot(sd)
 
+        # Extract the sign of the normal on the faces
         Delta_bdry = np.tile(-sd.cell_faces.sum(axis=1), sd.dim)
 
+        # Compute the Xi and Xi_tilde averaging operators for the exterior
         Xi = self.assemble_Xi(cached_arrays)
         Xi_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi])
 
         Xi_tilde = self.convert_to_xi_tilde_inplace(Xi)
         Xi_tilde_bdry = 1 - np.hstack([Xi_i.sum(axis=1) for Xi_i in Xi_tilde])
 
-        mu_effective = cached_arrays["mu_effective"].ravel()
-        dmuk = cached_arrays["delta_mu_k"].ravel()
-
         # Traction terms
         A_rhs[0, 0] = sps.diags_array(Xi_tilde_bdry)
-        A_rhs[1, 0] = R * dmuk * Delta_bdry
-        A_rhs[2, 0] = -ndot * dmuk * Delta_bdry
+        A_rhs[1, 0] = R * delta_mu_k * Delta_bdry
+        A_rhs[2, 0] = -ndot * delta_mu_k * Delta_bdry
 
         # Displacement terms
         A_rhs[0, 1] = -2 * sps.diags_array(mu_effective * Delta_bdry)
@@ -531,6 +539,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         A_csc = sps.block_array(A_rhs, format="csc")
 
+        # Efficient row scaling with the face areas
         f_areas = self.face_area_scaling(sd)
         A_csc.data *= f_areas[A_csc.indices]
 

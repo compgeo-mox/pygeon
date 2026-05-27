@@ -127,6 +127,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
             weights (np.ndarray): The material parameter weights, in this case the
                 values of a second-order tensor.
 
@@ -193,6 +194,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
 
         Returns:
             sps.csc_array: The matrix mapping primary to dual variables
@@ -200,6 +202,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
         cached_arrays = self.precompute_arrays(sd, data)
         K_eff = cached_arrays["perm_effective"]
 
+        # The flux is given by the finite difference
+        # q = |F| * K_eff (p_i - p_j)
         A_csc = sd.cell_faces.astype(float).tocsc()
         A_csc.data *= (sd.face_areas * K_eff)[A_csc.indices]
 
@@ -213,6 +217,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
 
         Returns:
             sps.csc_array: the matrix to be multiplied with the boundary data g
@@ -230,8 +235,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
         ]
 
         # Compute the complementary averaging operator from the TPSA paper (2.6) and
-        # filter over the boundary faces. Xi_tilde is one on flux boundaries and zero on
-        # pressure boundaries.
+        # filter over the boundary faces. Xi_tilde is 1 on flux boundaries, 0 on
+        # pressure boundaries, and in (0,1) for Robin conditions.
         Xi_tilde_bdry = 1 - delta_bdry * K_eff
         Xi_tilde_bdry *= sd.tags["domain_boundary_faces"]
 

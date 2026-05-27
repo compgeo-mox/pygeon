@@ -166,6 +166,7 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         Args:
             sd (pg.Grid): The grid object.
+            data (dict): The data dictionary
 
         Returns:
             int: The number of degrees of freedom per cell.
@@ -173,13 +174,32 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     @abc.abstractmethod
     def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
-        """ """
+        """
+        Assemble the mapping from cell-based primary variables to face-based dual
+        variables.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
+
+        Returns:
+            sps.csc_array: The matrix mapping primary to dual variables
+        """
 
     @abc.abstractmethod
     def assemble_accumulation_terms(
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
-        """ """
+        """
+        Assembles the zero'th order terms for the primary variables.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
+
+        Returns:
+            sps.csc_array: The diagonal mass matrix
+        """
 
     @abc.abstractmethod
     def assemble_bdry_dual_var_map(
@@ -191,6 +211,7 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
+            data (dict): The data dictionary
 
         Returns:
             sps.csc_array: the matrix to be multiplied with the boundary data g
