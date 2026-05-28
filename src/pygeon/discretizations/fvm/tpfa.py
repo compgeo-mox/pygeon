@@ -33,12 +33,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.FlowBC
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_cell(self, _sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell, in this case one.
 
         Args:
-            sd (pg.Grid): The grid object.
+            _sd (pg.Grid): The grid object.
 
         Returns:
             int: The number of degrees of freedom.
@@ -63,7 +63,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         return interp / sd.cell_volumes
 
     def assemble_accumulation_terms(
-        self, sd: pg.Grid, data: dict | None
+        self, sd: pg.Grid, _data: dict | None
     ) -> sps.csc_array:
         """
         Assemble accumulation terms such as the storativity $S_0 \partial_t p$.
@@ -72,7 +72,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
+            _data (dict): The data dictionary.
 
         Returns:
             sps.csc_array: The TPFA discretization matrix.
