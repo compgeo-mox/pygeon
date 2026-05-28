@@ -17,12 +17,12 @@ class FiniteVolumeBC:
     dim_of_bc_vals: int
     """Dimension of the boundary values, typically 1 or the dimension of the domain"""
 
-    def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
+    def __init__(self, _sd: pg.Grid, data: dict, keyword: str) -> None:
         """
         Initialize the FiniteVolumeBC object and store it in the data dictionary.
 
         Args:
-            sd (pg.Grid): The grid.
+            _sd (pg.Grid): The grid.
             data (dict): The data dictionary.
             keyword (str): The keyword of the relevant finite volume discretization.
         """
