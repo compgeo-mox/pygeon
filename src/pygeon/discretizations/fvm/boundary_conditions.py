@@ -28,11 +28,6 @@ class FiniteVolumeBC:
         """
         data[pp.PARAMETERS][keyword].update({"bc": self})
 
-        if self.weighted_dists.shape[-1] != sd.num_faces:
-            raise ValueError(
-                "Boundary condition arrays must have one entry per grid face."
-            )
-
         self.weighted_dists: np.ndarray
         self.primary_var = np.zeros_like(self.weighted_dists)
         self.dual_var = np.zeros_like(self.weighted_dists)
