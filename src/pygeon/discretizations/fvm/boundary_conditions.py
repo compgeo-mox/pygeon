@@ -1,3 +1,5 @@
+"""Module for finite-volume boundary condition classes."""
+
 import warnings
 from typing import cast
 
@@ -9,25 +11,27 @@ import pygeon as pg
 
 class FiniteVolumeBC:
     """
-    Parent class of boundary condition objects for finite volume methods in PyGeoN
+    Parent class of boundary condition objects for finite volume methods in PyGeoN.
     """
 
     dim_of_bc_vals: int
     """Dimension of the boundary values, typically 1 or the dimension of the domain"""
 
-    def __init__(self, _sd: pg.Grid, data: dict, keyword: str) -> None:
+    def __init__(self, sd: pg.Grid, data: dict, keyword: str) -> None:
         """
-        Initializes the FiniteVolumeBC object and places itself in the data dictionary
+        Initialize the FiniteVolumeBC object and store it in the data dictionary.
 
         Args:
             sd (pg.Grid): The grid.
             data (dict): The data dictionary.
-            keyword (str): The keyword of the relevant finite volume discretization
-
-        Returns:
-            None
+            keyword (str): The keyword of the relevant finite volume discretization.
         """
         data[pp.PARAMETERS][keyword].update({"bc": self})
+
+        if self.weighted_dists.shape[-1] != sd.num_faces:
+            raise ValueError(
+                "Boundary condition arrays must have one entry per grid face."
+            )
 
         self.weighted_dists: np.ndarray
         self.primary_var = np.zeros_like(self.weighted_dists)
@@ -41,18 +45,14 @@ class FiniteVolumeBC:
         dist: np.ndarray | float,
     ) -> None:
         """
-        Abstract function to set boundary condition values.
+        Set boundary condition values on selected faces.
 
         Args:
-            indices (np.ndarray): The global face indices on which the bc is imposed
-            input (np.ndarray): input[indices] contains the bc values
-            internal_var (np.ndarray): The internal variable of the BC object
-            data (dict): The data dictionary.
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+            input (np.ndarray): Array of boundary values.
+            internal_var (np.ndarray): Internal BC storage to update.
             dist (np.ndarray): dist[indices] contains the weighted distances on the
                 exterior of the domain. Zero for Dirichlet, infinite for Neumann.
-
-        Returns:
-            None
         """
         if input is None:
             input = np.zeros_like(self.weighted_dists)
@@ -84,15 +84,12 @@ class FiniteVolumeBC:
 class ElasticityBC(FiniteVolumeBC):
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
         """
-        Initializes the ElasticityBC object and places itself in the data dictionary
+        Initialize the ElasticityBC object and store it in the data dictionary.
 
         Args:
             sd (pg.Grid): The grid.
             data (dict): The data dictionary.
-            keyword (str): The keyword of the relevant finite volume discretization
-
-        Returns:
-            None
+            keyword (str): The keyword of the relevant finite volume discretization.
         """
         self.dim_of_bc_vals = sd.dim
         self.weighted_dists = np.zeros((self.dim_of_bc_vals, sd.num_faces))
@@ -107,13 +104,10 @@ class ElasticityBC(FiniteVolumeBC):
         Sets displacement boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the bc is imposed.
-                Defaults to none.
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+                Defaults to None.
             u_0 (np.ndarray): shape [dim, n_faces] such that u_0[indices] contains
-                the bc values. Defaults to zero.
-
-        Returns:
-            None
+                the BC values. Defaults to zero.
         """
         self._set_bcs(indices, u_0, self.primary_var, 0)
 
@@ -122,19 +116,16 @@ class ElasticityBC(FiniteVolumeBC):
         indices: np.ndarray | None = None,
         sig_0: np.ndarray | None = None,
     ) -> None:
-        self._set_bcs(indices, sig_0, self.dual_var, np.inf)
         """
-        Sets traction boundary conditions.
+        Set traction boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the bc is imposed.
-                Defaults to none.
-            sig_0 (np.ndarray): shape [dim, n_faces] such that sig_0[indices] contains 
-                the bc values. Defaults to zero.
-
-        Returns:
-            None
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+                Defaults to None.
+            sig_0 (np.ndarray): shape [dim, n_faces] such that sig_0[indices]
+                contains the BC values. Defaults to zero.
         """
+        self._set_bcs(indices, sig_0, self.dual_var, np.inf)
 
     def set_spring_bcs(
         self,
@@ -143,18 +134,16 @@ class ElasticityBC(FiniteVolumeBC):
         u_0: np.ndarray | None = None,
     ) -> None:
         """
-        Sets spring boundary conditions, cf. (A2.21)
-        n dot sigma = 2 / dists (u_0 - u)
+        Set spring boundary conditions, cf. Appendix A2.21 in Nordbotten and
+        Keilegavlen (2025), https://doi.org/10.1016/j.camwa.2025.07.035:
+        $n \cdot \sigma = 2 / \mathrm{dists} \,(u_0 - u)$.
 
         Args:
-            dists(np.ndarray): The weighted distance (an inverse spring constant)
-            indices (np.ndarray): The global face indices on which the bc is imposed.
-                Defaults to none.
-            sig_0 (np.ndarray): shape [dim, n_faces] such that sig_0[indices] contains
-                the bc values. Defaults to zero.
-
-        Returns:
-            None
+            dists (np.ndarray): Weighted distance (inverse spring constant).
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+                Defaults to None.
+            u_0 (np.ndarray): shape [dim, n_faces] such that u_0[indices] contains
+                the BC values. Defaults to zero.
         """
         self._set_bcs(indices, u_0, self.primary_var, dists)
 
@@ -162,15 +151,12 @@ class ElasticityBC(FiniteVolumeBC):
 class FlowBC(FiniteVolumeBC):
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
         """
-        Initializes the FlowBC object and places itself in the data dictionary
+        Initialize the FlowBC object and store it in the data dictionary.
 
         Args:
             sd (pg.Grid): The grid.
             data (dict): The data dictionary.
-            keyword (str): The keyword of the relevant finite volume discretization
-
-        Returns:
-            None
+            keyword (str): The keyword of the relevant finite volume discretization.
         """
         self.dim_of_bc_vals = 1
         self.weighted_dists = np.zeros(sd.num_faces)
@@ -182,16 +168,13 @@ class FlowBC(FiniteVolumeBC):
         p_0: np.ndarray | None = None,
     ) -> None:
         """
-        Sets pressure boundary conditions
+        Set pressure boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the bc is imposed.
-                Defaults to none.
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+                Defaults to None.
             p_0 (np.ndarray): shape [n_faces, ] such that p_0[indices] contains
-                the bc values. Defaults to zero.
-
-        Returns:
-            None
+                the BC values. Defaults to zero.
         """
         self._set_bcs(indices, p_0, self.primary_var, 0)
 
@@ -201,16 +184,13 @@ class FlowBC(FiniteVolumeBC):
         q_0: np.ndarray | None = None,
     ) -> None:
         """
-        Sets flux boundary conditions
+        Set flux boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the bc is imposed.
-                Defaults to none.
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+                Defaults to None.
             q_0 (np.ndarray): shape [n_faces, ] such that q_0[indices] contains
-                the bc values. Defaults to zero.
-
-        Returns:
-            None
+                the BC values. Defaults to zero.
         """
         self._set_bcs(indices, q_0, self.dual_var, np.inf)
 
@@ -221,17 +201,14 @@ class FlowBC(FiniteVolumeBC):
         p_0: np.ndarray | None = None,
     ) -> None:
         """
-        Sets Robin boundary conditions
-        n dot flux = (p - p_0) / dists
+        Set Robin boundary conditions:
+        $n \cdot q = (p - p_0) / \mathrm{dists}$.
 
         Args:
-            dists(np.ndarray): The weighted distance (an inverse permeability)
-            indices (np.ndarray): The global face indices on which the bc is imposed.
-                Defaults to none.
-            sig_0 (np.ndarray): shape [dim, n_faces] such that sig_0[indices] contains
-                the bc values. Defaults to zero.
-
-        Returns:
-            None
+            dists (np.ndarray): Weighted distance (inverse permeability).
+            indices (np.ndarray): The global face indices on which the BC is imposed.
+                Defaults to None.
+            p_0 (np.ndarray): shape [n_faces, ] such that p_0[indices] contains
+                the BC values. Defaults to zero.
         """
         self._set_bcs(indices, p_0, self.primary_var, dists)

@@ -1,3 +1,5 @@
+"""Patch tests for elasticity solved with TPSA."""
+
 import numpy as np
 import porepy as pp
 import pytest
@@ -48,6 +50,7 @@ def setup(request):
 
 
 def check_residual(tpsa, sd, data, x_known):
+    """Check that a known solution satisfies the assembled linear system."""
     M = tpsa.assemble_system_matrix(sd, data)
     rhs = tpsa.assemble_rhs_boundary_vector(sd, data)
 

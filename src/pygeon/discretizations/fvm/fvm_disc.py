@@ -1,3 +1,5 @@
+"""Module for base finite volume discretization classes."""
+
 import abc
 import warnings
 from typing import Type
@@ -90,10 +92,9 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
-        Simple check to see if all the cell centers are internal to the cells
+        Check whether all weighted distances are nonnegative.
 
         Args:
-            sd (pg.Grid): The grid object.
             weight (np.ndarray): The physical parameter weights.
         """
         if np.any(weight < 0):
@@ -104,14 +105,15 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         """
-        Compute the quantity
-        (1 / delta_i + 1 / delta_j)^-1
-        at each face between cells i and j
+        Compute $(1 / \delta_i + 1 / \delta_j)^{-1}$ at each face, between cells i and
+        j. This is used to compute the effective permeability at the face.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            faces (np.ndarray): The extended array of faces
-            dists (np.ndarray): The extended array of weighted distances
+            faces (np.ndarray): The extended array of faces.
+            dists (np.ndarray): The extended array of weighted distances.
+
+        Returns:
+            np.ndarray: The face-wise harmonic averages.
         """
         return np.array(1 / np.bincount(faces, weights=dists))
 
@@ -166,7 +168,6 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         Args:
             sd (pg.Grid): The grid object.
-            data (dict): The data dictionary
 
         Returns:
             int: The number of degrees of freedom per cell.
@@ -191,7 +192,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
         """
-        Assembles the zero'th order terms for the primary variables.
+        Assemble the zeroth-order terms for the primary variables.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -214,5 +215,5 @@ class FiniteVolumeDiscretization(abc.ABC):
             data (dict): The data dictionary
 
         Returns:
-            sps.csc_array: the matrix to be multiplied with the boundary data g
+            sps.csc_array: The matrix to be multiplied with the boundary data g.
         """

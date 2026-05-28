@@ -1,3 +1,5 @@
+"""Patch tests for Laplace problems solved with TPFA."""
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -6,6 +8,7 @@ import pygeon as pg
 
 
 def setup(sd):
+    """Create TPFA test objects and a known linear-pressure solution."""
     keyword = "test"
     tpfa = pg.TPFA(keyword)
     data = pp.initialize_data({}, keyword)
@@ -18,6 +21,7 @@ def setup(sd):
 
 
 def check_residual(tpfa, sd, data, x_known):
+    """Check that a known solution satisfies the assembled linear system."""
     M = tpfa.assemble_system_matrix(sd, data)
     rhs = tpfa.assemble_rhs_boundary_vector(sd, data)
 

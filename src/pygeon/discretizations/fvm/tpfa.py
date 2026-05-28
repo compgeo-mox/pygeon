@@ -1,3 +1,5 @@
+"""Module for two-point flux approximation discretization."""
+
 from typing import Callable, Tuple
 
 import numpy as np
@@ -12,7 +14,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
     Our implementation differs from Porepy (v1.13) because we take the normal distance
     between face and cell centers, instead of the Euclidean distance, cf. Aavatsmark
-    (2002) or the DuMuX documentation on tpfa.
+    (2002) or the DuMuX documentation on TPFA.
 
     Degrees of freedom are given by the cell center values.
     """
@@ -31,7 +33,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.FlowBC
 
-    def ndof_per_cell(self, _sd: pg.Grid) -> int:
+    def ndof_per_cell(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom per cell, in this case one.
 
@@ -47,7 +49,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a scalar function onto the grid
+        Interpolate a scalar function onto the grid.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -61,13 +63,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
         return interp / sd.cell_volumes
 
     def assemble_accumulation_terms(
-        self, sd: pg.Grid, _data: dict | None
+        self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
         """
-        Assembles the accumulation terms such as the storativity
-        S_0 dp/dt
+        Assemble accumulation terms such as the storativity $S_0 \partial_t p$.
 
-        For now, it is zero, but this can be overwritten by a child class
+        For now, this is zero, but it can be overwritten by a child class.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -90,7 +91,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
             data (dict): The data dictionary.
 
         Returns:
-            dict: The precomputed arrays
+            dict: The precomputed arrays.
         """
         # Retrieve cell-face connectivity
         find_cell_faces = sps.find(sd.cell_faces)
@@ -128,11 +129,10 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Args:
             sd (pg.Grid): Grid, or a subclass.
             data (dict): The data dictionary
-            weights (np.ndarray): The material parameter weights, in this case the
-                values of a second-order tensor.
+            find_cell_faces (Tuple): Output of scipy.sparse.find on sd.cell_faces.
 
         Returns:
-            np.ndarray: The weighted distances
+            np.ndarray: The weighted distances.
         """
         faces, cells, orient = find_cell_faces
         unit_normals = sd.face_normals / sd.face_areas
@@ -174,8 +174,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
             weighted_dists (np.ndarray): The array of weighted distances
 
         Returns:
-            np.ndarray: The extended array of face indices
-            np.ndarray: The extended array of weighted distances
+            np.ndarray: The extended array of face indices.
+            np.ndarray: The extended array of weighted distances.
         """
         bcs = self.get_bcs_from_data(sd, data)
 
@@ -220,7 +220,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
             data (dict): The data dictionary
 
         Returns:
-            sps.csc_array: the matrix to be multiplied with the boundary data g
+            sps.csc_array: The matrix to be multiplied with the boundary data g.
         """
         # Preallocation and precomputations
         A_rhs = np.empty(2, dtype=sps.csc_array)
@@ -254,13 +254,13 @@ class TPFA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Assemble the right-hand side for a given source func(x,y,z)
+        Assemble the right-hand side for a source function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             func (Callable): The source function.
 
         Returns:
-            np.ndarray: the right-hand side vector
+            np.ndarray: The right-hand side vector.
         """
         return pg.PwConstants().interpolate(sd, func)

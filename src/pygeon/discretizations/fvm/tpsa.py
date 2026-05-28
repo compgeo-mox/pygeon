@@ -1,3 +1,5 @@
+"""Module for two-point stress approximation discretization."""
+
 from typing import Callable, Tuple
 
 import numpy as np
@@ -62,7 +64,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         solid_pressure: Callable[[np.ndarray], np.ndarray],
     ) -> np.ndarray:
         """
-        Interpolates a triplet of functions onto the finite volume space
+        Interpolate a triplet of functions onto the finite volume space.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -88,7 +90,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
         """
-        The zero'th order terms on the diagonal of (3.9). This is a diagonal matrix.
+        Assemble the zeroth-order terms on the diagonal of (3.9).
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -124,7 +126,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             data (dict): The data dictionary.
 
         Returns:
-            dict: The precomputed arrays
+            dict: The precomputed arrays.
         """
         # Retrieve cell-face connectivity
         find_cell_faces = sps.find(sd.cell_faces)
@@ -158,14 +160,15 @@ class TPSA(pg.FiniteVolumeDiscretization):
     ) -> np.ndarray:
         """
         Computes delta_k^i / mu_i from (2.1) for every physical face-cell pair (k, i).
-        Boundary conditions are handled later
+        Boundary conditions are handled later.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
-            weights (np.ndarray): The material parameter weights, in this case mu.
+            data (dict): The data dictionary.
+            find_cell_faces (Tuple): Output of scipy.sparse.find on sd.cell_faces.
 
         Returns:
-            np.ndarray: The weighted distances
+            np.ndarray: The weighted distances.
         """
         faces, cells, orient = find_cell_faces
         unit_normals = sd.face_normals / sd.face_areas
@@ -201,8 +204,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
             weighted_dists (np.ndarray): The array of weighted distances
 
         Returns:
-            np.ndarray: The extended array of face indices
-            np.ndarray: The extended array of weighted distances
+            np.ndarray: The extended array of face indices.
+            np.ndarray: The extended array of weighted distances.
         """
         bcs = self.get_bcs_from_data(sd, data)
 
@@ -224,11 +227,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         for each face k with neighboring cells (i,j).
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            dists (np.ndarray): The extended array of weighted distances
+            faces (np.ndarray): The extended array of faces.
+            dists (np.ndarray): The extended array of weighted distances.
 
-        Returns
-            np.ndarray: The array of delta^mu_k
+        Returns:
+            np.ndarray: The array of $\delta_k^\mu$.
         """
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
@@ -251,12 +254,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         mu_effective = ( delta_k^i / mu_i + delta_k^j / mu_j)^-1
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            faces (np.ndarray): The extended array of faces
-            dists (np.ndarray): The extended array of weighted distances
+            faces (np.ndarray): The extended array of faces.
+            dists (np.ndarray): The extended array of weighted distances.
 
-        Returns
-            np.ndarray: The face-wise harmonic average of mu
+        Returns:
+            np.ndarray: The face-wise harmonic average of $\mu$.
         """
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
         return np.array(output_list)
@@ -387,15 +389,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_Xi(self, cached_arrays: dict) -> list:
         """
-        Compute the averaging operator Xi from (2.5)
+        Compute the averaging operator Xi from (2.5).
 
         Displacement bc are handled by delta_mu_k = 0. Traction bc are handled since 2 *
         delta_mu_k * mu / delta = 1. Spring bc are handled because the spring constant
         is contained in delta_mu_k.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            cached_arrays (dict): The output of self.precompute_arrays
+            cached_arrays (dict): The output of self.precompute_arrays.
 
         Returns:
             list: The averaging operators in the coordinate directions
@@ -417,7 +418,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         NOTE: This is an in-place operation.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            Xi (list): The averaging operators in the coordinate directions.
 
         Returns:
             list: The tilde averaging operators in the coordinate directions
@@ -549,14 +550,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Assemble the right-hand side for a given body force func(x,y,z)
+        Assemble the right-hand side for a given body-force function.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
             func (Callable): The body force function.
 
         Returns:
-            np.ndarray: the right-hand side vector
+            np.ndarray: The right-hand side vector.
         """
         rhs = np.zeros(self.ndof(sd))
         rhs[: sd.dim * sd.num_cells] = -pg.VecPwConstants().interpolate(sd, func)
@@ -573,7 +574,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             sol (np.ndarray): The solution to be split
 
         Returns:
-            list: The solution components
+            list: The solution components.
         """
         ndofs = sd.num_cells * np.array([sd.dim, rotation_dim(sd.dim)])
 
@@ -582,12 +583,12 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
 def rotation_dim(dim: int) -> int:
     """
-    Helper function to determine the dimension of the rotation space
+    Determine the dimension of the rotation space.
 
     Args:
-        dim (int): dimension of the problem
+        dim (int): Dimension of the problem.
 
     Returns:
-        int: dimension of the rotation space
+        int: Dimension of the rotation space.
     """
     return dim * (dim - 1) // 2
