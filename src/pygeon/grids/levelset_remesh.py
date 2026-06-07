@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Tuple
 
 import numpy as np
 import scipy.sparse as sps
@@ -72,7 +72,7 @@ def merge_connectivities(
     old_con: sps.csc_array, new_con: sps.csc_array
 ) -> sps.csc_array:
     """
-    Concatenates two connectivity matrices without reordering their indices
+    Concatenates two connectivity matrices without reordering their indices.
 
     Args:
         old_con (sps.csc_array): The old connectivity matrix.
@@ -80,7 +80,6 @@ def merge_connectivities(
 
     Returns:
         sps.csc_array: The merged connectivity matrix.
-
     """
     data = np.hstack((old_con.data, new_con.data))
     indices = np.hstack((old_con.indices, new_con.indices))
@@ -94,15 +93,13 @@ def merge_connectivities(
     )
 
 
-def create_new_entity_map(
-    cut_entities: np.ndarray, offset: Optional[int] = 0
-) -> sps.csc_array:
+def create_new_entity_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_array:
     """
     Creates a mapping matrix of size n_new x n_old in which
-    (i_new, i_old) = 1 if i_new is a new entity placed on i_old
+    (i_new, i_old) = 1 if i_new is a new entity placed on i_old.
 
     Args:
-        cut_entities (np.ndarray): Boolean array indicating which entities are cut
+        cut_entities (np.ndarray): Boolean array indicating which entities are cut.
         offset (int, optional): Offset value for the mapping matrix. Defaults to 0.
 
     Returns:
@@ -119,15 +116,13 @@ def create_new_entity_map(
     )
 
 
-def create_splitting_map(
-    cut_entities: np.ndarray, offset: Optional[int] = 0
-) -> sps.csc_array:
+def create_splitting_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_array:
     """
     Creates a mapping matrix of size n_new x n_old in which
-    (i_new, i_old) = 1 if i_new is a new entity from a splitting of i_old
+    (i_new, i_old) = 1 if i_new is a new entity from a splitting of i_old.
 
     Args:
-        cut_entities (np.ndarray): Boolean array indicating which entities are cut
+        cut_entities (np.ndarray): Boolean array indicating which entities are cut.
         offset (int, optional): Offset value for the rows of the mapping matrix.
         Defaults to 0.
 

@@ -1,13 +1,13 @@
 # Configuration file inspired by PorePy
 
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # Project information.
 [project]
 name = "pygeon"
-version = "0.5.0"
+version = "1.0.0"
 description = "a Python package for GEO-Numerics"
 readme = "Readme.md"
 license = { text = "GPL" }
@@ -39,14 +39,19 @@ where = ["src"]
 # Testing.
 [tool.pytest.ini_options]
 python_files = "tests/*.py"
-addopts = "--cov=src/pygeon --cov-report term-missing -p no:warnings"
+addopts = [
+    "--cov=src/pygeon",
+    "--cov-report=term-missing",
+    "-p", "no:warnings",
+    "-m", "not tutorials"
+]
 
 # Static analysis.
 [tool.ruff]
 line-length = 88
 
 [tool.ruff.lint]
-select = ["E501"]
+select = ["E", "F", "I", "ARG"]
 ignore = [
     "E731",  # do not assign a lambda expression, use a def
     "E266",  # too many leading '#' for block comment

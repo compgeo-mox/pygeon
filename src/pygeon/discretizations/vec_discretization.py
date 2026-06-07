@@ -1,6 +1,6 @@
 """Module for the vector discretization class."""
 
-from typing import Callable, Optional
+from typing import Callable, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -10,60 +10,12 @@ import pygeon as pg
 
 class VecDiscretization(pg.Discretization):
     """
-    A class representing a vector discretization.
-
-    Attributes:
-        keyword (str): The keyword for the vector discretization class.
-        scalar_discr (pg.Discretization): The scalar discretization object.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix for the lowest order Lagrange element.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped mass matrix given by the row sums on the diagonal.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the finite element solution at the cell centers of the given grid.
-
-        assemble_nat_bc(
-            sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
-        ) -> np.ndarray:
-            Assembles the natural boundary condition vector.
+    A class representing a vectorized discretization for a given base discretization.
+    The base needs to be specified in the __init__ function.
     """
 
-    def __init__(
-        self,
-        keyword: str = pg.UNITARY_DATA,
-        scalar_discr: Optional[type[pg.Discretization]] = None,
-    ) -> None:
-        """
-        Initialize the vector discretization class.
-
-        Args:
-            keyword (str): The keyword for the vector discretization class.
-            scalar_discr (pg.Discretization): The scalar discretization object.
-
-        Returns:
-            None
-        """
-        super().__init__(keyword)
-        # a local discr class for performing some of the computations
-        if scalar_discr is not None:
-            self.scalar_discr = scalar_discr(keyword)
-        else:
-            raise ValueError("A scalar discretization object must be provided.")
+    base_discr: pg.Discretization
+    """The scalar discretization method."""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -77,23 +29,23 @@ class VecDiscretization(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return self.scalar_discr.ndof(sd) * sd.dim
+        return self.base_discr.ndof(sd) * sd.dim
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for the lowest order Lagrange element.
+        Assembles and returns the mass matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly.
+            data (dict | None): Optional data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
         """
-        mass = self.scalar_discr.assemble_mass_matrix(sd, data)
-        return sps.block_diag([mass] * sd.dim).tocsc()
+        mass = self.base_discr.assemble_mass_matrix(sd, data)
+        return self.vectorize(sd.dim, mass)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -105,24 +57,53 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The differential matrix.
         """
-        diff = self.scalar_discr.assemble_diff_matrix(sd)
-        return sps.block_diag([diff] * sd.dim).tocsc()
+        diff = self.base_discr.assemble_diff_matrix(sd)
+        return self.vectorize(sd.dim, diff)
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the stiffness matrix.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+            sps.csc_array: The differential matrix.
+        """
+        diff = self.base_discr.assemble_stiff_matrix(sd, data)
+        return self.vectorize(sd.dim, diff)
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (dict, optional): Dictionary with physical parameters for scaling.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        lumped_mass = self.scalar_discr.assemble_lumped_matrix(sd, data)
-        return sps.block_diag([lumped_mass] * sd.dim).tocsc()
+        lumped_mass = self.base_discr.assemble_lumped_matrix(sd, data)
+        return self.vectorize(sd.dim, lumped_mass)
+
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Construct the matrix for projecting a vector function to a piecewise
+        vector space.
+
+        Args:
+            sd (pg.Grid): The grid on which to construct the matrix.
+
+        Returns:
+            sps.csc_array: The matrix representing the projection.
+        """
+        proj = self.base_discr.proj_to_PwPolynomials(sd)
+        return self.vectorize(sd.dim, proj)
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -131,30 +112,30 @@ class VecDiscretization(pg.Discretization):
         Interpolates a function onto the finite element space
 
         Args:
-            sd (pg.Grid): grid, or a subclass.
-            func (Callable): a function that returns the function values at coordinates
+            sd (pg.Grid): Grid, or a subclass.
+            func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: the values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom
         """
         interp = [
-            self.scalar_discr.interpolate(sd, lambda x: func(x)[d])
+            self.base_discr.interpolate(sd, lambda x: func(x)[d])
             for d in np.arange(sd.dim)
         ]
         return np.hstack(interp)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Evaluate the finite element solution at the cell centers of the given grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): The grid on which to evaluate the solution.
+            sd (pg.Grid): Grid object or a subclass.
 
         Returns:
-            sps.csc_array: The finite element solution evaluated at the cell centers.
+             sps.csc_array: The evaluation matrix.
         """
-        P = self.scalar_discr.eval_at_cell_centers(sd)
-        return sps.block_diag([P] * sd.dim).tocsc()
+        P = self.base_discr.eval_at_cell_centers(sd)
+        return self.vectorize(sd.dim, P)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -172,7 +153,60 @@ class VecDiscretization(pg.Discretization):
             np.ndarray: The assembled natural boundary condition vector.
         """
         nat_bc = [
-            self.scalar_discr.assemble_nat_bc(sd, lambda x: func(x)[d], b_faces)
+            self.base_discr.assemble_nat_bc(sd, lambda x: func(x)[d], b_faces)
             for d in np.arange(sd.dim)
         ]
         return np.hstack(nat_bc)
+
+    def assemble_broken_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken, element-wise divergence operator.
+        This operator is only implemented for vector-valued functions.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The divergence matrix.
+        """
+        assert self.tensor_order == pg.VECTOR
+
+        grad = self.assemble_broken_grad_matrix(sd)
+        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
+        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
+        trace = mat_pwp.assemble_trace_matrix(sd)
+
+        return trace @ grad
+
+    def assemble_broken_curl_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken, element-wise curl operator.
+        This operator is only implemented for vector-valued functions.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            sps.csc_array: The curl matrix.
+        """
+        assert self.tensor_order == pg.VECTOR
+
+        grad = self.assemble_broken_grad_matrix(sd)
+        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
+        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
+        asym = mat_pwp.assemble_asym_matrix(sd)
+
+        return asym @ grad
+
+    def vectorize(self, dim: int, matrix: sps.csc_array) -> sps.csc_array:
+        """
+        Vectorizes the given matrix by repeating it for each dimension of the grid.
+
+        Args:
+            dim (int): Number of vector components.
+            matrix (sps.csc_array): The matrix to be vectorized.
+
+        Returns:
+            sps.csc_array: The vectorized matrix.
+        """
+        return sps.kron(sps.eye_array(dim), matrix).tocsc()

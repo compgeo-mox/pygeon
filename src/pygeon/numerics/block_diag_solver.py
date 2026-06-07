@@ -1,10 +1,10 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sps
-import scipy.sparse.csgraph as csgraph  # type: ignore[import-untyped]
+import scipy.sparse.csgraph as csgraph
 
 
-def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
+def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
 
@@ -14,6 +14,8 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
 
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Default 1e-10.
 
     Returns:
         sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
@@ -24,6 +26,10 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
         - The inversion is performed using dense matrix operations for each block,
           which may be computationally expensive for large blocks.
     """
+    # Remove small entries in the matrix
+    M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
+    M.eliminate_zeros()
+
     # Get connected components
     n_components, labels = csgraph.connected_components(M, directed=False)
 
@@ -37,7 +43,7 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
         indices = np.where(labels == patch)[0]
 
         # Create a submatrix for the connected component
-        submat = M_lil[np.ix_(indices, indices)].toarray()  # type: ignore[index]
+        submat = M_lil[np.ix_(indices, indices)].toarray()
         inv_submat = np.linalg.inv(submat)
 
         # Store the inverse in the corresponding positions
@@ -47,7 +53,9 @@ def assemble_inverse(M: sps.csc_array) -> sps.csc_array:
     return inv_M_lil.tocsc()
 
 
-def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
+def block_diag_solver(
+    M: sps.csc_array, B: sps.csc_array, rtol: float = 1e-10
+) -> sps.csc_array:
     """
     Solves a block diagonal system of linear equations for each connected component.
 
@@ -63,6 +71,8 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
             assumed to be symmetric and positive definite.
         B (sps.csc_array): The right-hand side matrix in Compressed Sparse Column (CSC)
             format.
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Default 1e-10.
 
     Returns:
         sps.csc_array: The solution matrix X.
@@ -75,6 +85,10 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
         - If the right-hand side B is sparse and contains zero entries for a connected
           component, the solution for that component is skipped.
     """
+    # Remove small entries in the matrix
+    M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
+    M.eliminate_zeros()
+
     # Get connected components
     n_components, labels = csgraph.connected_components(M, directed=False)
 
@@ -91,14 +105,14 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
         # Create a submatrix for the connected component
         sub_B = B_lil[rows, :]
         # Get the non-zero columns of the submatrix
-        cols = np.unique(np.nonzero(sub_B.tocoo())[1])
+        cols = np.unique(sub_B.tocoo().nonzero()[1])
 
         # If there are no non-zero columns, skip this component
         if cols.size == 0:
             continue
 
         # Create a dense submatrix for the connected component
-        sub_M = M_lil[np.ix_(rows, rows)].toarray()  # type: ignore[index]
+        sub_M = M_lil[np.ix_(rows, rows)].toarray()
 
         # Solve the dense system and distribute to the solution matrix
         sol[np.ix_(rows, cols)] = scipy.linalg.solve(
@@ -109,7 +123,9 @@ def block_diag_solver(M: sps.csc_array, B: sps.csc_array) -> sps.csc_array:
     return sol.tocsc()
 
 
-def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
+def block_diag_solver_dense(
+    M: sps.csc_array, b: np.ndarray, rtol: float = 1e-10
+) -> np.ndarray:
     """
     Solves a system of linear equations where the coefficient matrix M is symmetric
     and positive definite block diagonal, and the right-hand side is given by b a
@@ -121,11 +137,13 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
             matrix.
         b (np.ndarray): The right-hand side of the equation. Can be a 1D array (vector)
             or a 2D array (matrix). If 1D, it will be treated as a column vector.
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Default 1e-10.
 
     Returns:
         np.ndarray: The solution to the system of equations. If b is a 1D array, the
-            solution will also be returned as a 1D array. If b is a 2D array, the
-            solution will be returned as a 2D array.
+        solution will also be returned as a 1D array. If b is a 2D array, the
+        solution will be returned as a 2D array.
     """
     # If b is a 1D array, convert it to a 2D column vector
     # This is necessary for the solver to work correctly
@@ -136,7 +154,7 @@ def block_diag_solver_dense(M: sps.csc_array, b: np.ndarray) -> np.ndarray:
     # Transform the right hand side to a sparse matrix
     b_csc = sps.csc_array(b)
     # Compute the solution by using the block diagonal solver
-    sol = block_diag_solver(M, b_csc).toarray()
+    sol = block_diag_solver(M, b_csc, rtol=rtol).toarray()
 
     # If b was a 1D array, convert the solution back to a 1D array
     if is_b_1d:

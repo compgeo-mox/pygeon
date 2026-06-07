@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+  - repo: local
+    hooks:
+      - id: validate-docs
+        name: Validate docs (MyST math fences, no generated files committed)
+        entry: python docs/readthedocs/tools/validate_docs.py
+        language: system
+        files: ^docs/.*\.(md|rst)$
+        pass_filenames: false

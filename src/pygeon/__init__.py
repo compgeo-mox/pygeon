@@ -1,12 +1,11 @@
-"""isort:skip_file"""
+# isort:skip_file
 
 from pygeon.utils.common_constants import *
 
-import pygeon.geometry.transformation as transformation
 from pygeon.grids.grid import Grid
 from pygeon.grids.md_grid import MixedDimensionalGrid
-from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.mortar_grid import MortarGrid
+from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.octagon import OctagonGrid
 from pygeon.grids.voronoi import VoronoiGrid
 from pygeon.grids.einstein import EinSteinGrid
@@ -17,6 +16,15 @@ from pygeon.grids.create_grid import (
     unit_grid,
     reference_element,
 )
+from pygeon.grids.refinement import barycentric_split
+from pygeon.grids.regularizers import (
+    lloyd_regularization,
+    graph_laplace_regularization,
+    graph_laplace_dual_regularization,
+    elasticity_regularization,
+)
+
+from pygeon.params.data import get_cell_data
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.vec_discretization import VecDiscretization
@@ -24,15 +32,51 @@ from pygeon.discretizations.vec_discretization import VecDiscretization
 from pygeon.discretizations.fem.hcurl import Nedelec0, Nedelec1
 from pygeon.discretizations.fem.hdiv import RT0, BDM1, RT1
 from pygeon.discretizations.fem.h1 import Lagrange1, Lagrange2
-from pygeon.discretizations.fem.l2 import PwConstants, PwLinears, PwQuadratics
-from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0
+from pygeon.discretizations.fem.l2 import (
+    PwPolynomials,
+    PwConstants,
+    PwLinears,
+    PwQuadratics,
+)
+from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0, VecRT1
 from pygeon.discretizations.fem.vec_h1 import VecLagrange1, VecLagrange2
-from pygeon.discretizations.fem.vec_l2 import VecPwConstants, VecPwLinears
+from pygeon.discretizations.fem.vec_l2 import (
+    VecPwPolynomials,
+    VecPwConstants,
+    VecPwLinears,
+    VecPwQuadratics,
+)
+from pygeon.discretizations.fem.mat_l2 import (
+    MatPwPolynomials,
+    MatPwConstants,
+    MatPwLinears,
+    MatPwQuadratics,
+)
+from pygeon.discretizations.fem.symmat_l2 import (
+    SymMatPwPolynomials,
+    SymMatPwConstants,
+    SymMatPwLinears,
+    SymMatPwQuadratics,
+)
+
+from pygeon.discretizations.fvm.boundary_conditions import (
+    FiniteVolumeBC,
+    ElasticityBC,
+    FlowBC,
+)
+from pygeon.discretizations.fvm.fvm_disc import FiniteVolumeDiscretization
+from pygeon.discretizations.fvm.tpsa import TPSA
+from pygeon.discretizations.fvm.tpfa import TPFA
 
 from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1
 from pygeon.discretizations.vem.vec_hdiv import VecVRT0
 from pygeon.discretizations.vem.vec_h1 import VecVLagrange1
+
+from pygeon.discretizations.poly_projection import (
+    get_PwPolynomials,
+    proj_to_PwPolynomials,
+)
 
 from pygeon.numerics.differentials import grad, curl, div
 from pygeon.numerics.innerproducts import (
@@ -64,3 +108,10 @@ from pygeon.numerics.block_diag_solver import (
 
 import pygeon.utils.bmat as bmat
 import pygeon.utils.sort_points as sort_points
+
+from pygeon.viz.plot_spanningtree import plot_spanningtree
+
+# Expose the `numerics` subpackage on the top-level `pygeon` package so
+# attribute-style access (e.g. `pygeon.numerics`) is available and type
+# checkers like mypy can resolve references to `pygeon.numerics`.
+from . import numerics

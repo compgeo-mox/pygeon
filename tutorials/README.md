@@ -1,13 +1,23 @@
-# Tutorial
+# Tutorials
 
-This folder contains several examples to guide you to use PyGeoN.
-* [tutorial 1](./darcy.ipynb): solve the Darcy equation in mixed form on a single domain
-* [tutorial 2](./stokes.ipynb): solve the Stokes equation in mixed form on a single domain
-* [tutorial 3](./richards.ipynb): solve the Richards equation in mixed form on a single domain
+This folder contains several examples to guide you in using PyGeoN. Each tutorial demonstrates how to solve different PDEs using finite element methods.
 
-We suggest also to check the [tutorials](https://github.com/pmgbergen/porepy/tree/develop/tutorials) of PorePy, in particular the following
-* [tutorial 0](https://github.com/pmgbergen/porepy/blob/develop/tutorials/introduction.ipynb): introduction
-* [tutorial 1](https://github.com/pmgbergen/porepy/blob/develop/tutorials/grid_structure.ipynb): grid structure
-* [tutorial 2](https://github.com/pmgbergen/porepy/blob/develop/tutorials/meshing_of_fractures.ipynb): meshing of fractures
-* [tutorial 3](https://github.com/pmgbergen/porepy/blob/develop/tutorials/exporter.ipynb): exporter
-* [tutorial 4](https://github.com/pmgbergen/porepy/blob/develop/tutorials/conventions.ipynb): conventions
+## PyGeoN Tutorials
+
+### Fluid Flow
+* [Darcy equation](./darcy.ipynb) — solve the Darcy equation in mixed form (flux and pressure) on a single domain
+* [Darcy equation (TPFA)](./darcy_tpfa.ipynb) — solve the Darcy equation using the two-point flux approximation with cell-centre pressures
+* [Stokes equation](./stokes.ipynb) — solve the Stokes equation in mixed form (vorticity, velocity and pressure) for viscous flow
+
+### Solid Mechanics
+* [Elasticity (primal)](./elasticity.ipynb) — solve the linear elasticity equation for displacement using Lagrange elements
+* [Elasticity (mixed)](./elasticity_mixed.ipynb) — solve elasticity in mixed form with stress, displacement, and rotation as unknowns
+* [Elasticity (finite volume + stress reconstruction)](./elasticity_stress_reconstruction.ipynb) — solve elasticity using PorePy's finite volume method with PyGeoN post-processing
+* [Elasticity (TPSA)](./elasticity_tpsa.ipynb) — solve elasticity using the two-point stress approximation with displacement, rotation, and solid pressure unknowns
+
+### Coupled Problems
+* [Biot equation](./biot.ipynb) — solve the static Biot poroelasticity problem coupling fluid flow and solid deformation
+* [Cosserat equation](./cosserat.ipynb) — solve the Cosserat continuum model with micro-rotations in mixed form
+
+### Advanced Topics
+* [Poincaré operators](./poincare_operators.ipynb) — efficient solution of Hodge-Laplace problems using Poincaré operators and subspace decomposition

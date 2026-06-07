@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(curl) space."""
 
-from typing import Callable, Optional, Type
+from typing import Callable, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -10,40 +10,18 @@ import pygeon as pg
 
 class Nedelec0(pg.Discretization):
     """
-    Discretization class for the Nedelec of the first kind of lowest order.
-    Each degree of freedom is the integral over a mesh edge in 3D.
+    Discretization class for the Nedelec of the first kind of lowest order. Each degree
+    of freedom is the integral over a mesh edge in 3D.
 
-    Attributes:
-        None
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Computes the mass matrix for a lowest-order Nedelec discretization.
-
-        local_inner_product(dim: int) -> sps.csc_array:
-            Compute the local inner product matrix for the given dimension.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the differential matrix for the given grid.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the function at the cell centers of the given grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition matrix for the given grid and
-            function.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a given function onto the grid using the hcurl discretization.
+    While intended for three-dimensional grids, the space is generalized to 2D, where it
+    corresponds to a rotated RT0.
     """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -56,152 +34,60 @@ class Nedelec0(pg.Discretization):
 
         Returns:
             int: The number of degrees of freedom.
-
         """
-        return sd.num_ridges
+        return sd.num_edges
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Computes the mass matrix for a lowest-order Nedelec discretization
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass, with geometry fields computed.
-            data (dict, optional): Dictionary to store the data. See self.matrix_rhs
-                for required contents.
-
-        Returns:
-            sps.csc_array: Matrix obtained from the discretization.
-        """
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = 6 * 6 * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        M = pg.BDM1.local_inner_product(sd.dim)
-
-        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
-
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its ridges and
-            # determine the location of the dof
-            loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
-            ridges_loc = cell_ridges.indices[loc]
-
-            Psi = self.eval_basis_at_node(sd, ridges_loc)
-
-            # Compute the inner products
-            A = Psi @ M @ Psi.T * sd.cell_volumes[c]
-
-            # Put in the right spot
-            cols = np.tile(ridges_loc, (ridges_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def eval_basis_at_node(self, sd: pg.Grid, ridges_loc: np.ndarray) -> np.ndarray:
-        """
-        Compute the local basis function for the Nedelec0 finite element space.
+        Constructs the projection matrix to the VecPwLinears space via Nedelec1.
 
         Args:
             sd (pg.Grid): The grid object.
-            ridges_loc (np.ndarray): The local ridges.
 
         Returns:
-            np.ndarray: The local mass matrix.
+            sps.csc_array: A sparse array in CSC format representing the projection from
+            the current space to VecPwLinears.
         """
+        proj_to_Ne1 = self.proj_to_Ne1(sd)
+        proj_to_pwp = Nedelec1(self.keyword).proj_to_PwPolynomials(sd)
 
-        # Extract the indices of the local peaks
-        rp = sd.ridge_peaks
-        peaks_loc = np.empty((6, 2), int)
-        for ind, ridge in enumerate(ridges_loc):
-            peaks_loc[ind] = rp.indices[rp.indptr[ridge] : rp.indptr[ridge + 1]]
-        peaks_loc = peaks_loc.T
+        return proj_to_pwp @ proj_to_Ne1
 
-        # If they follow a conventional structure, these can be hardcoded
-        nodes_uniq = peaks_loc.ravel()[[2, 1, 0, 6]]
-        indices = np.array([2, 1, 0, 1, 0, 0, 3, 3, 3, 2, 2, 1])
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped mass matrix given by the row sums on the diagonal.
 
-        # Recompute using unique if the convention is not followed
-        if not np.all(nodes_uniq[indices] == peaks_loc.ravel()):
-            nodes_uniq, indices = np.unique(peaks_loc, return_inverse=True)
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
-        indices = np.reshape(indices, (2, -1))
-        coords = sd.nodes[:, nodes_uniq]
-
-        # Compute the gradients of the Lagrange basis functions
-        dphi = pg.Lagrange1.local_grads(coords, sd.dim)
-
-        # Compute a 6 x 12 matrix Psi such that Psi[i, j] = psi_i(x_j)
-        Psi = np.zeros((6, 12))
-        for ridge, peaks in enumerate(indices.T):
-            Psi[ridge, 3 * peaks[0] : 3 * (peaks[0] + 1)] = dphi[:, peaks[1]]
-            Psi[ridge, 3 * peaks[1] : 3 * (peaks[1] + 1)] = -dphi[:, peaks[0]]
-
-        return Psi
+        Returns:
+            sps.csc_array: The lumped mass matrix.
+        """
+        diag_mass = self.assemble_mass_matrix(sd, data).sum(axis=0)
+        return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the differential matrix for the given grid.
 
-        Parameters:
+        Args:
             sd (pg.Grid): The grid for which the differential matrix is assembled.
 
         Returns:
             sps.csc_array: The assembled differential matrix.
         """
-        return sd.face_ridges.T.tocsc()
+        match sd.dim:
+            case 3:
+                diff = sd.face_ridges.T
+            case 2:
+                diff = sd.cell_faces.T
+            case _:
+                diff = sps.csc_array((0, self.ndof(sd)))
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Evaluate the function at the cell centers of the given grid.
-
-        Args:
-            sd (pg.Grid): The grid object representing the discretization.
-
-        Returns:
-            sps.csc_array: The evaluated function values at the cell centers.
-        """
-        # Allocation
-        size = 6 * 3 * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
-
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its ridges and
-            # determine the location of the dof
-            loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
-            ridges_loc = cell_ridges.indices[loc]
-
-            # Create a matrix with the evaluation of the basis functions at the nodes
-            Psi = self.eval_basis_at_node(sd, ridges_loc)
-
-            # The center-values are the mean of the four nodes
-            Psi_split = np.split(Psi, 4, axis=1)
-            Psi_at_centre = np.sum(Psi_split, axis=0).T / 4.0
-
-            # Put in the right spot
-            loc_idx = slice(idx, idx + Psi_at_centre.size)
-            rows_I[loc_idx] = np.repeat(np.arange(3), ridges_loc.size) + 3 * c
-            cols_J[loc_idx] = np.concatenate(3 * [[ridges_loc]]).ravel()
-            data_IJ[loc_idx] = Psi_at_centre.ravel()
-            idx += Psi_at_centre.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return diff.tocsc()
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -229,7 +115,13 @@ class Nedelec0(pg.Discretization):
         Returns:
             pg.Discretization: The range discretization class for the given grid.
         """
-        return pg.RT0
+        match dim:
+            case 2:
+                return pg.PwConstants
+            case 3:
+                return pg.RT0
+            case _:
+                raise NotImplementedError
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -244,12 +136,26 @@ class Nedelec0(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values on the grid.
         """
-        tangents = sd.nodes @ sd.ridge_peaks
+        tangents = sd.edge_tangents
         midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
         vals = [
             np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
         ]
         return np.array(vals)
+
+    def proj_to_Ne1(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Project the solution to the Nedelec of the second kind.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+
+        Returns:
+            sps.csc_array: The projection matrix to the Nedelec of the second kind.
+        """
+        return (
+            sps.vstack([sps.eye_array(sd.num_edges), -sps.eye_array(sd.num_edges)])
+        ).tocsc()
 
 
 class Nedelec1(pg.Discretization):
@@ -257,42 +163,15 @@ class Nedelec1(pg.Discretization):
     Discretization class for the Nedelec of the second kind of lowest order.
     Each degree of freedom is a first moment over a mesh edge in 3D.
 
-    Attributes:
-        keyword (str): The keyword associated with the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Return the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix for the given grid and data.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped matrix for the given grid and data.
-
-        proj_to_Ne0(sd: pg.Grid) -> sps.csc_array:
-            Project the solution to the Nedelec of the first kind.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the differential matrix for the H(curl) finite element space.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates the given function `func` over the specified grid `sd`.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the basis functions at the cell centers and construct the global
-            matrices.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition for the given grid, function, and
-            boundary faces.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
+    While intended for three-dimensional grids, the space is generalized to 2D, where it
+    corresponds to a rotated BDM1.
     """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -305,84 +184,82 @@ class Nedelec1(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return 2 * sd.num_ridges
+        return 2 * sd.num_edges
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the mass matrix for the given grid and data.
-
-        Parameters:
-            sd (pg.Grid): The grid for which the mass matrix is to be assembled.
-            data (dict, optional): Additional data required for the assembly process.
-
-        Returns:
-            sps.csc_array: The assembled mass matrix.
-        """
-        raise NotImplementedError
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles the lumped matrix for the given grid and data.
+        Constructs the projection matrix from the current finite element space to the
+        VecPwLinears space.
 
         Args:
             sd (pg.Grid): The grid object.
-            data (dict, optional): Additional data. Defaults to None.
 
         Returns:
-            sps.csc_array: The assembled lumped matrix.
+            sps.csc_array: A sparse array in CSC format representing the projection from
+            the current space to VecPwLinears.
         """
-        # Allocation
-        size = 9 * 4 * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
+        # Each contribution to the matrix corresponds to a (cell, edge, node) triplet.
+        # To avoid for-loops, we generate arrays with the relevant cell/edge/node
+        # indices.
 
-        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
-        ridge_peaks = sd.ridge_peaks
+        # We first extract the connected cell-edge and edge-node pairs.
+        match sd.dim:
+            case 1:
+                cell_edges = sps.eye_array(sd.num_cells).tocsc()
+                edge_nodes = sd.cell_nodes()
+            case 2:
+                cell_edges = sd.cell_faces
+                edge_nodes = sd.face_ridges
+            case 3:
+                cell_edges = sd.face_ridges.astype("bool") @ sd.cell_faces.astype(
+                    "bool"
+                )
+                edge_nodes = sd.ridge_peaks
 
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its ridges and
-            # determine the location of the dof
-            loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
-            ridges_loc = cell_ridges.indices[loc]
-            dof_loc = np.reshape(
-                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
-            ).flatten()
+        edges, cells, _ = sps.find(cell_edges)
 
-            # Find the nodes of the cell and their coordinates
-            nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
-            coords = sd.nodes[:, nodes_uniq]
+        # Each edge has two nodes. We keep track of the node itself and its partner.
+        en = np.reshape(edge_nodes.indices, (sd.num_edges, -1))
+        nodes = en[edges].ravel()
+        partner_nodes = en[edges, ::-1].ravel()
 
-            # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
+        # The column indices are given by the Nedelec dof indices.
+        dofs_at_edge = np.reshape(np.arange(self.ndof(sd)), (sd.num_edges, -1), "F")
+        cols_J = dofs_at_edge[edges].ravel()
+        cols_J = np.tile(cols_J, sd.dim)
 
-            # Compute the local Nedelec basis functions and global indices
-            Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
-            Ne_indices = np.concatenate((ridges_loc, ridges_loc + sd.num_ridges))
+        # Each cell-edge pair appears once per node, so twice in total.
+        edges = np.repeat(edges, 2)
+        cells = np.repeat(cells, 2)
 
-            # Compute the inner products around each node
-            for node in nodes_uniq:
-                bf_is_at_node = dof_loc == node
-                grads = Ne_basis[:, bf_is_at_node]
-                A = grads.T @ grads
-                A *= sd.cell_volumes[c] / 4
+        # We need to find the unique face that is next to the node but does not border
+        # the edge. We do that by taking the face opposite the partner node.
+        opposite_nodes = sd.compute_opposite_nodes().tocoo()
+        opp_f = opposite_nodes.row
+        opp_c = opposite_nodes.col
+        opp_n = opposite_nodes.data
 
-                loc_ind = Ne_indices[bf_is_at_node]
+        opposite_faces = sps.csc_array((opp_f, (opp_n, opp_c)))
 
-                # Save values for stiff-H1 local matrix in the global structure
-                cols = np.tile(loc_ind, (loc_ind.size, 1))
-                loc_idx = slice(idx, idx + cols.size)
-                rows_I[loc_idx] = cols.T.ravel()
-                cols_J[loc_idx] = cols.ravel()
-                data_IJ[loc_idx] = A.ravel()
-                idx += cols.size
+        faces = opposite_faces[partner_nodes, cells]
+        orien = sd.cell_faces[faces, cells]
 
-        # Construct the global matrices
+        # Rotate the normals if the mesh is tilted
+        normals = sd.rotation_matrix @ sd.face_normals
+
+        # We avoid inner products by using the identity:
+        # tangent @ normal = dim * cell_volume * orientation
+        vals = -normals[:, faces] / (orien * sd.cell_volumes[cells] * sd.dim)
+        data_IJ = vals.ravel()
+
+        # Finally, we find the corresponding dof in p1 by generating a lookup matrix
+        # that satisfies p1_lookup[node, cell] = dof_index at (node, cell)
+        p1_lookup = pg.PwLinears().get_dof_lookup_array(sd)
+
+        # The vector-valued analogue has sd.dim rows
+        p1_dofs = p1_lookup[nodes, cells] + p1_lookup.nnz * np.arange(sd.dim)[:, None]
+        rows_I = p1_dofs.ravel()
+
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_array:
@@ -396,8 +273,7 @@ class Nedelec1(pg.Discretization):
             sps.csc_array: The projection matrix to the Nedelec of the first kind.
         """
         return (
-            sps.hstack([sps.eye_array(sd.num_ridges), -sps.eye_array(sd.num_ridges)])
-            / 2
+            sps.hstack([sps.eye_array(sd.num_edges), -sps.eye_array(sd.num_edges)]) / 2
         ).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
@@ -428,74 +304,16 @@ class Nedelec1(pg.Discretization):
 
         Returns:
             np.ndarray: The interpolated values.
-
         """
-        tangents = sd.nodes @ sd.ridge_peaks
-
         vals = np.zeros(self.ndof(sd))
-        for r in np.arange(sd.num_ridges):
+        for r in np.arange(sd.num_edges):
             loc = slice(sd.ridge_peaks.indptr[r], sd.ridge_peaks.indptr[r + 1])
             peaks = sd.ridge_peaks.indices[loc]
-            t = tangents[:, r]
+            t = sd.edge_tangents[:, r]
             vals[r] = np.inner(func(sd.nodes[:, peaks[0]]).flatten(), t)
-            vals[r + sd.num_ridges] = np.inner(
-                func(sd.nodes[:, peaks[1]]).flatten(), -t
-            )
+            vals[r + sd.num_edges] = np.inner(func(sd.nodes[:, peaks[1]]).flatten(), -t)
 
         return vals
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Evaluate the basis functions at the cell centers and construct the global
-        matrices.
-
-        Args:
-            sd (pg.Grid): The grid object representing the mesh.
-
-        Returns:
-            sps.csc_array: The global matrices constructed from the basis functions
-                evaluated at the cell centers.
-        """
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = 12 * 3 * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_ridges = sd.face_ridges.astype(bool) @ sd.cell_faces.astype(bool)
-        ridge_peaks = sd.ridge_peaks
-
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its ridges and
-            # determine the location of the dof
-            loc = slice(cell_ridges.indptr[c], cell_ridges.indptr[c + 1])
-            ridges_loc = cell_ridges.indices[loc]
-            dof_loc = np.reshape(
-                ridge_peaks[:, ridges_loc].indices, (2, -1), order="F"
-            ).flatten()
-
-            # Find the nodes of the cell and their coordinates
-            nodes_uniq, indices = np.unique(dof_loc, return_inverse=True)
-            coords = sd.nodes[:, nodes_uniq]
-
-            # Compute the gradients of the Lagrange basis functions
-            dphi = pg.Lagrange1.local_grads(coords, sd.dim)
-
-            # Compute the local Nedelec basis functions and global indices
-            Ne_basis = np.roll(dphi[:, indices], 6, axis=1)
-            Ne_indices = np.concatenate((ridges_loc, ridges_loc + sd.num_ridges))
-
-            # Save values for projection P local matrix in the global structure
-            loc_idx = slice(idx, idx + Ne_basis.size)
-            rows_I[loc_idx] = np.repeat(np.arange(3), Ne_indices.size) + 3 * c
-            cols_J[loc_idx] = np.concatenate(3 * [[Ne_indices]]).ravel()
-            data_IJ[loc_idx] = Ne_basis.ravel() / 4.0
-            idx += Ne_basis.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -524,4 +342,4 @@ class Nedelec1(pg.Discretization):
         Returns:
             pg.Discretization: The range discretization class.
         """
-        return pg.RT0
+        return Nedelec0().get_range_discr_class(dim)

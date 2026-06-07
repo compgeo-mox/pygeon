@@ -1,9 +1,8 @@
 """This module contains functions for computing the inner-products operators."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, cast
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -12,14 +11,14 @@ import pygeon as pg
 
 
 def cell_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the mass matrix for the piecewise constants on a (MD-)grid
+    Compute the mass matrix for the piecewise constants on a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_cells x num_cells
@@ -28,14 +27,14 @@ def cell_mass(
 
 
 def face_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the mass matrix for discretization defined on the faces of a (MD-)grid
+    Compute the mass matrix for discretization defined on the faces of a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp.RT0 or pp.MVEM).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg.RT0 or pg.MVEM).
 
     Returns:
         sps.csc_array, num_faces x num_faces
@@ -44,14 +43,14 @@ def face_mass(
 
 
 def ridge_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the mass matrix for discretization defined on the ridges of a (MD-)grid
+    Compute the mass matrix for discretization defined on the ridges of a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_ridges x num_ridges
@@ -60,14 +59,14 @@ def ridge_mass(
 
 
 def peak_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the mass matrix for discretization defined on the peaks of a (MD-)grid
+    Compute the mass matrix for discretization defined on the peaks of a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_peaks x num_peaks
@@ -80,8 +79,24 @@ def peak_mass(
 
 def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
     """
-    Construct the default discretization operator depending on n_minus_k.
+    Construct the default discretization operator depending on ``n_minus_k``.
     These correspond to the Whitney forms.
+
+    Args:
+        sd (pg.Grid): Grid on which the discretization is defined.
+        n_minus_k (int): Difference between space dimension and form order.
+
+    Returns:
+        pg.Discretization: One of:
+
+            - pg.PwConstants: if ``n_minus_k == 0``.
+            - pg.RT0: if ``n_minus_k == 1``.
+            - pg.Lagrange1: if ``n_minus_k == sd.dim``.
+            - pg.Nedelec0: if ``n_minus_k == 2`` (valid for ``sd.dim == 3``).
+
+    Raises:
+        ValueError: If ``n_minus_k`` is not supported for the given grid
+            dimension.
     """
     keyword = kwargs.get("keyword", pg.UNITARY_DATA)
     if n_minus_k == 0:
@@ -99,19 +114,19 @@ def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
 def _sd_mass_matrix(
     sd: pg.Grid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
-    data: Optional[dict] = None,
+    discr: pg.Discretization | None = None,
+    data: dict | None = None,
     **kwargs,
 ) -> sps.csc_array:
     """
-    Compute the mass matrix on a single grid
+    Compute the mass matrix on a single grid.
 
     Args:
-        sd (pp.Grid).
+        sd (pg.Grid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
-        data (dict): the data object associated to the grid.
+        discr (pg discretization object).
+        data (dict): The data object associated to the grid.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs
@@ -147,23 +162,25 @@ def local_matrix(
 def mass_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
+    discr: pg.Discretization | None = None,
     local_matrix: Callable = local_matrix,
     **kwargs,
-) -> Union[np.ndarray, sps.csc_array]:
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the mass matrix on a mixed-dimensional grid
+    Compute the mass matrix on a mixed-dimensional grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
-        data (dict): the data object associated to the grid.
-        local_matrix (function): function that generates the local mass matrix on a grid
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        discr (pg discretization object).
+        data (dict): The data object associated to the grid.
+        local_matrix (function): Function that generates the local mass matrix on a
+            grid.
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs
@@ -191,17 +208,19 @@ def mass_matrix(
     trace_contribution = kwargs.get("trace_contribution", True)
     if n_minus_k == 1 and trace_contribution:
         for intf, d_intf in mdg.interfaces(return_data=True):
+            intf = cast(pg.MortarGrid, intf)
+
             # Get the node number of the upper-dimensional neighbor
             sd = mdg.interface_to_subdomain_pair(intf)[0]
             nn_sd = mdg.subdomains().index(sd)
 
             # Local mortar mass matrix
-            kn = d_intf[pp.PARAMETERS][keyword]["normal_diffusivity"]
+            kn = pg.get_cell_data(intf, d_intf, keyword, pg.NORMAL_DIFFUSIVITY)
 
             bmat_mg[nn_sd, nn_sd] += (
-                intf.signed_mortar_to_primary  # type: ignore[attr-defined]
+                intf.signed_mortar_to_primary
                 @ sps.diags_array(1.0 / intf.cell_volumes / kn)
-                @ intf.signed_mortar_to_primary.T  # type: ignore[attr-defined]
+                @ intf.signed_mortar_to_primary.T
             )
 
     pg.bmat.replace_nones_with_zeros(bmat_sd)
@@ -217,14 +236,14 @@ def mass_matrix(
 
 
 def lumped_cell_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the lumped mass matrix for the piecewise constants on a (MD-)grid
+    Compute the lumped mass matrix for the piecewise constants on a (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_cells x num_cells
@@ -233,15 +252,15 @@ def lumped_cell_mass(
 
 
 def lumped_face_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for discretization defined on the faces of a
-    (MD-)grid
+    (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp.RT0 or pp.MVEM).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg.RT0 or pg.MVEM).
 
     Returns:
         sps.csc_array, num_faces x num_faces
@@ -250,15 +269,15 @@ def lumped_face_mass(
 
 
 def lumped_ridge_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for discretization defined on the ridges of a
-    (MD-)grid
+    (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_ridges x num_ridges
@@ -267,15 +286,15 @@ def lumped_ridge_mass(
 
 
 def lumped_peak_mass(
-    mdg: pg.MixedDimensionalGrid, discr: Optional[pg.Discretization] = None, **kwargs
-) -> Union[sps.csc_array, np.ndarray]:
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+) -> sps.csc_array | np.ndarray:
     """
     Compute the lumped mass matrix for discretization defined on the peaks of a
-    (MD-)grid
+    (MD-)grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
-        discr (pp discretization object).
+        mdg (pg.MixedDimensionalGrid).
+        discr (pg discretization object).
 
     Returns:
         sps.csc_array, num_peaks x num_peaks
@@ -286,20 +305,21 @@ def lumped_peak_mass(
 def lumped_mass_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
+    discr: pg.Discretization | None = None,
     **kwargs,
-) -> Union[sps.csc_array, np.ndarray]:
+) -> sps.csc_array | np.ndarray:
     """
-    Compute the mass-lumped mass matrix on a mixed-dimensional grid
+    Compute the mass-lumped mass matrix on a mixed-dimensional grid.
 
     Args:
-        mdg (pp.MixedDimensionalGrid).
+        mdg (pg.MixedDimensionalGrid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        discr (pg discretization object).
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs
@@ -310,19 +330,19 @@ def lumped_mass_matrix(
 def _sd_lumped_mass(
     sd: pg.Grid,
     n_minus_k: int,
-    discr: Optional[pg.Discretization] = None,
-    data: Optional[dict] = None,
+    discr: pg.Discretization | None = None,
+    data: dict | None = None,
     **kwargs,
 ) -> sps.csc_array:
     """
     Compute the mass-lumped mass matrix on a single grid.
 
     Args:
-        sd (pp.Grid).
+        sd (pg.Grid).
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pp discretization object).
-        data (dict): the data object associated to the grid.
+        discr (pg discretization object).
+        data (dict): The data object associated to the grid.
 
     Returns:
         sps.csc_array, num_dofs x num_dofs

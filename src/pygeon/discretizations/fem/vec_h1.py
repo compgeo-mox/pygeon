@@ -1,10 +1,9 @@
 """Module for the discretizations of the vector H1 space."""
 
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import porepy as pp
-import scipy.linalg as spl
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -25,96 +24,68 @@ class VecLagrange1(pg.VecDiscretization):
     The stress tensor and strain tensor are represented as vectors unrolled row-wise.
     In 2D, the stress tensor has a length of 4, and in 3D, it has a length of 9.
 
-    We are considering the following structure of the stress tensor in 2d
+    We are considering the following structure of the stress tensor in 2D:
 
-    sigma = [[sigma_xx, sigma_xy],
-             [sigma_yx, sigma_yy]]
+    .. math::
 
-    which is represented in the code unrolled row-wise as a vector of length 4
+        \\sigma = \\begin{bmatrix}
+            \\sigma_{xx} & \\sigma_{xy} \\\\
+            \\sigma_{yx} & \\sigma_{yy}
+        \\end{bmatrix}
 
-    sigma = [sigma_xx, sigma_xy,
-             sigma_yx, sigma_yy]
+    which is represented in the code unrolled row-wise as a vector of length 4:
 
-    While in 3d the stress tensor can be written as
+    .. math::
 
-    sigma = [[sigma_xx, sigma_xy, sigma_xz],
-             [sigma_yx, sigma_yy, sigma_yz],
-             [sigma_zx, sigma_zy, sigma_zz]]
+        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
 
-    where its vectorized structure of lenght 9 is given by
+    While in 3D the stress tensor can be written as:
 
-    sigma = [sigma_xx, sigma_xy, sigma_xz,
-             sigma_yx, sigma_yy, sigma_yz,
-             sigma_zx, sigma_zy, sigma_zz]
+    .. math::
 
+        \\sigma = \\begin{bmatrix}
+            \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
+            \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
+            \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
+        \\end{bmatrix}
+
+    where its vectorized structure of length 9 is given by:
+
+    .. math::
+
+        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
+                   \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
+                   \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
 
     The strain tensor follows the same approach.
-
-    Args:
-        keyword (str): The keyword for the H1 class.
-
-    Attributes:
-        scalar_discr (pg.Lagrange1): A local Lagrange1 class for performing some of the
-            computations.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated with the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix for the lowest order Lagrange element.
-
-        assemble_div_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the divergence matrix operator for the lowest order vector Lagrange
-            element.
-
-        local_div(c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
-            Computes the local divergence matrix for P1.
-
-        assemble_div_div_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Returns the div-div matrix operator for the lowest order vector Lagrange
-            element.
-
-        assemble_symgrad_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the symmetric gradient matrix operator for the lowest order vector
-            Lagrange element.
-
-        local_symgrad(c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray)
-            -> np.ndarray:
-            Computes the local symmetric gradient matrix for P1.
-
-        assemble_symgrad_symgrad_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Returns the symgrad-symgrad matrix operator for the lowest order vector
-            Lagrange element.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
     """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
+    base_discr: pg.Lagrange1  # To please mypy
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange1.
+        The base discretization class is pg.Lagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.Lagrange1
-        super().__init__(keyword, pg.Lagrange1)
+        super().__init__(keyword)
+        self.base_discr = pg.Lagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the div matrix operator for the lowest order
-        vector Lagrange element
+        Returns the div matrix operator for the lowest order vector Lagrange element
 
         Args:
             sd (pg.Grid): The grid object.
@@ -122,264 +93,60 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
             sps.csc_array: The div matrix obtained from the discretization.
         """
-        # If a 0-d grid is given then we return a zero matrix
-        if sd.dim == 0:
-            return sps.csc_array((1, 1))
-
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        _, _, _, _, _, node_coords = pp.map_geometry.map_grid(sd)
-
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = sd.dim * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-        # shift to comply with the ordering convention of (x, y, z) components
-        shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the div local matrix
-            A = self.local_div(
-                sd.cell_volumes[c],
-                coord_loc,
-                sd.dim,
-            )
-
-            # Save values for the local matrix in the global structure
-            cols = nodes_loc + shift
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = c * np.ones(cols.size)
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def local_div(self, c_volume: float, coord: np.ndarray, dim: int) -> np.ndarray:
-        """
-        Compute the local div matrix for vector P1.
-
-        Args:
-            c_volume (float): Cell volume.
-            coord (ndarray): Coordinates of the cell.
-            dim (int): Dimension of the cell.
-
-        Returns:
-            ndarray: Local mass Hdiv matrix.
-                Shape: (num_faces_of_cell, num_faces_of_cell)
-        """
-
-        dphi = self.scalar_discr.local_grads(coord, dim)
-
-        return c_volume * dphi
-
-    def assemble_div_div_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Returns the div-div matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by the Lame' parameter lambda.
-
-        Args:
-            sd (pg.Grid): The grid object.
-            data (Optional[dict]): Additional data, the Lame' parameter lambda.
-                Defaults to None.
-
-        Returns:
-            csc_array: sparse (sd.num_nodes, sd.num_nodes)
-                Div-div matrix obtained from the discretization.
-        """
-        if data is None:
-            labda = 1
-        else:
-            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            labda = parameter_dictionary.get("lambda", 1)
-
-        p0 = pg.PwConstants(self.keyword)
-
-        div = self.assemble_div_matrix(sd)
-        mass = p0.assemble_mass_matrix(sd)
-
-        return div.T @ (labda * mass) @ div
+        return self.assemble_broken_div_matrix(sd)
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the symmetric gradient matrix operator for the
-        lowest order vector Lagrange element
+        Returns the symmetric gradient matrix operator for the lowest order vector
+        Lagrange element
 
         Args:
             sd (pg.Grid): The grid object representing the domain.
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
-
-        Raises:
-            None
-
-        Notes:
-            - If a 0-dimensional grid is given, a zero matrix is returned.
-            - The method maps the domain to a reference geometry.
-            - The method allocates data to store matrix entries efficiently.
-            - The symmetrization matrix is constructed differently for 2D and 3D cases.
-            - The method computes the symgrad local matrix for each cell and saves
-              the values in the global structure.
-            - Finally, the method constructs the global matrices using the saved values.
-
         """
-        # If a 0-d grid is given then we return a zero matrix
-        if sd.dim == 0:
-            return sps.csc_array((1, 1))
+        grad = self.assemble_broken_grad_matrix(sd)
+        sym = pg.MatPwConstants().assemble_symmetrizing_matrix(sd)
 
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1d and 2d)
-        _, _, _, _, _, node_coords = pp.map_geometry.map_grid(sd)
+        return sym @ grad
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(sd.dim, 3) * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        dim2 = np.square(sd.dim)
-        # construct the symmetrization matrix, which is different in
-        # 2d and in 3d
-        sym = np.eye(dim2)
-        if sd.dim == 2:
-            sym[np.ix_([1, 2], [1, 2])] = 0.5
-        elif sd.dim == 3:
-            sym[np.ix_([1, 3], [1, 3])] = 0.5
-            sym[np.ix_([2, 6], [2, 6])] = 0.5
-            sym[np.ix_([5, 7], [5, 7])] = 0.5
-
-        cell_nodes = sd.cell_nodes()
-        # shift to comply with the ordering convention of (x, y, z) components
-        shift = np.atleast_2d(np.arange(sd.dim)).T * sd.num_nodes
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the symgrad local matrix
-            A = self.local_symgrad(sd.cell_volumes[c], coord_loc, sd.dim, sym)
-
-            # Save values for the local matrix in the global structure
-            cols = (nodes_loc + shift).ravel()
-            cols = cols * np.ones((dim2, 1), dtype=int)
-
-            rows = c + np.arange(dim2) * sd.num_cells
-            rows = np.ones(dim2 + sd.dim, dtype=int) * rows.reshape((-1, 1))
-
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = rows.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def local_symgrad(
-        self, c_volume: float, coord: np.ndarray, dim: int, sym: np.ndarray
-    ) -> np.ndarray:
-        """
-        Compute the local symmetric gradient matrix for P1.
-
-        Args:
-            c_volume (float): Cell volume.
-            coord (np.ndarray): Coordinates of the cell.
-            dim (int): Dimension of the cell.
-            sym (np.ndarray): Symmetric matrix.
-
-        Returns:
-            np.ndarray: Local symmetric gradient matrix of shape
-                (num_faces_of_cell, num_faces_of_cell).
-        """
-        dphi = self.scalar_discr.local_grads(coord, dim)
-        grad = spl.block_diag(*([dphi] * dim))
-        return c_volume * sym @ grad
-
-    def assemble_symgrad_symgrad_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+    def assemble_stiff_matrix_elasticity(
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Returns the symgrad-symgrad matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter
-        mu.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (Optional[dict]): Additional data, the Lame' parameter mu. Defaults to
-                None.
-
-        Returns:
-            sps.csc_array: Sparse symgrad-symgrad matrix of shape
-                (sd.num_nodes, sd.num_nodes).
-                The matrix obtained from the discretization.
-        """
-        if data is None:
-            mu = 1
-        else:
-            parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-            mu = parameter_dictionary.get("mu", 1)
-
-        coeff = 2 * mu
-        p0 = pg.PwConstants(self.keyword)
-
-        symgrad = self.assemble_symgrad_matrix(sd)
-        mass = p0.assemble_mass_matrix(sd)
-        tensor_mass = sps.block_diag([coeff * mass] * np.square(sd.dim)).tocsc()
-
-        return symgrad.T @ tensor_mass @ symgrad
-
-    def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix corresponding to the differential operator.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-            sps.csc_array: The differential matrix.
-        """
-        div = self.assemble_div_matrix(sd)
-        symgrad = self.assemble_symgrad_matrix(sd)
-
-        return sps.block_array([[symgrad], [div]]).tocsc()
-
-    def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
-    ) -> sps.csc_array:
-        """
-        Assembles the global stiffness matrix for the finite element method.
+        Assembles the elasticity matrix for the finite element method.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
-            data (Optional[dict]): Additional data required for the assembly process.
+            data (dict | None): Additional data required for the assembly process.
 
         Returns:
-            sps.csc_array: The assembled global stiffness matrix.
+            sps.csc_array: The assembled global elasticity matrix.
         """
-        # compute the two parts of the global stiffness matrix
-        sym_sym = self.assemble_symgrad_symgrad_matrix(sd, data)
-        div_div = self.assemble_div_div_matrix(sd, data)
+        # Compute the two parts of the global stiffness matrix
+        # We start with the symgrad-symgrad component
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        data_mu = pp.initialize_data({}, self.keyword, {pg.WEIGHT: 2 * mu})
 
-        # return the global stiffness matrix
-        return sym_sym + div_div
+        matp0 = pg.MatPwConstants(self.keyword)
+        mu_mass = matp0.assemble_mass_matrix(sd, data_mu)
+
+        symgrad = self.assemble_symgrad_matrix(sd)
+        sym_sym = symgrad.T @ mu_mass @ symgrad
+
+        # And now the div-div component
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
+        data_lambda = pp.initialize_data({}, self.keyword, {pg.WEIGHT: lambda_})
+
+        p0 = pg.PwConstants(self.keyword)
+        lambda_mass = p0.assemble_mass_matrix(sd, data_lambda)
+
+        div = self.assemble_div_matrix(sd)
+        div_div = div.T @ (lambda_mass) @ div
+
+        # Return the resulting matrix
+        return (sym_sym + div_div).tocsc()
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -390,11 +157,11 @@ class VecLagrange1(pg.VecDiscretization):
 
         Returns:
             Discretization: The discretization class that contains the range of
-                the differential.
+            the differential.
 
         Raises:
             NotImplementedError: If there is no range discretization for the vector
-                Lagrangian 1 in PyGeoN.
+            Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
@@ -407,83 +174,39 @@ class VecLagrange1(pg.VecDiscretization):
         data: dict,
     ) -> np.ndarray:
         """
-        Compute the stress tensor for a given displacement field.
+        Compute the stress tensor for a given displacement field at the cell centers as
+        a (3, 3, num_cells) tensor.
 
         Args:
             sd (pg.Grid): The spatial discretization object.
             u (ndarray): The displacement field.
             data (dict): Data for the computation including the Lame parameters accessed
-                with the keys "lambda" and "mu". Both float and np.ndarray are accepted.
+                with the keys pg.LAME_LAMBDA and pg.LAME_MU.
+                Both float and np.ndarray are accepted.
 
         Returns:
             ndarray: The stress tensor.
         """
-        # construct the differentials
+        # Construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
 
-        p0 = pg.PwConstants(self.keyword)
-        proj = p0.eval_at_cell_centers(sd)
+        matp0 = pg.MatPwConstants(self.keyword)
+        proj = matp0.eval_at_cell_centers(sd)
+        ident = matp0.assemble_trace_matrix(sd).T
 
-        # retrieve Lamé parameters
-        parameter_dictionary = data[pp.PARAMETERS][self.keyword]
-        mu = parameter_dictionary["mu"]
-        labda = parameter_dictionary["lambda"]
+        # Retrieve Lamé parameters
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
-        # compute the two terms and split on each component
-        sigma = np.array(np.split(2 * mu * symgrad @ u, np.square(sd.dim)))
-        sigma[:: (sd.dim + 1)] += labda * div @ u
+        mu = np.tile(mu, sd.dim**2)
+        lambda_ = np.tile(lambda_, sd.dim**2)
 
-        # compute the actual dofs
-        sigma = sigma @ proj
+        # Combine all the terms
+        sigma = 2 * mu * (symgrad @ u) + lambda_ * (ident @ div @ u)
 
-        # create the indices to re-arrange the components for the second
-        # order tensor
-        idx = np.arange(np.square(sd.dim)).reshape((sd.dim, -1), order="F")
-
-        return sigma[idx].T
-
-    def proj_to_pwLinears(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a vector Lagrangian function to a piecewise
-        vector linear function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.scalar_discr.proj_to_pwLinears(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
-    def proj_to_pwConstants(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a vector Lagrangian function to a piecewise
-        vector constant function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.scalar_discr.proj_to_pwConstants(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
-
-    def proj_to_lagrange2(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Construct the matrix for projecting a linear Lagrangian function to a second
-        order vector Lagrange function.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        proj = self.scalar_discr.proj_to_lagrange2(sd)
-        return sps.block_diag([proj] * sd.dim).tocsc()
+        # Reshape and return
+        return (proj @ sigma).reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
 
 
 class VecLagrange2(pg.VecDiscretization):
@@ -491,33 +214,28 @@ class VecLagrange2(pg.VecDiscretization):
     VecLagrange2 is a vector discretization class that extends the functionality of
     the pg.VecDiscretization base class. It utilizes the pg.Lagrange2 scalar
     discretization class for its operations.
-
-    Attributes:
-        scalar_discr (pg.Lagrange2): The scalar discretization class used for
-            vector discretization.
-
-        keyword (str): A keyword specifying the type of vector discretization.
-            Defaults to pg.UNITARY_DATA.
-
-    Methods:
-        __init__(keyword: str = pg.UNITARY_DATA) -> None:
-            Initializes the VecLagrange2 class with the specified keyword and
-            sets up the scalar discretization class.
     """
+
+    poly_order = 2
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The scalar discretization class is pg.Lagrange2.
+        The base discretization class is pg.Lagrange2.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
         """
-        self.scalar_discr: pg.Lagrange2
-        super().__init__(keyword, pg.Lagrange2)
+        super().__init__(keyword)
+        self.base_discr: pg.Lagrange2 = pg.Lagrange2(keyword)
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -527,12 +245,12 @@ class VecLagrange2(pg.VecDiscretization):
             dim (int): The dimension of the range.
 
         Returns:
-            Discretization: The discretization class that contains the range of
-                the differential.
+            Discretization: The discretization class that contains the range of the
+            differential.
 
         Raises:
             NotImplementedError: If there is no range discretization for the vector
-                Lagrangian 2 in PyGeoN.
+            Lagrangian 2 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 2 in PyGeoN"

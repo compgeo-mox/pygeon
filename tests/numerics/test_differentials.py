@@ -1,0 +1,62 @@
+"""Module contains tests to validate the differential operators."""
+
+import numpy as np
+import pytest
+import scipy.sparse as sps
+
+import pygeon as pg
+
+# It's not straightforward to concatenate parameterized fixtures, so we define a test
+# for each fixture.
+
+
+def check_cochain_property(sd: pg.Grid):
+    grad = pg.grad(sd)
+    curl = pg.curl(sd)
+    div = pg.div(sd)
+
+    curl_grad = curl @ grad
+    div_curl = div @ curl
+
+    assert curl_grad.nnz == 0
+    assert div_curl.nnz == 0
+
+
+def test_0d(ref_sd_0d):
+    check_cochain_property(ref_sd_0d)
+
+
+def test_cochain_unit_sd(unit_sd):
+    check_cochain_property(unit_sd)
+
+    # Make sure the zero maps have the appropriate shapes
+    zero = pg.numerics.differentials.exterior_derivative(unit_sd, 4)
+    assert np.allclose(zero.shape, (unit_sd.num_peaks, 0))
+
+    zero = pg.numerics.differentials.exterior_derivative(unit_sd, 0)
+    assert np.allclose(zero.shape, (0, unit_sd.num_cells))
+
+
+def test_cochain_unit_cart(unit_cart_sd):
+    check_cochain_property(unit_cart_sd)
+
+
+def test_cochain_mdg(mdg):
+    check_cochain_property(mdg)
+
+
+def test_wrong_type_exterior_derivative():
+    with pytest.raises(TypeError):
+        pg.grad([])
+
+
+def test_negative_nminusk_input(unit_sd_2d):
+    with pytest.warns():
+        pg.numerics.differentials.exterior_derivative(unit_sd_2d, -1)
+
+
+def test_as_bmat(mdg_embedded_frac_2d):
+    div = pg.div(mdg_embedded_frac_2d)
+    div_bmat = pg.div(mdg_embedded_frac_2d, as_bmat=True)
+
+    assert np.allclose((div - sps.bmat(div_bmat)).data, 0)

@@ -1,6 +1,7 @@
 """This module contains functions for computing the differential operators."""
 
-from typing import Union
+import warnings
+from typing import cast
 
 import numpy as np
 import porepy as pp
@@ -18,16 +19,17 @@ Acknowledgements:
 
 
 def div(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
 ) -> sps.csc_array:
     """
     Compute the divergence.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array. The divergence operator.
@@ -36,16 +38,17 @@ def div(
 
 
 def curl(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
 ) -> sps.csc_array:
     """
     Compute the curl.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array. The curl operator.
@@ -54,16 +57,17 @@ def curl(
 
 
 def grad(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid], **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
 ) -> sps.csc_array:
     """
     Compute the gradient.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
+        kwargs: Optional parameters:
+
+            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Default False.
 
     Returns:
         sps.csc_array. The gradient operator.
@@ -75,7 +79,7 @@ def grad(
 
 
 def exterior_derivative(
-    grid: Union[pg.Grid, pg.MortarGrid, pg.MixedDimensionalGrid],
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid,
     n_minus_k: int,
     **kwargs,
 ) -> sps.csc_array:
@@ -84,7 +88,7 @@ def exterior_derivative(
     order n - k.
 
     Args:
-        grid (pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid).
+        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
 
@@ -105,15 +109,15 @@ def exterior_derivative(
 
 
 def _g_exterior_derivative(
-    grid: Union[pg.Grid, pg.MortarGrid],
+    grid: pg.Grid | pg.MortarGrid,
     n_minus_k: int,
-    **kwargs,
+    **_kwargs,
 ) -> sps.csc_array:
     """
     Compute the exterior derivative on a grid.
 
     Args:
-        grid (pp.Grid or pp.MortarGrid): The grid.
+        grid (pg.Grid or pg.MortarGrid): The grid.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
 
@@ -125,13 +129,14 @@ def _g_exterior_derivative(
     elif n_minus_k == 1:
         derivative = grid.cell_faces.T
     elif n_minus_k == 2:
-        derivative = grid.face_ridges.T  # type: ignore[has-type]
+        derivative = grid.face_ridges.T
     elif n_minus_k == 3:
-        derivative = grid.ridge_peaks.T  # type: ignore[has-type]
+        derivative = grid.ridge_peaks.T
     elif n_minus_k == 4:
-        derivative = sps.csc_array((grid.num_peaks, 0))  # type: ignore[type-var, union-attr]
+        grid = cast(pg.Grid, grid)
+        derivative = sps.csc_array((grid.num_peaks, 0))
     else:
-        Warning("(n - k) is not between 0 and 4")
+        warnings.warn("(n - k) is not between 0 and 4")
         derivative = sps.csc_array((0, 0))
     return derivative
 
@@ -143,7 +148,7 @@ def _mdg_exterior_derivative(
     Compute the mixed-dimensional exterior derivative on a grid bucket.
 
     Args:
-        grid (pp.MixedDimensionalGrid): The grid bucket.
+        grid (pg.MixedDimensionalGrid): The grid bucket.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
         kwargs: Optional parameters
@@ -161,7 +166,8 @@ def _mdg_exterior_derivative(
 
     # Compute local differential operator
     for idx, sd in enumerate(mdg.subdomains()):
-        bmat[idx, idx] = exterior_derivative(sd, n_minus_k)  # type: ignore[arg-type]
+        sd = cast(pg.Grid, sd)
+        bmat[idx, idx] = exterior_derivative(sd, n_minus_k)
 
     # Compute mixed-dimensional jump operator
     for intf in mdg.interfaces():
@@ -172,14 +178,15 @@ def _mdg_exterior_derivative(
             node_nrs = [mdg.subdomains().index(sd) for sd in pair]
 
             # Place the jump term in the block-matrix
-            bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)  # type: ignore[arg-type]
+            intf = cast(pg.MortarGrid, intf)
+            bmat[node_nrs[1], node_nrs[0]] = exterior_derivative(intf, n_minus_k)
 
     pg.bmat.replace_nones_with_zeros(bmat)
     # remove the tips
     is_tip_dof = pg.numerics.restrictions.zero_tip_dofs(mdg, n_minus_k, **kwargs)
 
     if not as_bmat:
-        bmat_matrix = sps.block_array(bmat)  # type: ignore[call-overload]
+        bmat_matrix = sps.block_array(bmat)
         return bmat_matrix @ is_tip_dof
     else:
-        return bmat @ is_tip_dof
+        return pg.bmat.multiply(bmat, is_tip_dof)

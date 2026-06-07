@@ -1,6 +1,6 @@
 """Module for the discretizations of the H1 space."""
 
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -10,80 +10,31 @@ import pygeon as pg
 
 class VLagrange1(pg.Lagrange1):
     """
-    Discretization class for the VLagrange1 method.
-
-    Attributes:
-        keyword (str): The keyword for the discretization method.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of degrees of freedom associated to the method.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles and returns the mass matrix.
-
-        assemble_loc_mass_matrix(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Computes the local VEM mass matrix on a given cell.
-
-        assemble_loc_proj_to_mon(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Computes the local projection onto the monomials.
-
-        assemble_loc_L2proj_lhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Returns the system matrix G for the local L2 projection.
-
-        assemble_loc_L2proj_rhs(sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray)
-            -> np.ndarray:
-            Returns the righthand side B for the local L2 projection.
-
-        assemble_loc_monomial_mass(sd: pg.Grid, cell: int, diam: float) -> np.ndarray:
-            Computes the inner products of the monomials.
-
-        assemble_loc_dofs_of_monomials(sd: pg.Grid, cell: int, diam: float,
-            nodes: np.ndarray) -> np.ndarray:
-            Returns the matrix D for the local dofs of monomials.
-
-        assemble_stiff_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles and returns the stiffness matrix.
-
-        assemble_loc_stiff_matrix(sd: pg.Grid, cell: int, diam: float,
-            nodes: np.ndarray) -> np.ndarray:
-            Computes the local VEM stiffness matrix on a given cell.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Returns the differential mapping in the discrete cochain complex.
-
-        eval_at_cell_centers(sd: pg.Grid) -> sps.csc_array:
-            Evaluate the function at the cell centers of the given grid.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function over the given grid.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the 'natural' boundary condition.
+    Discretization class for the virtual Lagrange1 method.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.SCALAR
+    """Scalar-valued discretization"""
+
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The sparse mass matrix obtained from the discretization.
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Data allocation
         size = np.sum(np.square(cell_nodes.sum(0)))
@@ -136,8 +87,13 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Computes the local projection onto the monomials
-        Returns the coefficients {a_i} in a_0 + [a_1, a_2] dot (x - c) / d
+        Computes the local projection onto the monomials. Returns the coefficients
+        :math:`\\{a_i\\}` in the expansion
+
+        .. math::
+
+            a_0 + \\frac{1}{d}[a_1, a_2] \\cdot (x - c)
+
         for each VL1 basis function.
 
         Args:
@@ -158,7 +114,7 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the system G from the hitchhiker's (3.9)
+        Returns the system G from the Hitchhiker's (3.9)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -169,7 +125,6 @@ class VLagrange1(pg.Lagrange1):
         Returns:
             np.ndarray: The system matrix G.
         """
-
         G = sd.cell_volumes[cell] / (diam**2) * np.eye(3)
         G[0, 0] = 1
         G[0, 1:] = (
@@ -182,7 +137,7 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the righthand side B from the hitchhiker's (3.14)
+        Returns the righthand side B from the Hitchhiker's (3.14)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -208,8 +163,12 @@ class VLagrange1(pg.Lagrange1):
     ) -> np.ndarray:
         """
         Computes the inner products of the monomials
-        {1, (x - c)/d, (y - c)/d}
-        Hitchhiker's (5.3)
+
+        .. math::
+
+            \\left\\{1, \\frac{x - c}{d}, \\frac{y - c}{d}\\right\\}
+
+        Reference: Hitchhiker's (5.3)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -247,7 +206,7 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the matrix D from the hitchhiker's (3.17)
+        Returns the matrix D from the Hitchhiker's (3.17)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -267,21 +226,21 @@ class VLagrange1(pg.Lagrange1):
         return D
 
     def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the stiffness matrix.
 
         Args:
             sd (pg.Grid): The grid.
-            data (Optional[dict]): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The stiffness matrix obtained from the discretization.
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         # Data allocation
         size = np.sum(np.square(cell_nodes.sum(0)))

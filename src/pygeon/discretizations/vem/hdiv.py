@@ -1,6 +1,6 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import porepy as pp
@@ -14,41 +14,13 @@ class VRT0(pg.RT0):
     VRT0 class for virtual lowest order Raviart-Thomas discretization.
 
     Each degree of freedom is the integral over a mesh face.
-
-    Args:
-        keyword (str): The keyword for the discretization.
-
-    Attributes:
-        keyword (str): The keyword for the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of faces.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped mass matrix.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the matrix.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-        Assembles the natural boundary condition term.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
     """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
@@ -56,6 +28,7 @@ class VRT0(pg.RT0):
 
         Args:
             keyword (str): The keyword for the discretization.
+                Default is pg.UNITARY_DATA.
 
         Returns:
             None
@@ -66,21 +39,24 @@ class VRT0(pg.RT0):
         self.ref_discr = pp.MVEM
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the mass matrix
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
-            data (Optional[dict]): Optional dictionary with physical parameters for
+            data (dict | None): Optional dictionary with physical parameters for
                 scaling.
 
         Returns:
             sps.csc_array: The mass matrix.
         """
-        # create unitary data, unitary permeability, in case not present
-        data = VRT0.create_unitary_data(self.keyword, sd, data)
+        perm = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
+        )
+        data = data if data is not None else {}
+        data = pp.initialize_data(data, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         # perform the mvem discretization
         discr = self.ref_discr(self.keyword)
@@ -99,7 +75,8 @@ class VRT0(pg.RT0):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        data = VRT0.create_unitary_data(self.keyword, sd, None)
+        perm = pg.get_cell_data(sd, {}, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX)
+        data = pp.initialize_data({}, self.keyword, {pg.SECOND_ORDER_TENSOR: perm})
 
         discr = self.ref_discr(self.keyword)
         discr.discretize(sd, data)
@@ -117,48 +94,23 @@ class VBDM1(pg.BDM1):
     It provides methods for assembling the mass matrix, projecting to VRT0 space,
     assembling the differential matrix, evaluating at cell centers, interpolating
     a function, assembling the natural boundary condition term, and more.
-
-    Attributes:
-        keyword (str): The keyword associated with the discretization.
-
-    Methods:
-        ndof(sd: pg.Grid) -> int:
-            Returns the number of faces time the dimension.
-
-        assemble_mass_matrix(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the mass matrix.
-
-        assemble_lumped_matrix(sd: pg.Grid, data: Optional[dict] = None)
-            -> sps.csc_array:
-            Assembles the lumped mass matrix.
-
-        assemble_diff_matrix(sd: pg.Grid) -> sps.csc_array:
-            Assembles the matrix corresponding to the differential operator.
-
-        interpolate(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray])
-            -> np.ndarray:
-            Interpolates a function onto the finite element space.
-
-        eval_at_cell_centers(sd: pg.Grid, data: Optional[dict] = None) -> sps.csc_array:
-            Assembles the matrix.
-
-        assemble_nat_bc(sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray],
-            b_faces: np.ndarray) -> np.ndarray:
-            Assembles the natural boundary condition term.
-
-        get_range_discr_class(dim: int) -> pg.Discretization:
-            Returns the range discretization class for the given dimension.
     """
 
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
     def assemble_mass_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
         Computes the mass matrix for the Virtual Element Method (VEM).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            data (Optional[dict]): Optional data dictionary.
+            data (dict | None): Optional data dictionary.
 
         Returns:
             sps.csc_array: The assembled mass matrix.
@@ -180,7 +132,7 @@ class VBDM1(pg.BDM1):
         disc_VL1 = pg.VLagrange1(pg.UNITARY_DATA)
 
         tangents = sd.nodes @ sd.face_ridges
-        cell_diams = sd.cell_diameters(cell_nodes)
+        cell_diams = sd.cell_diameters()
 
         for cell, diam in enumerate(cell_diams):
             cell_col = np.array([cell])
@@ -320,8 +272,8 @@ class VBDM1(pg.BDM1):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        p1 = pg.Lagrange1(self.keyword)
-        local_mass = p1.local_mass(sd.dim - 1)
+        p1 = pg.PwLinears(self.keyword)
+        local_mass = p1.assemble_local_mass(sd.dim - 1)
 
         dof = self.get_dof_enumeration(sd)
         vals = np.zeros(self.ndof(sd))
@@ -351,14 +303,14 @@ class VBDM1(pg.BDM1):
         return dof
 
     def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: Optional[dict] = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid for which the lumped matrix is assembled.
-            data (Optional[dict]): Optional data required for the assembly.
+            data (dict | None): Optional data required for the assembly.
 
         Returns:
             sps.csc_array: The assembled lumped matrix.
