@@ -16,8 +16,8 @@ from pygeon.numerics.linear_system import create_restriction
 
 class Poincare:
     """
-    Class for generating Poincaré operators p
-    that satisfy :math:`pd + dp = I`
+    Class for generating Poincaré operators p and q
+    that satisfy :math:`pd + dp + q = I`
     with d the exterior derivative, following
     the construction from https://arxiv.org/abs/2410.08830
     """
@@ -35,19 +35,18 @@ class Poincare:
 
         self.check_grid_admissibility()
 
-        self.bar_spaces, self.zer_spaces, self.hom_spaces = self.define_subspaces()
+        self.define_subspaces()
         self.zero_out_tips()
 
-        self.hom_basis, self.cycles = self.define_cohomology_spaces()
-        self.check_cohomology()
+        self.initialize_cohomology_spaces()
+        self.compute_cohomology()
 
-    def define_subspaces(self) -> Tuple:
+    def define_subspaces(self) -> None:
         """
-        Flag the mesh entities that will be used to generate the Poincaré operators
+        Flags the mesh entities that will be used to generate the Poincaré operators
         """
         # Preallocation
         bar_spaces = [None] * (self.dim + 1)
-        zer_spaces = [None] * (self.dim + 1)
 
         # Cells
         bar_spaces[self.dim] = np.zeros(self.mdg.num_subdomain_cells(), dtype=bool)
@@ -62,32 +61,33 @@ class Poincare:
         # Nodes
         bar_spaces[0] = self.flag_nodes()
 
-        # Define the complementary sets
-        zer_spaces[:] = [~bar for bar in bar_spaces]
-        hom_spaces = [np.zeros_like(bar) for bar in bar_spaces]
-
-        return bar_spaces, zer_spaces, hom_spaces
-
-    def define_cohomology_spaces(self):
-        hom_basis = [np.zeros((bar.size, 0)) for bar in self.bar_spaces]
-        cycles = [sps.csc_array((bar.size, 0), dtype=int) for bar in self.bar_spaces]
-
-        return cycles, hom_basis
+        # Save as an attribute and define the complementary sets
+        self.bar_spaces = bar_spaces
+        self.zer_spaces = [~bar for bar in bar_spaces]
+        self.hom_spaces = [np.zeros_like(bar) for bar in bar_spaces]
 
     def zero_out_tips(self) -> None:
+        """
+        Fracture tips are essential bcs and should be removed from the problem. They
+        therefore do not occur in the bar space nor the zero space.
+        """
         tip_ridges = np.concatenate(
             [sd.tags["tip_ridges"] for sd in self.mdg.subdomains()]
         )
         self.bar_spaces[self.dim - 2][tip_ridges] = False
-
-        assert np.all(self.zer_spaces[self.dim - 2][tip_ridges] == False)
+        assert not np.any(self.zer_spaces[self.dim - 2][tip_ridges])
 
         tip_faces = np.concatenate(
             [sd.tags["tip_faces"] for sd in self.mdg.subdomains()]
         )
-
-        assert np.all(self.bar_spaces[self.dim - 1][tip_faces] == False)
+        assert not np.any(self.bar_spaces[self.dim - 1][tip_faces])
         self.zer_spaces[self.dim - 1][tip_faces] = False
+
+    def initialize_cohomology_spaces(self) -> None:
+        self.hom_basis = [np.zeros((bar.size, 0)) for bar in self.bar_spaces]
+        self.cycles = [
+            sps.csc_array((bar.size, 0), dtype=int) for bar in self.bar_spaces
+        ]
 
     def flag_edges_3d(self, keep_node=None) -> np.ndarray:
         """
@@ -154,7 +154,7 @@ class Poincare:
             ]
         )
 
-    def check_cohomology(self):
+    def compute_cohomology(self):
         self.compute_face_cohomology()
 
         dim_diff = self.get_subspace_dim_differences()
@@ -176,7 +176,7 @@ class Poincare:
 
     def compute_node_cohomology(self):
         self.hom_spaces[0] = self.zer_spaces[0].copy()
-        self.zer_spaces[0] *= False
+        self.zer_spaces[0] &= False
 
         cycle = np.atleast_2d(self.hom_spaces[0]).T
         self.cycles[0] = sps.csc_array(cycle, dtype=int)
@@ -476,6 +476,8 @@ class Poincare:
 
         coeffs = spla.null_space(G.round())
 
+        coeffs /= np.min(np.abs(coeffs[coeffs != 0]))
+
         assert np.allclose(coeffs, coeffs.round()), "Non-integer coefficients?"
 
         return coeffs
@@ -513,7 +515,7 @@ class Poincare:
 
         self.hom_basis[k] = cycles - pdc - dpc
 
-    def hom_projection(self, k: int, f: np.ndarray) -> np.ndarray:
+    def cohom_projection(self, k: int, f: np.ndarray) -> np.ndarray:
         if not np.any(self.hom_spaces[k]):
             return np.zeros_like(f)
 
@@ -544,14 +546,14 @@ class Poincare:
         """
         # Nodes to the constants
         if k == 0:
-            return np.full_like(f, np.mean(f))
+            return np.zeros_like(f)
 
         # For k > 0, we simply apply the operator
         pf = self._apply_op(k, f, solver)
 
         # For the edge-to-node map, we subtract the mean
-        if k == 1:
-            pf -= np.mean(pf)
+        # if k == 1:
+        #     pf -= np.mean(pf)
 
         return pf
 
@@ -611,7 +613,7 @@ class Poincare:
         dpf = np.reshape(dpf, f.shape)
 
         if with_cohomology:
-            qf = self.hom_projection(k, f)
+            qf = self.cohom_projection(k, f)
             return pdf, dpf, qf
         else:
             return pdf, dpf
@@ -675,4 +677,8 @@ class Poincare:
 
         proj = self.solve_subproblem(k - 1, A, b)
 
-        return self.hom_basis[k] - D @ proj
+        orth = self.hom_basis[k] - D @ proj
+
+        norms = np.array([v.T @ Mass @ v for v in orth.T])
+
+        return orth / norms
