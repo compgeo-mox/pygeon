@@ -233,7 +233,7 @@ class SpanningTree:
         Returns:
             np.ndarray: The post-processed pressure field
         """
-        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")  # type: ignore[call-overload]
+        return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
 
 class SpanningTreeElasticity(SpanningTree):
