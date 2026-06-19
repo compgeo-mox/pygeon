@@ -7,7 +7,7 @@ myst-parser>=5.1.0
 
 # For autodoc to work properly
 numpy>=2.4.6
-scipy>=1.17.1
+scipy>=1.18.0
 
 # Optional but useful for documentation
 sphinx-autodoc-typehints>=3.11.0
