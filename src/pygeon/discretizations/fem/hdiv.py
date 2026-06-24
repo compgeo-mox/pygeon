@@ -78,13 +78,13 @@ class RT0(pg.Discretization):
             if sd.dim < 3:
                 D_inv = D_inv.copy()
                 D_inv.rotate(R)
-                remove_dim = np.where(np.logical_not(dim))[0]
+                remove_dim = np.where(np.logical_not(dim))[0].astype(int)
                 D_inv.values = np.delete(D_inv.values, (remove_dim), axis=0)
                 D_inv.values = np.delete(D_inv.values, (remove_dim), axis=1)
 
                 V = V.copy()
                 V = R @ V
-                remove_dim = np.where(np.logical_not(dim))[0]
+                remove_dim = np.where(np.logical_not(dim))[0].astype(int)
                 V = np.delete(V, remove_dim, axis=0)
 
         # Allocate the data to store matrix A entries
@@ -211,8 +211,8 @@ class RT0(pg.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
+        if np.asarray(b_faces).dtype == "bool":
+            b_faces = np.where(b_faces)[0].astype(int)
 
         vals = np.zeros(self.ndof(sd))
 
@@ -381,8 +381,8 @@ class BDM1(pg.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
+        if np.asarray(b_faces).dtype == "bool":
+            b_faces = np.where(b_faces)[0].astype(int)
 
         p1 = pg.PwLinears(self.keyword)
         local_mass = p1.assemble_local_mass(sd.dim - 1)

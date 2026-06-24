@@ -71,7 +71,7 @@ class VoronoiGrid(pg.Grid):
                 vor.vertices = np.vstack((vor.vertices, far_pt))
 
                 # add the far point to the list of ridge vertices
-                mask = np.where(simplex < 0)[0][0]
+                mask = int(np.where(simplex < 0)[0][0])
                 vor.ridge_vertices[idx][mask] = vor.vertices.shape[0] - 1
 
                 # add the far point to the list of connected points

@@ -102,7 +102,7 @@ class Lagrange1(pg.Discretization):
             if sd.dim < 3:
                 V = V.copy()
                 V = R @ V
-                remove_dim = np.where(np.logical_not(dim))[0]
+                remove_dim = np.where(np.logical_not(dim))[0].astype(int)
                 V = np.delete(V, remove_dim, axis=0)
 
         # Allocate the data to store matrix entries, that's the most efficient
@@ -267,8 +267,8 @@ class Lagrange1(pg.Discretization):
         Returns:
             np.ndarray: The assembled 'natural' boundary condition values.
         """
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
+        if np.asarray(b_faces).dtype == "bool":
+            b_faces = np.where(b_faces)[0].astype(int)
 
         vals = np.zeros(self.ndof(sd))
 
@@ -513,7 +513,7 @@ class Lagrange2(pg.Discretization):
             case 3:
                 # We first find the edges adjacent to the local faces
                 cell_edges = abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
-                edge_inds = np.where(cell_edges)[0]
+                edge_inds = np.where(cell_edges)[0].astype(int)
 
                 # Experimentally, we always find the following numbering
                 edges = edge_inds[[5, 4, 2, 3, 1, 0]]
@@ -747,8 +747,8 @@ class Lagrange2(pg.Discretization):
             )
 
         # 2D and 3D
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
+        if np.asarray(b_faces).dtype == "bool":
+            b_faces = np.where(b_faces)[0].astype(int)
 
         vals = np.zeros(self.ndof(sd))
 
