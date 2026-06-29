@@ -220,7 +220,9 @@ class Poincare:
 
     def prune_graph(self, incidence, dim):
         incidence = incidence.copy()
-        for _ in np.arange(100):
+        for _ in np.arange(incidence.shape[0]):
+            incidence.eliminate_zeros()
+
             n_edges_of_node = incidence.astype(bool).sum(axis=0)
             incidence *= n_edges_of_node > 1
 
@@ -231,7 +233,7 @@ class Poincare:
             if np.all(keep_edge):
                 break
         else:
-            raise RuntimeError("Could not prune graph to a surface in 100 iterations")
+            raise RuntimeError("Could not prune graph to a surface.")
 
         # The remaining faces form a closed surface
         return np.abs(incidence).sum(axis=1).astype(bool)
@@ -515,6 +517,15 @@ class Poincare:
 
         self.hom_basis[k] = cycles - pdc - dpc
 
+        # Following block is equivalent, but consistent with the paper
+        # hom_spaces = np.zeros_like(self.cycles[k].todense())
+        # hom_spaces[np.where(self.hom_spaces[k])[0], np.arange(hom_spaces.shape[1])] = 1
+        # hom_spaces *= np.abs(self.cycles[k]).sum(axis=0)
+        # hom_spaces *= cycles
+        # pdc, _ = self.decompose(k, hom_spaces, False)
+
+        # self.hom_basis[k] = hom_spaces - pdc
+
     def cohom_projection(self, k: int, f: np.ndarray) -> np.ndarray:
         if not np.any(self.hom_spaces[k]):
             return np.zeros_like(f)
@@ -603,7 +614,7 @@ class Poincare:
             df = diff(self.mdg, n_minus_k) @ f
             pdf = self.apply(k + 1, df)
 
-        if k == 0:
+        if k == 0:  # then pf = 0
             dpf = self.apply(k, f)
         else:
             pf = self.apply(k, f)
@@ -666,7 +677,10 @@ class Poincare:
 
         return char
 
-    def orthogonalize_cohomology_basis(self, k, Mass=None):
+    def orthogonalize_cohomology_basis(self, k, Mass=None) -> np.ndarray:
+        if k == 0:
+            return self.hom_basis[k]
+
         D = diff(self.mdg, self.dim - k + 1)
 
         if Mass is None:
