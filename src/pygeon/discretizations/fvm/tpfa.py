@@ -65,7 +65,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
     def assemble_accumulation_terms(
         self, sd: pg.Grid, _data: dict | None
     ) -> sps.csc_array:
-        """
+        r"""
         Assemble accumulation terms such as the storativity $S_0 \partial_t p$.
 
         For now, this is zero, but it can be overwritten by a child class.

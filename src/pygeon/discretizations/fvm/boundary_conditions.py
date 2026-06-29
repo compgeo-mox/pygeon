@@ -128,7 +128,7 @@ class ElasticityBC(FiniteVolumeBC):
         indices: np.ndarray | None = None,
         u_0: np.ndarray | None = None,
     ) -> None:
-        """
+        r"""
         Set spring boundary conditions, cf. Appendix A2.21 in Nordbotten and
         Keilegavlen (2025), https://doi.org/10.1016/j.camwa.2025.07.035:
         $n \cdot \sigma = 2 / \mathrm{dists} \,(u_0 - u)$.
@@ -195,7 +195,7 @@ class FlowBC(FiniteVolumeBC):
         indices: np.ndarray | None = None,
         p_0: np.ndarray | None = None,
     ) -> None:
-        """
+        r"""
         Set Robin boundary conditions:
         $n \cdot q = (p - p_0) / \mathrm{dists}$.
 
