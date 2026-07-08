@@ -93,6 +93,10 @@ class VecLagrange1(pg.VecDiscretization):
         Returns:
              sps.csc_array: The evaluation matrix.
         """
+        # Avoid division by zero for 0D grids (and handle the no-dof case consistently).
+        if sd.dim == 0 or self.ndof(sd) == 0:
+            return sps.csc_array((pg.AMBIENT_DIM, 0))
+
         Pi = super().eval_at_cell_centers(sd)
 
         # We need to map back from reference to physical coordinates
