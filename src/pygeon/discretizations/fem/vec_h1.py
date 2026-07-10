@@ -83,6 +83,27 @@ class VecLagrange1(pg.VecDiscretization):
         super().__init__(keyword)
         self.base_discr = pg.Lagrange1(keyword)
 
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the matrix for evaluating the discretization at the cell centers.
+
+        Args:
+            sd (pg.Grid): Grid object or a subclass.
+
+        Returns:
+             sps.csc_array: The evaluation matrix.
+        """
+        # Avoid division by zero for 0D grids (and handle the no-dof case consistently).
+        if sd.dim == 0 or self.ndof(sd) == 0:
+            return sps.csc_array((pg.AMBIENT_DIM, 0))
+
+        Pi = super().eval_at_cell_centers(sd)
+
+        # We need to map back from reference to physical coordinates
+        R = sps.kron(sd.rotation_matrix.T, sps.eye_array(Pi.shape[0] // sd.dim), "csc")
+
+        return (R @ Pi).tocsc()
+
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the div matrix operator for the lowest order vector Lagrange element

@@ -17,6 +17,18 @@ def test_ndof(discr, unit_sd):
     assert discr.ndof(unit_sd) == unit_sd.dim * unit_sd.num_nodes
 
 
+def test_interpolate_and_evaluate(discr, unit_sd):
+    func = lambda x: np.array([x[0] ** discr.poly_order] * pg.AMBIENT_DIM)
+
+    known_vals = func(unit_sd.cell_centers)
+    known_vals[unit_sd.dim :] = 0
+
+    interp = discr.interpolate(unit_sd, func)
+    proj = discr.eval_at_cell_centers(unit_sd)
+
+    assert np.allclose((proj @ interp).reshape((pg.AMBIENT_DIM, -1)), known_vals)
+
+
 def test_div_matrix(discr, ref_sd):
     D = discr.assemble_div_matrix(ref_sd)
 
