@@ -177,3 +177,4 @@ nbproject/
 *.py_o
 *.txt
 pygeon.code-workspace
+gmsh_frac_file.geo_unrolled.xao
