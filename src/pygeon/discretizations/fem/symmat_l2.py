@@ -97,8 +97,8 @@ class SymMatPwPolynomials(pg.Discretization):
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the projection matrix :math:`\\text{sym}(\\sigma)
-        = \\frac{1}{2}(\\sigma + \\sigma^T)` from the full matrix-valued piecewise
-        polynomial space to the symmetric matrix-valued piecewise polynomial space.
+        = \\frac{1}{2}(\\sigma + \\sigma^T)` from the full :class:`MatPwPolynomials`
+        space to the :class:`SymMatPwPolynomials` space.
         Off-diagonal entries are averaged: sym_{ij} = (full_{ij} + full_{ji}) / 2.
         This is the left inverse of proj_to_PwPolynomials, meaning that
         assemble_symmetrizing_matrix @ proj_to_PwPolynomials = I

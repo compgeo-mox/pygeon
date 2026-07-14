@@ -37,9 +37,15 @@ class VecDiscretization(pg.Discretization):
         """
         Assembles and returns the mass matrix.
 
-        The matrix represents the block-diagonal bilinear form
-        :math:`(u, v)_\\Omega` for each vector component, optionally
-        weighted by physical parameters.
+        For a vector discretization space :math:`V_h^d` (with :math:`d` the
+        space dimension), the matrix represents the block-diagonal bilinear form
+
+        .. math::
+
+            (u, v)_\\Omega, \\quad u, v \\in V_h^d,
+
+        for each vector component independently, optionally weighted by physical
+        parameters. Both domain and range lie in :math:`V_h^d`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -56,7 +62,8 @@ class VecDiscretization(pg.Discretization):
         Assembles the matrix corresponding to the differential operator.
 
         The matrix :math:`D` is the block-diagonal version of the scalar
-        differential operator, applied component-wise.
+        differential operator (from :attr:`base_discr`), applied
+        component-wise from :math:`V_h^d` to its range space :math:`W_h^d`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -73,7 +80,8 @@ class VecDiscretization(pg.Discretization):
         """
         Assembles the stiffness matrix, given by :math:`B^T A B` applied
         block-diagonally to each vector component, where :math:`B` is the
-        differential matrix and :math:`A` is the range mass matrix.
+        differential matrix (from :math:`V_h^d` to :math:`W_h^d`) and
+        :math:`A` is the range mass matrix of :math:`W_h^d`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -91,7 +99,8 @@ class VecDiscretization(pg.Discretization):
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         The lumped matrix is a diagonal approximation of the block-diagonal
-        mass matrix, computed component-wise from the scalar base discretization.
+        mass matrix :math:`(u, v)_\\Omega,\\ u, v \\in V_h^d`, computed
+        component-wise from the scalar base discretization (:attr:`base_discr`).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -155,7 +164,8 @@ class VecDiscretization(pg.Discretization):
         """
         Assembles the natural boundary condition vector
         :math:`(\\boldsymbol{v} \\cdot \\boldsymbol{n}, g)_{\\partial\\Omega}`,
-        applied component-wise using the scalar base discretization.
+        applied component-wise using the scalar base discretization
+        (:attr:`base_discr`). The result is a vector in the dual of :math:`V_h^d`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -177,9 +187,10 @@ class VecDiscretization(pg.Discretization):
         Assembles the broken, element-wise divergence operator.
         This operator is only implemented for vector-valued functions.
 
-        The broken divergence :math:`\\nabla_h \\cdot` acts element-wise,
-        mapping from the vector finite element space to the scalar piecewise
-        polynomial space.
+        The broken divergence :math:`\\nabla_h \\cdot` acts element-wise on
+        functions in the vector finite element space :math:`V_h^d`, mapping
+        to the scalar piecewise polynomial space. See :attr:`base_discr` for
+        the underlying scalar space.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -201,9 +212,10 @@ class VecDiscretization(pg.Discretization):
         Assembles the broken, element-wise curl operator.
         This operator is only implemented for vector-valued functions.
 
-        The broken curl :math:`\\nabla_h \\times` acts element-wise,
-        mapping from the vector finite element space to the skew-symmetric
-        part of the piecewise polynomial space.
+        The broken curl :math:`\\nabla_h \\times` acts element-wise on functions
+        in the vector finite element space :math:`V_h^d`, mapping to the
+        skew-symmetric part of the piecewise polynomial space. See
+        :attr:`base_discr` for the underlying scalar space.
 
         Args:
             sd (pg.Grid): The grid object.

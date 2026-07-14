@@ -28,8 +28,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the mass matrix :math:`(K^{-1} u, v)_\\Omega` using the scalar and
-        tensor weights in data, where :math:`K^{-1}` is the second-order tensor.
+        Assembles the mass matrix :math:`(K^{-1} u, v)_\\Omega` using the
+        scalar and tensor weights in data, where :math:`K^{-1}` is the
+        second-order tensor and :math:`u, v` are in :class:`VecPwPolynomials`
+        (vector L2). Both domain and range lie in :class:`VecPwPolynomials`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -47,7 +49,8 @@ class VecPwPolynomials(pg.VecDiscretization):
     ) -> sps.csc_array:
         """
         Assembles the lumped mass matrix, which is a diagonal approximation of
-        :math:`(K^{-1} u, v)_\\Omega`, using the scalar and tensor weights in data.
+        :math:`(K^{-1} u, v)_\\Omega` for :class:`VecPwPolynomials` (vector L2),
+        using the scalar and tensor weights in data.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -266,7 +269,9 @@ class VecPwPolynomials(pg.VecDiscretization):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken (element-wise) gradient matrix for the given grid,
-        computing :math:`\\nabla_h u` element-wise for each vector component.
+        computing :math:`\\nabla_h u` element-wise for each vector component of
+        :math:`u \\in` :class:`VecPwPolynomials`. The result lands in the
+        corresponding matrix-valued piecewise polynomial space.
 
         Args:
             sd (pg.Grid): The grid or a subclass.

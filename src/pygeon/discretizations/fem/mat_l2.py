@@ -235,7 +235,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles and returns the trace matrix :math:`\\text{Tr}(\\sigma)` for the
-        matrix-valued piecewise polynomials, extracting the trace of the matrix field.
+        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
+        polynomials to scalar piecewise polynomials by extracting the trace
+        of the matrix field.
 
         Args:
             sd (pg.Grid): The grid.
@@ -259,7 +261,8 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         """
         Assembles and returns the skew-symmetry (asymmetry) matrix
         :math:`\\text{skw}(\\sigma) = \\frac{1}{2}(\\sigma - \\sigma^T)` for the
-        matrix-valued piecewise polynomials.
+        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
+        polynomials to the skew-symmetric part.
 
         Args:
             sd (pg.Grid): The grid.

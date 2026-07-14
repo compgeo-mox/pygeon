@@ -146,8 +146,13 @@ class Lagrange1(pg.Discretization):
         """
         Assembles the differential matrix based on the dimension of the grid.
 
-        The differential corresponds to the (co-)gradient operator :math:`d`, mapping
-        from the nodal Lagrange space (H1) to the appropriate range space.
+        The differential corresponds to the (co-)gradient operator :math:`d`,
+        mapping from :class:`Lagrange1` (H1, nodal dofs at vertices) to the
+        appropriate range space:
+
+        - 3D: :class:`~pygeon.Nedelec0` (H(curl), edge dofs)
+        - 2D: :class:`~pygeon.RT0` (H(div), face dofs)
+        - 1D: :class:`~pygeon.PwConstants` (L2, cell dofs)
 
         Args:
             sd (pg.Grid): The grid object.
@@ -260,7 +265,9 @@ class Lagrange1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
-        :math:`(u, g)_{\\partial\\Omega}` with :math:`u` a test function in Lagrange1
+        :math:`(u, g)_{\\partial\\Omega}` with :math:`u` a test function in
+        :class:`Lagrange1` and :math:`g` the prescribed Neumann datum.
+        The result is a vector in the dual of :class:`Lagrange1`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -586,8 +593,9 @@ class Lagrange2(pg.Discretization):
         """
         Assembles the differential matrix based on the dimension of the grid.
 
-        The differential corresponds to the (co-)gradient operator :math:`d`, mapping
-        from the Lagrange2 (H1) space to the Nedelec1 (H(curl)) space.
+        The differential corresponds to the (co-)gradient operator :math:`d`,
+        mapping from :class:`Lagrange2` (H1, dofs at nodes and edge midpoints)
+        to the :class:`~pygeon.Nedelec1` (H(curl)) space.
 
         Args:
             sd (pg.Grid): The grid object.

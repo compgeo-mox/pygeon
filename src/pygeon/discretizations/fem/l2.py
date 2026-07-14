@@ -63,8 +63,10 @@ class PwPolynomials(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Computes the mass matrix :math:`(u, v)_\\Omega` for piecewise polynomials,
-        optionally scaled by a weight :math:`\\sigma` from data.
+        Computes the mass matrix :math:`(u, v)_\\Omega` for piecewise
+        polynomials in :class:`PwPolynomials` (L2 space), optionally scaled
+        by a weight :math:`\\sigma` from data. Both domain and range lie in
+        :class:`PwPolynomials`.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -88,7 +90,8 @@ class PwPolynomials(pg.Discretization):
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid, which is a diagonal
-        approximation of the mass matrix :math:`(u, v)_\\Omega`.
+        approximation of the mass matrix :math:`(u, v)_\\Omega` for
+        :class:`PwPolynomials` (L2 space).
 
         Args:
             sd (pg.Grid): The grid object.
@@ -130,8 +133,8 @@ class PwPolynomials(pg.Discretization):
         Assembles the broken (element-wise) gradient matrix for the given grid.
         This method should be implemented in the child class.
 
-        The broken gradient :math:`\\nabla_h` maps from the piecewise polynomial
-        space to the vector piecewise polynomial space of one lower order.
+        The broken gradient :math:`\\nabla_h` maps from the :class:`PwPolynomials`
+        space (L2) to the vector piecewise polynomial space of one lower order.
 
         Args:
             sd (pg.Grid): The grid or a subclass.

@@ -106,8 +106,10 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the divergence matrix :math:`\\nabla \\cdot u` operator for the lowest
-        order vector Lagrange element.
+        Returns the divergence matrix operator
+        :math:`\\nabla \\cdot u` for :math:`u \\in` :class:`VecLagrange1`
+        (vector H1, dofs at nodes), mapping to :class:`~pygeon.PwConstants`
+        (L2, one dof per cell).
 
         Args:
             sd (pg.Grid): The grid object.
@@ -120,8 +122,10 @@ class VecLagrange1(pg.VecDiscretization):
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the symmetric gradient matrix operator
-        :math:`\\varepsilon(u) = \\frac{1}{2}(\\nabla u + \\nabla u^T)` for the lowest
-        order vector Lagrange element.
+        :math:`\\varepsilon(u) = \\frac{1}{2}(\\nabla u + \\nabla u^T)` for
+        :math:`u \\in` :class:`VecLagrange1` (vector H1), mapping to
+        :class:`~pygeon.MatPwConstants` (symmetric matrix-valued piecewise
+        constants).
 
         Args:
             sd (pg.Grid): The grid object representing the domain.
@@ -138,7 +142,8 @@ class VecLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the linear elasticity stiffness matrix
+        Assembles the linear elasticity stiffness matrix for
+        :math:`u \\in` :class:`VecLagrange1` (vector H1):
 
         .. math::
 
@@ -146,6 +151,7 @@ class VecLagrange1(pg.VecDiscretization):
             + \\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega
 
         where :math:`\\mu` and :math:`\\lambda` are the Lamé parameters.
+        Both trial and test functions are in :class:`VecLagrange1`.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.

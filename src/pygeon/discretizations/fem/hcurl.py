@@ -60,7 +60,8 @@ class Nedelec0(pg.Discretization):
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         The lumped matrix is a diagonal approximation of the mass matrix
-        :math:`(u, v)_\\Omega` for the H(curl) space.
+        :math:`(u, v)_\\Omega` for :class:`Nedelec0` (H(curl), edge dofs).
+        Both domain and range lie in :class:`Nedelec0`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -77,7 +78,10 @@ class Nedelec0(pg.Discretization):
         Assembles the differential matrix for the given grid.
 
         The differential corresponds to the curl operator :math:`\\nabla \\times`,
-        mapping from the H(curl) space to the H(div) space.
+        mapping from :class:`Nedelec0` (H(curl), edge dofs) to:
+
+        - 3D: :class:`~pygeon.RT0` (H(div), face dofs)
+        - 2D: :class:`~pygeon.PwConstants` (L2, cell dofs)
 
         Args:
             sd (pg.Grid): The grid for which the differential matrix is assembled.
@@ -102,7 +106,7 @@ class Nedelec0(pg.Discretization):
         Assembles the natural boundary condition matrix for the given grid and function.
 
         The natural boundary condition corresponds to the tangential trace of
-        :math:`u \\times n` on the boundary.
+        :math:`u \\times n` on the boundary for :class:`Nedelec0` (H(curl)).
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -290,7 +294,9 @@ class Nedelec1(pg.Discretization):
         Assembles the differential matrix for the H(curl) finite element space.
 
         The differential corresponds to the curl operator :math:`\\nabla \\times`,
-        mapping from the Nedelec1 space to the H(div) space.
+        mapping from :class:`Nedelec1` (H(curl), two dofs per edge) to the
+        same range as :class:`Nedelec0` (i.e. :class:`~pygeon.RT0` in 3D
+        or :class:`~pygeon.PwConstants` in 2D).
 
         Args:
             sd (pg.Grid): The grid on which the finite element space is defined.
@@ -335,7 +341,7 @@ class Nedelec1(pg.Discretization):
             boundary faces.
 
         The natural boundary condition corresponds to the tangential trace of
-        :math:`u \\times n` on the boundary for the Nedelec1 space.
+        :math:`u \\times n` on the boundary for the :class:`Nedelec1` space.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the natural boundary condition.

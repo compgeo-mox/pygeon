@@ -49,8 +49,9 @@ class VecHDiv(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the elasticity inner product matrix, which is given by
-        :math:`(A \\sigma, \\tau)` where
+        Assembles and returns the elasticity inner product matrix for
+        :math:`\\sigma \\in` :class:`VecHDiv` (matrix-valued H(div)), which is
+        given by :math:`(A \\sigma, \\tau)_\\Omega` where
 
         .. math::
 
@@ -63,7 +64,8 @@ class VecHDiv(pg.VecDiscretization):
 
             c = \\frac{\\lambda}{2\\mu + d \\lambda}
 
-        where :math:`d` is the dimension.
+        where :math:`d` is the dimension. Both :math:`\\sigma` and :math:`\\tau`
+        are in :class:`VecHDiv`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -79,15 +81,17 @@ class VecHDiv(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix for an incompressible material, which is
-        given by :math:`(A \\sigma, \\tau)` where
+        Assembles and returns the mass matrix for an incompressible material for
+        :math:`\\sigma \\in` :class:`VecHDiv`, which is given by
+        :math:`(A \\sigma, \\tau)_\\Omega` where
 
         .. math::
 
             A \\sigma = \\frac{1}{2\\mu} \\left( \\sigma
             - \\frac{1}{d} \\text{Tr}(\\sigma) I \\right)
 
-        with :math:`\\mu` the shear Lamé constant.
+        with :math:`\\mu` the shear Lamé constant. Both :math:`\\sigma` and
+        :math:`\\tau` are in :class:`VecHDiv`.
 
         Args:
             sd (pg.Grid): The grid.

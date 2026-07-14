@@ -173,8 +173,9 @@ class RT0(pg.Discretization):
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
-        The divergence operator :math:`\\nabla \\cdot` maps from RT0 (H(div)) to
-        piecewise constants (L2).
+        The divergence operator :math:`\\nabla \\cdot` maps from :class:`RT0`
+        (H(div), one dof per face) to :class:`~pygeon.PwConstants` (L2, one
+        dof per cell).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -209,7 +210,9 @@ class RT0(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}`
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}`, where :math:`q \\in` :class:`RT0`
+        (H(div)) and :math:`g` is the prescribed Neumann datum.
+        The result is a vector in the dual of :class:`RT0`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -338,8 +341,9 @@ class BDM1(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
-        The divergence operator :math:`\\nabla \\cdot` maps from BDM1 (H(div)) to
-        piecewise constants (L2).
+        The divergence operator :math:`\\nabla \\cdot` maps from :class:`BDM1`
+        (H(div), :math:`d` dofs per face) to :class:`~pygeon.PwConstants`
+        (L2, one dof per cell).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -382,7 +386,9 @@ class BDM1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}`
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}`, where :math:`q \\in` :class:`BDM1`
+        (H(div)) and :math:`g` is the prescribed Neumann datum.
+        The result is a vector in the dual of :class:`BDM1`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -540,8 +546,9 @@ class RT1(pg.Discretization):
     ) -> sps.csc_array:
         """
         Assembles the mass matrix, representing the bilinear form
-        :math:`(K^{-1} q, v)` where :math:`K^{-1}` is the inverse diffusion
-        tensor and :math:`q`, :math:`v` are RT1 basis functions.
+        :math:`(K^{-1} q, v)_\\Omega` where :math:`K^{-1}` is the inverse
+        diffusion tensor and :math:`q`, :math:`v \\in` :class:`RT1` (H(div)).
+        Both domain and range lie in :class:`RT1`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -798,8 +805,8 @@ class RT1(pg.Discretization):
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
-        The divergence operator :math:`\\nabla \\cdot` maps from RT1 (H(div)) to
-        piecewise linears (P1).
+        The divergence operator :math:`\\nabla \\cdot` maps from :class:`RT1`
+        (H(div)) to :class:`~pygeon.PwLinears` (P1 piecewise linears).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
