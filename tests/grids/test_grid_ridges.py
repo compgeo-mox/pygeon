@@ -77,7 +77,7 @@ def test_mdg_2d(mdg_embedded_frac_2d):
     def known_face_ridges():
         data = np.array([1, -1])
         indices = np.array([10, 11])
-        indptr = np.array([0, 0, 2, 2])
+        indptr = np.array([0, 0, 0, 2])
 
         return sps.csc_array((data, indices, indptr), (16, 3))
 
