@@ -40,7 +40,7 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     # Iterate over each connected component of the matrix M
     for patch in np.arange(n_components):
         # Get the indices of the connected component
-        indices = np.where(labels == patch)[0]
+        indices = np.where(labels == patch)[0].astype(int)
 
         # Create a submatrix for the connected component
         submat = M_lil[np.ix_(indices, indices)].toarray()
@@ -100,7 +100,7 @@ def block_diag_solver(
     # Iterate over each connected component of the matrix M
     for patch in np.arange(n_components):
         # Get the indices of the connected component
-        rows = np.where(labels == patch)[0]
+        rows = np.where(labels == patch)[0].astype(int)
 
         # Create a submatrix for the connected component
         sub_B = B_lil[rows, :]
