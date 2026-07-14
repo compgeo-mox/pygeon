@@ -15,10 +15,10 @@ This folder contains several examples to guide you in using PyGeoN. Each tutoria
 * [Elasticity (mixed)](./solid_mechanics/elasticity_mixed.ipynb) — solve elasticity in mixed form with stress, displacement, and rotation as unknowns
 * [Elasticity (finite volume + stress reconstruction)](./solid_mechanics/elasticity_stress_reconstruction.ipynb) — solve elasticity using PorePy's finite volume method with PyGeoN post-processing
 * [Elasticity (TPSA)](./solid_mechanics/elasticity_tpsa.ipynb) — solve elasticity using the two-point stress approximation with displacement, rotation, and solid pressure unknowns
+* [Cosserat equation](./solid_mechanics/cosserat.ipynb) — solve the Cosserat continuum model with micro-rotations in mixed form
 
 ### Coupled Problems
 * [Biot equation](./coupled_problems/biot.ipynb) — solve the static Biot poroelasticity problem coupling fluid flow and solid deformation
-* [Cosserat equation](./coupled_problems/cosserat.ipynb) — solve the Cosserat continuum model with micro-rotations in mixed form
 
 ### Advanced Topics
 * [Poincaré operators](./advanced_topics/poincare_operators.ipynb) — efficient solution of Hodge-Laplace problems using Poincaré operators and subspace decomposition
