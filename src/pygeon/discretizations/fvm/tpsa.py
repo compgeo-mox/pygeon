@@ -91,8 +91,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
     ) -> sps.csc_array:
         """
         Assemble the zeroth-order terms on the diagonal, representing the
-        accumulation terms :math:`S_0 u`, :math:`S_r r`, and :math:`S_p p` for
-        displacement, rotation, and solid pressure, respectively.
+        accumulation terms :math:`S_0 \\partial_t u`, :math:`S_r \\partial_t r`,
+        and :math:`S_p \\partial_t p` for displacement, rotation, and solid pressure,
+        respectively.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.

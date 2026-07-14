@@ -50,9 +50,9 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         .. math::
 
-            S_0 + \\nabla \\cdot (K_{\\text{eff}} \\cdot)
+            S_0 \\partial_t p + \\nabla \\cdot (K_{\\text{eff}} \\cdot)
 
-        where :math:`S_0` is the accumulation term and :math:`K_{\\text{eff}}`
+        where :math:`S_0` is the storativity and :math:`K_{\\text{eff}}`
         is the effective conductivity from :meth:`assemble_dual_var_map`,
         using the material parameters in the data dictionary.
 
@@ -209,8 +209,8 @@ class FiniteVolumeDiscretization(abc.ABC):
     ) -> sps.csc_array:
         """
         Assemble the zeroth-order (accumulation) terms for the primary variables,
-        typically a diagonal mass matrix representing :math:`S_0 p` where :math:`S_0`
-        is the storativity coefficient.
+        typically a diagonal mass matrix representing :math:`S_0 \\partial_t p` where
+        :math:`S_0` is the storativity coefficient.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
