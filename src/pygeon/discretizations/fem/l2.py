@@ -1,6 +1,7 @@
 """Module for the discretizations of the L2 space."""
 
 import abc
+from math import factorial
 from typing import Callable, Type
 
 import numpy as np
@@ -603,6 +604,41 @@ class PwQuadratics(PwPolynomials):
         """
         return (sd.dim + 1) * (sd.dim + 2) // 2
 
+    def num_edges_per_cell(self, dim: int) -> int:
+        """
+        Compute the number of edges of a simplex of a given dimension.
+
+        Args:
+            dim (int): Dimension.
+
+        Returns:
+            int: The number of adjacent edges.
+        """
+        return dim * (dim + 1) // 2
+
+    def get_local_edge_nodes(self, dim: int) -> np.ndarray:
+        """
+        Lists the local edge-node connectivity in the cell
+
+        Args:
+            dim (int): Dimension.
+
+        Returns:
+            np.ndarray: Row i contains the local indices of the nodes connected to the
+            edge with local index i.
+        """
+        n_nodes = dim + 1
+        n_edges = self.num_edges_per_cell(dim)
+        e_nodes = np.empty((n_edges, 2), int)
+
+        ind = 0
+        for first_node in np.arange(n_nodes):
+            for second_node in np.arange(first_node + 1, n_nodes):
+                e_nodes[ind] = [first_node, second_node]
+                ind += 1
+
+        return e_nodes
+
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
         Computes the local mass matrix for piecewise quadratics.
@@ -613,8 +649,76 @@ class PwQuadratics(PwPolynomials):
         Returns:
             np.ndarray: Local mass matrix for piecewise quadratics.
         """
-        lagrange2 = pg.Lagrange2(self.keyword)
-        return lagrange2.assemble_local_mass(dim)
+        # Helper constants
+        n_edges = self.num_edges_per_cell(dim)
+        eye = np.eye(dim + 1)
+        zero = np.zeros((n_edges, dim + 1))
+
+        # List the barycentric functions up to degree 2,
+        # by exponents, consisting of
+        # - the linears lambda_i
+        # - the cross-quadratics lambda_i lambda_j
+        # - the quadratics lambda_i^2
+        quads = np.zeros((dim + 1, n_edges))
+        e_nodes = self.get_local_edge_nodes(dim)
+        for ind, nodes in enumerate(e_nodes):
+            quads[nodes, ind] = 1
+        exponents = np.hstack((eye, quads, 2 * eye))
+
+        # Compute the local mass matrix of the barycentric functions
+        barycentric_mass = self.assemble_barycentric_mass(exponents)
+
+        # Our basis functions are given by
+        # - nodes: lambda_i (2 lambda_i - 1)
+        # - edges: 4 lambda_i lambda_j
+        # We list the coefficients in the array "basis"
+        basis_nodes = np.vstack((-eye, zero, 2 * eye))
+        basis_edges = np.zeros((2 * (dim + 1) + n_edges, n_edges))
+        basis_edges[dim + 1 : dim + n_edges + 1, :] = 4 * np.eye(n_edges)
+        basis = np.hstack((basis_nodes, basis_edges))
+
+        return basis.T @ barycentric_mass @ basis
+
+    def assemble_barycentric_mass(self, expnts: np.ndarray) -> np.ndarray:
+        """
+        Compute the inner products of all monomials up to degree 2
+
+        Args:
+            expnts (np.ndarray): Each column is an array of exponents
+                alpha_i of the monomial expressed as
+                prod_i lambda_i ^ alpha_i.
+
+        Returns:
+            np.ndarray: The inner products of the monomials on a simplex with measure 1.
+        """
+        n_monomials = expnts.shape[1]
+        mass = np.empty((n_monomials, n_monomials))
+
+        for i in np.arange(n_monomials):
+            for j in np.arange(n_monomials):
+                mass[i, j] = self.integrate_monomial(expnts[:, i] + expnts[:, j])
+
+        return mass
+
+    def integrate_monomial(self, alphas: np.ndarray) -> float:
+        """
+        Exact integration of products of monomials based on
+        Vermolen and Segal (2018).
+
+        Args:
+            alphas (np.ndarray): Array of exponents alpha_i of the monomial
+                expressed as prod_i lambda_i ^ alpha_i.
+
+        Returns:
+            float: The integral of the monomial on a simplex with measure 1.
+        """
+        alphas = alphas.astype(int)
+        dim = len(alphas) - 1
+        fac_alph = [factorial(a_i) for a_i in alphas]
+
+        return float(
+            factorial(dim) * np.prod(fac_alph) / factorial(dim + np.sum(alphas))
+        )
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
@@ -644,6 +748,19 @@ class PwQuadratics(PwPolynomials):
         L += node_weight * np.diag(vals_at_nodes)
 
         return L
+
+    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Assembles the broken (element-wise) gradient matrix for the given grid.
+        This operator maps to the vector-valued piecewise constants.
+
+        Args:
+            sd (pg.Grid): The grid or a subclass.
+
+        Returns:
+            sps.csc_array: The assembled broken gradient matrix.
+        """
+        print("implement me!")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -679,8 +796,7 @@ class PwQuadratics(PwPolynomials):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        lagrange2 = pg.Lagrange2(self.keyword)
-        edge_nodes = lagrange2.get_local_edge_nodes(sd.dim)
+        edge_nodes = self.get_local_edge_nodes(sd.dim)
 
         cell_nodes = sd.cell_nodes()
         vals = np.empty((sd.num_cells, self.ndof_per_cell(sd)))

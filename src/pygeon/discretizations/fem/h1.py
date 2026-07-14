@@ -1,6 +1,5 @@
 """Module for the discretizations of the H1 space."""
 
-from math import factorial
 from typing import Callable, Type, cast
 
 import numpy as np
@@ -331,162 +330,6 @@ class Lagrange2(pg.Discretization):
         """
         return sd.num_nodes + sd.num_edges
 
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
-        """
-        Computes the local mass matrix of the basis functions
-        on a d-simplex with measure 1.
-
-        Args:
-            dim (int): The dimension of the simplex.
-
-        Returns:
-            np.ndarray: The local mass matrix.
-        """
-        # Helper constants
-        n_edges = self.num_edges_per_cell(dim)
-        eye = np.eye(dim + 1)
-        zero = np.zeros((n_edges, dim + 1))
-
-        # List the barycentric functions up to degree 2,
-        # by exponents, consisting of
-        # - the linears lambda_i
-        # - the cross-quadratics lambda_i lambda_j
-        # - the quadratics lambda_i^2
-        quads = np.zeros((dim + 1, n_edges))
-        e_nodes = self.get_local_edge_nodes(dim)
-        for ind, nodes in enumerate(e_nodes):
-            quads[nodes, ind] = 1
-        exponents = np.hstack((eye, quads, 2 * eye))
-
-        # Compute the local mass matrix of the barycentric functions
-        barycentric_mass = self.assemble_barycentric_mass(exponents)
-
-        # Our basis functions are given by
-        # - nodes: lambda_i (2 lambda_i - 1)
-        # - edges: 4 lambda_i lambda_j
-        # We list the coefficients in the array "basis"
-        basis_nodes = np.vstack((-eye, zero, 2 * eye))
-        basis_edges = np.zeros((2 * (dim + 1) + n_edges, n_edges))
-        basis_edges[dim + 1 : dim + n_edges + 1, :] = 4 * np.eye(n_edges)
-        basis = np.hstack((basis_nodes, basis_edges))
-
-        return basis.T @ barycentric_mass @ basis
-
-    def assemble_barycentric_mass(self, expnts: np.ndarray) -> np.ndarray:
-        """
-        Compute the inner products of all monomials up to degree 2
-
-        Args:
-            expnts (np.ndarray): Each column is an array of exponents
-                alpha_i of the monomial expressed as
-                prod_i lambda_i ^ alpha_i.
-
-        Returns:
-            np.ndarray: The inner products of the monomials on a simplex with measure 1.
-        """
-        n_monomials = expnts.shape[1]
-        mass = np.empty((n_monomials, n_monomials))
-
-        for i in np.arange(n_monomials):
-            for j in np.arange(n_monomials):
-                mass[i, j] = self.integrate_monomial(expnts[:, i] + expnts[:, j])
-
-        return mass
-
-    def integrate_monomial(self, alphas: np.ndarray) -> float:
-        """
-        Exact integration of products of monomials based on
-        Vermolen and Segal (2018).
-
-        Args:
-            alphas (np.ndarray): Array of exponents alpha_i of the monomial
-                expressed as prod_i lambda_i ^ alpha_i.
-
-        Returns:
-            float: The integral of the monomial on a simplex with measure 1.
-        """
-        alphas = alphas.astype(int)
-        dim = len(alphas) - 1
-        fac_alph = [factorial(a_i) for a_i in alphas]
-
-        return float(
-            factorial(dim) * np.prod(fac_alph) / factorial(dim + np.sum(alphas))
-        )
-
-    def num_edges_per_cell(self, dim: int) -> int:
-        """
-        Compute the number of edges of a simplex of a given dimension.
-
-        Args:
-            dim (int): Dimension.
-
-        Returns:
-            int: The number of adjacent edges.
-        """
-        return dim * (dim + 1) // 2
-
-    def get_local_edge_nodes(self, dim: int) -> np.ndarray:
-        """
-        Lists the local edge-node connectivity in the cell
-
-        Args:
-            dim (int): Dimension.
-
-        Returns:
-            np.ndarray: Row i contains the local indices of the nodes connected to the
-            edge with local index i.
-        """
-        n_nodes = dim + 1
-        n_edges = self.num_edges_per_cell(dim)
-        e_nodes = np.empty((n_edges, 2), int)
-
-        ind = 0
-        for first_node in np.arange(n_nodes):
-            for second_node in np.arange(first_node + 1, n_nodes):
-                e_nodes[ind] = [first_node, second_node]
-                ind += 1
-
-        return e_nodes
-
-    def eval_grads_at_nodes(self, dphi: np.ndarray, e_nodes: np.ndarray) -> np.ndarray:
-        """
-        Evaluates the gradients of the basis functions at the nodes
-
-        Args:
-            dphi (np.ndarray): Gradients of the P1 basis functions.
-            e_nodes (np.ndarray): The local edge-node connectivity.
-
-        Returns:
-            np.ndarray: The gradient of basis function i at node j is in elements
-            [i, 3 * (j:J + 1)].
-        """
-        # the gradient of our basis functions are given by
-        # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
-        # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
-
-        # nodal dofs
-        n_nodes = dphi.shape[1]
-        Psi_nodes = np.zeros((n_nodes, pg.AMBIENT_DIM * n_nodes))
-        for ind_n in np.arange(n_nodes):
-            Psi_nodes[ind_n, pg.AMBIENT_DIM * ind_n : pg.AMBIENT_DIM * (ind_n + 1)] = (
-                4 * dphi[:, ind_n]
-            )
-        Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
-
-        # edge dofs
-        n_edges = self.num_edges_per_cell(n_nodes - 1)
-        Psi_edges = np.zeros((n_edges, pg.AMBIENT_DIM * n_nodes))
-
-        for ind_e, (e0, e1) in enumerate(e_nodes):
-            Psi_edges[ind_e, pg.AMBIENT_DIM * e0 : pg.AMBIENT_DIM * (e0 + 1)] = (
-                4 * dphi[:, e1]
-            )
-            Psi_edges[ind_e, pg.AMBIENT_DIM * e1 : pg.AMBIENT_DIM * (e1 + 1)] = (
-                4 * dphi[:, e0]
-            )
-
-        return np.vstack((Psi_nodes, Psi_edges))
-
     def get_edge_dof_indices(
         self, sd: pg.Grid, cell: int, faces: np.ndarray
     ) -> np.ndarray:
@@ -520,60 +363,6 @@ class Lagrange2(pg.Discretization):
 
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
-
-    def assemble_stiff_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Assembles the stiffness matrix for the P2 finite element method.
-
-        Args:
-            sd (pg.Grid): The grid object representing the discretization.
-            data (dict): A dictionary containing the necessary data for assembling the
-                matrix.
-
-        Returns:
-            sps.csc_array: The stiffness matrix.
-        """
-        sot = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
-        )
-
-        size = np.square((sd.dim + 1) + self.num_edges_per_cell(sd.dim)) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        opposite_nodes = sd.compute_opposite_nodes()
-        local_mass = pg.BDM1.local_inner_product(sd.dim)
-        e_nodes = self.get_local_edge_nodes(sd.dim)
-
-        for c in range(sd.num_cells):
-            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
-            faces = opposite_nodes.indices[loc]
-            nodes = opposite_nodes.data[loc]
-            edges = self.get_edge_dof_indices(sd, c, faces)
-
-            signs = sd.cell_faces.data[loc]
-            dphi = -sd.face_normals[:, faces] * signs / (sd.dim * sd.cell_volumes[c])
-            Psi = self.eval_grads_at_nodes(dphi, e_nodes)
-
-            weight = np.kron(np.eye(sd.dim + 1), sot.values[:, :, c])
-
-            A = Psi @ local_mass @ weight @ Psi.T * sd.cell_volumes[c]
-
-            loc_ind = np.hstack((nodes, edges))
-
-            cols = np.tile(loc_ind, (loc_ind.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Assemble
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -669,7 +458,8 @@ class Lagrange2(pg.Discretization):
         proj_nodes = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
         # Data allocation for the edges mapping
-        n_edges = self.num_edges_per_cell(sd.dim)
+        p2 = pg.PwQuadratics()
+        n_edges = p2.num_edges_per_cell(sd.dim)
         size = n_edges * sd.num_cells
         rows_I = np.arange(size)
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
