@@ -98,9 +98,15 @@ def test_assemble_nat_bc(discr, pentagon_sd):
     assert np.allclose(vals, vals_known)
 
 
-def test_range_disc(discr):
+def test_range_discr(discr: pg.Lagrange1):
     with pytest.raises(NotImplementedError):
-        discr.get_range_discr_class(2)
+        discr.get_range_discr_class(0)
+
+    assert discr.get_range_discr_class(1) is pg.PwConstants
+    assert discr.get_range_discr_class(2) is pg.VRT0
+
+    with pytest.raises(NotImplementedError):
+        discr.get_range_discr_class(3)
 
 
 def test_mass_oct_grid(discr, ref_octagon):
