@@ -299,4 +299,14 @@ class VLagrange1(pg.Lagrange1):
             NotImplementedError: This method is not implemented and should be
                 overridden in a subclass.
         """
-        raise NotImplementedError
+        match dim:
+            case 3:
+                raise NotImplementedError(
+                    "There's no Virtual Nedelec0 discretization in PyGeoN"
+                )
+            case 2:
+                return pg.VRT0
+            case 1:
+                return pg.PwConstants
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")
