@@ -38,10 +38,10 @@ class Lagrange1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the (K grad u, grad v) matrix for the nodal finite elements. This
-        corresponds to the output of assemble_stiff_matrix, except in 2D. In that case
-        the diff operator is a rotated gradient, leading to a different output for
-        tensor-valued K.
+        Assembles the :math:`(K \\nabla u, \\nabla v)` matrix for the nodal finite
+        elements. This corresponds to the output of assemble_stiff_matrix, except in 2D.
+        In that case the diff operator is a rotated gradient, leading to a different
+        output for tensor-valued K.
 
         The scalar (pg.WEIGHT) and tensor-valued (pg.SECOND_ORDER_TENSOR) entries in the
         data dictionary are used as weights in the inner product.
@@ -60,7 +60,8 @@ class Lagrange1(pg.Discretization):
 
     def assemble_grad_to_p0(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix that computes the gradient as a piecewise constant vector.
+        Assembles the matrix that computes the gradient :math:`\\nabla u` as a
+        piecewise constant vector field.
 
         Args:
             sd (pg.Grid): The grid.
@@ -144,6 +145,9 @@ class Lagrange1(pg.Discretization):
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the differential matrix based on the dimension of the grid.
+
+        The differential corresponds to the (co-)gradient operator :math:`d`, mapping
+        from the nodal Lagrange space (H1) to the appropriate range space.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -256,7 +260,7 @@ class Lagrange1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
-        (u, func)_Gamma with u a test function in Lagrange1
+        :math:`(u, g)_{\\partial\\Omega}` with :math:`u` a test function in Lagrange1
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -333,8 +337,8 @@ class Lagrange2(pg.Discretization):
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local mass matrix of the basis functions
-        on a d-simplex with measure 1.
+        Computes the local mass matrix :math:`(\\varphi_i, \\varphi_j)` of the
+        basis functions on a d-simplex with measure 1.
 
         Args:
             dim (int): The dimension of the simplex.
@@ -374,7 +378,9 @@ class Lagrange2(pg.Discretization):
 
     def assemble_barycentric_mass(self, expnts: np.ndarray) -> np.ndarray:
         """
-        Compute the inner products of all monomials up to degree 2
+        Compute the inner products :math:`(m_i, m_j)` of all monomials up to degree 2,
+        where :math:`m_i = \\prod_k \\lambda_k^{\\alpha_{ik}}` and
+        :math:`\\lambda_k` are barycentric coordinates.
 
         Args:
             expnts (np.ndarray): Each column is an array of exponents
@@ -525,7 +531,8 @@ class Lagrange2(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the stiffness matrix for the P2 finite element method.
+        Assembles the stiffness matrix for the P2 finite element method,
+        representing the bilinear form :math:`(K \\nabla u, \\nabla v)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
@@ -578,6 +585,9 @@ class Lagrange2(pg.Discretization):
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the differential matrix based on the dimension of the grid.
+
+        The differential corresponds to the (co-)gradient operator :math:`d`, mapping
+        from the Lagrange2 (H1) space to the Nedelec1 (H(curl)) space.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -728,7 +738,7 @@ class Lagrange2(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the 'natural' boundary condition
-        (func, u)_Gamma with u a test function in Lagrange2
+        :math:`(u, g)_{\\partial\\Omega}` with :math:`u` a test function in Lagrange2
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.

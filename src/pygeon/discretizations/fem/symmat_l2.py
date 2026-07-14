@@ -96,7 +96,8 @@ class SymMatPwPolynomials(pg.Discretization):
     @cache
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the projection matrix from the full matrix-valued piecewise
+        Returns the projection matrix :math:`\\text{sym}(\\sigma)
+        = \\frac{1}{2}(\\sigma + \\sigma^T)` from the full matrix-valued piecewise
         polynomial space to the symmetric matrix-valued piecewise polynomial space.
         Off-diagonal entries are averaged: sym_{ij} = (full_{ij} + full_{ji}) / 2.
         This is the left inverse of proj_to_PwPolynomials, meaning that
@@ -166,8 +167,8 @@ class SymMatPwPolynomials(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
-        This method takes a grid object and returns the differential matrix
-        corresponding to the given grid.
+        For symmetric matrix-valued piecewise polynomials, the differential is the
+        zero matrix since these are discontinuous functions with no global differential.
 
         Args:
             sd (pg.Grid): The grid object or its subclass.
@@ -182,6 +183,9 @@ class SymMatPwPolynomials(pg.Discretization):
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
+
+        For symmetric matrix-valued piecewise polynomials, the stiffness matrix is
+        the zero matrix since the differential operator is trivial.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -200,6 +204,9 @@ class SymMatPwPolynomials(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition vector, equal to zero.
+
+        For symmetric matrix-valued piecewise polynomials, the natural boundary
+        condition is zero since these are discontinuous functions with no boundary trace.
 
         Args:
             sd (pg.Grid): The grid object.

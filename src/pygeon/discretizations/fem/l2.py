@@ -63,7 +63,8 @@ class PwPolynomials(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Computes the mass matrix for piecewise polynomials.
+        Computes the mass matrix :math:`(u, v)_\\Omega` for piecewise polynomials,
+        optionally scaled by a weight :math:`\\sigma` from data.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -86,7 +87,8 @@ class PwPolynomials(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped matrix for the given grid.
+        Assembles the lumped matrix for the given grid, which is a diagonal
+        approximation of the mass matrix :math:`(u, v)_\\Omega`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -109,6 +111,9 @@ class PwPolynomials(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
+        For piecewise polynomials (L2), the differential is the zero matrix since
+        these are discontinuous functions with no global differential.
+
         This method takes a grid object and returns the differential matrix
         corresponding to the given grid.
 
@@ -125,6 +130,9 @@ class PwPolynomials(pg.Discretization):
         Assembles the broken (element-wise) gradient matrix for the given grid.
         This method should be implemented in the child class.
 
+        The broken gradient :math:`\\nabla_h` maps from the piecewise polynomial
+        space to the vector piecewise polynomial space of one lower order.
+
         Args:
             sd (pg.Grid): The grid or a subclass.
 
@@ -138,6 +146,9 @@ class PwPolynomials(pg.Discretization):
     ) -> sps.csc_array:
         """
         Assembles the stiffness matrix for the given grid.
+
+        For piecewise polynomials (L2), the stiffness matrix is the zero matrix
+        since the differential operator is trivial.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -156,6 +167,9 @@ class PwPolynomials(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition vector, equal to zero.
+
+        For piecewise polynomials (L2), the natural boundary condition is zero
+        since these are discontinuous functions with no boundary trace.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -183,7 +197,8 @@ class PwPolynomials(pg.Discretization):
     @abc.abstractmethod
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local mass matrix for piecewise polynomials.
+        Computes the local mass matrix :math:`(\\varphi_i, \\varphi_j)` for
+        piecewise polynomials on a d-simplex.
 
         Args:
             dim (int): The dimension of the grid.
@@ -195,7 +210,8 @@ class PwPolynomials(pg.Discretization):
     @abc.abstractmethod
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise polynomials
+        Computes the local lumped mass matrix for piecewise polynomials, which
+        is a diagonal approximation of the local mass matrix.
 
         Args:
             dim (int): The dimension of the grid.
@@ -268,7 +284,8 @@ class PwConstants(PwPolynomials):
 
     def assemble_local_mass(self, _dim: int) -> np.ndarray:
         """
-        Computes the local mass matrix for piecewise constants
+        Computes the local mass matrix :math:`(\\varphi_i, \\varphi_j)` for
+        piecewise constants, which is the scalar :math:`[[1]]`.
 
         Args:
             dim (int): The dimension of the grid.
@@ -280,7 +297,8 @@ class PwConstants(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise constants
+        Computes the local lumped mass matrix for piecewise constants,
+        which coincides with the local mass matrix since P0 has one dof per cell.
 
         Args:
             dim (int): The dimension of the grid.
@@ -405,7 +423,8 @@ class PwLinears(PwPolynomials):
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local mass matrix for piecewise linears
+        Computes the local mass matrix :math:`(\\varphi_i, \\varphi_j)` for
+        piecewise linears, where :math:`\\varphi_i` are the local basis functions.
 
         Args:
             dim (int): The dimension of the grid.
@@ -418,7 +437,8 @@ class PwLinears(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise linears
+        Computes the local lumped mass matrix for piecewise linears, which is a
+        diagonal approximation of the local mass matrix.
 
         Args:
             dim (int): The dimension of the grid.
@@ -555,7 +575,8 @@ class PwLinears(PwPolynomials):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken (element-wise) gradient matrix for the given grid.
-        This operator maps to the vector-valued piecewise constants.
+        This operator maps to the vector-valued piecewise constants,
+        computing :math:`\\nabla_h u` element-wise.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -605,7 +626,8 @@ class PwQuadratics(PwPolynomials):
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local mass matrix for piecewise quadratics.
+        Computes the local mass matrix :math:`(\\varphi_i, \\varphi_j)` for
+        piecewise quadratics, where :math:`\\varphi_i` are the local basis functions.
 
         Args:
             dim (int): The dimension of the grid.
@@ -618,7 +640,8 @@ class PwQuadratics(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise quadratics
+        Computes the local lumped mass matrix for piecewise quadratics, which is a
+        diagonal approximation of the local mass matrix.
 
         Args:
             dim (int): The dimension of the grid.

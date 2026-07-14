@@ -90,7 +90,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
         """
-        Assemble the zeroth-order terms on the diagonal of (3.9).
+        Assemble the zeroth-order terms on the diagonal, representing the
+        accumulation terms :math:`S_0 u`, :math:`S_r r`, and :math:`S_p p` for
+        displacement, rotation, and solid pressure, respectively.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -265,8 +267,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
         """
-        Assemble the mapping from cell-based primary variables to face-based dual
-        variables.
+        Assembles the mapping from cell-based primary variables :math:`(u, r, p)`
+        to face-based dual variables :math:`(\\sigma, m, \\tilde{v})` (stress, moment,
+        and volume flux), as in the TPSA scheme.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -318,7 +321,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_rot(self, sd: pg.Grid) -> sps.csc_array:
         """
-        The operator R^n that performs a cross product with the normal vector n.
+        Assembles the operator :math:`R^n` that performs a cross product with the unit
+        outward normal vector :math:`n` on each face.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -345,7 +349,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_ndot(self, sd: pg.Grid) -> sps.csc_array:
         """
-        The operator that performs a dot product with the normal vector n.
+        Assembles the operator :math:`n \\cdot` that performs a dot product with the
+        unit outward normal vector :math:`n` on each face.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -362,7 +367,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, cached_arrays: dict
     ) -> sps.csc_array:
         """
-        The operator R^n \delta R^n that is on the [1, 1] block of (A2.25).
+        Assembles the operator :math:`R^n \\delta R^n` on the boundary, which appears
+        in the :math:`[1,1]` block of the dual variable mapping.
 
         There is a slight discrepancy with the paper, because a simpler class of
         boundary conditions are assumed there. This implementation is the generalization
@@ -389,11 +395,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def assemble_Xi(self, cached_arrays: dict) -> list:
         """
-        Compute the averaging operator Xi from (2.5).
+        Assembles the averaging operator :math:`\\Xi` from (2.5) in the TPSA paper.
 
-        Displacement bc are handled by delta_mu_k = 0. Traction bc are handled since 2 *
-        delta_mu_k * mu / delta = 1. Spring bc are handled because the spring constant
-        is contained in delta_mu_k.
+        Displacement BCs are handled by :math:`\\delta_{\\mu,k} = 0`. Traction BCs are
+        handled since :math:`2 \\delta_{\\mu,k} \\mu / \\delta = 1`. Spring BCs are
+        handled because the spring constant is contained in :math:`\\delta_{\\mu,k}`.
 
         Args:
             cached_arrays (dict): The output of self.precompute_arrays.
@@ -433,7 +439,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_list: list,
     ) -> Tuple[sps.csc_array, sps.csc_array]:
         """
-        Assemble the off-diagonal terms in the first column of (3.7). These are computed
+        Assembles the off-diagonal terms in the first column of the TPSA dual variable
+        map (3.7), using the averaging operator :math:`\\Xi`. These are computed
         together because their construction uses similar components.
 
         Args:
@@ -456,8 +463,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Xi_list: list,
     ) -> Tuple[sps.csc_array, sps.csc_array]:
         """
-        Assemble the off-diagonal terms in the first row of (3.7). These are computed
-        together because their construction uses similar components.
+        Assembles the off-diagonal terms in the first row of the TPSA dual variable
+        map (3.7), using the complementary averaging operator :math:`\\tilde{\\Xi}`.
+        These are computed together because their construction uses similar components.
 
         This is a generalization compared to the paper to handle more involved boundary
         conditions. In particular, we have to change the order of the operators
@@ -496,10 +504,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assemble the second matrix on the right-hand side of (A2.25).
+        Assembles the matrix that maps boundary condition values to dual variables on
+        boundary faces, following the right-hand side of the TPSA system (A2.25).
 
-        Slight generalization: the [1, 0] and [2, 0] blocks first weigh with delta and
-        then rot/dot with n.
+        Slight generalization: the :math:`[1, 0]` and :math:`[2, 0]` blocks first
+        weight with :math:`\\delta` and then apply rot/dot with :math:`n`.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -550,7 +559,12 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Assemble the right-hand side for a given body-force function.
+        Assembles the right-hand side vector for a given body-force function
+        :math:`f`:
+
+        .. math::
+
+            \\int_\\Omega f \\cdot v \\, dx
 
         Args:
             sd (pg.Grid): Grid, or a subclass.

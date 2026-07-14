@@ -69,6 +69,10 @@ class Discretization(abc.ABC):
         Assembles the mass matrix by projecting to the corresponding piecewise
         polynomial space.
 
+        The matrix represents the bilinear form :math:`(u, v)`, where :math:`u`
+        and :math:`v` are basis functions in the given finite element space,
+        optionally weighted by physical parameters in data.
+
         Args:
             sd (pg.Grid): Grid object or a subclass.
             data (dict | None): Dictionary with physical parameters for scaling.
@@ -84,6 +88,9 @@ class Discretization(abc.ABC):
         """
         Assembles the lumped mass matrix using the corresponding piecewise polynomial
         space.
+
+        The lumped matrix is a diagonal approximation of the mass matrix, obtained
+        by replacing each row with its sum placed on the diagonal.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -125,6 +132,9 @@ class Discretization(abc.ABC):
         """
         Assembles the matrix corresponding to the differential operator.
 
+        The matrix :math:`D` represents the discrete exterior derivative,
+        mapping from the current finite element space to its range space.
+
         Args:
             sd (pg.Grid): Grid object or a subclass.
 
@@ -136,7 +146,9 @@ class Discretization(abc.ABC):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the stiffness matrix.
+        Assembles the stiffness matrix, which is given by :math:`B^T A B`,
+        where :math:`B` is the differential matrix and :math:`A` is the mass
+        matrix of the range discretization.
 
         This method takes a grid object `sd` and an optional data dictionary `data` as
         input. It first calls the `assemble_diff_matrix` method to obtain the
@@ -218,7 +230,7 @@ class Discretization(abc.ABC):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (Tr q, p)_Gamma
+        :math:`(\\text{tr}(q), p)_{\\partial\\Omega}`
 
         Args:
             sd (pg.Grid): The grid object.
@@ -258,6 +270,9 @@ class Discretization(abc.ABC):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken (element-wise) gradient matrix for the given grid.
+
+        The broken gradient :math:`\\nabla_h` acts element-wise, mapping from the
+        current finite element space to the vector piecewise polynomial space.
 
         Args:
             sd (pg.Grid): The grid or a subclass.

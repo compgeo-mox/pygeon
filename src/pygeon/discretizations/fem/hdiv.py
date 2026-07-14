@@ -138,7 +138,13 @@ class RT0(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped mass matrix L such that B^T L^{-1} B is a TPFA method.
+        Assembles the lumped mass matrix :math:`L` such that :math:`B^T L^{-1} B`
+        is a TPFA method.
+
+        The entries of :math:`L` are given by
+        :math:`L_{ff} = \\frac{h_{f,\\perp}}{|f|}` where :math:`h_{f,\\perp}` is
+        the sum of the normal distances from the cell centers to face :math:`f`,
+        weighted by the inverse permeability :math:`K^{-1}`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -166,6 +172,9 @@ class RT0(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
+
+        The divergence operator :math:`\\nabla \\cdot` maps from RT0 (H(div)) to
+        piecewise constants (L2).
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -200,7 +209,7 @@ class RT0(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_Gamma
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}`
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -329,6 +338,9 @@ class BDM1(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
+        The divergence operator :math:`\\nabla \\cdot` maps from BDM1 (H(div)) to
+        piecewise constants (L2).
+
         Args:
             sd (pg.Grid): Grid object or a subclass.
 
@@ -370,7 +382,7 @@ class BDM1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_Gamma
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}`
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -527,7 +539,9 @@ class RT1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the mass matrix
+        Assembles the mass matrix, representing the bilinear form
+        :math:`(K^{-1} q, v)` where :math:`K^{-1}` is the inverse diffusion
+        tensor and :math:`q`, :math:`v` are RT1 basis functions.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -784,6 +798,9 @@ class RT1(pg.Discretization):
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
+        The divergence operator :math:`\\nabla \\cdot` maps from RT1 (H(div)) to
+        piecewise linears (P1).
+
         Args:
             sd (pg.Grid): Grid object or a subclass.
 
@@ -903,7 +920,7 @@ class RT1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_Gamma
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}` for the RT1 space.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -936,8 +953,9 @@ class RT1(pg.Discretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped matrix for the given grid,
-        using the integration rule from Egger & Radu (2020)
+        Assembles the lumped matrix for the given grid, representing a diagonal
+        approximation of the mass matrix :math:`(K^{-1} q, v)`,
+        using the integration rule from Egger & Radu (2020).
 
         Args:
             sd (pg.Grid): The grid object.

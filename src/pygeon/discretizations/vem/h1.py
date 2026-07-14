@@ -23,7 +23,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix.
+        Assembles and returns the VEM mass matrix :math:`(u, v)_\\Omega` using the
+        virtual element method, with a stabilization term for non-polynomial functions.
 
         Args:
             sd (pg.Grid): The grid.
@@ -63,8 +64,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Computes the local VEM mass matrix on a given cell
-        according to the Hitchhiker's (6.5)
+        Computes the local VEM mass matrix :math:`(u, v)_K` on a given cell
+        according to the Hitchhiker's (6.5).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -206,7 +207,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the matrix D from the Hitchhiker's (3.17)
+        Returns the matrix :math:`D` whose rows are the degrees of freedom applied to
+        the local monomial basis functions, from the Hitchhiker's (3.17).
 
         Args:
             sd (pg.Grid): The grid object.
@@ -229,7 +231,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the stiffness matrix.
+        Assembles and returns the VEM stiffness matrix :math:`(\\nabla u, \\nabla v)_\\Omega`
+        using the virtual element method.
 
         Args:
             sd (pg.Grid): The grid.
@@ -269,8 +272,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Computes the local VEM stiffness matrix on a given cell
-        according to the Hitchhiker's (3.25)
+        Computes the local VEM stiffness matrix :math:`(\\nabla u, \\nabla v)_K` on a
+        given cell according to the Hitchhiker's (3.25).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.

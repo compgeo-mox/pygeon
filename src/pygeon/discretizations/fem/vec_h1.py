@@ -106,7 +106,8 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the div matrix operator for the lowest order vector Lagrange element
+        Returns the divergence matrix :math:`\\nabla \\cdot u` operator for the lowest
+        order vector Lagrange element.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -118,8 +119,9 @@ class VecLagrange1(pg.VecDiscretization):
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the symmetric gradient matrix operator for the lowest order vector
-        Lagrange element
+        Returns the symmetric gradient matrix operator
+        :math:`\\varepsilon(u) = \\frac{1}{2}(\\nabla u + \\nabla u^T)` for the lowest
+        order vector Lagrange element.
 
         Args:
             sd (pg.Grid): The grid object representing the domain.
@@ -136,7 +138,14 @@ class VecLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the elasticity matrix for the finite element method.
+        Assembles the linear elasticity stiffness matrix
+
+        .. math::
+
+            2\\mu (\\varepsilon(u), \\varepsilon(v))_\\Omega
+            + \\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega
+
+        where :math:`\\mu` and :math:`\\lambda` are the Lamé parameters.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
