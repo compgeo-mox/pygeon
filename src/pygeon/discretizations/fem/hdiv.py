@@ -12,7 +12,10 @@ import pygeon as pg
 
 class RT0(pg.Discretization):
     """
-    Discretization class for Raviart-Thomas of lowest order.
+    Class implementing the finite element discretization for Raviart-Thomas (RT)
+    elements of lowest order :math:`\\mathbb{RT}_0(\\Omega) \\subset H_{div}(\\Omega)`,
+    for a generic domain :math:`\\Omega \\in \\mathbb{R}^d`.
+
     Each degree of freedom is the integral over a mesh face.
 
     The implementation of this class is inspired by the RT0 class in PorePy.
@@ -42,13 +45,13 @@ class RT0(pg.Discretization):
         """
         Assembles and returns the advection matrix for mixed finite elements
         (RT0-P0), which is given by
-        :math:`(D^{-1}\\boldsymbol{v} \\cdot \\boldsymbol{q}, p)`.
+        :math:`(D^{-1}\\boldsymbol{\\beta} \\cdot \\boldsymbol{u}, v)`.
 
-        The trial functions :math:`\\boldsymbol{q}` are lowest-order
-        Raviart-Thomas (RT0) and test functions :math:`p` are piecewise
-        constant (P0). :math:`\\boldsymbol{v}` is a given vector field and
-        :math:`D^{-1}` is a given second-order tensor, both assumed constant
-        per cell. If not provided, :math:`\\boldsymbol{v}` defaults to
+        The trial function is :math:`\\boldsymbol{u} \in \\mathbb{RT}_0(\\Omega)` and
+        test functions :math:`v \\in \\mathbb{P}_0(\\Omega)`.
+        :math:`\\boldsymbol{\\beta} \in [\\mathbb{P}_0(\\Omega)]^d` is a given vector
+        field and :math:`D^{-1} \\in [\\mathbb{P}_0(\\Omega)]^{d \\times d}` is a given
+        second-order tensor. If not provided, :math:`\\boldsymbol{\\beta}` defaults to
         :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor.
 
         Args:
@@ -141,6 +144,9 @@ class RT0(pg.Discretization):
         Assembles the lumped mass matrix :math:`L` such that :math:`B^T L^{-1} B`
         is a TPFA method.
 
+        The lumped matrix is a diagonal approximation of the mass matrix
+        :math:`(K^{-1} u, v)_\\Omega` for :math:`u, v \\in \\mathbb{RT}_0(\Omega)`.
+
         The entries of :math:`L` are given by
         :math:`L_{ff} = \\frac{h_{f,\\perp}}{|f|}` where :math:`h_{f,\\perp}` is
         the sum of the normal distances from the cell centers to face :math:`f`,
@@ -210,9 +216,8 @@ class RT0(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}`, where :math:`q \\in` :class:`RT0`
-        (H(div)) and :math:`g` is the prescribed Neumann datum.
-        The result is a vector in the dual of :class:`RT0`.
+        :math:`(u \\cdot n, g)_{\\partial\\Omega}`, where :math:`u \\in \\mathbb{RT}_0`
+        and :math:`g` is the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -250,8 +255,11 @@ class RT0(pg.Discretization):
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Constructs the projection matrix to the VecPwLinears space. This function is
-        cached to speed up repetitive calls for the same grid.
+        Constructs the projection matrix to the VecPwLinears space. The projection
+        operator :math:`\\Pi` takes a function from :math:`\\mathbb{RT}_0(\\Omega)` and
+        maps it to a piecewise linear function in :math:`[\\mathbb{P}_1(\\Omega)]^d`.
+
+        This function is cached to speed up repetitive calls for the same grid.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -268,10 +276,9 @@ class RT0(pg.Discretization):
 
 class BDM1(pg.Discretization):
     """
-    BDM1 is a class that represents the BDM1 (Brezzi-Douglas-Marini) finite element
-    method. It provides methods for assembling matrices, projecting to and from the RT0
-    space, evaluating the solution at cell centers, interpolating a given function onto
-    the grid, assembling the natural boundary condition term, and more.
+    Class implementing the finite element discretization for Brezzi-Douglas-Marini (BDM)
+    elements of lowest order :math:`\\mathbb{BDM}_1(\\Omega) \\subset H_{div}(\\Omega)`,
+    for a generic domain :math:`\\Omega \\in \\mathbb{R}^d`.
     """
 
     poly_order = 1
@@ -315,6 +322,9 @@ class BDM1(pg.Discretization):
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
+        The projection operator :math:`\\Pi` takes a function from
+        :math:`\\mathbb{BDM}_1(\\Omega)` and maps it to a function in
+        :math:`\\mathbb{RT}_0(\\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -328,6 +338,9 @@ class BDM1(pg.Discretization):
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
         Project the RT0 finite element space onto the faces of the given grid.
+        The projection operator :math:`\\Pi` takes a function from
+        :math:`\\mathbb{RT}_0(\\Omega)` and maps it to a function in
+        :math:`\\mathbb{BDM}_1(\\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which the projection is performed.
@@ -386,9 +399,8 @@ class BDM1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}`, where :math:`q \\in` :class:`BDM1`
-        (H(div)) and :math:`g` is the prescribed Neumann datum.
-        The result is a vector in the dual of :class:`BDM1`.
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}`, where
+        :math:`q \\in \\mathbb{BDM}_1(\\Omega)` and :math:`g` is the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -439,7 +451,9 @@ class BDM1(pg.Discretization):
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Constructs the projection matrix from the current finite element space to the
-        VecPwLinears space.
+        VecPwLinears space.  The projection operator :math:`\\Pi` takes a function from
+        :math:`\\mathbb{RT}_0(\\Omega)` and maps it to a piecewise linear function in
+        :math:`[\\mathbb{P}_1(\\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -497,12 +511,9 @@ class BDM1(pg.Discretization):
 
 class RT1(pg.Discretization):
     """
-    RT1 Discretization class for H(div) finite element method.
-
-    This class implements the Raviart-Thomas elements of order 1 (RT1) for
-    discretizing vector fields in H(div) space. It provides methods for
-    assembling mass matrices, differential matrices, evaluating basis functions,
-    and interpolating functions onto the finite element space.
+    Class implementing the finite element discretization for Raviart-Thomas (RT)
+    elements of order 1 :math:`\\mathbb{RT}_1(\\Omega) \\subset H_{div}(\\Omega)`,
+    for a generic domain :math:`\\Omega \\in \\mathbb{R}^d`.
     """
 
     poly_order = 2
@@ -546,8 +557,8 @@ class RT1(pg.Discretization):
     ) -> sps.csc_array:
         """
         Assembles the mass matrix, representing the bilinear form
-        :math:`(K^{-1} q, v)_\\Omega` where :math:`K^{-1}` is the inverse
-        diffusion tensor and :math:`q`, :math:`v \\in` :class:`RT1` (H(div)).
+        :math:`(K^{-1} u, v)_\\Omega` where :math:`K^{-1}` is the inverse
+        diffusion tensor and :math:`u, v \\in \\mathbb{RT}_1(\\Omega)`.
         Both domain and range lie in :class:`RT1`.
 
         Args:
@@ -626,7 +637,7 @@ class RT1(pg.Discretization):
         self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Reorders the local nodes, faces, and corresponding cell-face orientations
+        Reorders the local nodes, faces, and corresponding cell-face orientations.
 
         Args:
             cell_faces (sps.csc_array): Cell_face connectivity of the grid.
@@ -634,9 +645,9 @@ class RT1(pg.Discretization):
             cell (int): Cell index.
 
         Returns:
-            np.ndarray: The reordered local node indices
-            np.ndarray: The reordered local face indices
-            np.ndarray: The reordered cell-face orientation signs
+            np.ndarray: The reordered local node indices.
+            np.ndarray: The reordered local face indices.
+            np.ndarray: The reordered cell-face orientation signs.
         """
         # For the current cell retrieve its faces
         loc = slice(cell_faces.indptr[cell], cell_faces.indptr[cell + 1])
@@ -858,13 +869,13 @@ class RT1(pg.Discretization):
 
     def compute_local_div_matrix(self, dim: int) -> np.ndarray:
         """
-        Assembles the local divergence matrix using local node and face ordering
+        Assembles the local divergence matrix using local node and face ordering.
 
         Args:
             dim (int): Dimension of the grid.
 
         Returns:
-            np.ndarray: The local divergence matrix
+            np.ndarray: The local divergence matrix.
         """
         opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
         loc_node = np.repeat(np.arange(dim + 1), dim)
@@ -886,7 +897,7 @@ class RT1(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space
+        Interpolates a function onto the finite element space.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -927,7 +938,8 @@ class RT1(pg.Discretization):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}` for the RT1 space.
+        :math:`(v \\cdot n, g)_{\\partial\\Omega}` with :math:`v` a test function in
+        :math:`\\mathbb{RT}_1(\\Omega)` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -961,8 +973,10 @@ class RT1(pg.Discretization):
     ) -> sps.csc_array:
         """
         Assembles the lumped matrix for the given grid, representing a diagonal
-        approximation of the mass matrix :math:`(K^{-1} q, v)`,
-        using the integration rule from Egger & Radu (2020).
+        approximation of the mass matrix :math:`(K^{-1} q, v)`, with
+        :math:`q, v \\in \\mathbb{RT}_1(\\Omega)` and :math:`K` the diffusion tensor.
+        The lumped matrix is computed using the integration rule from Egger & Radu
+        (2020).
 
         Args:
             sd (pg.Grid): The grid object.
@@ -1017,7 +1031,9 @@ class RT1(pg.Discretization):
     def proj_to_PwPolynomials(self, sd: pg.Grid):
         """
         Constructs the projection matrix from the current finite element space to the
-        VecPwQuadratics space.
+        VecPwQuadratics space. The projection operator :math:`\\Pi` takes a function
+        from :math:`\\mathbb{RT}_1(\\Omega)` and maps it to a piecewise quadratic
+        function in :math:`[\\mathbb{P}_2(\\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid object.
