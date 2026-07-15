@@ -206,7 +206,8 @@ class SymMatPwPolynomials(pg.Discretization):
         Assembles the natural boundary condition vector, equal to zero.
 
         For symmetric matrix-valued piecewise polynomials, the natural boundary
-        condition is zero since these are discontinuous functions with no boundary trace.
+        condition is zero since these are discontinuous functions with no boundary
+        trace.
 
         Args:
             sd (pg.Grid): The grid object.

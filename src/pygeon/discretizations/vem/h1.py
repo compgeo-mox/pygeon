@@ -231,8 +231,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the VEM stiffness matrix :math:`(\\nabla u, \\nabla v)_\\Omega`
-        using the virtual element method.
+        Assembles and returns the VEM stiffness matrix
+        :math:`(\\nabla u, \\nabla v)_\\Omega` using the virtual element method.
 
         Args:
             sd (pg.Grid): The grid.
