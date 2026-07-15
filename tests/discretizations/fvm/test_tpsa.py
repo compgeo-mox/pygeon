@@ -43,6 +43,14 @@ def test_1D(discr: pg.TPSA, unit_sd_1d):
         discr.assemble_system_matrix(unit_sd_1d, data)
 
 
+def test_without_data(discr: pg.TPSA, unit_sd_3d):
+    """Check that the boundary contribution is zero when data is absent."""
+    discr.assemble_system_matrix(unit_sd_3d)
+    rhs = discr.assemble_rhs_boundary_vector(unit_sd_3d)
+
+    assert np.allclose(rhs, 0)
+
+
 def test_without_bcs(discr: pg.TPSA, unit_sd_3d):
     """Check that the boundary contribution is zero when BCs are absent."""
     data = pp.initialize_data({}, discr.keyword)

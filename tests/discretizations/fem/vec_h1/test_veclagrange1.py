@@ -29,6 +29,12 @@ def test_interpolate_and_evaluate(discr, unit_sd):
     assert np.allclose((proj @ interp).reshape((pg.AMBIENT_DIM, -1)), known_vals)
 
 
+def test_eval_at_cell_centers_0d(discr, ref_sd_0d):
+    proj = discr.eval_at_cell_centers(ref_sd_0d)
+    known = np.empty((pg.AMBIENT_DIM, 0))
+    assert matrix_equals(proj.todense(), known)
+
+
 def test_div_matrix(discr, ref_sd):
     D = discr.assemble_div_matrix(ref_sd)
 
