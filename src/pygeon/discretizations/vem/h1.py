@@ -296,8 +296,7 @@ class VLagrange1(pg.Lagrange1):
             pg.Discretization: The range discretization class.
 
         Raises:
-            NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            NotImplementedError: For dimensions other than 1 and 2.
         """
         match dim:
             case 3:
