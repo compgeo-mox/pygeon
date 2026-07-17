@@ -13,5 +13,3 @@ Submodules
    :maxdepth: 2
 
    pygeon.viz.plot_spanningtree
-   pygeon.viz.visualizer
-
