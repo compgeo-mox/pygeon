@@ -64,8 +64,8 @@ class VecVLagrange1(pg.VecDiscretization):
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the div matrix operator for the lowest order
-        vector Lagrange element
+        Returns the divergence matrix :math:`\\nabla \\cdot u` operator for the lowest
+        order vector virtual Lagrange element.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -129,8 +129,10 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Returns the div-div matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by the Lame' parameter lambda.
+        Returns the divergence-divergence matrix operator
+        :math:`\\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega` for the lowest
+        order vector virtual Lagrange element, multiplied by the Lamé parameter
+        :math:`\\lambda`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -152,8 +154,9 @@ class VecVLagrange1(pg.VecDiscretization):
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the symmetric gradient matrix operator for the
-        lowest order vector Lagrange element
+        Returns the symmetric gradient matrix operator
+        :math:`\\varepsilon(u) = \\frac{1}{2}(\\nabla u + \\nabla u^T)` for the lowest
+        order vector virtual Lagrange element.
 
         Args:
             sd (pg.Grid): The grid object representing the domain.
@@ -241,9 +244,10 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Returns the symgrad-symgrad matrix operator for the lowest order
-        vector Lagrange element. The matrix is multiplied by twice the Lame' parameter
-        mu.
+        Returns the symmetric-gradient inner product matrix
+        :math:`2\\mu (\\varepsilon(u), \\varepsilon(v))_\\Omega` for the lowest order
+        vector virtual Lagrange element, multiplied by twice the Lamé parameter
+        :math:`\\mu`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -270,7 +274,8 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles and returns the penalisation matrix.
+        Assembles and returns the VEM penalisation matrix, which stabilizes the virtual
+        element method by penalizing the non-polynomial part of the solution.
 
         Args:
             sd (pg.Grid): The grid.
@@ -311,8 +316,8 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Computes the local penalisation VEM matrix on a given cell
-        according to the Hitchhiker's (6.5)
+        Computes the local VEM penalisation matrix :math:`(I - \\Pi) u` on a given
+        cell, stabilizing the non-polynomial part. Based on the Hitchhiker's (6.5).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -334,7 +339,15 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the global stiffness matrix for the finite element method.
+        Assembles the VEM linear elasticity stiffness matrix
+
+        .. math::
+
+            2\\mu (\\varepsilon(u), \\varepsilon(v))_\\Omega
+            + \\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega
+
+        where :math:`\\mu` and :math:`\\lambda` are the Lamé parameters, plus a VEM
+        penalisation term.
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.

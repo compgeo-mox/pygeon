@@ -28,7 +28,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the mass matrix, using the scalar and tensor weights in data.
+        Assembles the mass matrix :math:`(K^{-1} u, v)_\\Omega` using the
+        scalar and tensor weights in data, where :math:`K^{-1}` is the
+        second-order tensor and :math:`u, v` are in :class:`VecPwPolynomials`
+        (vector L2). Both domain and range lie in :class:`VecPwPolynomials`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -45,7 +48,9 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped mass matrix, using the scalar and tensor weights in data.
+        Assembles the lumped mass matrix, which is a diagonal approximation of
+        :math:`(K^{-1} u, v)_\\Omega` for :class:`VecPwPolynomials` (vector L2),
+        using the scalar and tensor weights in data.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -93,7 +98,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, sot: pp.SecondOrderTensor
     ) -> sps.csc_array:
         """
-        Assembles the weighting matrix based on a second-order tensor.
+        Assembles the weighting matrix :math:`K^{-1}` based on a second-order tensor.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -204,6 +209,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         """
         Assembles the natural boundary condition vector, equal to zero.
 
+        For vector-valued piecewise polynomials (vector L2), the natural boundary
+        condition is zero since these are discontinuous functions with no boundary
+        trace.
+
         Args:
             sd (pg.Grid): The grid object.
             func (Callable[[np.ndarray], np.ndarray]): The function defining the
@@ -260,7 +269,10 @@ class VecPwPolynomials(pg.VecDiscretization):
 
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the broken (element-wise) gradient matrix for the given grid.
+        Assembles the broken (element-wise) gradient matrix for the given grid,
+        computing :math:`\\nabla_h u` element-wise for each vector component of
+        :math:`u \\in` :class:`VecPwPolynomials`. The result lands in the
+        corresponding matrix-valued piecewise polynomial space.
 
         Args:
             sd (pg.Grid): The grid or a subclass.

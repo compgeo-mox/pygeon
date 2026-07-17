@@ -42,7 +42,8 @@ class VRT0(pg.RT0):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the mass matrix
+        Assembles the VEM mass matrix :math:`(K^{-1} q, v)_\\Omega` using the
+        mixed virtual element method.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -106,7 +107,8 @@ class VBDM1(pg.BDM1):
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
         """
-        Computes the mass matrix for the Virtual Element Method (VEM).
+        Computes the VEM mass matrix :math:`(q, v)_\\Omega` for the Virtual Element
+        Method (VEM) in the H(div) space.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -203,8 +205,8 @@ class VBDM1(pg.BDM1):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix corresponding to the differential operator for the H(div)
-        space.
+        Assembles the matrix corresponding to the divergence differential operator
+        :math:`\\nabla \\cdot` for the H(div) space.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -258,7 +260,7 @@ class VBDM1(pg.BDM1):
     ) -> np.ndarray:
         """
         Assembles the natural boundary condition term
-        (n dot q, func)_Gamma
+        :math:`(q \\cdot n, g)_{\\partial\\Omega}`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -306,7 +308,8 @@ class VBDM1(pg.BDM1):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped matrix for the given grid and data.
+        Assembles the lumped mass matrix, which is a diagonal approximation of
+        :math:`(q, v)_\\Omega`, for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid for which the lumped matrix is assembled.

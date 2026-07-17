@@ -78,9 +78,14 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix for an incompressible material, which is
-        given by (A sigma, tau) where
-        A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu the Lamé constants and coeff = 1 / dim
+        given by :math:`(A \\sigma, \\tau)` where
+
+        .. math::
+
+            A \\sigma = \\frac{1}{2\\mu} \\left( \\sigma
+            - \\frac{1}{d} \\text{Tr}(\\sigma) I \\right)
+
+        with :math:`\\mu` the shear Lamé constant.
 
         Args:
             sd (pg.Grid): The grid.
@@ -154,14 +159,16 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped matrix for the given grid.
+        Assembles the lumped elasticity matrix for the given grid. This is a diagonal
+        approximation of :math:`(A \\sigma, \\tau)` where :math:`A` is the elasticity
+        compliance operator from :meth:`assemble_mass_matrix_elasticity`.
 
         Args:
             sd (pg.Grid): The grid object.
             data (dict | None): Optional data dictionary.
 
         Returns:
-            sps.csc_array: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped elasticity matrix.
         """
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
@@ -190,14 +197,16 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
-        Assembles the lumped matrix with Cosserat terms for the given grid.
+        Assembles the lumped Cosserat matrix for the given grid. This is a diagonal
+        approximation of :math:`(A \\sigma, \\tau)` where :math:`A` is the Cosserat
+        compliance operator from :meth:`assemble_mass_matrix_cosserat`.
 
         Args:
             sd (pg.Grid): The grid object.
             data (dict | None): Optional data dictionary.
 
         Returns:
-            sps.csc_array: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped Cosserat matrix.
         """
         M = self.assemble_lumped_matrix_elasticity(sd, data)
 
@@ -225,8 +234,10 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles and returns the trace matrix for the matrix-valued piecewise
-        polynomials.
+        Assembles and returns the trace matrix :math:`\\text{Tr}(\\sigma)` for the
+        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
+        polynomials to scalar piecewise polynomials by extracting the trace
+        of the matrix field.
 
         Args:
             sd (pg.Grid): The grid.
@@ -248,8 +259,10 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
     def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles and returns the asymmetry matrix for the matrix-valued piecewise
-        polynomials.
+        Assembles and returns the skew-symmetry (asymmetry) matrix
+        :math:`\\text{skw}(\\sigma) = \\frac{1}{2}(\\sigma - \\sigma^T)` for the
+        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
+        polynomials to the skew-symmetric part.
 
         Args:
             sd (pg.Grid): The grid.
@@ -366,7 +379,8 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles and returns the operator that symmetrizes a matrix-valued function.
+        Assembles and returns the operator :math:`\\text{sym}(\\sigma)
+        = \\frac{1}{2}(\\sigma + \\sigma^T)` that symmetrizes a matrix-valued function.
 
         Args:
             sd (pg.Grid): The grid.
