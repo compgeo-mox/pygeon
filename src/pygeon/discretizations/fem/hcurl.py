@@ -9,16 +9,16 @@ import pygeon as pg
 
 
 class Nedelec0(pg.Discretization):
-    """
+    r"""
     Class implementing the finite element discretization of Nedelec elements of the
     first kind of lowest order
-    :math:`\\mathbb{N}_0(\\Omega) \\subset H_{curl}(\\Omega)`, for a generic domain
-    :math:`\\Omega \\in \\mathbb{R}^d`.
+    :math:`\mathbb{N}_0(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
+    :math:`\Omega \in \mathbb{R}^d`.
 
     Each degree of freedom is the integral over a mesh edge in 3D.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
-    corresponds to a rotated :math:`\\mathbb{RT}_0(\\Omega)`.
+    corresponds to a rotated :math:`\mathbb{RT}_0(\Omega)`.
     """
 
     poly_order = 1
@@ -42,11 +42,11 @@ class Nedelec0(pg.Discretization):
         return sd.num_edges
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Constructs the projection matrix to the VecPwLinears space via Nedelec1. The
-        projection operator :math:`\\Pi` takes a function from
-        :math:`\\mathbb{N}_0(\\Omega)` and maps it to a piecewise linear function in
-        :math:`[\\mathbb{P}_1(\\Omega)]^d`.
+        projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{N}_0(\Omega)` and maps it to a piecewise linear function in
+        :math:`[\mathbb{P}_1(\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -63,11 +63,11 @@ class Nedelec0(pg.Discretization):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
         The lumped matrix is a diagonal approximation of the mass matrix
-        :math:`(u, v)_\\Omega` for :math:`u, v \\in \\mathbb{N}_0(\Omega)`.
+        :math:`(u, v)_\Omega` for :math:`u, v \in \mathbb{N}_0(\Omega)`.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.
@@ -80,14 +80,14 @@ class Nedelec0(pg.Discretization):
         return sps.diags_array(np.asarray(diag_mass).flatten()).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the differential matrix for the given grid.
 
-        The differential corresponds to the curl operator :math:`\\nabla \\times`,
-        mapping from :math:`\\mathbb{N}_0(\\Omega)` to:
+        The differential corresponds to the curl operator :math:`\nabla \times`,
+        mapping from :math:`\mathbb{N}_0(\Omega)` to:
 
-        - 3D: :math:`\\mathbb{RT}_0(\\Omega)` :class:`~pygeon.RT0` H(div)
-        - 2D: :math:`\\mathbb{P}_0(\\Omega)` :class:`~pygeon.PwConstants` L2
+        - 3D: :math:`\mathbb{RT}_0(\Omega)` :class:`~pygeon.RT0` H(div)
+        - 2D: :math:`\mathbb{P}_0(\Omega)` :class:`~pygeon.PwConstants` L2
 
         Args:
             sd (pg.Grid): The grid for which the differential matrix is assembled.
@@ -108,12 +108,12 @@ class Nedelec0(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition matrix for the given grid and function.
 
         The natural boundary condition corresponds to the tangential trace of
-        :math:`(v \\times n, g)_{\\partial\\Omega}` with :math:`v` a test function in
-        :math:`\\mathbb{N}_0(\\Omega)` and :math:`g` the prescribed datum.
+        :math:`(v \times n, g)_{\partial\Omega}` with :math:`v` a test function in
+        :math:`\mathbb{N}_0(\Omega)` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -164,10 +164,10 @@ class Nedelec0(pg.Discretization):
         return np.array(vals)
 
     def proj_to_Ne1(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Project the solution to the Nedelec of the second kind. The projection operator
-        :math:`\\Pi` takes a function from :math:`\\mathbb{N}_0(\\Omega)` and maps it
-        to a function in :math:`\\mathbb{N}_1(\\Omega)`.
+        :math:`\Pi` takes a function from :math:`\mathbb{N}_0(\Omega)` and maps it
+        to a function in :math:`\mathbb{N}_1(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
@@ -181,16 +181,16 @@ class Nedelec0(pg.Discretization):
 
 
 class Nedelec1(pg.Discretization):
-    """
+    r"""
     Class implementing the finite element discretization of Nedelec elements of the
     second kind of lowest order
-    :math:`\\mathbb{N}_1(\\Omega) \\subset H_{curl}(\\Omega)`, for a generic domain
-    :math:`\\Omega \\in \\mathbb{R}^d`.
+    :math:`\mathbb{N}_1(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
+    :math:`\Omega \in \mathbb{R}^d`.
 
     Each degree of freedom is a first moment over a mesh edge in 3D.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
-    corresponds to a rotated :math:`\\mathbb{BDM}_1(\\Omega)`.
+    corresponds to a rotated :math:`\mathbb{BDM}_1(\Omega)`.
     """
 
     poly_order = 1
@@ -213,11 +213,11 @@ class Nedelec1(pg.Discretization):
         return 2 * sd.num_edges
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Constructs the projection matrix from the current finite element space to the
-        VecPwLinears space. The projection operator :math:`\\Pi` takes a function from
-        :math:`\\mathbb{N}_1(\\Omega)` and maps it to a piecewise linear function in
-        :math:`[\\mathbb{P}_1(\\Omega)]^d`.
+        VecPwLinears space. The projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{N}_1(\Omega)` and maps it to a piecewise linear function in
+        :math:`[\mathbb{P}_1(\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -291,10 +291,10 @@ class Nedelec1(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Project the solution to the Nedelec of the first kind. The projection operator
-        :math:`\\Pi` takes a function from :math:`\\mathbb{N}_1(\\Omega)` and maps it
-        to a function in :math:`\\mathbb{N}_0(\\Omega)`.
+        :math:`\Pi` takes a function from :math:`\mathbb{N}_1(\Omega)` and maps it
+        to a function in :math:`\mathbb{N}_0(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
@@ -307,10 +307,10 @@ class Nedelec1(pg.Discretization):
         ).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the differential matrix for the H(curl) finite element space.
 
-        The differential corresponds to the curl operator :math:`\\nabla \\times`,
+        The differential corresponds to the curl operator :math:`\nabla \times`,
         mapping from :class:`Nedelec1` (H(curl), two dofs per edge) to the
         same range as :class:`Nedelec0` (i.e. :class:`~pygeon.RT0` in 3D
         or :class:`~pygeon.PwConstants` in 2D).
@@ -353,13 +353,13 @@ class Nedelec1(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition for the given grid, function, and
         boundary faces.
 
         The natural boundary condition corresponds to the tangential trace of
-        :math:`(v \\times n, g)_{\\partial\\Omega}` with :math:`v` a test function in
-        :math:`\\mathbb{N}_1(\\Omega)` and :math:`g` the prescribed datum.
+        :math:`(v \times n, g)_{\partial\Omega}` with :math:`v` a test function in
+        :math:`\mathbb{N}_1(\Omega)` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the natural boundary condition.

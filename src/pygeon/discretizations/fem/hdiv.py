@@ -11,10 +11,10 @@ import pygeon as pg
 
 
 class RT0(pg.Discretization):
-    """
+    r"""
     Class implementing the finite element discretization for Raviart-Thomas (RT)
-    elements of lowest order :math:`\\mathbb{RT}_0(\\Omega) \\subset H_{div}(\\Omega)`,
-    for a generic domain :math:`\\Omega \\in \\mathbb{R}^d`.
+    elements of lowest order :math:`\mathbb{RT}_0(\Omega) \subset H_{div}(\Omega)`,
+    for a generic domain :math:`\Omega \in \mathbb{R}^d`.
 
     Each degree of freedom is the integral over a mesh face.
 
@@ -42,16 +42,16 @@ class RT0(pg.Discretization):
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles and returns the advection matrix for mixed finite elements
         (RT0-P0), which is given by
-        :math:`(D^{-1}\\boldsymbol{\\beta} \\cdot \\boldsymbol{u}, v)`.
+        :math:`(D^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)`.
 
-        The trial function is :math:`\\boldsymbol{u} \in \\mathbb{RT}_0(\\Omega)` and
-        test functions :math:`v \\in \\mathbb{P}_0(\\Omega)`.
-        :math:`\\boldsymbol{\\beta} \in [\\mathbb{P}_0(\\Omega)]^d` is a given vector
-        field and :math:`D^{-1} \\in [\\mathbb{P}_0(\\Omega)]^{d \\times d}` is a given
-        second-order tensor. If not provided, :math:`\\boldsymbol{\\beta}` defaults to
+        The trial function is :math:`\boldsymbol{u} \in \mathbb{RT}_0(\Omega)` and
+        test functions :math:`v \in \mathbb{P}_0(\Omega)`.
+        :math:`\boldsymbol{\beta} \in [\mathbb{P}_0(\Omega)]^d` is a given vector
+        field and :math:`D^{-1} \in [\mathbb{P}_0(\Omega)]^{d \times d}` is a given
+        second-order tensor. If not provided, :math:`\boldsymbol{\beta}` defaults to
         :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor.
 
         Args:
@@ -140,15 +140,15 @@ class RT0(pg.Discretization):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the lumped mass matrix :math:`L` such that :math:`B^T L^{-1} B`
         is a TPFA method.
 
         The lumped matrix is a diagonal approximation of the mass matrix
-        :math:`(K^{-1} u, v)_\\Omega` for :math:`u, v \\in \\mathbb{RT}_0(\Omega)`.
+        :math:`(K^{-1} u, v)_\Omega` for :math:`u, v \in \mathbb{RT}_0(\Omega)`.
 
         The entries of :math:`L` are given by
-        :math:`L_{ff} = \\frac{h_{f,\\perp}}{|f|}` where :math:`h_{f,\\perp}` is
+        :math:`L_{ff} = \frac{h_{f,\perp}}{|f|}` where :math:`h_{f,\perp}` is
         the sum of the normal distances from the cell centers to face :math:`f`,
         weighted by the inverse permeability :math:`K^{-1}`.
 
@@ -175,11 +175,11 @@ class RT0(pg.Discretization):
         return sps.diags_array(h_perp / sd.face_areas).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
-        The divergence operator :math:`\\nabla \\cdot` maps from :class:`RT0`
+        The divergence operator :math:`\nabla \cdot` maps from :class:`RT0`
         (H(div), one dof per face) to :class:`~pygeon.PwConstants` (L2, one
         dof per cell).
 
@@ -214,9 +214,9 @@ class RT0(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition term
-        :math:`(u \\cdot n, g)_{\\partial\\Omega}`, where :math:`u \\in \\mathbb{RT}_0`
+        :math:`(u \cdot n, g)_{\partial\Omega}`, where :math:`u \in \mathbb{RT}_0`
         and :math:`g` is the prescribed datum.
 
         Args:
@@ -254,10 +254,10 @@ class RT0(pg.Discretization):
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
-        operator :math:`\\Pi` takes a function from :math:`\\mathbb{RT}_0(\\Omega)` and
-        maps it to a piecewise linear function in :math:`[\\mathbb{P}_1(\\Omega)]^d`.
+        operator :math:`\Pi` takes a function from :math:`\mathbb{RT}_0(\Omega)` and
+        maps it to a piecewise linear function in :math:`[\mathbb{P}_1(\Omega)]^d`.
 
         This function is cached to speed up repetitive calls for the same grid.
 
@@ -275,10 +275,10 @@ class RT0(pg.Discretization):
 
 
 class BDM1(pg.Discretization):
-    """
+    r"""
     Class implementing the finite element discretization for Brezzi-Douglas-Marini (BDM)
-    elements of lowest order :math:`\\mathbb{BDM}_1(\\Omega) \\subset H_{div}(\\Omega)`,
-    for a generic domain :math:`\\Omega \\in \\mathbb{R}^d`.
+    elements of lowest order :math:`\mathbb{BDM}_1(\Omega) \subset H_{div}(\Omega)`,
+    for a generic domain :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order = 1
@@ -320,11 +320,11 @@ class BDM1(pg.Discretization):
         return np.kron(M_loc, np.eye(pg.AMBIENT_DIM))
 
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
-        The projection operator :math:`\\Pi` takes a function from
-        :math:`\\mathbb{BDM}_1(\\Omega)` and maps it to a function in
-        :math:`\\mathbb{RT}_0(\\Omega)`.
+        The projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{BDM}_1(\Omega)` and maps it to a function in
+        :math:`\mathbb{RT}_0(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -336,11 +336,11 @@ class BDM1(pg.Discretization):
         return proj.tocsc()
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Project the RT0 finite element space onto the faces of the given grid.
-        The projection operator :math:`\\Pi` takes a function from
-        :math:`\\mathbb{RT}_0(\\Omega)` and maps it to a function in
-        :math:`\\mathbb{BDM}_1(\\Omega)`.
+        The projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{RT}_0(\Omega)` and maps it to a function in
+        :math:`\mathbb{BDM}_1(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which the projection is performed.
@@ -351,10 +351,10 @@ class BDM1(pg.Discretization):
         return sps.vstack([sps.eye_array(sd.num_faces)] * sd.dim).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the matrix corresponding to the differential operator.
 
-        The divergence operator :math:`\\nabla \\cdot` maps from :class:`BDM1`
+        The divergence operator :math:`\nabla \cdot` maps from :class:`BDM1`
         (H(div), :math:`d` dofs per face) to :class:`~pygeon.PwConstants`
         (L2, one dof per cell).
 
@@ -397,10 +397,10 @@ class BDM1(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}`, where
-        :math:`q \\in \\mathbb{BDM}_1(\\Omega)` and :math:`g` is the prescribed datum.
+        :math:`(q \cdot n, g)_{\partial\Omega}`, where
+        :math:`q \in \mathbb{BDM}_1(\Omega)` and :math:`g` is the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -449,11 +449,11 @@ class BDM1(pg.Discretization):
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Constructs the projection matrix from the current finite element space to the
-        VecPwLinears space.  The projection operator :math:`\\Pi` takes a function from
-        :math:`\\mathbb{RT}_0(\\Omega)` and maps it to a piecewise linear function in
-        :math:`[\\mathbb{P}_1(\\Omega)]^d`.
+        VecPwLinears space.  The projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{RT}_0(\Omega)` and maps it to a piecewise linear function in
+        :math:`[\mathbb{P}_1(\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -510,10 +510,10 @@ class BDM1(pg.Discretization):
 
 
 class RT1(pg.Discretization):
-    """
+    r"""
     Class implementing the finite element discretization for Raviart-Thomas (RT)
-    elements of order 1 :math:`\\mathbb{RT}_1(\\Omega) \\subset H_{div}(\\Omega)`,
-    for a generic domain :math:`\\Omega \\in \\mathbb{R}^d`.
+    elements of order 1 :math:`\mathbb{RT}_1(\Omega) \subset H_{div}(\Omega)`,
+    for a generic domain :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order = 2
@@ -555,10 +555,10 @@ class RT1(pg.Discretization):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the mass matrix, representing the bilinear form
-        :math:`(K^{-1} u, v)_\\Omega` where :math:`K^{-1}` is the inverse
-        diffusion tensor and :math:`u, v \\in \\mathbb{RT}_1(\\Omega)`.
+        :math:`(K^{-1} u, v)_\Omega` where :math:`K^{-1}` is the inverse
+        diffusion tensor and :math:`u, v \in \mathbb{RT}_1(\Omega)`.
         Both domain and range lie in :class:`RT1`.
 
         Args:
@@ -683,9 +683,8 @@ class RT1(pg.Discretization):
             volume (float): Cell volume.
 
         Returns:
-            np.ndarray: An array Psi in which
-            [i, 3*j : 3*(j + 1)] contains the values of
-            basis function phi_i at evaluation point j
+            np.ndarray: An array Psi in which [i, 3*j : 3*(j + 1)] contains the values
+            of basis function phi_i at evaluation point j
         """
         dim = sd.dim
 
@@ -812,11 +811,11 @@ class RT1(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
-        The divergence operator :math:`\\nabla \\cdot` maps from :class:`RT1`
+        The divergence operator :math:`\nabla \cdot` maps from :class:`RT1`
         (H(div)) to :class:`~pygeon.PwLinears` (P1 piecewise linears).
 
         Args:
@@ -936,10 +935,10 @@ class RT1(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition term
-        :math:`(v \\cdot n, g)_{\\partial\\Omega}` with :math:`v` a test function in
-        :math:`\\mathbb{RT}_1(\\Omega)` and :math:`g` the prescribed datum.
+        :math:`(v \cdot n, g)_{\partial\Omega}` with :math:`v` a test function in
+        :math:`\mathbb{RT}_1(\Omega)` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -971,10 +970,10 @@ class RT1(pg.Discretization):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the lumped matrix for the given grid, representing a diagonal
         approximation of the mass matrix :math:`(K^{-1} q, v)`, with
-        :math:`q, v \\in \\mathbb{RT}_1(\\Omega)` and :math:`K` the diffusion tensor.
+        :math:`q, v \in \mathbb{RT}_1(\Omega)` and :math:`K` the diffusion tensor.
         The lumped matrix is computed using the integration rule from Egger & Radu
         (2020).
 
@@ -1029,11 +1028,11 @@ class RT1(pg.Discretization):
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
     def proj_to_PwPolynomials(self, sd: pg.Grid):
-        """
+        r"""
         Constructs the projection matrix from the current finite element space to the
-        VecPwQuadratics space. The projection operator :math:`\\Pi` takes a function
-        from :math:`\\mathbb{RT}_1(\\Omega)` and maps it to a piecewise quadratic
-        function in :math:`[\\mathbb{P}_2(\\Omega)]^d`.
+        VecPwQuadratics space. The projection operator :math:`\Pi` takes a function
+        from :math:`\mathbb{RT}_1(\Omega)` and maps it to a piecewise quadratic
+        function in :math:`[\mathbb{P}_2(\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid object.
