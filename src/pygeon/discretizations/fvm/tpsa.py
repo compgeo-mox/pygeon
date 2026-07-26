@@ -221,7 +221,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return ext_faces, ext_dists
 
     def compute_delta_mu_k(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
-        """
+        r"""
         Compute the delta^mu_k of (3.5) given by
         0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
         for each face k with neighboring cells (i,j).
@@ -249,7 +249,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return np.array(output_list) / 2
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
-        """
+        r"""
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face:
         mu_effective = ( delta_k^i / mu_i + delta_k^j / mu_j)^-1
 
@@ -361,7 +361,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_rot_rot_bdry_terms(
         self, sd: pg.Grid, cached_arrays: dict
     ) -> sps.csc_array:
-        """
+        r"""
         The operator R^n \delta R^n that is on the [1, 1] block of (A2.25).
 
         There is a slight discrepancy with the paper, because a simpler class of

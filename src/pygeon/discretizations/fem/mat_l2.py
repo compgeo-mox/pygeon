@@ -325,7 +325,8 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         # mult_mat.
         identity = np.eye(sd.dim)
         blocks = [
-            [sps.diags_array(mult_ij) for mult_ij in mult_i] for mult_i in mult_mat
+            [sps.diags_array(mult_ij, dtype=float) for mult_ij in mult_i]
+            for mult_i in mult_mat
         ]
 
         if right_mult:

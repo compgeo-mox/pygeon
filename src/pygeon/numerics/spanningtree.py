@@ -93,7 +93,7 @@ class SpanningTree:
             bdry_face_tags = np.hstack(
                 [sd.tags["domain_boundary_faces"] for sd in mdg.subdomains()]
             )
-            bdry_faces = np.where(bdry_face_tags)[0]
+            bdry_faces = np.where(bdry_face_tags)[0].astype(int)
 
             # The default case
             if starting_faces == "first_bdry":
@@ -109,7 +109,7 @@ class SpanningTree:
 
         # Boolean arrays
         if isinstance(starting_faces, np.ndarray) and starting_faces.dtype == bool:
-            return np.where(starting_faces)[0]
+            return np.where(starting_faces)[0].astype(int)
 
         # Index arrays and scalars
         else:
@@ -535,6 +535,6 @@ class SpanningWeightedTrees:
 
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
-        faces = np.where(sd.tags["domain_boundary_faces"])[0]
+        faces = np.where(sd.tags["domain_boundary_faces"])[0].astype(int)
 
         return faces[np.linspace(0, faces.size, num, endpoint=False, dtype=int)]

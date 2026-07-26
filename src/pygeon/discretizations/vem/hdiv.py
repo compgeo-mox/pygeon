@@ -269,8 +269,8 @@ class VBDM1(pg.BDM1):
         Returns:
             np.ndarray: The assembled natural boundary condition term.
         """
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
+        if np.asarray(b_faces).dtype == "bool":
+            b_faces = np.where(b_faces)[0].astype(int)
 
         p1 = pg.PwLinears(self.keyword)
         local_mass = p1.assemble_local_mass(sd.dim - 1)

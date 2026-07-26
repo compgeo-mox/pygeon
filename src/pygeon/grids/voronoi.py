@@ -71,8 +71,8 @@ class VoronoiGrid(pg.Grid):
                 vor.vertices = np.vstack((vor.vertices, far_pt))
 
                 # add the far point to the list of ridge vertices
-                mask = np.where(simplex < 0)[0][0]
-                vor.ridge_vertices[idx][mask] = vor.vertices.shape[0] - 1
+                inf_idx = int(np.where(simplex < 0)[0][0])
+                vor.ridge_vertices[idx][inf_idx] = vor.vertices.shape[0] - 1
 
                 # add the far point to the list of connected points
                 map_vrt[i] = vor.vertices.shape[0] - 1
@@ -80,18 +80,18 @@ class VoronoiGrid(pg.Grid):
         # remove the infinite vertices and construct the regions that are open
         for idx, reg_idx in enumerate(vor.regions):
             reg = np.array(reg_idx)
-            mask = reg < 0
+            open_mask = reg < 0
             # consider only the regions that are open
-            if np.any(mask):
-                reg = np.delete(reg, mask)
+            if np.any(open_mask):
+                reg = np.delete(reg, np.where(open_mask)[0])
                 # add a new ridge for the open region composed of the new vertices
                 ridge = [map_vrt[v] for v in reg if v in map_vrt]
                 vor.ridge_vertices.append(ridge)
 
                 # add the new ridges, sorted counter-clockwise to the current region
                 pts = np.append(reg, ridge)
-                mask = pg.sort_points.argsort_ccw_convex(vor.vertices[pts])
-                vor.regions[idx] = pts[mask].tolist()
+                order = pg.sort_points.argsort_ccw_convex(vor.vertices[pts])
+                vor.regions[idx] = pts[order].tolist()
 
         # Get the node coordinates
         nodes = vor.vertices.T
