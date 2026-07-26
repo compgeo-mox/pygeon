@@ -35,13 +35,12 @@ def test_decomposition(poin, k):
     (pd + pd) f = f
     holds
     """
-
     if k > poin.mdg.dim_max():
         return
 
     f = np.random.rand(poin.bar_spaces[k].size)
-    pdf, dpf = poin.decompose(k, f)
-    assert np.allclose(f, pdf + dpf)
+    pdf, dpf, qf = poin.decompose(k, f)
+    assert np.allclose(f, pdf + dpf + qf)
 
 
 @pytest.mark.parametrize("k", range(0, 4))
