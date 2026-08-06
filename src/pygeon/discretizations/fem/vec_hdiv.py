@@ -48,22 +48,24 @@ class VecHDiv(pg.VecDiscretization):
     def assemble_mass_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles and returns the elasticity inner product matrix, which is given by
-        :math:`(A \\sigma, \\tau)` where
+        r"""
+        Assembles and returns the elasticity inner product matrix for
+        :math:`\sigma \in` :class:`VecHDiv` (matrix-valued H(div)), which is
+        given by :math:`(A \sigma, \tau)_\Omega` where
 
         .. math::
 
-            A \\sigma = \\frac{1}{2\\mu} \\left[ \\sigma - c
-            \\text{Tr}(\\sigma) I\\right]
+            A \sigma = \frac{1}{2\mu} \left[ \sigma - c
+            \text{Tr}(\sigma) I\right]
 
-        with :math:`\\mu` and :math:`\\lambda` the Lamé constants and
+        with :math:`\mu` and :math:`\lambda` the Lamé constants and
 
         .. math::
 
-            c = \\frac{\\lambda}{2\\mu + d \\lambda}
+            c = \frac{\lambda}{2\mu + d \lambda}
 
-        where :math:`d` is the dimension.
+        where :math:`d` is the dimension. Both :math:`\sigma` and :math:`\tau`
+        are in :class:`VecHDiv`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -78,11 +80,18 @@ class VecHDiv(pg.VecDiscretization):
     def assemble_deviator_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles and returns the mass matrix for an incompressible material, which is
-        given by (A sigma, tau) where
-        A sigma = (sigma - coeff * Trace(sigma) * I) / (2 mu)
-        with mu the Lamé constants and coeff = 1 / dim
+        r"""
+        Assembles and returns the mass matrix for an incompressible material for
+        :math:`\sigma \in` :class:`VecHDiv`, which is given by
+        :math:`(A \sigma, \tau)_\Omega` where
+
+        .. math::
+
+            A \sigma = \frac{1}{2\mu} \left( \sigma
+            - \frac{1}{d} \text{Tr}(\sigma) I \right)
+
+        with :math:`\mu` the shear Lamé constant. Both :math:`\sigma` and
+        :math:`\tau` are in :class:`VecHDiv`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -97,22 +106,22 @@ class VecHDiv(pg.VecDiscretization):
     def assemble_mass_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles and returns the Cosserat inner product, which is given by
-        :math:`(A \\sigma, \\tau)` where
+        :math:`(A \sigma, \tau)` where
 
         .. math::
 
-            A \\sigma = \\frac{1}{2\\mu} \\left( \\text{sym}(\\sigma)
-            - c \\text{Tr}(\\sigma) I \\right)
-            + \\frac{1}{2\\mu_c} \\text{skw}(\\sigma)
+            A \sigma = \frac{1}{2\mu} \left( \text{sym}(\sigma)
+            - c \text{Tr}(\sigma) I \right)
+            + \frac{1}{2\mu_c} \text{skw}(\sigma)
 
-        with :math:`\\mu` and :math:`\\lambda` the Lamé constants,
-        :math:`\\mu_c` the coupling Lamé modulus, and
+        with :math:`\mu` and :math:`\lambda` the Lamé constants,
+        :math:`\mu_c` the coupling Lamé modulus, and
 
         .. math::
 
-            c = \\frac{\\lambda}{2\\mu + d \\lambda}
+            c = \frac{\lambda}{2\mu + d \lambda}
 
         where :math:`d` is the dimension.
 
@@ -129,15 +138,17 @@ class VecHDiv(pg.VecDiscretization):
     def assemble_lumped_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles the lumped matrix for the given grid.
+        r"""
+        Assembles the lumped elasticity matrix for the given grid. This is a diagonal
+        approximation of :math:`(A \sigma, \tau)` where :math:`A` is the elasticity
+        compliance operator from :meth:`assemble_mass_matrix_elasticity`.
 
         Args:
             sd (pg.Grid): The grid object.
             data (dict | None): Optional data dictionary.
 
         Returns:
-            sps.csc_array: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped elasticity matrix.
         """
         method_name = "assemble_lumped_matrix_elasticity"
         return self._apply_pwpolynomials_method(sd, method_name, data)
@@ -145,15 +156,17 @@ class VecHDiv(pg.VecDiscretization):
     def assemble_lumped_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles the lumped matrix with Cosserat terms for the given grid.
+        r"""
+        Assembles the lumped Cosserat matrix for the given grid. This is a diagonal
+        approximation of :math:`(A \sigma, \tau)` where :math:`A` is the Cosserat
+        compliance operator from :meth:`assemble_mass_matrix_cosserat`.
 
         Args:
             sd (pg.Grid): The grid object.
             data (dict | None): Optional data dictionary.
 
         Returns:
-            sps.csc_array: The assembled lumped matrix.
+            sps.csc_array: The assembled lumped Cosserat matrix.
         """
         method_name = "assemble_lumped_matrix_cosserat"
         return self._apply_pwpolynomials_method(sd, method_name, data)
@@ -161,8 +174,10 @@ class VecHDiv(pg.VecDiscretization):
     def assemble_asym_matrix(
         self, sd: pg.Grid, as_pwconstant: bool = False
     ) -> sps.csc_array:
-        """
-        Assemble the asymmetric matrix for the given grid.
+        r"""
+        Assembles the skew-symmetry (asymmetry) matrix
+        :math:`\text{skw}(\sigma) = \frac{1}{2}(\sigma - \sigma^T)` for the
+        vector HDiv space.
 
         This method constructs an asymmetric matrix by projecting to
         matrix piecewise polynomials and combining it with the
@@ -196,8 +211,9 @@ class VecHDiv(pg.VecDiscretization):
         return asym
 
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles and returns the trace matrix for the vector HDiv.
+        r"""
+        Assembles and returns the trace matrix :math:`\text{Tr}(\sigma)` for the
+        vector HDiv space.
 
         Args:
             sd (pg.Grid): The grid.
@@ -228,7 +244,7 @@ class VecBDM1(VecHDiv):
     """Polynomial degree of the basis functions"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
+        r"""
         Initialize the vector BDM1 discretization class.
         The base discretization class is pg.BDM1.
 
@@ -236,34 +252,34 @@ class VecBDM1(VecHDiv):
 
         .. math::
 
-            \\sigma = \\begin{bmatrix}
-                \\sigma_{xx} & \\sigma_{xy} \\\\
-                \\sigma_{yx} & \\sigma_{yy}
-            \\end{bmatrix}
+            \sigma = \begin{bmatrix}
+                \sigma_{xx} & \sigma_{xy} \\
+                \sigma_{yx} & \sigma_{yy}
+            \end{bmatrix}
 
         which is represented in the code unrolled row-wise as a vector of length 4:
 
         .. math::
 
-            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
+            \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{yx}, \sigma_{yy}]
 
         While in 3D the stress tensor can be written as:
 
         .. math::
 
-            \\sigma = \\begin{bmatrix}
-                \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
-                \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
-                \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
-            \\end{bmatrix}
+            \sigma = \begin{bmatrix}
+                \sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\
+                \sigma_{yx} & \sigma_{yy} & \sigma_{yz} \\
+                \sigma_{zx} & \sigma_{zy} & \sigma_{zz}
+            \end{bmatrix}
 
         where its vectorized structure of length 9 is given by:
 
         .. math::
 
-            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
-                       \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
-                       \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
+            \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{xz},
+                       \sigma_{yx}, \sigma_{yy}, \sigma_{yz},
+                       \sigma_{zx}, \sigma_{zy}, \sigma_{zz}]
 
         Args:
             keyword (str): The keyword for the vector discretization class.
@@ -328,7 +344,7 @@ class VecRT0(VecHDiv):
     """Polynomial degree of the basis functions"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
+        r"""
         Initialize the vector RT0 discretization class.
         The base discretization class is pg.RT0.
 
@@ -336,34 +352,34 @@ class VecRT0(VecHDiv):
 
         .. math::
 
-            \\sigma = \\begin{bmatrix}
-                \\sigma_{xx} & \\sigma_{xy} \\\\
-                \\sigma_{yx} & \\sigma_{yy}
-            \\end{bmatrix}
+            \sigma = \begin{bmatrix}
+                \sigma_{xx} & \sigma_{xy} \\
+                \sigma_{yx} & \sigma_{yy}
+            \end{bmatrix}
 
         which is represented in the code unrolled row-wise as a vector of length 4:
 
         .. math::
 
-            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
+            \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{yx}, \sigma_{yy}]
 
         While in 3D the stress tensor can be written as:
 
         .. math::
 
-            \\sigma = \\begin{bmatrix}
-                \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
-                \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
-                \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
-            \\end{bmatrix}
+            \sigma = \begin{bmatrix}
+                \sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\
+                \sigma_{yx} & \sigma_{yy} & \sigma_{yz} \\
+                \sigma_{zx} & \sigma_{zy} & \sigma_{zz}
+            \end{bmatrix}
 
         where its vectorized structure of length 9 is given by:
 
         .. math::
 
-            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
-                       \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
-                       \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
+            \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{xz},
+                       \sigma_{yx}, \sigma_{yy}, \sigma_{yz},
+                       \sigma_{zx}, \sigma_{zy}, \sigma_{zz}]
 
         Args:
             keyword (str): The keyword for the vector discretization class.

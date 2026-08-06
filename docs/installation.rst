@@ -6,7 +6,7 @@ Requirements
 
 PyGeoN requires:
 
-* Python >= 3.12
+* Python >= 3.13
 * PorePy (accessible in your PYTHONPATH)
 
 Basic Installation
