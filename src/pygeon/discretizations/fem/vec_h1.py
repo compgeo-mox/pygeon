@@ -10,7 +10,7 @@ import pygeon as pg
 
 
 class VecLagrange1(pg.VecDiscretization):
-    """
+    r"""
     Vector Lagrange finite element discretization for H1 space.
 
     This class represents a finite element discretization for the H1 space using
@@ -28,34 +28,34 @@ class VecLagrange1(pg.VecDiscretization):
 
     .. math::
 
-        \\sigma = \\begin{bmatrix}
-            \\sigma_{xx} & \\sigma_{xy} \\\\
-            \\sigma_{yx} & \\sigma_{yy}
-        \\end{bmatrix}
+        \sigma = \begin{bmatrix}
+            \sigma_{xx} & \sigma_{xy} \\
+            \sigma_{yx} & \sigma_{yy}
+        \end{bmatrix}
 
     which is represented in the code unrolled row-wise as a vector of length 4:
 
     .. math::
 
-        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
+        \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{yx}, \sigma_{yy}]
 
     While in 3D the stress tensor can be written as:
 
     .. math::
 
-        \\sigma = \\begin{bmatrix}
-            \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
-            \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
-            \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
-        \\end{bmatrix}
+        \sigma = \begin{bmatrix}
+            \sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\
+            \sigma_{yx} & \sigma_{yy} & \sigma_{yz} \\
+            \sigma_{zx} & \sigma_{zy} & \sigma_{zz}
+        \end{bmatrix}
 
     where its vectorized structure of length 9 is given by:
 
     .. math::
 
-        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
-                   \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
-                   \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
+        \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{xz},
+                   \sigma_{yx}, \sigma_{yy}, \sigma_{yz},
+                   \sigma_{zx}, \sigma_{zy}, \sigma_{zz}]
 
     The strain tensor follows the same approach.
     """
@@ -105,9 +105,9 @@ class VecLagrange1(pg.VecDiscretization):
         return (R @ Pi).tocsc()
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Returns the divergence matrix operator
-        :math:`\\nabla \\cdot u` for :math:`u \\in` :class:`VecLagrange1`
+        :math:`\nabla \cdot u` for :math:`u \in` :class:`VecLagrange1`
         (vector H1, dofs at nodes), mapping to :class:`~pygeon.PwConstants`
         (L2, one dof per cell).
 
@@ -120,10 +120,10 @@ class VecLagrange1(pg.VecDiscretization):
         return self.assemble_broken_div_matrix(sd)
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Returns the symmetric gradient matrix operator
-        :math:`\\varepsilon(u) = \\frac{1}{2}(\\nabla u + \\nabla u^T)` for
-        :math:`u \\in` :class:`VecLagrange1` (vector H1), mapping to
+        :math:`\varepsilon(u) = \frac{1}{2}(\nabla u + \nabla u^T)` for
+        :math:`u \in` :class:`VecLagrange1` (vector H1), mapping to
         :class:`~pygeon.MatPwConstants` (symmetric matrix-valued piecewise
         constants).
 
@@ -141,16 +141,16 @@ class VecLagrange1(pg.VecDiscretization):
     def assemble_stiff_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the linear elasticity stiffness matrix for
-        :math:`u \\in` :class:`VecLagrange1` (vector H1):
+        :math:`u \in` :class:`VecLagrange1` (vector H1):
 
         .. math::
 
-            2\\mu (\\varepsilon(u), \\varepsilon(v))_\\Omega
-            + \\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega
+            2\mu (\varepsilon(u), \varepsilon(v))_\Omega
+            + \lambda (\nabla \cdot u, \nabla \cdot v)_\Omega
 
-        where :math:`\\mu` and :math:`\\lambda` are the Lamé parameters.
+        where :math:`\mu` and :math:`\lambda` are the Lamé parameters.
         Both trial and test functions are in :class:`VecLagrange1`.
 
         Args:

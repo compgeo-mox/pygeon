@@ -65,7 +65,7 @@ class Discretization(abc.ABC):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the mass matrix by projecting to the corresponding piecewise
         polynomial space.
 
@@ -74,7 +74,7 @@ class Discretization(abc.ABC):
 
         .. math::
 
-            (u, v)_\\Omega, \\quad u, v \\in V_h,
+            (u, v)_\Omega, \quad u, v \in V_h,
 
         optionally weighted by physical parameters in ``data``. Both the domain
         and the range of this operator lie in :math:`V_h`.
@@ -91,12 +91,12 @@ class Discretization(abc.ABC):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the lumped mass matrix using the corresponding piecewise polynomial
         space.
 
         For a discretization space :math:`V_h`, the lumped matrix is a diagonal
-        approximation of the mass matrix :math:`(u, v)_\\Omega,\\ u, v \\in V_h`,
+        approximation of the mass matrix :math:`(u, v)_\Omega,\ u, v \in V_h`,
         obtained by replacing each row with its sum placed on the diagonal.
         Both the domain and the range lie in :math:`V_h`.
 
@@ -238,11 +238,11 @@ class Discretization(abc.ABC):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition term
-        :math:`(\\text{tr}(q), p)_{\\partial\\Omega}`, where :math:`\\text{tr}`
+        :math:`(\text{tr}(q), p)_{\partial\Omega}`, where :math:`\text{tr}`
         denotes the appropriate trace operator for the current space :math:`V_h`
-        onto :math:`\\partial\\Omega`.
+        onto :math:`\partial\Omega`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -280,10 +280,10 @@ class Discretization(abc.ABC):
         """
 
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
 
-        The broken gradient :math:`\\nabla_h` acts element-wise on functions in
+        The broken gradient :math:`\nabla_h` acts element-wise on functions in
         the current finite element space :math:`V_h`, mapping to the vector
         piecewise polynomial space of the same order. Both spaces are internal
         implementation details; see :meth:`proj_to_PwPolynomials` for the

@@ -41,8 +41,8 @@ class VRT0(pg.RT0):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles the VEM mass matrix :math:`(K^{-1} q, v)_\\Omega` using the
+        r"""
+        Assembles the VEM mass matrix :math:`(K^{-1} q, v)_\Omega` using the
         mixed virtual element method.
 
         Args:
@@ -106,8 +106,8 @@ class VBDM1(pg.BDM1):
     def assemble_mass_matrix(
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Computes the VEM mass matrix :math:`(q, v)_\\Omega` for the Virtual Element
+        r"""
+        Computes the VEM mass matrix :math:`(q, v)_\Omega` for the Virtual Element
         Method (VEM) in the H(div) space.
 
         Args:
@@ -204,9 +204,9 @@ class VBDM1(pg.BDM1):
         raise NotImplementedError
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the matrix corresponding to the divergence differential operator
-        :math:`\\nabla \\cdot` for the H(div) space.
+        :math:`\nabla \cdot` for the H(div) space.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -258,9 +258,9 @@ class VBDM1(pg.BDM1):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition term
-        :math:`(q \\cdot n, g)_{\\partial\\Omega}`.
+        :math:`(q \cdot n, g)_{\partial\Omega}`.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -307,9 +307,9 @@ class VBDM1(pg.BDM1):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the lumped mass matrix, which is a diagonal approximation of
-        :math:`(q, v)_\\Omega`, for the given grid and data.
+        :math:`(q, v)_\Omega`, for the given grid and data.
 
         Args:
             sd (pg.Grid): The grid for which the lumped matrix is assembled.

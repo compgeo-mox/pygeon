@@ -18,7 +18,7 @@ class VecVRT0(pg.VecDiscretization):
     """Matrix-valued discretization"""
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
-        """
+        r"""
         Initialize the vector virtual RT0 discretization class.
         The base discretization class is pg.VRT0.
 
@@ -26,34 +26,34 @@ class VecVRT0(pg.VecDiscretization):
 
         .. math::
 
-            \\sigma = \\begin{bmatrix}
-                \\sigma_{xx} & \\sigma_{xy} \\\\
-                \\sigma_{yx} & \\sigma_{yy}
-            \\end{bmatrix}
+            \sigma = \begin{bmatrix}
+                \sigma_{xx} & \sigma_{xy} \\
+                \sigma_{yx} & \sigma_{yy}
+            \end{bmatrix}
 
         which is represented in the code unrolled row-wise as a vector of length 4:
 
         .. math::
 
-            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
+            \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{yx}, \sigma_{yy}]
 
         While in 3D the stress tensor can be written as:
 
         .. math::
 
-            \\sigma = \\begin{bmatrix}
-                \\sigma_{xx} & \\sigma_{xy} & \\sigma_{xz} \\\\
-                \\sigma_{yx} & \\sigma_{yy} & \\sigma_{yz} \\\\
-                \\sigma_{zx} & \\sigma_{zy} & \\sigma_{zz}
-            \\end{bmatrix}
+            \sigma = \begin{bmatrix}
+                \sigma_{xx} & \sigma_{xy} & \sigma_{xz} \\
+                \sigma_{yx} & \sigma_{yy} & \sigma_{yz} \\
+                \sigma_{zx} & \sigma_{zy} & \sigma_{zz}
+            \end{bmatrix}
 
         where its vectorized structure of length 9 is given by:
 
         .. math::
 
-            \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{xz},
-                       \\sigma_{yx}, \\sigma_{yy}, \\sigma_{yz},
-                       \\sigma_{zx}, \\sigma_{zy}, \\sigma_{zz}]
+            \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{xz},
+                       \sigma_{yx}, \sigma_{yy}, \sigma_{yz},
+                       \sigma_{zx}, \sigma_{zy}, \sigma_{zz}]
 
         Args:
             keyword (str): The keyword for the vector discretization class.

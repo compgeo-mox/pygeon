@@ -89,10 +89,10 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_accumulation_terms(
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
-        """
+        r"""
         Assemble the zeroth-order terms on the diagonal, representing the
-        accumulation terms :math:`S_0 \\partial_t u`, :math:`S_r \\partial_t r`,
-        and :math:`S_p \\partial_t p` for displacement, rotation, and solid pressure,
+        accumulation terms :math:`S_0 \partial_t u`, :math:`S_r \partial_t r`,
+        and :math:`S_p \partial_t p` for displacement, rotation, and solid pressure,
         respectively.
 
         Args:
@@ -224,7 +224,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return ext_faces, ext_dists
 
     def compute_delta_mu_k(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
-        """
+        r"""
         Compute the delta^mu_k of (3.5) given by
         0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
         for each face k with neighboring cells (i,j).
@@ -252,7 +252,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return np.array(output_list) / 2
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
-        """
+        r"""
         Compute the harmonic average of mu from (3.5), divided by delta_k, at each face:
         mu_effective = ( delta_k^i / mu_i + delta_k^j / mu_j)^-1
 
@@ -267,9 +267,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return np.array(output_list)
 
     def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
-        """
+        r"""
         Assembles the mapping from cell-based primary variables :math:`(u, r, p)`
-        to face-based dual variables :math:`(\\sigma, m, \\tilde{v})` (stress, moment,
+        to face-based dual variables :math:`(\sigma, m, \tilde{v})` (stress, moment,
         and volume flux), as in the TPSA scheme.
 
         Args:
@@ -349,8 +349,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
                 raise ValueError("The grid dimension must be 2 or 3.")
 
     def assemble_ndot(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the operator :math:`n \\cdot` that performs a dot product with the
+        r"""
+        Assembles the operator :math:`n \cdot` that performs a dot product with the
         unit outward normal vector :math:`n` on each face.
 
         Args:
@@ -367,8 +367,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_rot_rot_bdry_terms(
         self, sd: pg.Grid, cached_arrays: dict
     ) -> sps.csc_array:
-        """
-        Assembles the operator :math:`R^n \\delta R^n` on the boundary, which appears
+        r"""
+        Assembles the operator :math:`R^n \delta R^n` on the boundary, which appears
         in the :math:`[1,1]` block of the dual variable mapping.
 
         There is a slight discrepancy with the paper, because a simpler class of
@@ -395,12 +395,12 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return (minus_R_squared @ codiv).tocsc()
 
     def assemble_Xi(self, cached_arrays: dict) -> list:
-        """
-        Assembles the averaging operator :math:`\\Xi` from (2.5) in the TPSA paper.
+        r"""
+        Assembles the averaging operator :math:`\Xi` from (2.5) in the TPSA paper.
 
-        Displacement BCs are handled by :math:`\\delta_{\\mu,k} = 0`. Traction BCs are
-        handled since :math:`2 \\delta_{\\mu,k} \\mu / \\delta = 1`. Spring BCs are
-        handled because the spring constant is contained in :math:`\\delta_{\\mu,k}`.
+        Displacement BCs are handled by :math:`\delta_{\mu,k} = 0`. Traction BCs are
+        handled since :math:`2 \delta_{\mu,k} \mu / \delta = 1`. Spring BCs are
+        handled because the spring constant is contained in :math:`\delta_{\mu,k}`.
 
         Args:
             cached_arrays (dict): The output of self.precompute_arrays.
@@ -439,9 +439,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         sd: pg.Grid,
         Xi_list: list,
     ) -> Tuple[sps.csc_array, sps.csc_array]:
-        """
+        r"""
         Assembles the off-diagonal terms in the first column of the TPSA dual variable
-        map (3.7), using the averaging operator :math:`\\Xi`. These are computed
+        map (3.7), using the averaging operator :math:`\Xi`. These are computed
         together because their construction uses similar components.
 
         Args:
@@ -463,9 +463,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
         sd: pg.Grid,
         Xi_list: list,
     ) -> Tuple[sps.csc_array, sps.csc_array]:
-        """
+        r"""
         Assembles the off-diagonal terms in the first row of the TPSA dual variable
-        map (3.7), using the complementary averaging operator :math:`\\tilde{\\Xi}`.
+        map (3.7), using the complementary averaging operator :math:`\tilde{\Xi}`.
         These are computed together because their construction uses similar components.
 
         This is a generalization compared to the paper to handle more involved boundary
@@ -504,12 +504,12 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_bdry_dual_var_map(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the matrix that maps boundary condition values to dual variables on
         boundary faces, following the right-hand side of the TPSA system (A2.25).
 
         Slight generalization: the :math:`[1, 0]` and :math:`[2, 0]` blocks first
-        weight with :math:`\\delta` and then apply rot/dot with :math:`n`.
+        weight with :math:`\delta` and then apply rot/dot with :math:`n`.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -559,13 +559,13 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def assemble_body_force(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the right-hand side vector for a given body-force function
         :math:`f`:
 
         .. math::
 
-            \\int_\\Omega f \\cdot v \\, dx
+            \int_\Omega f \cdot v \, dx
 
         Args:
             sd (pg.Grid): Grid, or a subclass.

@@ -45,14 +45,14 @@ class FiniteVolumeDiscretization(abc.ABC):
     def assemble_system_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assemble the system matrix, given by
 
         .. math::
 
-            S_0 \\partial_t p + \\nabla \\cdot (K_{\\text{eff}} \\cdot)
+            S_0 \partial_t p + \nabla \cdot (K_{\text{eff}} \cdot)
 
-        where :math:`S_0` is the storativity and :math:`K_{\\text{eff}}`
+        where :math:`S_0` is the storativity and :math:`K_{\text{eff}}`
         is the effective conductivity from :meth:`assemble_dual_var_map`,
         using the material parameters in the data dictionary.
 
@@ -112,7 +112,7 @@ class FiniteVolumeDiscretization(abc.ABC):
             )
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
-        """
+        r"""
         Compute $(1 / \delta_i + 1 / \delta_j)^{-1}$ at each face, between cells i and
         j. This is used to compute the effective permeability at the face.
 
@@ -149,13 +149,13 @@ class FiniteVolumeDiscretization(abc.ABC):
     def assemble_rhs_boundary_vector(
         self, sd: pg.Grid, data: dict | None = None
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the right-hand side vector related to the boundary conditions.
         This encodes boundary contributions to the divergence term:
 
         .. math::
 
-            -\\nabla \\cdot (A_{\\text{bdry}} g)
+            -\nabla \cdot (A_{\text{bdry}} g)
 
         where :math:`g` contains boundary dual and primary variable values.
 
@@ -190,10 +190,10 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     @abc.abstractmethod
     def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
-        """
+        r"""
         Assembles the mapping from cell-based primary variables to face-based dual
         variables. In the TPFA case, this maps cell pressures :math:`p` to face
-        fluxes :math:`q = |F| K_{\\text{eff}} (p_i - p_j)`.
+        fluxes :math:`q = |F| K_{\text{eff}} (p_i - p_j)`.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -207,9 +207,9 @@ class FiniteVolumeDiscretization(abc.ABC):
     def assemble_accumulation_terms(
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
-        """
+        r"""
         Assemble the zeroth-order (accumulation) terms for the primary variables,
-        typically a diagonal mass matrix representing :math:`S_0 \\partial_t p` where
+        typically a diagonal mass matrix representing :math:`S_0 \partial_t p` where
         :math:`S_0` is the storativity coefficient.
 
         Args:

@@ -106,13 +106,13 @@ class VLagrange1(pg.Lagrange1):
     def assemble_loc_proj_to_mon(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Computes the local projection onto the monomials. Returns the coefficients
-        :math:`\\{a_i\\}` in the expansion
+        :math:`\{a_i\}` in the expansion
 
         .. math::
 
-            a_0 + \\frac{1}{d}[a_1, a_2] \\cdot (x - c)
+            a_0 + \frac{1}{d}[a_1, a_2] \cdot (x - c)
 
         for each VL1 basis function.
 
@@ -181,12 +181,12 @@ class VLagrange1(pg.Lagrange1):
     def assemble_loc_monomial_mass(
         self, sd: pg.Grid, cell: int, diam: float
     ) -> np.ndarray:
-        """
+        r"""
         Computes the inner products of the monomials
 
         .. math::
 
-            \\left\\{1, \\frac{x - c}{d}, \\frac{y - c}{d}\\right\\}
+            \left\{1, \frac{x - c}{d}, \frac{y - c}{d}\right\}
 
         Reference: Hitchhiker's (5.3)
 
@@ -249,9 +249,9 @@ class VLagrange1(pg.Lagrange1):
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles and returns the VEM stiffness matrix
-        :math:`(\\nabla u, \\nabla v)_\\Omega` using the virtual element method.
+        :math:`(\nabla u, \nabla v)_\Omega` using the virtual element method.
 
         Args:
             sd (pg.Grid): The grid.
@@ -265,8 +265,8 @@ class VLagrange1(pg.Lagrange1):
     def assemble_loc_stiff_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
-        """
-        Computes the local VEM stiffness matrix :math:`(\\nabla u, \\nabla v)_K` on a
+        r"""
+        Computes the local VEM stiffness matrix :math:`(\nabla u, \nabla v)_K` on a
         given cell according to the Hitchhiker's (3.25).
 
         Args:

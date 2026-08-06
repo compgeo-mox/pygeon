@@ -10,7 +10,7 @@ import pygeon as pg
 
 
 class VecVLagrange1(pg.VecDiscretization):
-    """
+    r"""
     Vector Lagrange virtual element discretization for H1 space in 2D.
 
     This class represents a virtual element discretization for the H1 space using
@@ -27,16 +27,16 @@ class VecVLagrange1(pg.VecDiscretization):
 
     .. math::
 
-        \\sigma = \\begin{bmatrix}
-            \\sigma_{xx} & \\sigma_{xy} \\\\
-            \\sigma_{yx} & \\sigma_{yy}
-        \\end{bmatrix}
+        \sigma = \begin{bmatrix}
+            \sigma_{xx} & \sigma_{xy} \\
+            \sigma_{yx} & \sigma_{yy}
+        \end{bmatrix}
 
     which is represented in the code unrolled row-wise as a vector of length 4:
 
     .. math::
 
-        \\sigma = [\\sigma_{xx}, \\sigma_{xy}, \\sigma_{yx}, \\sigma_{yy}]
+        \sigma = [\sigma_{xx}, \sigma_{xy}, \sigma_{yx}, \sigma_{yy}]
 
     The strain tensor follows the same approach.
     """
@@ -63,8 +63,8 @@ class VecVLagrange1(pg.VecDiscretization):
         self.base_discr: pg.VLagrange1 = pg.VLagrange1(keyword)
 
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Returns the divergence matrix :math:`\\nabla \\cdot u` operator for the lowest
+        r"""
+        Returns the divergence matrix :math:`\nabla \cdot u` operator for the lowest
         order vector virtual Lagrange element.
 
         Args:
@@ -128,11 +128,11 @@ class VecVLagrange1(pg.VecDiscretization):
     def assemble_div_div_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Returns the divergence-divergence matrix operator
-        :math:`\\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega` for the lowest
+        :math:`\lambda (\nabla \cdot u, \nabla \cdot v)_\Omega` for the lowest
         order vector virtual Lagrange element, multiplied by the Lamé parameter
-        :math:`\\lambda`.
+        :math:`\lambda`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -153,9 +153,9 @@ class VecVLagrange1(pg.VecDiscretization):
         return div.T @ (lambda_ * mass) @ div
 
     def assemble_symgrad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Returns the symmetric gradient matrix operator
-        :math:`\\varepsilon(u) = \\frac{1}{2}(\\nabla u + \\nabla u^T)` for the lowest
+        :math:`\varepsilon(u) = \frac{1}{2}(\nabla u + \nabla u^T)` for the lowest
         order vector virtual Lagrange element.
 
         Args:
@@ -243,11 +243,11 @@ class VecVLagrange1(pg.VecDiscretization):
     def assemble_symgrad_symgrad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Returns the symmetric-gradient inner product matrix
-        :math:`2\\mu (\\varepsilon(u), \\varepsilon(v))_\\Omega` for the lowest order
+        :math:`2\mu (\varepsilon(u), \varepsilon(v))_\Omega` for the lowest order
         vector virtual Lagrange element, multiplied by twice the Lamé parameter
-        :math:`\\mu`.
+        :math:`\mu`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -315,8 +315,8 @@ class VecVLagrange1(pg.VecDiscretization):
     def assemble_loc_penalisation_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
-        """
-        Computes the local VEM penalisation matrix :math:`(I - \\Pi) u` on a given
+        r"""
+        Computes the local VEM penalisation matrix :math:`(I - \Pi) u` on a given
         cell, stabilizing the non-polynomial part. Based on the Hitchhiker's (6.5).
 
         Args:
@@ -338,15 +338,15 @@ class VecVLagrange1(pg.VecDiscretization):
     def assemble_stiff_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles the VEM linear elasticity stiffness matrix
 
         .. math::
 
-            2\\mu (\\varepsilon(u), \\varepsilon(v))_\\Omega
-            + \\lambda (\\nabla \\cdot u, \\nabla \\cdot v)_\\Omega
+            2\mu (\varepsilon(u), \varepsilon(v))_\Omega
+            + \lambda (\nabla \cdot u, \nabla \cdot v)_\Omega
 
-        where :math:`\\mu` and :math:`\\lambda` are the Lamé parameters, plus a VEM
+        where :math:`\mu` and :math:`\lambda` are the Lamé parameters, plus a VEM
         penalisation term.
 
         Args:

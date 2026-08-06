@@ -65,8 +65,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
     def assemble_accumulation_terms(
         self, sd: pg.Grid, _data: dict | None
     ) -> sps.csc_array:
-        """
-        Assemble accumulation terms such as the storativity :math:`S_0 \\partial_t p`.
+        r"""
+        Assemble accumulation terms such as the storativity :math:`S_0 \partial_t p`.
 
         For now, this is zero, but it can be overwritten by a child class.
 
@@ -188,15 +188,15 @@ class TPFA(pg.FiniteVolumeDiscretization):
         return ext_faces, ext_dists
 
     def assemble_dual_var_map(self, sd: pg.Grid, data: dict | None) -> sps.csc_array:
-        """
+        r"""
         Assembles the mapping from cell-based primary variables (pressures) to
         face-based dual variables (fluxes):
 
         .. math::
 
-            q_F = |F| K_{\\text{eff}} (p_i - p_j)
+            q_F = |F| K_{\text{eff}} (p_i - p_j)
 
-        where :math:`K_{\\text{eff}}` is the effective permeability at the face.
+        where :math:`K_{\text{eff}}` is the effective permeability at the face.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -259,12 +259,12 @@ class TPFA(pg.FiniteVolumeDiscretization):
     def assemble_source(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
-        """
+        r"""
         Assemble the right-hand side for a source function :math:`f`:
 
         .. math::
 
-            \\int_\\Omega f \\, dx
+            \int_\Omega f \, dx
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
