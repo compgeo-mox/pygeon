@@ -303,22 +303,6 @@ class BDM1(pg.Discretization):
         """
         return sd.face_nodes.nnz
 
-    @staticmethod
-    def local_inner_product(dim: int) -> np.ndarray:
-        """
-        Compute the local inner product matrix for the given dimension.
-
-        Args:
-            dim (int): The dimension of the matrix.
-
-        Returns:
-            np.ndarray: The computed local inner product matrix.
-        """
-        M_loc = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        M_loc /= (dim + 1) * (dim + 2)
-
-        return np.kron(M_loc, np.eye(pg.AMBIENT_DIM))
-
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
@@ -628,8 +612,8 @@ class RT1(pg.Discretization):
         Returns:
             np.ndarray: The local mass matrix.
         """
-        lagrange2 = pg.Lagrange2()
-        M = lagrange2.assemble_local_mass(dim)
+        P2 = pg.PwQuadratics()
+        M = P2.assemble_local_mass(dim)
 
         return np.kron(M, np.eye(pg.AMBIENT_DIM))
 
@@ -698,7 +682,7 @@ class RT1(pg.Discretization):
         tangent = lambda i, j: sd.nodes[:, nodes_loc[j]] - sd.nodes[:, nodes_loc[i]]
 
         # Helper functions psi_k as outlined in the notes in docs/RT1.md
-        edge_nodes = pg.Lagrange2().get_local_edge_nodes(dim)
+        edge_nodes = pg.PwQuadratics().get_local_edge_nodes(dim)
         n_edges = edge_nodes.shape[0]
 
         node_edges = np.array([np.nonzero(edge_nodes == n)[0] for n in range(dim + 1)])
