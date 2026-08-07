@@ -11,9 +11,10 @@ import pygeon as pg
 
 
 class PwPolynomials(pg.Discretization):
-    """
-    PwPolynomials is a subclass of pg.Discretization that represents
-    an abstract element wise polynomial discretization.
+    r"""
+    Abstract class implementing the finite element discretization for piecewise
+    polynomials of order k :math:`\mathbb{P}_k(\Omega) \subset L^2(\Omega)`,
+    for a generic domain :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order: int
@@ -63,8 +64,10 @@ class PwPolynomials(pg.Discretization):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Computes the mass matrix for piecewise polynomials.
+        r"""
+        Computes the mass matrix :math:`(\sigma u, v)_\Omega` for
+        :math:`u, v \in \mathbb{P}_k(\Omega)` and :math:`\sigma` a scalar. Both
+        domain and range lie in :class:`PwPolynomials`.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -86,8 +89,12 @@ class PwPolynomials(pg.Discretization):
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles the lumped matrix for the given grid.
+        r"""
+        Assembles the lumped matrix for the given grid, which is a diagonal
+        approximation (in this case equivalent) of the mass matrix
+        :math:`(\sigma u, v)_\Omega` for :math:`u, v \in \mathbb{P}_k(\Omega)` and
+        :math:`\sigma` a scalar. Both domain and range lie in
+        :class:`PwPolynomials` (L2 space).
 
         Args:
             sd (pg.Grid): The grid object.
@@ -110,6 +117,9 @@ class PwPolynomials(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
+        For piecewise polynomials (L2), the differential is the zero matrix since
+        these are discontinuous functions with no global differential.
+
         This method takes a grid object and returns the differential matrix
         corresponding to the given grid.
 
@@ -122,9 +132,12 @@ class PwPolynomials(pg.Discretization):
         return sps.csc_array((0, self.ndof(sd)))
 
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
         This method should be implemented in the child class.
+
+        The broken gradient :math:`\nabla_h` maps from
+        :math:`\mathbb{P}_k(\Omega)` (L2) to :math:`[\mathbb{P}_{k-1}(\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -137,8 +150,13 @@ class PwPolynomials(pg.Discretization):
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles the stiffness matrix for the given grid.
+        r"""
+        Assembles the stiffness matrix for the given grid, representing the bilinear
+        form :math:`(K \nabla u, \nabla v)_\Omega` for
+        :math:`u,v \in \mathbb{P}_k(\Omega)` and :math:`K` a scalar.
+
+        For piecewise polynomials, the stiffness matrix is the zero matrix since the
+        differential operator is trivial.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -155,8 +173,11 @@ class PwPolynomials(pg.Discretization):
         _func: Callable[[np.ndarray], np.ndarray],
         _b_faces: np.ndarray,
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the natural boundary condition vector, equal to zero.
+
+        For piecewise polynomials, the natural boundary condition is zero since these
+        are discontinuous functions with no boundary trace.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -170,7 +191,7 @@ class PwPolynomials(pg.Discretization):
         return np.zeros(self.ndof(sd))
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
-        """
+        r"""
         Returns the discretization class for the range of the differential.
 
         Args:
@@ -183,8 +204,10 @@ class PwPolynomials(pg.Discretization):
 
     @abc.abstractmethod
     def assemble_local_mass(self, dim: int) -> np.ndarray:
-        """
-        Computes the local mass matrix for piecewise polynomials.
+        r"""
+        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)_S` for
+        :math:`\varphi_i, \varphi_j` being the local basis functions of the
+        piecewise polynomials on a d-simplex :math:`S`.
 
         Args:
             dim (int): The dimension of the grid.
@@ -195,8 +218,13 @@ class PwPolynomials(pg.Discretization):
 
     @abc.abstractmethod
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
-        """
-        Computes the local lumped mass matrix for piecewise polynomials
+        r"""
+        Computes the local lumped mass matrix for piecewise polynomials, which
+        is a diagonal approximation of the local mass matrix. It approximates the form
+        :math:`(\varphi_i, \varphi_j)_S`, with :math:`\varphi_i, \varphi_j` being
+        the local basis functions of the piecewise polynomials on a d-simplex :math:`S`.
+
+        It approximates this form by a diagonal matrix.
 
         Args:
             dim (int): The dimension of the grid.
@@ -206,9 +234,11 @@ class PwPolynomials(pg.Discretization):
         """
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Construct the matrix for projecting a piecewise function to a piecewise
-        polynomial function.
+        polynomial function. The (identity) projection operator :math:`\Pi` takes a
+        function from :math:`\mathbb{P}_k(\Omega)` and maps it to a piecewise
+        polynomial function in :math:`\mathbb{P}_k(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -219,8 +249,11 @@ class PwPolynomials(pg.Discretization):
         return sps.eye_array(self.ndof(sd)).tocsc()
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the discretization to -1 order discretization.
+        r"""
+        Projects the discretization to -1 order discretization. The projection operator
+        :math:`\Pi` takes a function from :math:`\mathbb{P}_k(\Omega)` and maps it
+        to a piecewise polynomial function of lower order in
+        :math:`\mathbb{P}_{k-1}(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -235,8 +268,11 @@ class PwPolynomials(pg.Discretization):
 
     @abc.abstractmethod
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the discretization to +1 order discretization.
+        r"""
+        Projects the discretization to +1 order discretization. The projection operator
+        :math:`\Pi` takes a function from :math:`\mathbb{P}_k(\Omega)` and maps it
+        to a piecewise polynomial function of higher order in
+        :math:`\mathbb{P}_{k+1}(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -247,9 +283,12 @@ class PwPolynomials(pg.Discretization):
 
 
 class PwConstants(PwPolynomials):
-    """
-    Discretization class for the piecewise constants.
-    NOTE: Each degree of freedom is the integral over the cell.
+    r"""
+    Class implementing the finite element discretization for piecewise polynomials of
+    lowest order :math:`\mathbb{P}_0(\Omega) \subset L^2(\Omega)`, for a generic
+    domain :math:`\Omega \in \mathbb{R}^d`.
+
+    Each degree of freedom is the integral over the cell.
     """
 
     poly_order = 0
@@ -268,8 +307,10 @@ class PwConstants(PwPolynomials):
         return 1
 
     def assemble_local_mass(self, _dim: int) -> np.ndarray:
-        """
-        Computes the local mass matrix for piecewise constants
+        r"""
+        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
+        :math:`\varphi_i, \varphi_j \in \mathbb{P}_0(\Omega)`, which is the scalar
+        :math:`[[1]]`.
 
         Args:
             dim (int): The dimension of the grid.
@@ -281,7 +322,8 @@ class PwConstants(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise constants
+        Computes the local lumped mass matrix for piecewise constants,
+        which coincides with the local mass matrix since P0 has one dof per cell.
 
         Args:
             dim (int): The dimension of the grid.
@@ -294,8 +336,10 @@ class PwConstants(PwPolynomials):
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Computes the mass matrix for piecewise constants
+        r"""
+        Computes the mass matrix for piecewise constants, representing the bilinear form
+        :math:`(\sigma u, v)_\Omega` where :math:`u, v \in \mathbb{P}_0(\Omega)` and
+        :math:`\sigma` is the datum. Both domain and range lie in :class:`P0`.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -328,9 +372,12 @@ class PwConstants(PwPolynomials):
         return M.tocsc()
 
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the broken (element-wise) gradient matrix for the given grid,
-        which is zero for the piecewise constants
+        which is zero for the piecewise constants.
+
+        The broken gradient :math:`\nabla_h` maps from :math:`\mathbb{P}_0(\Omega)`
+        to :math:`(0, 0, 0)`.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -360,8 +407,10 @@ class PwConstants(PwPolynomials):
         )
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the P0 discretization to the P1 discretization.
+        r"""
+        Projects the P0 discretization to the P1 discretization. The projection
+        operator :math:`\Pi` takes a function from :math:`\mathbb{P}_0(\Omega)` and
+        maps it to a piecewise linear function in :math:`\mathbb{P}_1(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -385,8 +434,10 @@ class PwConstants(PwPolynomials):
 
 
 class PwLinears(PwPolynomials):
-    """
-    Discretization class for piecewise linear finite element method.
+    r"""
+    Class implementing the finite element discretization for piecewise polynomials of
+    order 1 :math:`\mathbb{P}_1(\Omega) \subset L^2(\Omega)`, for a generic
+    domain :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order = 1
@@ -405,8 +456,10 @@ class PwLinears(PwPolynomials):
         return sd.dim + 1
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
-        """
-        Computes the local mass matrix for piecewise linears
+        r"""
+        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
+        :math:`\varphi_i, \varphi_j \in \mathbb{P}_1(\Omega)`, where
+        :math:`\varphi_i` are the local basis functions.
 
         Args:
             dim (int): The dimension of the grid.
@@ -419,7 +472,8 @@ class PwLinears(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise linears
+        Computes the local lumped mass matrix for piecewise linears, which is a
+        diagonal approximation of the local mass matrix.
 
         Args:
             dim (int): The dimension of the grid.
@@ -487,9 +541,11 @@ class PwLinears(PwPolynomials):
         return interp_at_cc + 1 / alpha * (func_at_gauss - interp_at_cc)
 
     def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Construct the matrix for projecting a piece-wise function to a piecewise
-        constant function.
+        constant function. The projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{P}_1(\Omega)` and maps it to a piecewise polynomial function
+        of lower order in :math:`\mathbb{P}_0(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -503,8 +559,11 @@ class PwLinears(PwPolynomials):
         return matr.tocsc()
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the P1 discretization to the P2 discretization.
+        r"""
+        Projects the discretization to +1 order discretization. The projection operator
+        :math:`\Pi` takes a function from :math:`\mathbb{P}_0(\Omega)` and maps it
+        to a piecewise polynomial function of higher order in
+        :math:`\mathbb{P}_1(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -553,9 +612,11 @@ class PwLinears(PwPolynomials):
         return dof_array
 
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
-        This operator maps to the vector-valued piecewise constants.
+        This operator maps to the vector-valued piecewise constants
+        :math:`[\mathbb{P}_0(\Omega)]^d` from :math:`u \in \mathbb{P}_1(\Omega)`
+        and is used for computing :math:`\nabla_h u` element-wise.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -583,9 +644,10 @@ class PwLinears(PwPolynomials):
 
 
 class PwQuadratics(PwPolynomials):
-    """
-    PwQuadratics is a class that represents piecewise quadratic finite element
-    discretizations.
+    r"""
+    Class implementing the finite element discretization for piecewise polynomials of
+    order 2 :math:`\mathbb{P}_2(\Omega) \subset L^2(\Omega)`, for a generic
+    domain :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order = 2
@@ -639,8 +701,10 @@ class PwQuadratics(PwPolynomials):
         return e_nodes
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
-        """
-        Computes the local mass matrix for piecewise quadratics.
+        r"""
+        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
+        :math:`\varphi_i, \varphi_j \in \mathbb{P}_2(\Omega)` the local basis
+        functions.
 
         Args:
             dim (int): The dimension of the grid.
@@ -721,7 +785,8 @@ class PwQuadratics(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise quadratics
+        Computes the local lumped mass matrix for piecewise quadratics, which is a
+        diagonal approximation of the local mass matrix.
 
         Args:
             dim (int): The dimension of the grid.
@@ -817,8 +882,11 @@ class PwQuadratics(PwPolynomials):
         return vals.ravel(order="F")
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Projects the discretization to +1 order discretization.
+        r"""
+        Projects the discretization to +1 order discretization. The projection operator
+        :math:`\Pi` takes a function from :math:`\mathbb{P}_2(\Omega)` and maps it
+        to a piecewise polynomial function of higher order (not yet implemented) in
+        :math:`\mathbb{P}_3(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object.

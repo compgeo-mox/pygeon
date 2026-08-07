@@ -10,8 +10,10 @@ import pygeon as pg
 
 
 class Lagrange1(pg.Discretization):
-    """
-    Class representing the Lagrange1 finite element discretization.
+    r"""
+    Class implementing the finite element discretization Lagrange1
+    :math:`\mathbb{L}_1(\Omega) \subset H^1(\Omega)`, for a generic domain
+    :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order = 1
@@ -36,11 +38,13 @@ class Lagrange1(pg.Discretization):
     def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles the (K grad u, grad v) matrix for the nodal finite elements. This
-        corresponds to the output of assemble_stiff_matrix, except in 2D. In that case
-        the diff operator is a rotated gradient, leading to a different output for
-        tensor-valued K.
+        r"""
+        Assembles the :math:`(K \nabla u, \nabla v)_\Omega`, for
+        :math:`u,v \in \mathbb{L}_1(\Omega)` matrix for the nodal finite elements.
+
+        This corresponds to the output of assemble_stiff_matrix, except in 2D.
+        In that case the diff operator is a rotated gradient, leading to a different
+        output for tensor-valued K.
 
         The scalar (pg.WEIGHT) and tensor-valued (pg.SECOND_ORDER_TENSOR) entries in the
         data dictionary are used as weights in the inner product.
@@ -58,8 +62,10 @@ class Lagrange1(pg.Discretization):
         return (grad.T @ M @ grad).tocsc()
 
     def assemble_grad_to_p0(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix that computes the gradient as a piecewise constant vector.
+        r"""
+        Assembles the matrix that computes the gradient :math:`\nabla u`, with
+        :math:`u \in \mathbb{L}_1(\Omega)`, as a piecewise constant vector field in
+        :math:`[\mathbb{P}_0(\Omega)]^d`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -72,14 +78,16 @@ class Lagrange1(pg.Discretization):
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
-        """
+        r"""
         Assembles and returns the advection matrix for Lagrange1 finite
         elements, which is given by
-        :math:`(\\boldsymbol{v} \\cdot \\nabla p, p)`.
+        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
+        :math:`u,v \in \mathbb{L}_1(\Omega)`.
 
-        The trial and test functions :math:`p` are Lagrange1.
-        :math:`\\boldsymbol{v}` is a given vector field, assumed constant per
-        cell. If not provided, :math:`\\boldsymbol{v}` defaults to :math:`(0, 0, 0)`.
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
+        accessible via pg.VECTOR-FIELD. It is a given as a vector field, assumed
+        constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
+        defaults to :math:`(0, 0, 0)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
@@ -141,8 +149,15 @@ class Lagrange1(pg.Discretization):
         return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the differential matrix based on the dimension of the grid.
+
+        The differential corresponds to the (co-)gradient operator :math:`d`,
+        mapping from :math:`\mathbb{L}_1(\Omega)` to the appropriate range space:
+
+        - 3D: :math:`\mathbb{N}_0(\Omega)` :class:`~pygeon.Nedelec0` H(curl)
+        - 2D: :math:`\mathbb{RT}_0(\Omega)` :class:`~pygeon.RT0` H(div)
+        - 1D: :math:`\mathbb{P}_0(\Omega)` :class:`~pygeon.PwConstants` L2
 
         Args:
             sd (pg.Grid): The grid object.
@@ -166,7 +181,7 @@ class Lagrange1(pg.Discretization):
         self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
     ) -> np.ndarray:
         """
-        Compute the local advection matrix for P1.
+        Compute the local advection matrix for linear elements.
 
         Args:
             V (np.ndarray): vector field over the cell of (dim, dim) shape.
@@ -200,9 +215,11 @@ class Lagrange1(pg.Discretization):
         return invQ[1:, :]
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Construct the matrix for projecting a Lagrangian function to a piecewise linear
-        function.
+        function. The projection operator :math:`\Pi` takes a function from
+        :math:`\mathbb{L}_1(\Omega)` and maps it to a piecewise linear function in
+        :math:`\mathbb{P}_1(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -253,9 +270,10 @@ class Lagrange1(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the 'natural' boundary condition
-        (u, func)_Gamma with u a test function in Lagrange1
+        :math:`(v, g)_{\partial\Omega}` with :math:`v` a test function in
+        :math:`\mathbb{L}_1(\Omega)` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -306,8 +324,10 @@ class Lagrange1(pg.Discretization):
 
 
 class Lagrange2(pg.Discretization):
-    """
-    Class representing the Lagrange2 finite element discretization.
+    r"""
+    Class implementing the finite element discretization Lagrange2
+    :math:`\mathbb{L}_2(\Omega) \subset H^1(\Omega)`, for a generic domain
+    :math:`\Omega \in \mathbb{R}^d`.
     """
 
     poly_order = 2
@@ -365,8 +385,12 @@ class Lagrange2(pg.Discretization):
         return edges + sd.num_nodes
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Assembles the differential matrix based on the dimension of the grid.
+
+        The differential corresponds to the (co-)gradient operator :math:`d`,
+        mapping from :class:`Lagrange2` (H1, dofs at nodes and edge midpoints)
+        to the :class:`~pygeon.Nedelec1` (H(curl)) space.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -438,9 +462,11 @@ class Lagrange2(pg.Discretization):
         return sps.vstack((diff_0, diff_1)).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        """
+        r"""
         Construct the matrix for projecting a quadratic Lagrangian function to a
-        piecewise quadratic function.
+        piecewise quadratic function. The projection operator :math:`\Pi` takes a
+        function from :math:`\mathbb{L}_2(\Omega)` and maps it to a piecewise linear
+        function in :math:`\mathbb{P}_2(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -516,9 +542,10 @@ class Lagrange2(pg.Discretization):
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Assembles the 'natural' boundary condition
-        (func, u)_Gamma with u a test function in Lagrange2
+        :math:`(v, g)_{\partial\Omega}` with :math:`v` a test function in
+        :math:`\mathbb{L}_2(\Omega)` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
