@@ -53,6 +53,15 @@ def test_stiffness_consistency(discr, unit_sd):
     assert np.allclose(diff.data, 0)
 
 
+def test_stiffness_of_linear(discr, unit_sd):
+    stiff = discr.assemble_stiff_matrix(unit_sd)
+
+    sol_func = lambda x: x[0]
+    interp = discr.interpolate(unit_sd, sol_func)
+
+    assert np.isclose(interp @ stiff @ interp, 1)
+
+
 def test_point_grid(discr, ref_sd_0d):
     """Tests with a point grid"""
 
