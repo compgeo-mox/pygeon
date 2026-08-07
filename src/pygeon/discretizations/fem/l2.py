@@ -702,15 +702,14 @@ class PwQuadratics(PwPolynomials):
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         r"""
-        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
-        :math:`\varphi_i, \varphi_j \in \mathbb{P}_2(\Omega)` the local basis
-        functions.
+        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)_S` of the
+        basis functions on a d-simplex :math:`S` with measure 1.
 
         Args:
-            dim (int): The dimension of the grid.
+            dim (int): The dimension of the simplex.
 
         Returns:
-            np.ndarray: Local mass matrix for piecewise quadratics.
+            np.ndarray: The local mass matrix.
         """
         # Helper constants
         n_edges = self.num_edges_per_cell(dim)
@@ -743,13 +742,15 @@ class PwQuadratics(PwPolynomials):
         return basis.T @ barycentric_mass @ basis
 
     def assemble_barycentric_mass(self, expnts: np.ndarray) -> np.ndarray:
-        """
-        Compute the inner products of all monomials up to degree 2
+        r"""
+        Compute the inner products :math:`(m_i, m_j)_S` of all monomials up to degree 2,
+        where :math:`m_i = \prod_k \lambda_k^{\alpha_{ik}}`, :math:`\lambda_k` are
+        barycentric coordinates and :math:`S` is a d-simplex with measure 1.
 
         Args:
             expnts (np.ndarray): Each column is an array of exponents
-                alpha_i of the monomial expressed as
-                prod_i lambda_i ^ alpha_i.
+                :math:`\alpha_i` of the monomial expressed as
+                :math:`\prod_i \lambda_i^{\alpha_i}`.
 
         Returns:
             np.ndarray: The inner products of the monomials on a simplex with measure 1.
@@ -764,13 +765,12 @@ class PwQuadratics(PwPolynomials):
         return mass
 
     def integrate_monomial(self, alphas: np.ndarray) -> float:
-        """
-        Exact integration of products of monomials based on
-        Vermolen and Segal (2018).
+        r"""
+        Exact integration of products of monomials based on Vermolen and Segal (2018).
 
         Args:
-            alphas (np.ndarray): Array of exponents alpha_i of the monomial
-                expressed as prod_i lambda_i ^ alpha_i.
+            alphas (np.ndarray): Array of exponents :math:`\alpha_i` of the monomial
+                expressed as :math:`\prod_i \lambda_i^{\alpha_i}`.
 
         Returns:
             float: The integral of the monomial on a simplex with measure 1.
@@ -825,6 +825,45 @@ class PwQuadratics(PwPolynomials):
             sps.csc_array: The assembled broken gradient matrix.
         """
         print("implement me!")
+
+        # def eval_grads_at_nodes(self, dphi: np.ndarray, e_nodes: np.ndarray) -> np.ndarray:
+        # """
+        # Evaluates the gradients of the basis functions at the nodes.
+
+        # Args:
+        #     dphi (np.ndarray): Gradients of the P1 basis functions.
+        #     e_nodes (np.ndarray): The local edge-node connectivity.
+
+        # Returns:
+        #     np.ndarray: The gradient of basis function i at node j is in elements
+        #     [i, 3 * (j:J + 1)].
+        # """
+        # # the gradient of our basis functions are given by
+        # # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
+        # # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
+
+        # # nodal dofs
+        # n_nodes = dphi.shape[1]
+        # Psi_nodes = np.zeros((n_nodes, pg.AMBIENT_DIM * n_nodes))
+        # for ind_n in np.arange(n_nodes):
+        #     Psi_nodes[ind_n, pg.AMBIENT_DIM * ind_n : pg.AMBIENT_DIM * (ind_n + 1)] = (
+        #         4 * dphi[:, ind_n]
+        #     )
+        # Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
+
+        # # edge dofs
+        # n_edges = self.num_edges_per_cell(n_nodes - 1)
+        # Psi_edges = np.zeros((n_edges, pg.AMBIENT_DIM * n_nodes))
+
+        # for ind_e, (e0, e1) in enumerate(e_nodes):
+        #     Psi_edges[ind_e, pg.AMBIENT_DIM * e0 : pg.AMBIENT_DIM * (e0 + 1)] = (
+        #         4 * dphi[:, e1]
+        #     )
+        #     Psi_edges[ind_e, pg.AMBIENT_DIM * e1 : pg.AMBIENT_DIM * (e1 + 1)] = (
+        #         4 * dphi[:, e0]
+        #     )
+
+        # return np.vstack((Psi_nodes, Psi_edges))
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
