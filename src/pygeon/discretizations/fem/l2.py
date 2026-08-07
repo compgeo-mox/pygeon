@@ -785,8 +785,8 @@ class PwQuadratics(PwPolynomials):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
-        Computes the local lumped mass matrix for piecewise quadratics, which is a
-        diagonal approximation of the local mass matrix.
+        Computes the local lumped mass matrix for piecewise quadratics, which is
+        an approximation of the local mass matrix.
 
         Args:
             dim (int): The dimension of the grid.
@@ -816,7 +816,7 @@ class PwQuadratics(PwPolynomials):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the broken (element-wise) gradient matrix for the given grid.
-        This operator maps to the vector-valued piecewise constants.
+        This operator maps to the vector-valued piecewise linears.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -824,46 +824,39 @@ class PwQuadratics(PwPolynomials):
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
         """
-        print("implement me!")
+        # the gradient of our basis functions are given by
+        # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
+        # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
 
-        # def eval_grads_at_nodes(self, dphi: np.ndarray, e_nodes: np.ndarray) -> np.ndarray:
-        # """
-        # Evaluates the gradients of the basis functions at the nodes.
+        # We first extract the gradients of the piecewise linears
+        P1 = pg.PwLinears()
+        grad_lambda = P1.assemble_broken_grad_matrix(sd)
+        grad_lambda = pg.VecPwConstants().proj_to_higher_PwPolynomials(sd) @ grad_lambda
 
-        # Args:
-        #     dphi (np.ndarray): Gradients of the P1 basis functions.
-        #     e_nodes (np.ndarray): The local edge-node connectivity.
+        # The term (grad lambda_i) lambda_i is created by zeroing out entries of
+        # the computed gradients
+        ii_term = grad_lambda.tocoo()
+        ii_term.data *= np.where(ii_term.row % P1.ndof(sd) == ii_term.col, 1, 0)
 
-        # Returns:
-        #     np.ndarray: The gradient of basis function i at node j is in elements
-        #     [i, 3 * (j:J + 1)].
-        # """
-        # # the gradient of our basis functions are given by
-        # # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
-        # # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
+        node_grads = 4 * ii_term - grad_lambda
 
-        # # nodal dofs
-        # n_nodes = dphi.shape[1]
-        # Psi_nodes = np.zeros((n_nodes, pg.AMBIENT_DIM * n_nodes))
-        # for ind_n in np.arange(n_nodes):
-        #     Psi_nodes[ind_n, pg.AMBIENT_DIM * ind_n : pg.AMBIENT_DIM * (ind_n + 1)] = (
-        #         4 * dphi[:, ind_n]
-        #     )
-        # Psi_nodes[:n_nodes] -= np.tile(dphi.T, n_nodes)
+        # A similar approach gives us the gradients of the edge-based basis functions
+        loc_nodes = np.reshape(np.arange(P1.ndof(sd)), (sd.dim + 1, -1))
+        loc_en = self.get_local_edge_nodes(sd.dim)
 
-        # # edge dofs
-        # n_edges = self.num_edges_per_cell(n_nodes - 1)
-        # Psi_edges = np.zeros((n_edges, pg.AMBIENT_DIM * n_nodes))
+        # Extract left and right node of each edge
+        node_0 = loc_nodes[loc_en[:, 0]].ravel()
+        node_1 = loc_nodes[loc_en[:, 1]].ravel()
 
-        # for ind_e, (e0, e1) in enumerate(e_nodes):
-        #     Psi_edges[ind_e, pg.AMBIENT_DIM * e0 : pg.AMBIENT_DIM * (e0 + 1)] = (
-        #         4 * dphi[:, e1]
-        #     )
-        #     Psi_edges[ind_e, pg.AMBIENT_DIM * e1 : pg.AMBIENT_DIM * (e1 + 1)] = (
-        #         4 * dphi[:, e0]
-        #     )
+        ij_term = grad_lambda.tocoo()[:, node_0]
+        ji_term = grad_lambda.tocoo()[:, node_1]
 
-        # return np.vstack((Psi_nodes, Psi_edges))
+        ij_term.data *= np.where(ij_term.row % P1.ndof(sd) == node_1[ij_term.col], 1, 0)
+        ji_term.data *= np.where(ji_term.row % P1.ndof(sd) == node_0[ji_term.col], 1, 0)
+
+        edge_grads = 4 * (ij_term + ji_term)
+
+        return sps.hstack((node_grads, edge_grads), format="csc")
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """

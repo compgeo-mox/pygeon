@@ -75,6 +75,13 @@ def test_source(discr, unit_sd_2d):
     assert np.isclose(source.sum(), 2)
 
 
-def test_broken_grad(discr, unit_sd_2d):
-    with pytest.raises(NotImplementedError):
-        discr.assemble_broken_grad_matrix(unit_sd_2d)
+def test_broken_grad(discr, unit_sd):
+    func = lambda x: x[0] + 2 * x[1] + 3 * x[2]
+    grad_func = lambda _: np.arange(1, 4)
+
+    interp = discr.interpolate(unit_sd, func)
+    grad_interp = pg.VecPwLinears().interpolate(unit_sd, grad_func)
+
+    grad = discr.assemble_broken_grad_matrix(unit_sd)
+
+    assert np.allclose(grad @ interp, grad_interp)
