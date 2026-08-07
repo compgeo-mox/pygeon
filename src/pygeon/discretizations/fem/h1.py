@@ -542,7 +542,7 @@ class Lagrange2(pg.Discretization):
 
         vals = np.zeros(self.ndof(sd))
 
-        M = self.assemble_local_mass(sd.dim - 1)
+        M = pg.PwQuadratics().assemble_local_mass(sd.dim - 1)
         edge_nodes = sd.face_ridges if sd.dim == 2 else sd.ridge_peaks
 
         for face in b_faces:
