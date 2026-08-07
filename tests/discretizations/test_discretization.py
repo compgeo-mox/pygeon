@@ -49,3 +49,9 @@ def test_eval_at_cc(discr, unit_sd):
     Pi_super = pg.Discretization.eval_at_cell_centers(discr, unit_sd)
 
     assert np.allclose((Pi_child - Pi_super).data, 0)
+
+
+def test_proj_to_pw_polynomials_methods_are_cached(discr):
+    assert hasattr(discr.proj_to_PwPolynomials, "cache_info"), (
+        f"{discr}.proj_to_PwPolynomials should be cached"
+    )
