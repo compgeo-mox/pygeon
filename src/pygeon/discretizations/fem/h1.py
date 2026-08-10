@@ -370,16 +370,12 @@ class Lagrange2(pg.Discretization):
                 # The only edge in 1D is the cell
                 edges = np.array([cell])
             case 2:
-                # The edges (0, 1), (0, 2), and (1, 2)
-                # are the faces opposite nodes 2, 1, and 0, respectively.
-                edges = faces[::-1]
+                # In 2D, the edges are the faces
+                edges = faces
             case 3:
-                # We first find the edges adjacent to the local faces
+                # We find the edges adjacent to the local faces
                 cell_edges = abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
-                edge_inds = np.where(cell_edges)[0]
-
-                # Experimentally, we always find the following numbering
-                edges = edge_inds[[5, 4, 2, 3, 1, 0]]
+                edges = np.where(cell_edges)[0]
 
         # The edge dofs come after the nodal dofs
         return edges + sd.num_nodes
@@ -479,7 +475,7 @@ class Lagrange2(pg.Discretization):
         # Data allocation for the nodes mapping
         rows_I = np.arange(sd.num_cells * (sd.dim + 1))
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
-        cols_J = opposite_nodes.data
+        cols_J = sd.cell_nodes().indices
         data_IJ = np.ones_like(rows_I, dtype=float)
         proj_nodes = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
