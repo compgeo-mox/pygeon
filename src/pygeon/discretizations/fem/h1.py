@@ -350,36 +350,6 @@ class Lagrange2(pg.Discretization):
         """
         return sd.num_nodes + sd.num_edges
 
-    def get_edge_dof_indices(
-        self, sd: pg.Grid, cell: int, faces: np.ndarray
-    ) -> np.ndarray:
-        """
-        Finds the indices for the edge degrees of freedom that correspond
-        to the local numbering of the edges.
-
-        Args:
-            sd (pg.Grid): The grid.
-            cell (int): The cell index.
-            faces (np.ndarray): Face indices of the cell.
-
-        Returns:
-            np.ndarray: Indices of the edge degrees of freedom.
-        """
-        match sd.dim:
-            case 1:
-                # The only edge in 1D is the cell
-                edges = np.array([cell])
-            case 2:
-                # In 2D, the edges are the faces
-                edges = faces
-            case 3:
-                # We find the edges adjacent to the local faces
-                cell_edges = abs(sd.face_ridges[:, faces]) @ np.ones((4, 1))
-                edges = np.where(cell_edges)[0]
-
-        # The edge dofs come after the nodal dofs
-        return edges + sd.num_nodes
-
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the differential matrix based on the dimension of the grid.
@@ -470,8 +440,6 @@ class Lagrange2(pg.Discretization):
         Returns:
             sps.csc_array: The matrix representing the projection.
         """
-        opposite_nodes = sd.compute_opposite_nodes()
-
         # Data allocation for the nodes mapping
         rows_I = np.arange(sd.num_cells * (sd.dim + 1))
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
@@ -485,19 +453,22 @@ class Lagrange2(pg.Discretization):
         size = n_edges * sd.num_cells
         rows_I = np.arange(size)
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")
-        cols_J = np.empty(size, dtype=int)
+
+        match sd.dim:
+            case 1:
+                # The only edge in 1D is the cell
+                edges = np.arange(sd.num_cells)
+            case 2:
+                # In 2D, the edges are the faces
+                edges = sd.cell_faces.indices
+            case 3:
+                # We find the cell-edge connectivity
+                cell_edges = abs(sd.face_ridges) @ abs(sd.cell_faces)
+                cell_edges.sort_indices()
+                edges = cell_edges.indices
+        cols_J = edges.ravel()
+
         data_IJ = np.ones(size)
-        idx = 0
-
-        for c in range(sd.num_cells):
-            loc = slice(opposite_nodes.indptr[c], opposite_nodes.indptr[c + 1])
-            faces = opposite_nodes.indices[loc]
-            edges = self.get_edge_dof_indices(sd, c, faces)
-
-            loc_ind = slice(idx, idx + n_edges)
-            cols_J[loc_ind] = edges - sd.num_nodes
-            idx += n_edges
-
         proj_edges = sps.csc_array((data_IJ, (rows_I, cols_J)))
 
         return sps.block_diag((proj_nodes, proj_edges)).tocsc()
