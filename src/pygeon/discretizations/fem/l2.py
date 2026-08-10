@@ -131,6 +131,7 @@ class PwPolynomials(pg.Discretization):
         """
         return sps.csc_array((0, self.ndof(sd)))
 
+    @abc.abstractmethod
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
@@ -145,7 +146,6 @@ class PwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
         """
-        raise NotImplementedError
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
