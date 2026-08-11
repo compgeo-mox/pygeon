@@ -1,6 +1,7 @@
 """Module for the discretizations of the L2 space."""
 
 import abc
+from functools import cache
 from math import factorial
 from typing import Callable, Type
 

@@ -1,5 +1,6 @@
 """Module for the discretizations of the H1 space."""
 
+from functools import cache
 from typing import Callable, Type, cast
 
 import numpy as np
