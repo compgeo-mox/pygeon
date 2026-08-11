@@ -1,7 +1,7 @@
 """Module for the discretizations of the H(div) space."""
 
 from functools import cache
-from typing import Callable, Tuple, Type
+from typing import Callable, Tuple, Type, cast
 
 import numpy as np
 import porepy as pp
@@ -688,6 +688,7 @@ class RT1(pg.Discretization):
         # The divergence corresponds to the broken divergence in this case.
         proj = self.proj_to_PwPolynomials(sd)
         pwp = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        pwp = cast(pg.VecDiscretization, pwp)
 
         return pwp.assemble_broken_div_matrix(sd) @ proj
 
