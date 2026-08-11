@@ -536,87 +536,6 @@ class RT1(pg.Discretization):
 
         return np.hstack((loc_face, loc_cell))
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles the mass matrix, representing the bilinear form
-        :math:`(K^{-1} u, v)_\Omega` where :math:`K^{-1}` is the inverse
-        diffusion tensor and :math:`u, v \in \mathbb{RT}_1(\Omega)`.
-        Both domain and range lie in :class:`RT1`.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-            data (dict | None): Optional dictionary with physical parameters for
-                scaling, in particular the pg.SECOND_ORDER_TENSOR that is the inverse of
-                the diffusion tensor (permeability for porous media).
-
-        Returns:
-            sps.csc_array: The mass matrix.
-        """
-        inv_K = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
-        )
-
-        # Allocate the data to store matrix A entries
-        size = np.square(sd.dim * (sd.dim + 2)) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        # Precompute the local inner product matrix
-        M = self.local_inner_product(sd.dim)
-
-        # Compute the opposite nodes for each face
-        opposite_nodes = sd.compute_opposite_nodes()
-
-        for c in range(sd.num_cells):
-            nodes_loc, faces_loc, signs_loc = self.reorder_faces(
-                sd.cell_faces, opposite_nodes, c
-            )
-
-            Psi = self.eval_basis_functions(
-                sd, nodes_loc, signs_loc, sd.cell_volumes[c]
-            )
-
-            weight = np.kron(
-                np.eye(M.shape[0] // pg.AMBIENT_DIM), inv_K.values[:, :, c]
-            )
-
-            # Compute the H_div-mass local matrix
-            A = Psi @ M @ weight @ Psi.T * sd.cell_volumes[c]
-
-            # Get the indices for the local face and cell degrees of freedom
-            loc_dofs = self.local_dofs_of_cell(sd, faces_loc, c)
-
-            # Save values of the local matrix in the global structure
-            cols = np.tile(loc_dofs, (loc_dofs.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        shape = (self.ndof(sd), self.ndof(sd))
-        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
-
-    def local_inner_product(self, dim: int) -> np.ndarray:
-        """
-        Assembles the local inner products based on the Lagrange2 element
-
-        Args:
-            dim (int): Dimension of the grid.
-
-        Returns:
-            np.ndarray: The local mass matrix.
-        """
-        P2 = pg.PwQuadratics()
-        M = P2.assemble_local_mass(dim)
-
-        return np.kron(M, np.eye(pg.AMBIENT_DIM))
-
     def reorder_faces(
         self, cell_faces: sps.csc_array, opposite_nodes: sps.csc_array, cell: int
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -752,48 +671,6 @@ class RT1(pg.Discretization):
 
         return basis / (sd.dim * volume)
 
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix for evaluating the discretization at the cell centers.
-
-        Args:
-            sd (pg.Grid): Grid object or a subclass.
-
-        Returns:
-             sps.csc_array: The evaluation matrix.
-        """
-        # Allocate the data to store matrix P entries
-        size = pg.AMBIENT_DIM * sd.dim * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        # Compute the opposite nodes for each face
-        opposite_nodes = sd.compute_opposite_nodes()
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its faces
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            nodes_loc = np.sort(opposite_nodes.data[loc])
-
-            P = self.eval_basis_functions_at_center(sd, nodes_loc, sd.cell_volumes[c])
-
-            cell_dofs = self.local_dofs_of_cell(sd, np.zeros(sd.dim + 1), c)[-sd.dim :]
-
-            # Save values for projection P local matrix in the global structure
-            loc_idx = slice(idx, idx + P.size)
-            rows_I[loc_idx] = np.repeat(
-                c + np.arange(pg.AMBIENT_DIM) * sd.num_cells, sd.dim
-            )
-            cols_J[loc_idx] = np.tile(cell_dofs, pg.AMBIENT_DIM)
-            data_IJ[loc_idx] = P.ravel()
-            idx += P.size
-
-        # Construct the global matrix
-        shape = (pg.AMBIENT_DIM * sd.num_cells, self.ndof(sd))
-        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
-
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the matrix corresponding to the differential operator, the divergence
@@ -808,73 +685,11 @@ class RT1(pg.Discretization):
         Returns:
             sps.csc_array: The differential matrix.
         """
-        # Allocate the data to store matrix A entries
-        size = (sd.dim * (sd.dim + 2)) * (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
+        # The divergence corresponds to the broken divergence in this case.
+        proj = self.proj_to_PwPolynomials(sd)
+        pwp = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
 
-        # Precompute the local divergence matrix
-        loc_div = self.compute_local_div_matrix(sd.dim)
-        opposite_nodes = sd.compute_opposite_nodes()
-
-        range_disc = pg.PwLinears()
-
-        for c in range(sd.num_cells):
-            _, faces_loc, signs_loc = self.reorder_faces(
-                sd.cell_faces, opposite_nodes, c
-            )
-
-            # Change the sign of the face-dofs according to the cell-face orientation
-            signs = np.ones(loc_div.shape[1])
-            signs[: -sd.dim] = np.tile(signs_loc, sd.dim)
-
-            div = loc_div * signs / (sd.dim * sd.cell_volumes[c])
-
-            # Indices of the local degrees of freedom
-            loc_dofs = self.local_dofs_of_cell(sd, faces_loc, c)
-            div_dofs = np.tile(loc_dofs, sd.dim + 1)
-
-            # Indices of the range degrees of freedom
-            ran_dofs = range_disc.local_dofs_of_cell(sd, c)
-            ran_dofs = np.repeat(ran_dofs, div.shape[1])
-
-            # Save values of the local matrix in the global structure
-            loc_idx = slice(idx, idx + div.size)
-            rows_I[loc_idx] = ran_dofs
-            cols_J[loc_idx] = div_dofs
-            data_IJ[loc_idx] = div.ravel()
-            idx += div.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
-    def compute_local_div_matrix(self, dim: int) -> np.ndarray:
-        """
-        Assembles the local divergence matrix using local node and face ordering.
-
-        Args:
-            dim (int): Dimension of the grid.
-
-        Returns:
-            np.ndarray: The local divergence matrix.
-        """
-        opp_node = np.tile(np.arange(dim + 1), dim)[::-1]
-        loc_node = np.repeat(np.arange(dim + 1), dim)
-
-        # The face basis function phi_i^j has divergence
-        # 1 + (dim + 1) (lambda_i - lambda_j)
-        face_div = np.ones((dim + 1, dim * (dim + 1)))
-        face_div[loc_node, np.arange(loc_node.size)] += dim + 1
-        face_div[opp_node, np.arange(loc_node.size)] -= dim + 1
-
-        # The cell basis function phi_k has divergence
-        # (dim + 1) lambda_k - 1
-        cell_div = (dim + 1) * np.eye(dim + 1, dim)
-        cell_div -= 1
-
-        return np.hstack((face_div, cell_div))
+        return pwp.assemble_broken_div_matrix(sd) @ proj
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
@@ -960,6 +775,9 @@ class RT1(pg.Discretization):
         :math:`q, v \in \mathbb{RT}_1(\Omega)` and :math:`K` the diffusion tensor.
         The lumped matrix is computed using the integration rule from Egger & Radu
         (2020).
+
+        We may choose to eliminate this function and revert to the parent
+        implementation in pg.Discretization.
 
         Args:
             sd (pg.Grid): The grid object.
