@@ -830,6 +830,7 @@ class RT1(pg.Discretization):
 
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
+    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid):
         r"""
         Constructs the projection matrix from the current finite element space to the
