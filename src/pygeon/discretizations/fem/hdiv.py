@@ -688,7 +688,7 @@ class RT1(pg.Discretization):
         # The divergence corresponds to the broken divergence in this case.
         proj = self.proj_to_PwPolynomials(sd)
         pwp = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
-        pwp = cast(pg.VecDiscretization, pwp)
+        pwp = cast(pg.VecPwPolynomials, pwp)
 
         return pwp.assemble_broken_div_matrix(sd) @ proj
 
