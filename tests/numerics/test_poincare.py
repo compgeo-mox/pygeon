@@ -1,6 +1,9 @@
 """Module contains tests to validate the Poincare operator."""
 
+from pathlib import Path
+
 import numpy as np
+import porepy as pp
 import pytest
 import scipy.sparse as sps
 
@@ -13,12 +16,24 @@ def poin(unit_sd: pg.Grid) -> pg.Poincare:
     return pg.Poincare(mdg)
 
 
+@pytest.fixture(scope="session")
+def poin_donut() -> pg.Poincare:
+    dirname = Path(__file__).parents[1]
+    geo_file = dirname / "geo_files" / "missing_donut.geo"
+
+    mdg = pp.fracs.fracture_importer.dfm_from_gmsh(geo_file, 3)
+    pg.convert_from_pp(mdg)
+    mdg.compute_geometry()
+
+    return pg.Poincare(mdg)
+
+
 @pytest.mark.parametrize("k", range(1, 4))
 def test_chain_property_sd(poin, k):
     """
     Check the chain property, i.e. whether pp=0
     """
-    if k > poin.mdg.dim_max():
+    if k > poin.dim:
         return
 
     f = np.random.rand(poin.bar_spaces[k].size)
@@ -31,11 +46,9 @@ def test_chain_property_sd(poin, k):
 @pytest.mark.parametrize("k", range(0, 4))
 def test_decomposition(poin, k):
     """
-    For given f, check whether the decomposition
-    (pd + pd) f = f
-    holds
+    For given f, check whether the decomposition (pd + pd + q) f = f holds
     """
-    if k > poin.mdg.dim_max():
+    if k > poin.dim:
         return
 
     f = np.random.rand(poin.bar_spaces[k].size)
@@ -45,7 +58,7 @@ def test_decomposition(poin, k):
 
 @pytest.mark.parametrize("k", range(0, 4))
 def test_solve_subproblem(poin, k):
-    if k > poin.mdg.dim_max():
+    if k > poin.dim:
         return
 
     ndof = poin.bar_spaces[k].size
@@ -54,3 +67,11 @@ def test_solve_subproblem(poin, k):
     sol = poin.solve_subproblem(k, system, np.zeros(ndof))
 
     assert np.allclose(sol, 0)
+
+
+def test_missing_donut(poin_donut: pg.Poincare):
+    poin = poin_donut
+    betti = [1, 1, 1, 0]
+
+    for k in range(4):
+        assert poin.hom_basis[k].shape[1] == betti[k]
