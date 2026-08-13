@@ -19,7 +19,7 @@ class Poincare:
     """
     Class for generating Poincaré operators p and q that satisfy :math:`pd + dp
     + q = I` with d the exterior derivative, following the construction from
-    https://arxiv.org/abs/2410.08830
+    https://arxiv.org/abs/2410.08830.
     """
 
     def __init__(self, mdg: pg.MixedDimensionalGrid) -> None:
@@ -42,8 +42,9 @@ class Poincare:
 
     def check_grid_admissibility(self) -> None:
         """
-        Checks whether there are any 1D subdomains with only one cell. This case
-        is not covered and therefore throws a warning.
+        Checks whether any 1D subdomain has only one cell.
+
+        This case is not covered and therefore raises a warning.
         """
         for sd in self.mdg.subdomains(dim=1):
             if sd.num_cells == 1:
@@ -55,16 +56,14 @@ class Poincare:
 
     def define_subspaces(self) -> None:
         """
-        Flags the mesh entities that will be used to generate the Poincaré
-        operators. These are subdivided into three subspaces using lists of
-        boolean arrays:
-        - bar_spaces: Domain subspace on which the differential is injective
-        - zer_spaces: Range subspace on which the differential is surjective
-        - hom_spaces: Subpace with the same dimension as the cohomology
+        Flags the mesh entities used to build the Poincaré operators.
 
-        We moreover initialize the following lists
-        - hom_basis: The basis functions of the cohomology space
-        - cycles: The topological
+        These are split into three boolean subspaces:
+        - bar_spaces: domain subspace on which the differential is injective
+        - zer_spaces: range subspace on which the differential is surjective
+        - hom_spaces: subspace with the same dimension as the cohomology
+
+        The method also initializes the cohomology basis and cycle containers.
         """
         # Preallocation
         bar_spaces = [np.zeros(0, dtype=bool) for _ in range(self.dim + 1)]
@@ -94,11 +93,12 @@ class Poincare:
 
     def flag_edges_3d(self, keep_node: np.ndarray | None = None) -> np.ndarray:
         """
-        Flag the edges of the grid that form a spanning tree of the nodes.
-        This function only gets called in 3D.
+        Flags the edges of the grid that form a spanning tree of the nodes.
+
+        This function is only used in 3D.
 
         Returns:
-            np.ndarray: Boolean array with flagged edges
+            np.ndarray: Boolean array with flagged edges.
         """
         if keep_node is None:
             keep_node = np.ones(self.mdg.num_subdomain_peaks())
@@ -127,7 +127,7 @@ class Poincare:
 
     def find_central_node(self) -> int:
         """
-        Find the node that is closest to the center of the domain.
+        Finds the node closest to the center of the domain.
 
         Returns:
             int: Index of the central node.
@@ -139,10 +139,10 @@ class Poincare:
 
     def flag_nodes(self) -> np.ndarray:
         """
-        Flag all the nodes in the top-dim domain, except for the central node
+        Flags all nodes in the top-dimensional domain except the central node.
 
         Returns:
-            np.ndarray: Boolean array with flagged nodes
+            np.ndarray: Boolean array with flagged nodes.
         """
         flagged_nodes = np.ones(self.top_sd.num_nodes, dtype=bool)
         flagged_nodes[self.find_central_node()] = False
@@ -151,8 +151,10 @@ class Poincare:
 
     def remove_tips_from_spaces(self) -> None:
         """
-        Removes the fracture tips from the subspaces because these are essential
-        bcs. They therefore do not occur in the bar space nor the zero space.
+        Removes fracture tips from the subspaces.
+
+        These are essential boundary conditions and therefore do not appear in the
+        bar or zero spaces.
         """
         tip_ridges = np.concatenate(
             [sd.tags["tip_ridges"] for sd in self.mdg.subdomains()]
@@ -168,8 +170,7 @@ class Poincare:
 
     def compute_cohomology(self) -> None:
         """
-        Computes the topological cycles corresponding to the cohomology classes,
-        and the basis for the cohomology spaces.
+        Computes the topological cycles and basis associated with the cohomology.
         """
         # We first compute the cohomology of the face-based forms
         self.compute_face_cohomology()
@@ -194,6 +195,17 @@ class Poincare:
                 self.compute_cohomology_basis(k)
 
     def get_subspace_dim_differences(self) -> np.ndarray:
+        """
+        Returns the dimension mismatch between the bar and zero spaces.
+
+        The entries correspond to the difference between the number of degrees of
+        freedom in the bar space and in the complementary zero space for each
+        form order, excluding the top-dimensional space. A nonzero value signals
+        that cohomology still needs to be accounted for.
+
+        Returns:
+            np.ndarray: Vector of dimension differences for each form order.
+        """
         return np.array(
             [
                 np.sum(bar) - np.sum(zer)
@@ -202,6 +214,13 @@ class Poincare:
         )
 
     def compute_face_cohomology(self) -> None:
+        """
+        Computes the topological cycles associated with face-based cohomology.
+
+        The method identifies closed surface components that correspond to holes in
+        the domain and moves one representative face from the zero space into the
+        cohomology space for each independent class.
+        """
         k = self.dim - 1
 
         # The zero space includes a cycle in 2D or a closed surface in 3D.
@@ -264,6 +283,18 @@ class Poincare:
     def restrict_to_bdry(
         self, diff: sps.csc_array, rows: np.ndarray, cols: np.ndarray
     ) -> sps.csc_array:
+        """
+        Restricts a differential operator to the boundary submatrix.
+
+        Args:
+            diff (sps.csc_array): The original operator matrix.
+            rows (np.ndarray): Boolean mask selecting the row entities.
+            cols (np.ndarray): Boolean mask selecting the column entities.
+
+        Returns:
+            sps.csc_array: The submatrix obtained by restricting the rows and
+                columns to the boundary entities.
+        """
         R_row = create_restriction(rows)
         R_col = create_restriction(cols)
 
@@ -272,6 +303,21 @@ class Poincare:
         return diff_bdry.tocsc()
 
     def prune_graph(self, incidence: sps.csc_array, dim: int) -> np.ndarray:
+        """
+        Prunes a graph until only the closed surfaces surrounding holes remains.
+
+        The procedure iteratively removes vertices and edges that are not part of
+        the boundary manifold. The surviving rows indicate the incidence entries
+        forming the relevant closed surface.
+
+        Args:
+            incidence (sps.csc_array): Incidence matrix of the graph.
+            dim (int): Dimension of the ambient space.
+
+        Returns:
+            np.ndarray: Boolean mask of the remaining rows, i.e. the selected
+                closed-surface faces.
+        """
         incidence = incidence.astype(bool)
         for _ in np.arange(incidence.shape[0]):
             n_edges_of_node = incidence.sum(axis=0)
@@ -294,6 +340,18 @@ class Poincare:
         return abs(incidence).sum(axis=1).astype(bool)
 
     def divide_domain(self, div: sps.csc_array, surface: np.ndarray) -> np.ndarray:
+        """
+        Partitions the domain by a closed surface and returns subdomain boundaries.
+
+        Args:
+            div (sps.csc_array): Divergence matrix of the domain.
+            surface (np.ndarray): Boolean mask identifying the faces that form the
+                dividing closed surface.
+
+        Returns:
+            np.ndarray: Array whose rows contain boundary contributions for each
+                connected component of the domain split by the surface.
+        """
         # The surface divides the domain into subdomains
         div_ = div * np.logical_not(surface)
         n_subdomains, flags = sps.csgraph.connected_components(div_ @ div_.T)
@@ -312,6 +370,13 @@ class Poincare:
         return sub_bdry
 
     def compute_ridge_cohomology(self) -> None:
+        """
+        Computes cohomology classes associated with boundary ridge cycles.
+
+        This is only needed in 3D when the face cohomology does not yet match the
+        zero-space dimension. The method builds boundary node cycles and converts
+        them to ridge-based homology representatives.
+        """
         bdry_faces = np.concatenate(
             [sd.tags["domain_boundary_faces"] for sd in self.mdg.subdomains()]
         )
@@ -364,6 +429,17 @@ class Poincare:
     def compute_bdry_node_cycles(
         self, div: sps.csc_array, curl: sps.csc_array
     ) -> List[np.ndarray]:
+        """
+        Finds independent cycles in the boundary graph expressed by node indices.
+
+        Args:
+            div (sps.csc_array): The boundary divergence operator.
+            curl (sps.csc_array): The boundary curl operator.
+
+        Returns:
+            List[np.ndarray]: A list of node cycles, one for each independent
+                boundary cycle.
+        """
         # Compute the number of connected components of the boundary
         incidence = div @ div.T
         n_components, ids = sps.csgraph.connected_components(incidence)
@@ -417,6 +493,17 @@ class Poincare:
     def compute_edge_cycle(
         self, cycle: np.ndarray, face_nodes: sps.lil_array
     ) -> np.ndarray:
+        """
+        Converts a node cycle into the corresponding boundary edge cycle.
+
+        Args:
+            cycle (np.ndarray): Ordered node indices forming a cycle.
+            face_nodes (sps.lil_array): Incidence matrix mapping boundary faces to
+                their nodes.
+
+        Returns:
+            np.ndarray: Indices of the boundary edges belonging to the cycle.
+        """
         n_start = cycle
         n_end = np.append(cycle[1:], cycle[0])
 
@@ -440,6 +527,19 @@ class Poincare:
         bdry_ridges: np.ndarray,
         bdry_nodes: np.ndarray,
     ) -> np.ndarray:
+        """
+        Constructs the polygon used to compute a linking number with the ridge cycle.
+
+        Args:
+            node_cycle (np.ndarray): Ordered boundary nodes describing a cycle.
+            edge_cycle (np.ndarray): Indices of the boundary edges in the cycle.
+            bdry_ridges (np.ndarray): Boolean mask selecting boundary ridges.
+            bdry_nodes (np.ndarray): Boolean mask selecting boundary nodes.
+
+        Returns:
+            np.ndarray: Coordinates of the polygon in 3D, with alternating node and
+                cell-center points.
+        """
         # Preallocation
         U = np.zeros((3, 1 + 2 * len(node_cycle)))
 
@@ -467,6 +567,22 @@ class Poincare:
         bdry_nodes: np.ndarray,
         edge_cycle: np.ndarray,
     ) -> np.ndarray:
+        """
+        Generates the shifted polygon used in the ridge linking-number test.
+
+        The polygon is constructed by walking across adjacent boundary faces and
+        collecting the face-based support of the cycle.
+
+        Args:
+            cycle (np.ndarray): Ordered node cycle on the boundary.
+            cell_faces (sps.lil_array): Incidence between cells and faces.
+            face_nodes (sps.lil_array): Incidence between faces and nodes.
+            bdry_nodes (np.ndarray): Boolean mask selecting boundary nodes.
+            edge_cycle (np.ndarray): Edge indices on the cycle.
+
+        Returns:
+            np.ndarray: Coordinates of the shifted polygon in the domain.
+        """
         # For the shifted polygon, we loop around the adjacent triangles
         faces = []
         node = cycle[0]
@@ -508,7 +624,7 @@ class Poincare:
 
     def compute_linking_number(self, U: np.ndarray, P: np.ndarray, n_points=5) -> float:
         r"""
-        Compute the linking number of two closed polygons U and P.
+        Computes the linking number of two closed polygons U and P.
 
         The linking number is the double contour integral
             1/(4*pi) * \int_P \int_U  Z \cdot (x - y) / |x - y|^3
@@ -575,6 +691,21 @@ class Poincare:
     def find_relevant_cycles(
         self, U_list: List[np.ndarray], P_list: List[np.ndarray]
     ) -> np.ndarray:
+        """
+        Selects the independent linear combinations of ridge cycles.
+
+        The linking numbers between all candidate cycle pairs are assembled into
+        a matrix, and the null space gives the coefficients of the relevant
+        cycle combinations.
+
+        Args:
+            U_list (List[np.ndarray]): The submerged polygons.
+            P_list (List[np.ndarray]): The shifted polygons.
+
+        Returns:
+            np.ndarray: Coefficient matrix defining the linear combinations that
+                span the relevant homology classes.
+        """
         n_cycles = len(U_list)
         G = np.empty((n_cycles,) * 2)
 
@@ -590,6 +721,13 @@ class Poincare:
         return coeffs
 
     def recompute_edge_subspaces(self) -> None:
+        """
+        Updates the edge bar/zero/homology subspaces after ridge cohomology.
+
+        The cycle-supporting edges are removed from the bar space, the remaining
+        tree edges are chosen for the zero space, and one edge per cycle is moved
+        into the cohomology subspace.
+        """
         # Flag all the nodes on the cycles except the starting node
         cycle_nodes = abs(self.cycles[1]).T @ abs(pg.grad(self.mdg))
         cycle_nodes.data[cycle_nodes.indptr[:-1]] = 0
@@ -620,6 +758,9 @@ class Poincare:
         self.hom_spaces[1] = hom_space
 
     def compute_node_cohomology(self) -> None:
+        """
+        Assigns the node-level cohomology basis and eliminates it from the zero space.
+        """
         self.hom_spaces[0] = self.zer_spaces[0].copy()
         self.zer_spaces[0] &= False
 
@@ -627,12 +768,28 @@ class Poincare:
         self.cycles[0] = sps.csc_array(cycle, dtype=int)
 
     def compute_cohomology_basis(self, k: int) -> None:
+        """
+        Computes a basis for the cohomology space at form order k.
+
+        Args:
+            k (int): Form degree for which the cohomology basis is computed.
+        """
         cycles = self.cycles[k].todense()
         pdc, dpc = self._decompose_without_cohomology(k, cycles)
 
         self.hom_basis[k] = cycles - pdc - dpc
 
     def cohom_projection(self, k: int, f: np.ndarray) -> np.ndarray:
+        """
+        Projects a form onto the cohomology subspace.
+
+        Args:
+            k (int): Form degree.
+            f (np.ndarray): The input k-form coefficients.
+
+        Returns:
+            np.ndarray: The projection of f onto the cohomology space.
+        """
         if not np.any(self.hom_spaces[k]):
             return np.zeros_like(f)
 
@@ -684,16 +841,15 @@ class Poincare:
         f: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Use the Poincaré operators to decompose :math:`f = pd(f) + dp(f) + q(f)`
+        Use the Poincaré operators to decompose :math:`f = pd(f) + dp(f) + q(f)`.
 
         Args:
             k (int): Order of the k-form f.
             f (np.ndarray): The function to be decomposed.
 
-
         Returns:
             Tuple[np.ndarray]: The decomposition of f as :math:`(dp(f), pd(f),
-            g(f))`, the final entry is omitted if with_cohomology is False.
+                q(f))`.
         """
 
         pdf, dpf = self._decompose_without_cohomology(k, f)
@@ -706,6 +862,17 @@ class Poincare:
         k: int,
         f: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Decomposes a form into the pd and dp parts without the cohomology component.
+
+        Args:
+            k (int): Form degree of the input array.
+            f (np.ndarray): The k-form to decompose.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The components corresponding to p d(f)
+                and d p(f).
+        """
 
         n_minus_k = self.dim - k
 
@@ -734,8 +901,8 @@ class Poincare:
         solver: Callable = sps.linalg.spsolve,
     ) -> np.ndarray:
         """
-        Solve a linear system on the subspace of
-        differential forms identified by the Poincare object.
+        Solve a linear system on the subspace of differential forms identified by
+        the Poincare object.
 
         Args:
             k (int): Order of the k-form.
@@ -745,7 +912,7 @@ class Poincare:
                 sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The solution
+            np.ndarray: The solution.
         """
         LS = pg.LinearSystem(A, b)
         LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
@@ -753,12 +920,31 @@ class Poincare:
         return LS.solve(solver=solver)
 
     def compute_euler_char(self) -> int:
+        """
+        Returns the Euler characteristic of the domain from the cohomology basis.
+
+        Returns:
+            int: The alternating sum of cohomology dimensions across all form degrees.
+        """
 
         return sum((-1) ** k * self.hom_basis[k].shape[1] for k in range(self.dim + 1))
 
     def compute_basis_harmonic_forms(
         self, k: int, Mass: sps.csc_array | None = None
     ) -> np.ndarray:
+        """
+        Computes a harmonic basis for the cohomology space of degree k.
+
+        Args:
+            k (int): Degree of the cohomology space.
+            Mass (sps.csc_array | None, optional): Mass matrix used for the
+                orthogonalization. If not provided, a default mass matrix is
+                constructed.
+
+        Returns:
+            np.ndarray: Orthonormalized harmonic basis functions for the cohomology
+                space.
+        """
         if k == 0:
             return self.hom_basis[k]
 
