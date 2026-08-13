@@ -176,4 +176,6 @@ nbproject/
 *.mat
 *.py_o
 *.txt
-pygeon.code-workspace
+*.code-workspace
+*.xao
+

@@ -25,4 +25,5 @@ Subpackages
    :maxdepth: 2
 
    pygeon.discretizations.fem
+   pygeon.discretizations.fvm
    pygeon.discretizations.vem

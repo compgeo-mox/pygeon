@@ -1,6 +1,6 @@
 """Module for the discretizations of the H1 space."""
 
-from typing import Type
+from typing import Callable, Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -19,18 +19,23 @@ class VLagrange1(pg.Lagrange1):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
+    def _assemble_matrix_from_loc(
+        self,
+        sd: pg.Grid,
+        assemble_loc: Callable[[pg.Grid, int, float, np.ndarray], np.ndarray],
     ) -> sps.csc_array:
         """
-        Assembles and returns the mass matrix.
+        Assembles a global sparse matrix by looping over cells and accumulating
+        the contributions of a local matrix assembly function.
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
+            assemble_loc (Callable): A function with signature
+                ``(sd, cell, diam, nodes) -> np.ndarray`` that returns the local
+                matrix for the given cell.
 
         Returns:
-            sps.csc_array: The sparse mass matrix obtained from the discretization.
+            sps.csc_array: The assembled global sparse matrix.
         """
         # Precomputations
         cell_nodes = sd.cell_nodes()
@@ -47,9 +52,9 @@ class VLagrange1(pg.Lagrange1):
             loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
             nodes_loc = cell_nodes.indices[loc]
 
-            A = self.assemble_loc_mass_matrix(sd, cell, diam, nodes_loc)
+            A = assemble_loc(sd, cell, diam, nodes_loc)
 
-            # Save values for local mass matrix in the global structure
+            # Save values for local matrix in the global structure
             cols = np.tile(nodes_loc, (nodes_loc.size, 1))
             loc_idx = slice(idx, idx + cols.size)
             rows_I[loc_idx] = cols.T.ravel()
@@ -59,12 +64,27 @@ class VLagrange1(pg.Lagrange1):
 
         return sps.csc_array((data_V, (rows_I, cols_J)))
 
+    def assemble_mass_matrix(
+        self, sd: pg.Grid, _data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles and returns the mass matrix.
+
+        Args:
+            sd (pg.Grid): The grid.
+            _data (dict | None): Optional data for the assembly process.
+
+        Returns:
+            sps.csc_array: The sparse mass matrix obtained from the discretization.
+        """
+        return self._assemble_matrix_from_loc(sd, self.assemble_loc_mass_matrix)
+
     def assemble_loc_mass_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Computes the local VEM mass matrix on a given cell
-        according to the Hitchhiker's (6.5)
+        Computes the local VEM mass matrix :math:`(u, v)_K` on a given cell
+        according to the Hitchhiker's (6.5).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -86,13 +106,13 @@ class VLagrange1(pg.Lagrange1):
     def assemble_loc_proj_to_mon(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
-        """
+        r"""
         Computes the local projection onto the monomials. Returns the coefficients
-        :math:`\\{a_i\\}` in the expansion
+        :math:`\{a_i\}` in the expansion
 
         .. math::
 
-            a_0 + \\frac{1}{d}[a_1, a_2] \\cdot (x - c)
+            a_0 + \frac{1}{d}[a_1, a_2] \cdot (x - c)
 
         for each VL1 basis function.
 
@@ -161,12 +181,12 @@ class VLagrange1(pg.Lagrange1):
     def assemble_loc_monomial_mass(
         self, sd: pg.Grid, cell: int, diam: float
     ) -> np.ndarray:
-        """
+        r"""
         Computes the inner products of the monomials
 
         .. math::
 
-            \\left\\{1, \\frac{x - c}{d}, \\frac{y - c}{d}\\right\\}
+            \left\{1, \frac{x - c}{d}, \frac{y - c}{d}\right\}
 
         Reference: Hitchhiker's (5.3)
 
@@ -206,7 +226,8 @@ class VLagrange1(pg.Lagrange1):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Returns the matrix D from the Hitchhiker's (3.17)
+        Returns the matrix :math:`D` whose rows are the degrees of freedom applied to
+        the local monomial basis functions, from the Hitchhiker's (3.17).
 
         Args:
             sd (pg.Grid): The grid object.
@@ -228,49 +249,25 @@ class VLagrange1(pg.Lagrange1):
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
     ) -> sps.csc_array:
-        """
-        Assembles and returns the stiffness matrix.
+        r"""
+        Assembles and returns the VEM stiffness matrix
+        :math:`(\nabla u, \nabla v)_\Omega` using the virtual element method.
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Optional data for the assembly process.
+            _data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The stiffness matrix obtained from the discretization.
         """
-        # Precomputations
-        cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters()
-
-        # Data allocation
-        size = np.sum(np.square(cell_nodes.sum(0)))
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_V = np.empty(size)
-        idx = 0
-
-        for cell, diam in enumerate(cell_diams):
-            loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
-            nodes_loc = cell_nodes.indices[loc]
-
-            M_loc = self.assemble_loc_stiff_matrix(sd, cell, diam, nodes_loc)
-
-            # Save values for local mass matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_V[loc_idx] = M_loc.ravel()
-            idx += cols.size
-
-        return sps.csc_array((data_V, (rows_I, cols_J)))
+        return self._assemble_matrix_from_loc(sd, self.assemble_loc_stiff_matrix)
 
     def assemble_loc_stiff_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
-        """
-        Computes the local VEM stiffness matrix on a given cell
-        according to the Hitchhiker's (3.25)
+        r"""
+        Computes the local VEM stiffness matrix :math:`(\nabla u, \nabla v)_K` on a
+        given cell according to the Hitchhiker's (3.25).
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
@@ -301,7 +298,16 @@ class VLagrange1(pg.Lagrange1):
             pg.Discretization: The range discretization class.
 
         Raises:
-            NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
+            NotImplementedError: For dimensions other than 1 and 2.
         """
-        raise NotImplementedError
+        match dim:
+            case 3:
+                raise NotImplementedError(
+                    "There's no Virtual Nedelec0 discretization in PyGeoN"
+                )
+            case 2:
+                return pg.VRT0
+            case 1:
+                return pg.PwConstants
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")

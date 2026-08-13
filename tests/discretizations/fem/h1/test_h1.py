@@ -53,6 +53,36 @@ def test_stiffness_consistency(discr, unit_sd):
     assert np.allclose(diff.data, 0)
 
 
+def test_differential_consistency(discr, unit_sd):
+    pi_grad = discr.assemble_diff_matrix(unit_sd)
+    range_dis = discr.get_range_discr_class(unit_sd.dim)()
+    pi_grad = range_dis.proj_to_PwPolynomials(unit_sd) @ pi_grad
+
+    grad_pi = discr.assemble_broken_grad_matrix(unit_sd)
+
+    if isinstance(discr, pg.Lagrange1) and unit_sd.dim > 1:
+        proj = pg.VecPwConstants().proj_to_higher_PwPolynomials(unit_sd)
+        grad_pi = proj @ grad_pi
+
+    if unit_sd.dim == 2:
+        # In 2D, the differential is a rotated gradient. So the matrices don't
+        # coincide, but their squares do.
+        diff = pi_grad.T @ pi_grad - grad_pi.T @ grad_pi
+    else:
+        diff = pi_grad - grad_pi
+
+    assert np.allclose(diff.data, 0)
+
+
+def test_stiffness_of_linear(discr, ref_sd):
+    stiff = discr.assemble_stiff_matrix(ref_sd)
+
+    sol_func = lambda x: x[0]
+    interp = discr.interpolate(ref_sd, sol_func)
+
+    assert np.isclose(interp @ stiff @ interp, ref_sd.cell_volumes[0])
+
+
 def test_point_grid(discr, ref_sd_0d):
     """Tests with a point grid"""
 
