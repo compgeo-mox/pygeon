@@ -284,7 +284,11 @@ class Poincare:
             if np.all(keep_edge):
                 break
         else:
-            raise RuntimeError("Could not prune graph to a surface.")
+            # I was not able to construct an unprunable graph, but let's keep
+            # this safegaurd in place anyways.
+            raise RuntimeError(
+                "Could not prune graph to a surface."
+            )  # pragma: no cover
 
         # The remaining faces form a closed surface
         return abs(incidence).sum(axis=1).astype(bool)
