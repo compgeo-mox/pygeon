@@ -149,6 +149,15 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
                 ).astype("bool")
 
     def compute_euler_char(self) -> int:
+        """
+        Computes the Euler characteristic of the mixed-dimensional grid.
+
+        The method applies the standard alternating formula using the counts of
+        vertices, edges, faces, and cells at different topological dimensions.
+
+        Returns:
+            int: The Euler characteristic of the grid.
+        """
         c = self.num_subdomain_cells()
         f = self.num_subdomain_faces()
         e = self.num_subdomain_ridges()
