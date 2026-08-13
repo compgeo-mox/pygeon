@@ -749,17 +749,8 @@ class Poincare:
         return LS.solve(solver=solver)
 
     def compute_euler_char(self) -> int:
-        c = self.mdg.num_subdomain_cells()
-        f = self.mdg.num_subdomain_faces()
-        e = self.mdg.num_subdomain_ridges()
-        p = self.mdg.num_subdomain_peaks()
 
-        char = p - e + f - c
-
-        if self.dim == 2:
-            char *= -1
-
-        return char
+        return sum((-1) ** k * self.hom_basis[k].shape[1] for k in range(self.dim + 1))
 
     def compute_basis_harmonic_forms(
         self, k: int, Mass: sps.csc_array | None = None
