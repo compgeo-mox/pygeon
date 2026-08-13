@@ -26,8 +26,6 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
         - The inversion is performed using dense matrix operations for each block,
           which may be computationally expensive for large blocks.
     """
-    M = M.copy().tocsc()
-
     # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
     M.eliminate_zeros()
@@ -44,14 +42,12 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
         # Get the indices of the connected component
         indices = np.where(labels == patch)[0]
 
-        # Create a submatrix for the connected component and invert
-        submat = M_lil[indices][:, indices].toarray()
+        # Create a submatrix for the connected component
+        submat = M_lil[np.ix_(indices, indices)].toarray()
         inv_submat = np.linalg.inv(submat)
 
-        # Store the inverse in the corresponding positions. mypy dictates that
-        # we cannot use np.ix_ here.
-        for i, row in enumerate(indices):
-            inv_M_lil[row, indices] = inv_submat[i, :]
+        # Store the inverse in the corresponding positions
+        inv_M_lil[np.ix_(indices, indices)] = inv_submat
 
     # Convert the inverse matrix back to CSC format
     return inv_M_lil.tocsc()
@@ -89,8 +85,6 @@ def block_diag_solver(
         - If the right-hand side B is sparse and contains zero entries for a connected
           component, the solution for that component is skipped.
     """
-    M = M.copy().tocsc()
-
     # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
     M.eliminate_zeros()
@@ -118,13 +112,12 @@ def block_diag_solver(
             continue
 
         # Create a dense submatrix for the connected component
-        sub_M = M_lil[rows][:, rows].toarray()
+        sub_M = M_lil[np.ix_(rows, rows)].toarray()
 
-        # Solve the dense system and distribute to the solution matrix. mypy
-        # dictates that we cannot use np.ix_ here.
-        solution = scipy.linalg.solve(sub_M, sub_B[:, cols].toarray(), assume_a="pos")
-        for i, row in enumerate(rows):
-            sol[row, cols] = solution[i, :]
+        # Solve the dense system and distribute to the solution matrix
+        sol[np.ix_(rows, cols)] = scipy.linalg.solve(
+            sub_M, sub_B[:, cols].toarray(), assume_a="pos"
+        )
 
     # Convert the inverse matrix back to CSC format
     return sol.tocsc()
