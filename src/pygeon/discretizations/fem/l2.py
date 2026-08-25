@@ -1,6 +1,7 @@
 """Module for the discretizations of the L2 space."""
 
 import abc
+from functools import cache
 from math import factorial
 from typing import Callable, Type
 
@@ -233,6 +234,7 @@ class PwPolynomials(pg.Discretization):
             np.ndarray: Local lumped mass matrix for piecewise polynomials.
         """
 
+    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a piecewise function to a piecewise

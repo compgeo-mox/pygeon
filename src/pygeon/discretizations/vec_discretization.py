@@ -1,5 +1,6 @@
 """Module for the vector discretization class."""
 
+from functools import cache
 from typing import Callable, cast
 
 import numpy as np
@@ -112,6 +113,7 @@ class VecDiscretization(pg.Discretization):
         lumped_mass = self.base_discr.assemble_lumped_matrix(sd, data)
         return self.vectorize(sd.dim, lumped_mass)
 
+    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for projecting a vector function to a piecewise
