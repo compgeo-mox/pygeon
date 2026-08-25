@@ -79,13 +79,11 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         if cond is None:
             cond = lambda _: True
 
-        return np.sum(
-            [
-                sd.num_ridges
-                for pp_sd in self.subdomains()
-                if (sd := cast(pg.Grid, pp_sd)) and cond(sd)
-            ]
-        ).astype(int)
+        return sum(
+            cast(pg.Grid, pp_sd).num_ridges
+            for pp_sd in self.subdomains()
+            if cond(cast(pg.Grid, pp_sd))
+        )
 
     def num_subdomain_peaks(self, cond: Callable[[pg.Grid], bool] | None = None) -> int:
         """
@@ -102,13 +100,11 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         if cond is None:
             cond = lambda _: True
 
-        return np.sum(
-            [
-                sd.num_peaks
-                for pp_sd in self.subdomains()
-                if (sd := cast(pg.Grid, pp_sd)) and cond(sd)
-            ]
-        ).astype(int)
+        return sum(
+            cast(pg.Grid, pp_sd).num_peaks
+            for pp_sd in self.subdomains()
+            if cond(cast(pg.Grid, pp_sd))
+        )
 
     def tag_leafs(self) -> None:
         """

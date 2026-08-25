@@ -214,7 +214,7 @@ class EinSteinGrid(pg.Grid):
         coords = np.fromstring(pts.replace(",", " "), sep=" ")
         coords = coords.reshape((2, -1), order="F")
         # add the homogeneous coordinate and return the pts
-        return np.vstack((coords, np.ones(coords.shape[1])))
+        return np.vstack((coords, np.ones(coords.shape[-1])))
 
     def as_matrix(self, mat: str) -> np.ndarray:
         """
