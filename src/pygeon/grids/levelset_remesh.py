@@ -1,3 +1,5 @@
+"""Remeshing utilities to align a grid with a level-set interface."""
+
 from typing import Callable, Dict, Tuple
 
 import numpy as np

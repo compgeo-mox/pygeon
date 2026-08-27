@@ -77,6 +77,11 @@ class FiniteVolumeBC:
 
 
 class ElasticityBC(FiniteVolumeBC):
+    """
+    Boundary condition object for finite volume elasticity discretizations (TPSA),
+    supporting displacement, traction, and spring boundary conditions.
+    """
+
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the ElasticityBC object and store it in the data dictionary.
@@ -147,6 +152,11 @@ class ElasticityBC(FiniteVolumeBC):
 
 
 class FlowBC(FiniteVolumeBC):
+    """
+    Boundary condition object for finite volume flow discretizations (TPFA),
+    supporting pressure, flux, and Robin boundary conditions.
+    """
+
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the FlowBC object and store it in the data dictionary.

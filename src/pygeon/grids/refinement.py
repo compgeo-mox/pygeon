@@ -1,3 +1,5 @@
+"""Grid refinement utilities, including barycentric splitting."""
+
 import numpy as np
 import scipy.sparse as sps
 

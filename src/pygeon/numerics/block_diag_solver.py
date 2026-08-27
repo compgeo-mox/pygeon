@@ -1,3 +1,5 @@
+"""Solvers for linear systems with block-diagonal structure."""
+
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sps
