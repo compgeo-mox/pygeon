@@ -11,4 +11,4 @@ Examples demonstrating various features of PyGeoN can be found in the `tutorials
 Papers Using PyGeoN
 -------------------
 
-For real-world applications and research using PyGeoN, see the `papers list <https://github.com/compgeo-mox/.github/blob/main/profile/papers.md>`_.
+For real-world applications and research using PyGeoN, see the :doc:`papers list <papers>`.
