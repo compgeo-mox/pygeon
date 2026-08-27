@@ -131,7 +131,10 @@ class ElasticityBC(FiniteVolumeBC):
         r"""
         Set spring boundary conditions, cf. Appendix A2.21 in Nordbotten and
         Keilegavlen (2025), https://doi.org/10.1016/j.camwa.2025.07.035:
-        $n \cdot \sigma = 2 / \mathrm{dists} \,(u_0 - u)$.
+
+        .. math::
+
+            n \cdot \sigma = \frac{2}{\text{dists}} (u_0 - u)
 
         Args:
             dists (np.ndarray): Weighted distance (inverse spring constant).
@@ -197,7 +200,10 @@ class FlowBC(FiniteVolumeBC):
     ) -> None:
         r"""
         Set Robin boundary conditions:
-        $n \cdot q = (p - p_0) / \mathrm{dists}$.
+
+        .. math::
+
+            n \cdot q = \frac{p - p_0}{\text{dists}}
 
         Args:
             dists (np.ndarray): Weighted distance (inverse permeability).
