@@ -18,10 +18,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     Our implementation differs from Porepy (v1.13) in the imposition of boundary
     conditions. In particular, we made the following changes:
-        - The order of R and Xi_tilde in the [0, 1] block of (A.2.25)
-        - The order of n and Xi_tilde in the [0, 2] block of (A.2.25)
-        - Changed "delta R^2" to "R delta R" in the [1, 1] block of (A.2.25)
-        - Used the delta^mu_k in the normal direction in the [2, 2] block of (A.2.25)
+
+    - The order of R and Xi_tilde in the [0, 1] block of (A.2.25)
+    - The order of n and Xi_tilde in the [0, 2] block of (A.2.25)
+    - Changed "delta R^2" to "R delta R" in the [1, 1] block of (A.2.25)
+    - Used the delta^mu_k in the normal direction in the [2, 2] block of (A.2.25)
 
     These adaptations are necessary for consistency with rolling boundary conditions.
     We moreover used signed distances between face and cell centers.

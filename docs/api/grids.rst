@@ -21,3 +21,4 @@ Submodules
    pygeon.grids.levelset_remesh
    pygeon.grids.create_grid
    pygeon.grids.refinement
+   pygeon.grids.regularizers

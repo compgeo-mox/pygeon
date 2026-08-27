@@ -147,7 +147,6 @@ autodoc_default_options = {
     "special-members": "__init__",
     "undoc-members": True,
     "exclude-members": "__weakref__",
-    "no-index": True,
 }
 
 autodoc_typehints = "none"
