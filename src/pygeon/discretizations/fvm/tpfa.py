@@ -122,9 +122,10 @@ class TPFA(pg.FiniteVolumeDiscretization):
     def compute_weighted_dists(
         self, sd: pg.Grid, data: dict | None, find_cell_faces: Tuple
     ) -> np.ndarray:
-        """
-        Compute delta_k^i / normal_perm for every physical face-cell pair. Boundary
-        conditions are handled later.
+        r"""
+        Compute :math:`\delta_k^i / \kappa_{nn}^i` for every physical face-cell pair
+        :math:`(k, i)`, where :math:`\kappa_{nn}^i` is the normal-normal component of
+        the permeability tensor. Boundary conditions are handled later.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
