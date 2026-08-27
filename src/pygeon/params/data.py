@@ -1,3 +1,5 @@
+"""Utilities for accessing cell-wise data parameters, with sensible defaults."""
+
 from typing import Literal, overload
 
 import numpy as np

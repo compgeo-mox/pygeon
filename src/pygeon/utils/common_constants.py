@@ -1,6 +1,6 @@
-from typing import Final, Literal
+"""Common constants for PyGeoN."""
 
-# Common constants for PyGeoN
+from typing import Final, Literal
 
 AMBIENT_DIM: Final[Literal[3]] = 3
 """The ambient dimension of the space in which PyGeoN operates. This is a fixed constant

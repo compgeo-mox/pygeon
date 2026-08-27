@@ -1,3 +1,5 @@
+"""Utilities for sorting points, e.g., in counterclockwise order."""
+
 import numpy as np
 
 

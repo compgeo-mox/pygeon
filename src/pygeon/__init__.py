@@ -1,3 +1,5 @@
+"""PyGeoN: a Python package for GEO-Numerics."""
+
 # isort:skip_file
 
 from pygeon.utils.common_constants import *
