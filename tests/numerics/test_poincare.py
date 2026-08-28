@@ -95,14 +95,6 @@ def test_two_holes_2D():
     test_euler_char(poin)
 
 
-def test_one_cell_1D():
-    mdg = pg.unit_grid(1, 1, as_mdg=True)
-    mdg.compute_geometry()
-
-    with pytest.warns():
-        pg.Poincare(mdg)
-
-
 def test_harmonic_form_computation():
     poin = poin_from_geo("missing_donut.geo", 3)
 

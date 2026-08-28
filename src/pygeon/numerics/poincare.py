@@ -1,6 +1,5 @@
 """Module for poincare operators."""
 
-import warnings
 from typing import Callable, List, Tuple, cast
 
 import networkx as nx
@@ -32,26 +31,10 @@ class Poincare:
         self.dim = mdg.dim_max()
         self.top_sd = mdg.subdomains(dim=self.dim)[0]
 
-        self.check_grid_admissibility()
-
         self.define_subspaces()
         self.remove_tips_from_spaces()
 
         self.compute_cohomology()
-
-    def check_grid_admissibility(self) -> None:
-        """
-        Checks whether any 1D subdomain has only one cell.
-
-        This case is not covered and therefore raises a warning.
-        """
-        for sd in self.mdg.subdomains(dim=1):
-            if sd.num_cells == 1:
-                warnings.warn(
-                    "There is a 1D domain with only one cell. "
-                    + "Consider refining the grid."
-                )
-                break
 
     def define_subspaces(self) -> None:
         """
