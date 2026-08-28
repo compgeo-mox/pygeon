@@ -58,9 +58,7 @@ class SpanningTree:
         Returns:
             None
         """
-        self.expand = pg.numerics.linear_system.create_restriction(
-            flagged_faces
-        ).T.tocsc()
+        self.expand = pg.create_restriction(flagged_faces).T.tocsc()
 
         # Save the sparse LU decomposition of the system
         self.system = pg.cell_mass(mdg) @ self.div @ self.expand
@@ -367,7 +365,7 @@ class SpanningTreeElasticity(SpanningTree):
         P = sps.hstack((P_div, P_asym)).tocsc()
 
         # restriction to the flagged faces and restrict P to them
-        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+        expand = pg.create_restriction(flagged_faces).T.tocsc()
         # 3 dof in 2D, 6 dof in 3D
         dofs_per_face = sd.dim * (sd.dim + 1) // 2
 
@@ -422,7 +420,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         """
         dim_sig_omega = sd.dim * (sd.dim + 1) // 2
 
-        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+        expand = pg.create_restriction(flagged_faces).T.tocsc()
 
         return sps.kron(sps.eye_array(dim_sig_omega), expand).tocsc()
 

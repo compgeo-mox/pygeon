@@ -83,3 +83,42 @@ def get_codim_str(n_minus_k: int) -> str:
         str: The name of the mesh entity
     """
     return ["cells", "faces", "ridges", "peaks"][n_minus_k]
+
+
+def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
+    """
+    Helper function to create the restriction mapping
+
+    Args:
+        keep_dof (np.ndarray): Boolean array indicating which degrees of freedom (dofs)
+            to keep. True for the dofs of the system, False for the overwritten values.
+
+    Returns:
+        sps.csc_array: The restriction mapping matrix.
+    """
+    R = sps.diags_array(keep_dof, dtype=int).tocsr()
+    return R[R.indices, :].tocsc()
+
+
+def restrict_csc_array(
+    A: sps.csc_array, rows: np.ndarray, cols: np.ndarray
+) -> sps.csc_array:
+    """
+    Restricts a csc array to the specified rows and columns. The rows and cols are
+    assumed to be boolean arrays.
+
+    Args:
+        A (sps.csc_array): The original operator array.
+        rows (np.ndarray): Boolean mask selecting the row entities.
+        cols (np.ndarray): Boolean mask selecting the column entities.
+
+    Returns:
+        sps.csc_array: The submatrix obtained by restricting to the specified rows and
+            columns.
+    """
+    R_row = create_restriction(rows)
+    R_col = create_restriction(cols)
+
+    A_sub = R_row @ A @ R_col.T
+
+    return A_sub.tocsc()

@@ -56,7 +56,7 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     keep_faces = np.hstack((np.logical_not(cut_faces), new_faces))
 
     # Restrict cell_faces using restriction operators
-    restrict = pg.numerics.linear_system.create_restriction
+    restrict = pg.create_restriction
     restrict_cells = restrict(keep_cells)
     restrict_faces = restrict(keep_faces)
     cell_faces = restrict_faces @ cell_faces @ restrict_cells.T

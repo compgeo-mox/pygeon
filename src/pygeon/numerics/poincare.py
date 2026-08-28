@@ -12,7 +12,6 @@ import scipy.sparse as sps
 import pygeon as pg
 from pygeon.numerics.differentials import exterior_derivative as diff
 from pygeon.numerics.innerproducts import mass_matrix
-from pygeon.numerics.linear_system import create_restriction
 
 
 class Poincare:
@@ -244,7 +243,7 @@ class Poincare:
         bdry_ridges = np.concatenate(
             [sd.tags["domain_boundary_ridges"] for sd in self.mdg.subdomains()]
         )
-        div_bdry = self.restrict_to_bdry(pg.curl(self.mdg), bdry_faces, bdry_ridges)
+        div_bdry = pg.restrict_csc_array(pg.curl(self.mdg), bdry_faces, bdry_ridges)
         incidence = div_bdry @ div_bdry.T
         n_components, ids = sps.csgraph.connected_components(incidence)
 
@@ -279,28 +278,6 @@ class Poincare:
         # Generate the topological cycles for the cohomology space
         cycles = sps.csc_array(sub_bdry[1:].T)
         self.cycles[k] = cycles
-
-    def restrict_to_bdry(
-        self, diff: sps.csc_array, rows: np.ndarray, cols: np.ndarray
-    ) -> sps.csc_array:
-        """
-        Restricts a differential operator to the boundary submatrix.
-
-        Args:
-            diff (sps.csc_array): The original operator matrix.
-            rows (np.ndarray): Boolean mask selecting the row entities.
-            cols (np.ndarray): Boolean mask selecting the column entities.
-
-        Returns:
-            sps.csc_array: The submatrix obtained by restricting the rows and
-                columns to the boundary entities.
-        """
-        R_row = create_restriction(rows)
-        R_col = create_restriction(cols)
-
-        diff_bdry = R_row @ diff @ R_col.T
-
-        return diff_bdry.tocsc()
 
     def prune_graph(self, incidence: sps.csc_array, dim: int) -> np.ndarray:
         """
@@ -388,8 +365,8 @@ class Poincare:
         )
 
         # Compute the boundary divergence and curl
-        div = self.restrict_to_bdry(pg.curl(self.mdg), bdry_faces, bdry_ridges)
-        curl = self.restrict_to_bdry(pg.grad(self.mdg), bdry_ridges, bdry_nodes)
+        div = pg.restrict_csc_array(pg.curl(self.mdg), bdry_faces, bdry_ridges)
+        curl = pg.restrict_csc_array(pg.grad(self.mdg), bdry_ridges, bdry_nodes)
 
         # Generate the cycles as lists of nodes
         node_cycles = self.compute_bdry_node_cycles(div, curl)
@@ -826,8 +803,8 @@ class Poincare:
         n_minus_k = self.dim - k
         _diff = diff(self.mdg, n_minus_k + 1)
 
-        R_zer = create_restriction(self.zer_spaces[k])
-        R_bar = create_restriction(self.bar_spaces[k - 1])
+        R_zer = pg.create_restriction(self.zer_spaces[k])
+        R_bar = pg.create_restriction(self.bar_spaces[k - 1])
 
         pizer_dbar = R_zer @ _diff @ R_bar.T
 

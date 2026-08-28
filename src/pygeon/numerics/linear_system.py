@@ -5,6 +5,8 @@ from typing import Callable, Tuple
 import numpy as np
 import scipy.sparse as sps
 
+import pygeon as pg
+
 
 class LinearSystem:
     """
@@ -70,7 +72,7 @@ class LinearSystem:
             A tuple containing the reduced matrix A, the reduced vector b, and the
             restriction operator R.
         """
-        R_0 = create_restriction(self.is_dof)
+        R_0 = pg.create_restriction(self.is_dof)
         A_0 = R_0 @ self.A @ R_0.T
         b_0 = R_0 @ (self.b - self.A @ self.repeat_ess_vals())
 
@@ -111,18 +113,3 @@ class LinearSystem:
         else:
             ess_vals = sps.csr_array(np.atleast_2d(self.ess_vals))
             return sps.vstack([ess_vals] * self.b.shape[1]).T.tocsc()
-
-
-def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
-    """
-    Helper function to create the restriction mapping
-
-    Args:
-        keep_dof (np.ndarray): Boolean array indicating which degrees of freedom (dofs)
-            to keep. True for the dofs of the system, False for the overwritten values.
-
-    Returns:
-        sps.csc_array: The restriction mapping matrix.
-    """
-    R = sps.diags_array(keep_dof, dtype=int).tocsr()
-    return R[R.indices, :].tocsc()
