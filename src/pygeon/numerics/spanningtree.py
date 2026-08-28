@@ -58,9 +58,7 @@ class SpanningTree:
         Returns:
             None
         """
-        self.expand = pg.numerics.linear_system.create_restriction(
-            flagged_faces
-        ).T.tocsc()
+        self.expand = pg.create_restriction(flagged_faces).T.tocsc()
 
         # Save the sparse LU decomposition of the system
         self.system = pg.cell_mass(mdg) @ self.div @ self.expand
@@ -174,15 +172,19 @@ class SpanningTree:
         cols = np.hstack([np.arange(c_start.size)] * 2)
         vals = np.ones_like(rows)
 
-        face_finder = abs(self.div.T) @ sps.csc_array(
+        face_finder = abs(self.div.T) @ sps.csr_array(
             (vals, (rows, cols)), shape=(self.div.shape[0], self.tree.nnz)
         )
-        face, tree_edge_ind, nr_common_cells = sps.find(face_finder)
+        # We are only interested in the entries 2, because that means both
+        # c_start and c_end coincide.
+        face_finder.data = face_finder.data == 2
+        face_finder.eliminate_zeros()
+        face, tree_edge_ind, _ = sps.find(face_finder)
 
         # Polytopal grids may have multiple faces between a pair of cells.
         # We associate the tree edge with the face that has the lowest index.
-        _, index = np.unique(tree_edge_ind[nr_common_cells == 2], return_index=True)
-        tree_faces = face[nr_common_cells == 2][index]
+        _, index = np.unique(tree_edge_ind, return_index=True)
+        tree_faces = face[index]
 
         # Flag the relevant mesh faces in the grid
         flagged_faces = np.zeros(self.div.shape[1], dtype=bool)
@@ -363,7 +365,7 @@ class SpanningTreeElasticity(SpanningTree):
         P = sps.hstack((P_div, P_asym)).tocsc()
 
         # restriction to the flagged faces and restrict P to them
-        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+        expand = pg.create_restriction(flagged_faces).T.tocsc()
         # 3 dof in 2D, 6 dof in 3D
         dofs_per_face = sd.dim * (sd.dim + 1) // 2
 
@@ -418,7 +420,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         """
         dim_sig_omega = sd.dim * (sd.dim + 1) // 2
 
-        expand = pg.numerics.linear_system.create_restriction(flagged_faces).T.tocsc()
+        expand = pg.create_restriction(flagged_faces).T.tocsc()
 
         return sps.kron(sps.eye_array(dim_sig_omega), expand).tocsc()
 

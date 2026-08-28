@@ -147,3 +147,22 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
                 sd_up.tags["leaf_peaks"] += (
                     abs(intf.ridge_peaks) @ sd_down.tags["leaf_ridges"]
                 ).astype("bool")
+
+    def compute_euler_char(self) -> int:
+        """
+        Computes the Euler characteristic of the mixed-dimensional grid.
+
+        The method applies the standard alternating formula using the counts of
+        vertices, edges, faces, and cells at different topological dimensions.
+
+        Returns:
+            int: The Euler characteristic of the grid.
+        """
+        c = self.num_subdomain_cells()
+        f = self.num_subdomain_faces()
+        e = self.num_subdomain_ridges()
+        p = self.num_subdomain_peaks()
+
+        char = (-1) ** (self.dim_max() + 1) * (p - e + f - c)
+
+        return char
