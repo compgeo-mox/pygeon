@@ -113,8 +113,14 @@ class FiniteVolumeDiscretization(abc.ABC):
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         r"""
-        Compute $(1 / \delta_i + 1 / \delta_j)^{-1}$ at each face, between cells i and
-        j. This is used to compute the effective permeability at the face.
+        Compute the harmonic average
+
+        .. math::
+
+            \left(\frac{1}{\delta_i} + \frac{1}{\delta_j}\right)^{-1}
+
+        at each face, between cells :math:`i` and :math:`j`. This is used to compute
+        the effective permeability at the face.
 
         Args:
             faces (np.ndarray): The extended array of faces.

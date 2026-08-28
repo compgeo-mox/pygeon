@@ -1,0 +1,1 @@
+"""Discretization schemes for PyGeoN."""

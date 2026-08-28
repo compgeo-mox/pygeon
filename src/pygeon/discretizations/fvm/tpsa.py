@@ -18,10 +18,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     Our implementation differs from Porepy (v1.13) in the imposition of boundary
     conditions. In particular, we made the following changes:
-        - The order of R and Xi_tilde in the [0, 1] block of (A.2.25)
-        - The order of n and Xi_tilde in the [0, 2] block of (A.2.25)
-        - Changed "delta R^2" to "R delta R" in the [1, 1] block of (A.2.25)
-        - Used the delta^mu_k in the normal direction in the [2, 2] block of (A.2.25)
+
+    - The order of R and Xi_tilde in the [0, 1] block of (A.2.25)
+    - The order of n and Xi_tilde in the [0, 2] block of (A.2.25)
+    - Changed "delta R^2" to "R delta R" in the [1, 1] block of (A.2.25)
+    - Used the delta^mu_k in the normal direction in the [2, 2] block of (A.2.25)
 
     These adaptations are necessary for consistency with rolling boundary conditions.
     We moreover used signed distances between face and cell centers.
@@ -161,9 +162,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def compute_weighted_dists(
         self, sd: pg.Grid, data: dict | None, find_cell_faces: Tuple
     ) -> np.ndarray:
-        """
-        Computes delta_k^i / mu_i from (2.1) for every physical face-cell pair (k, i).
-        Boundary conditions are handled later.
+        r"""
+        Computes :math:`\delta_k^i / \mu_i` from (2.1) for every physical face-cell
+        pair :math:`(k, i)`. Boundary conditions are handled later.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -225,16 +226,22 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def compute_delta_mu_k(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         r"""
-        Compute the delta^mu_k of (3.5) given by
-        0.5 * ( mu_i delta_k^-i + mu_j delta_k^-j)^-1
-        for each face k with neighboring cells (i,j).
+        Compute :math:`\delta_k^\mu` of (3.5), given by
+
+        .. math::
+
+            \delta_k^\mu = \frac{1}{2} \left(
+                \mu_i \left(\delta_k^i\right)^{-1} + \mu_j \left(\delta_k^j\right)^{-1}
+            \right)^{-1}
+
+        for each face :math:`k` with neighboring cells :math:`(i, j)`.
 
         Args:
             faces (np.ndarray): The extended array of faces.
             dists (np.ndarray): The extended array of weighted distances.
 
         Returns:
-            np.ndarray: The array of $\delta_k^\mu$.
+            np.ndarray: The array of :math:`\delta_k^\mu`.
         """
         # Compute the reciprocal
         inv_dists = np.empty_like(dists)
@@ -253,15 +260,21 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
         r"""
-        Compute the harmonic average of mu from (3.5), divided by delta_k, at each face:
-        mu_effective = ( delta_k^i / mu_i + delta_k^j / mu_j)^-1
+        Compute the harmonic average of :math:`\mu` from (3.5), divided by
+        :math:`\delta_k`, at each face:
+
+        .. math::
+
+            \mu_{\text{eff}} = \left(
+                \frac{\delta_k^i}{\mu_i} + \frac{\delta_k^j}{\mu_j}
+            \right)^{-1}
 
         Args:
             faces (np.ndarray): The extended array of faces.
             dists (np.ndarray): The extended array of weighted distances.
 
         Returns:
-            np.ndarray: The face-wise harmonic average of $\mu$.
+            np.ndarray: The face-wise harmonic average of :math:`\mu`.
         """
         output_list = [1 / np.bincount(faces, weights=row) for row in dists]
         return np.array(output_list)
@@ -420,8 +433,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         return Xi
 
     def convert_to_xi_tilde_inplace(self, Xi: list) -> list:
-        """
-        Compute the complementary averaging operator Xi_tilde from (2.6).
+        r"""
+        Compute the complementary averaging operator :math:`\tilde{\Xi}` from (2.6).
         NOTE: This is an in-place operation.
 
         Args:

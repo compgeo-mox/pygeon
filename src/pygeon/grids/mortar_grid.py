@@ -23,6 +23,15 @@ class MortarGrid(pp.MortarGrid):
     """
 
     def assign_sd_pair(self, sd_pair: Tuple[pg.Grid, pg.Grid]) -> None:
+        """
+        Assign the pair of adjacent subdomains connected by this mortar grid.
+
+        Args:
+            sd_pair (Tuple[pg.Grid, pg.Grid]): Pair of adjacent subdomains.
+
+        Returns:
+            None
+        """
         self.sd_pair = sd_pair
 
     def compute_geometry(self) -> None:

@@ -77,6 +77,11 @@ class FiniteVolumeBC:
 
 
 class ElasticityBC(FiniteVolumeBC):
+    """
+    Boundary condition object for finite volume elasticity discretizations (TPSA),
+    supporting displacement, traction, and spring boundary conditions.
+    """
+
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the ElasticityBC object and store it in the data dictionary.
@@ -131,7 +136,10 @@ class ElasticityBC(FiniteVolumeBC):
         r"""
         Set spring boundary conditions, cf. Appendix A2.21 in Nordbotten and
         Keilegavlen (2025), https://doi.org/10.1016/j.camwa.2025.07.035:
-        $n \cdot \sigma = 2 / \mathrm{dists} \,(u_0 - u)$.
+
+        .. math::
+
+            n \cdot \sigma = \frac{2}{\text{dists}} (u_0 - u)
 
         Args:
             dists (np.ndarray): Weighted distance (inverse spring constant).
@@ -144,6 +152,11 @@ class ElasticityBC(FiniteVolumeBC):
 
 
 class FlowBC(FiniteVolumeBC):
+    """
+    Boundary condition object for finite volume flow discretizations (TPFA),
+    supporting pressure, flux, and Robin boundary conditions.
+    """
+
     def __init__(self, sd: pg.Grid, data: dict, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the FlowBC object and store it in the data dictionary.
@@ -197,7 +210,10 @@ class FlowBC(FiniteVolumeBC):
     ) -> None:
         r"""
         Set Robin boundary conditions:
-        $n \cdot q = (p - p_0) / \mathrm{dists}$.
+
+        .. math::
+
+            n \cdot q = \frac{p - p_0}{\text{dists}}
 
         Args:
             dists (np.ndarray): Weighted distance (inverse permeability).

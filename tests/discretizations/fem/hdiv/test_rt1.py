@@ -74,5 +74,13 @@ def test_assemble_mass_matrix(discr, ref_sd):
     assert matrix_equals(M.todense(), M_known)
 
 
+def test_lumped_mass_consistency(discr: pg.Discretization, unit_sd):
+    """Test to see if the Eggers & Radu quadrature corresponds to the one on P2"""
+    M1 = discr.assemble_lumped_matrix(unit_sd)
+    M2 = pg.Discretization.assemble_lumped_matrix(discr, unit_sd)
+    diff = M1 - M2
+    assert np.allclose(diff.data, 0)
+
+
 def test_range_discr_class(discr):
     assert discr.get_range_discr_class(2) is pg.PwLinears

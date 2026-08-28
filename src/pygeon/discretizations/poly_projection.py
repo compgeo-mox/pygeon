@@ -1,3 +1,5 @@
+"""Utilities for constructing and projecting onto piecewise polynomial spaces."""
+
 from typing import Type
 
 import scipy.sparse as sps
