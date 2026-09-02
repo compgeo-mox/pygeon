@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: "PyGeoN: a Python package for Geo-Numerics"
+abstract: >-
+  PyGeoN is a Python library for structure-preserving numerical methods in
+  geoscience applications. It provides finite element (FEM) and virtual
+  element (VEM) discretizations for mixed-dimensional problems, with a focus
+  on porous media flow and fracture networks.
+type: software
+authors:
+  - family-names: "Boon"
+    given-names: "Wietse M."
+    affiliation: "University of Duisburg-Essen"
+    orcid: "https://orcid.org/0000-0003-4080-2369"
+  - family-names: "Fumagalli"
+    given-names: "Alessio"
+    affiliation: "Politecnico di Milano"
+    orcid: "https://orcid.org/0000-0003-3039-5309"
+repository-code: "https://github.com/compgeo-mox/pygeon"
+license: GPL-3.0
+keywords:
+  - porous media
+  - mixed-dimensional
+  - finite element method
+  - virtual element method
