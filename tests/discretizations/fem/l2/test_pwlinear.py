@@ -76,7 +76,7 @@ def test_interpolate(discr, unit_sd):
 
 def test_interpolate_heaviside(discr, unit_sd_1d):
     def heaviside(x):
-        return 0 if x[0] < 0.5 else 1
+        return x[0] >= 0.5
 
     true_norm_squared = 0.5
     mass = discr.assemble_mass_matrix(unit_sd_1d)

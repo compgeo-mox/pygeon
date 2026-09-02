@@ -267,7 +267,11 @@ class Lagrange1(pg.Discretization):
             np.ndarray: An array containing the interpolated values at each node of the
             grid.
         """
-        return np.array([func(x) for x in sd.nodes.T])
+        interp = func(sd.nodes)
+        if np.asarray(interp).size == 1:
+            return np.full(self.ndof(sd), interp)
+        else:
+            return interp
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
