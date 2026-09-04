@@ -56,7 +56,10 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        super().compute_geometry()
+        # We only invoke the porepy routine if it hasn't already been computed.
+        if "Compute geometry" not in self.history:
+            super().compute_geometry()
+
         self.compute_rotation_matrix()
         self.compute_ridges()
 
