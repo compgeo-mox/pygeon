@@ -59,7 +59,7 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
 
     ess = np.tile(sd.tags["domain_boundary_nodes"], sd.dim)
     u = compute_displacement(sd, A, b, sd.nodes, None if sliding else ess)
-    return update_grid(sd, u)
+    return create_displaced_grid(sd, u)
 
 
 def graph_laplace_dual_regularization(
@@ -111,9 +111,7 @@ def graph_laplace_dual_regularization(
     cell_centers = centers[: sd.dim] + u
 
     # build a voronoi grid based on the new cell centers
-    sd = pg.VoronoiGrid(vrt=cell_centers)
-    sd.compute_geometry()
-    return sd
+    return pg.VoronoiGrid(vrt=cell_centers)
 
 
 def elasticity_regularization(
@@ -121,7 +119,7 @@ def elasticity_regularization(
 ) -> pg.Grid:
     """
     Regularize the grid using the elasticity regularization. The topology of the grid is
-    preserved.
+    preserved, but geometry is not recomputed.
 
     Args:
         sd (pg.Grid): The grid to regularize.
@@ -146,7 +144,7 @@ def elasticity_regularization(
 
     ess = np.tile(sd.tags["domain_boundary_nodes"], sd.dim)
     u = compute_displacement(sd, A, b, sd.nodes, None if sliding else ess)
-    return update_grid(sd, u)
+    return create_displaced_grid(sd, u)
 
 
 def compute_displacement(
@@ -189,19 +187,17 @@ def compute_displacement(
     return u.reshape((sd.dim, -1))
 
 
-def update_grid(sd: pg.Grid, u: np.ndarray) -> pg.Grid:
+def create_displaced_grid(sd: pg.Grid, u: np.ndarray) -> pg.Grid:
     """
-    Update the grid with the displacement field by modifiying the node coordinates.
+    Move the nodes according to a displacement field. The geometry is not recomputed.
 
     Args:
-        sd (pg.Grid): The grid to update.
+        sd (pg.Grid): The grid to displace.
         u (np.ndarray): The displacement field.
 
     Returns:
-        The updated grid.
+        The displaced grid.
     """
-    # Update the grid
-    sd = sd.copy()
-    sd.nodes[: sd.dim, :] += u
-    sd.compute_geometry()
-    return sd
+    nodes = sd.nodes.copy()
+    nodes[: sd.dim, :] += u
+    return pg.Grid(sd.dim, nodes, sd.face_nodes, sd.cell_faces, sd.name)
