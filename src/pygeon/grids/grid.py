@@ -46,9 +46,9 @@ class Grid(pp.Grid):
         2: "ridges"
         3: "peaks"
 
-        This method computes the geometry of the grid by calling the
-        superclass's compute_geometry method, computing the ridge
-        and peak connectivities, and storing the edge lengths and mesh size.
+        This method computes the geometry of the grid by calling the superclass's
+        compute_geometry method if this has not been happened before, computing the
+        ridge and peak connectivities, and storing the edge lengths and mesh size.
 
         Args:
             None
