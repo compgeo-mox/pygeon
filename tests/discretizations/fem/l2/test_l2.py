@@ -74,8 +74,8 @@ def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
         case 1:
 
             def func(x):
-                ans = np.zeros(pg.AMBIENT_DIM)
-                ans[: unit_sd.dim] = x[: unit_sd.dim]
+                ans = x.copy()
+                ans[unit_sd.dim :] = 0
                 return ans
         case 2:
 

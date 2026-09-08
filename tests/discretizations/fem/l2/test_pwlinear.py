@@ -96,7 +96,7 @@ def test_proj_to_lower_PwPolynomials(discr, unit_sd):
     P0 = pg.PwConstants()
 
     Proj = discr.proj_to_lower_PwPolynomials(unit_sd)
-    fun_P1 = discr.interpolate(unit_sd, lambda x: np.sum(x))
-    fun_P0 = P0.interpolate(unit_sd, lambda x: np.sum(x))
+    fun_P1 = discr.interpolate(unit_sd, lambda x: np.sum(x, axis=0))
+    fun_P0 = P0.interpolate(unit_sd, lambda x: np.sum(x, axis=0))
 
     assert np.allclose(Proj @ fun_P1, fun_P0)
