@@ -233,10 +233,8 @@ class RT0(pg.Discretization):
 
         vals = np.zeros(self.ndof(sd))
 
-        for dof in b_faces:
-            vals[dof] = (
-                func(sd.face_centers[:, dof]) * sd.cell_faces.tocsr()[dof, :].sum()
-            )
+        signs = sd.cell_faces.sum(axis=1)[b_faces]
+        vals[b_faces] = signs * func(sd.face_centers[:, b_faces])
 
         return vals
 
