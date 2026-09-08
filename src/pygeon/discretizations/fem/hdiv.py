@@ -205,11 +205,10 @@ class RT0(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        vals = [
-            np.inner(func(x).flatten(), normal)
-            for (x, normal) in zip(sd.face_centers.T, sd.face_normals.T)
-        ]
-        return np.array(vals)
+        func_vals = self.eval_func_at_coords(func, sd.face_centers)
+        vals = (func_vals * sd.face_normals).sum(axis=0)
+
+        return vals
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray

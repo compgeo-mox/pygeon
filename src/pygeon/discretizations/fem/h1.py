@@ -267,11 +267,7 @@ class Lagrange1(pg.Discretization):
             np.ndarray: An array containing the interpolated values at each node of the
             grid.
         """
-        interp = func(sd.nodes)
-        if np.asarray(interp).size == 1:
-            return np.full(self.ndof(sd), interp)
-        else:
-            return interp
+        return self.eval_func_at_coords(func, sd.nodes)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -511,7 +507,7 @@ class Lagrange2(pg.Discretization):
 
         coords = np.hstack((sd.nodes, edge_coords))
 
-        return np.array([func(x) for x in coords.T])
+        return self.eval_func_at_coords(func, coords)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray

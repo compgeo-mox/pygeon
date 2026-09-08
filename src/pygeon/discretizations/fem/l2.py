@@ -404,9 +404,8 @@ class PwConstants(PwPolynomials):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        return np.array(
-            [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
-        )
+        vals = self.eval_func_at_coords(func, sd.cell_centers)
+        return vals * sd.cell_volumes
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -527,7 +526,7 @@ class PwLinears(PwPolynomials):
         gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
 
         # Evaluate the function at the Gauss points.
-        func_at_gauss = np.array([func(x) for x in gauss_pts.T])
+        func_at_gauss = self.eval_func_at_coords(func, gauss_pts)
 
         # To retrieve the values at the nodes, we first compute the value of the
         # interpolated function at the cell center. Since the Gauss points are
