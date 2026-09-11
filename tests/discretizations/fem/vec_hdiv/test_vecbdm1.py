@@ -24,7 +24,12 @@ def test_asym_1d(discr, unit_sd_1d):
 def test_trace_2d(discr, unit_sd_2d):
     B = discr.assemble_trace_matrix(unit_sd_2d)
 
-    fun = lambda x: np.array([[x[0] + x[1], x[0], 0], [x[1], -x[0] - x[1], 0]])
+    fun = lambda x: np.array(
+        [
+            [x[0] + x[1], x[0], 0 * x[0]],
+            [x[1], -x[0] - x[1], 0 * x[0]],
+        ]
+    )
     u = discr.interpolate(unit_sd_2d, fun)
 
     trace = B @ u
