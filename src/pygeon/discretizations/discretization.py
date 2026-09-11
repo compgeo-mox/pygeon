@@ -201,27 +201,33 @@ class Discretization(abc.ABC):
         self, func: Callable[[np.ndarray], np.ndarray], coords: np.ndarray
     ) -> np.ndarray:
         """
-        Interpolates a function at given coordinates. If the function is constant
+        Interpolates a function at given coordinates. We assume that the function is
+        vectorized so that func(x) can be evaluated for all columns of x.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
             func (Callable): A function that returns the function values at coordinates.
+            coords (np.ndarray): A coordinate array with shape (3, n).
 
         Returns:
             np.ndarray: The values of the degrees of freedom
         """
         interp = np.asarray(func(coords))
 
+        # If the function is properly vectorized, it returns an array with the last axis
+        # indexing the evaluation points.
         if interp.ndim > 0 and interp.shape[-1] == coords.shape[-1]:
             return interp
 
+        # For constant functions, we populate the array ourselves.
         match interp.ndim:
-            case 0:
-                return np.full(coords.shape[1], interp)
-            case 1:
+            case 0:  # Scalar valued
+                return np.tile(interp, coords.shape[1])
+            case 1:  # Vector valued
                 return np.tile(interp, (coords.shape[1], 1)).T
 
-        raise RuntimeError
+        raise RuntimeError(
+            "Vectorize func(x) so that it can be evaluated for multiple columns of x."
+        )
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
