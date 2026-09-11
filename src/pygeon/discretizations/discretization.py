@@ -223,7 +223,8 @@ class Discretization(abc.ABC):
             case 0:  # Scalar valued
                 return np.tile(interp, coords.shape[1])
             case 1:  # Vector valued
-                return np.tile(interp, (coords.shape[1], 1)).T
+                if interp.shape[0] == 3:
+                    return np.tile(interp, (coords.shape[1], 1)).T
 
         raise RuntimeError(
             "Vectorize func(x) so that it can be evaluated for multiple columns of x."
