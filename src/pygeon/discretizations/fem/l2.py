@@ -896,23 +896,20 @@ class PwQuadratics(PwPolynomials):
         edge_nodes = self.get_local_edge_nodes(sd.dim)
 
         cell_nodes = sd.cell_nodes()
-        vals = np.empty((sd.num_cells, self.ndof_per_cell(sd)))
+        nodes_per_cell = np.reshape(cell_nodes.indices, (sd.num_cells, -1))
 
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        coord_list = [sd.nodes[:, nodes_per_cell.ravel(order="F")]]
 
-            vals[c, : sd.dim + 1] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+        for edge in edge_nodes:
+            edge_coord = (
+                sd.nodes[:, nodes_per_cell[:, edge[0]]]
+                + sd.nodes[:, nodes_per_cell[:, edge[1]]]
+            ) / 2
+            coord_list.append(edge_coord)
 
-            edge_nodes_loc = nodes_loc[edge_nodes]
-            edge_mid_pt = (
-                sd.nodes[:, edge_nodes_loc[:, 0]] + sd.nodes[:, edge_nodes_loc[:, 1]]
-            )
-            edge_mid_pt /= 2
+        coords = np.hstack(coord_list)
 
-            vals[c, sd.dim + 1 :] = [func(x) for x in edge_mid_pt.T]
-
-        return vals.ravel(order="F")
+        return self.eval_func_at_coords(func, coords)
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
