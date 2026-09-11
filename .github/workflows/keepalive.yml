@@ -1,0 +1,56 @@
+# GitHub automatically disables scheduled workflows (like the nightly
+# Pytest run in run-pytest.yml) after 60 days without repository
+# activity -- there is no setting to opt out of this. This workflow makes
+# a trivial commit well before that deadline, which resets the inactivity
+# clock for the whole repo and keeps the real schedules running even
+# during quiet stretches with no pushes or PRs.
+#
+# It only commits when the repo has genuinely been quiet: if the last
+# commit (real or a previous keepalive one) is under 30 days old, it's a
+# no-op, so active development produces zero extra noise.
+name: Keepalive Workflow
+
+on:
+  schedule:
+    - cron: "0 2 1 * *" # once a month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive-job:
+    name: Keepalive Workflow
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check days since last commit
+        id: check
+        run: |
+          last_commit_epoch=$(git log -1 --format=%ct)
+          now_epoch=$(date +%s)
+          days_since=$(( (now_epoch - last_commit_epoch) / 86400 ))
+          echo "Days since last commit: $days_since"
+          if [ "$days_since" -ge 30 ]; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record a keepalive timestamp
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          mkdir -p .github
+          date -u +"Last keepalive run: %Y-%m-%dT%H:%M:%SZ" > .github/keepalive.txt
+
+      - name: Commit and push
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f .github/keepalive.txt
+          git commit -m "chore: keepalive commit to prevent scheduled workflows from being disabled"
+          git push
