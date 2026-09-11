@@ -36,7 +36,7 @@ def test_assemble_upper_convected_distortion(mat_discr, ref_sd):
         return grad_full
 
     def mat_func(x):
-        mat = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
+        mat = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM, x.shape[-1]))
         mat[0, 0] = 1 + 2 * x[0]
 
         if dim >= 2:
@@ -54,10 +54,13 @@ def test_assemble_upper_convected_distortion(mat_discr, ref_sd):
         return mat
 
     def distortion_func(x):
-        mat = mat_func(x)[:dim, :dim]
-        distortion = -(grad_block @ mat + mat @ grad_block.T)
+        mat = mat_func(x)[:dim, :dim]  # (d, d, n)
 
-        val = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
+        mat_shift = np.moveaxis(mat, -1, 0)
+        distortion = -(grad_block @ mat_shift + mat_shift @ grad_block.T)
+        distortion = np.moveaxis(distortion, 0, -1)
+
+        val = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM, x.shape[-1]))
         val[:dim, :dim] = distortion
         return val
 

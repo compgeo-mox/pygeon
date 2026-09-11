@@ -158,12 +158,11 @@ class Nedelec0(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values on the grid.
         """
-        tangents = sd.edge_tangents
         midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
-        vals = [
-            np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
-        ]
-        return np.array(vals)
+        func_vals = self.eval_func_at_coords(func, midpoints)
+        vals = (func_vals * sd.edge_tangents).sum(axis=0)
+
+        return vals
 
     def proj_to_Ne1(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -343,13 +342,12 @@ class Nedelec1(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values.
         """
-        vals = np.zeros(self.ndof(sd))
-        for r in np.arange(sd.num_edges):
-            loc = slice(sd.ridge_peaks.indptr[r], sd.ridge_peaks.indptr[r + 1])
-            peaks = sd.ridge_peaks.indices[loc]
-            t = sd.edge_tangents[:, r]
-            vals[r] = np.inner(func(sd.nodes[:, peaks[0]]).flatten(), t)
-            vals[r + sd.num_edges] = np.inner(func(sd.nodes[:, peaks[1]]).flatten(), -t)
+        edge_nodes = np.reshape(sd.ridge_peaks.indices, (-1, 2))
+        coords = sd.nodes[:, edge_nodes.ravel(order="F")]
+        func_vals = self.eval_func_at_coords(func, coords)
+
+        tangents = np.hstack((sd.edge_tangents, -sd.edge_tangents))
+        vals = (func_vals * tangents).sum(axis=0)
 
         return vals
 

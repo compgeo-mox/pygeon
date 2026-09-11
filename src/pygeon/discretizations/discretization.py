@@ -197,6 +197,40 @@ class Discretization(abc.ABC):
             np.ndarray: The values of the degrees of freedom
         """
 
+    def eval_func_at_coords(
+        self, func: Callable[[np.ndarray], np.ndarray], coords: np.ndarray
+    ) -> np.ndarray:
+        """
+        Interpolates a function at given coordinates. We assume that func(x) rapidly
+        evaluates the given function for all coordinates in the columns of x.
+
+        Args:
+            func (Callable): A function that returns the function values at coordinates.
+            coords (np.ndarray): A coordinate array with shape (3, n).
+
+        Returns:
+            np.ndarray: The values of the degrees of freedom
+        """
+        interp = np.asarray(func(coords))
+
+        # If the function is properly vectorized, it returns an array with the last axis
+        # indexing the evaluation points.
+        if interp.ndim > 0 and interp.shape[-1] == coords.shape[-1]:
+            return interp
+
+        # For constant functions, we populate the array ourselves.
+        match interp.ndim:
+            case 0:  # Scalar valued
+                return np.tile(interp, coords.shape[1])
+            case 1:  # Vector valued
+                if interp.shape[0] == pg.AMBIENT_DIM:
+                    return np.tile(interp, (coords.shape[1], 1)).T
+
+        raise RuntimeError(
+            "Vectorize the function so that it can be evaluated for multiple columns"
+            + " of the input array."
+        )
+
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the matrix for evaluating the discretization at the cell centers.

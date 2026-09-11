@@ -31,7 +31,7 @@ def test_laplacian_dirichlet_bcs(unit_sd):
     A = discr.assemble_stiff_matrix(unit_sd, None)
 
     source_func = lambda _: 1.0
-    sol_func = lambda x: np.sum(x * (1 - x)) / (2 * unit_sd.dim)
+    sol_func = lambda x: np.sum(x * (1 - x), axis=0) / (2 * unit_sd.dim)
 
     true_sol = discr.interpolate(unit_sd, sol_func)
     f = discr.source_term(unit_sd, source_func)
@@ -60,7 +60,7 @@ def test_laplacian_mixed_bcs(unit_sd):
     A = discr.assemble_stiff_matrix(unit_sd, None)
 
     source_func = lambda _: 1.0
-    sol_func = lambda x: np.sum(x * (1 - x)) / (2 * unit_sd.dim)
+    sol_func = lambda x: np.sum(x * (1 - x), axis=0) / (2 * unit_sd.dim)
     flux_func = lambda _: -1 / (2 * unit_sd.dim)
 
     true_sol = discr.interpolate(unit_sd, sol_func)

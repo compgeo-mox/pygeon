@@ -205,11 +205,10 @@ class RT0(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        vals = [
-            np.inner(func(x).flatten(), normal)
-            for (x, normal) in zip(sd.face_centers.T, sd.face_normals.T)
-        ]
-        return np.array(vals)
+        func_vals = self.eval_func_at_coords(func, sd.face_centers)
+        vals = (func_vals * sd.face_normals).sum(axis=0)
+
+        return vals
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -233,10 +232,8 @@ class RT0(pg.Discretization):
 
         vals = np.zeros(self.ndof(sd))
 
-        for dof in b_faces:
-            vals[dof] = (
-                func(sd.face_centers[:, dof]) * sd.cell_faces.tocsr()[dof, :].sum()
-            )
+        signs = sd.cell_faces.sum(axis=1)[b_faces]
+        vals[b_faces] = signs * func(sd.face_centers[:, b_faces])
 
         return vals
 
@@ -367,14 +364,12 @@ class BDM1(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values on the grid.
         """
-        vals = np.zeros(self.ndof(sd))
+        loc_nodes = np.reshape(sd.face_nodes.indices, (sd.num_faces, -1))
+        coords = sd.nodes[:, loc_nodes.ravel(order="F")]
+        func_vals = self.eval_func_at_coords(func, coords)
 
-        for face in np.arange(sd.num_faces):
-            func_loc = np.array(
-                [func(sd.nodes[:, node]) for node in sd.face_nodes[:, [face]].indices]
-            ).T
-            vals_loc = sd.face_normals[:, face] @ func_loc
-            vals[face + np.arange(sd.dim) * sd.num_faces] = vals_loc
+        normals = np.tile(sd.face_normals, sd.dim)
+        vals = (func_vals * normals).sum(axis=0)
 
         return vals
 
@@ -713,6 +708,8 @@ class RT1(pg.Discretization):
         interp_cells = np.zeros(sd.dim * sd.num_cells)
         cell_nodes = sd.cell_nodes()
 
+        func_at_centers = self.eval_func_at_coords(func, sd.cell_centers)
+
         for c in range(sd.num_cells):
             loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
             nodes_loc = cell_nodes.indices[loc]
@@ -720,12 +717,11 @@ class RT1(pg.Discretization):
             basis_at_center = self.eval_basis_functions_at_center(
                 sd, nodes_loc, sd.cell_volumes[c]
             )
-            func_at_center = func(sd.cell_centers[:, c])
 
             # Compute the coefficients c_i such
             # that sum_i c_i phi_i = f at the cell center
             coefficients = np.linalg.solve(
-                basis_at_center[: sd.dim, :], func_at_center[: sd.dim]
+                basis_at_center[: sd.dim, :], func_at_centers[: sd.dim, c]
             )
 
             interp_cells[sd.num_cells * np.arange(sd.dim) + c] = coefficients
