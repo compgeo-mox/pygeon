@@ -223,11 +223,12 @@ class Discretization(abc.ABC):
             case 0:  # Scalar valued
                 return np.tile(interp, coords.shape[1])
             case 1:  # Vector valued
-                if interp.shape[0] == 3:
+                if interp.shape[0] == pg.AMBIENT_DIM:
                     return np.tile(interp, (coords.shape[1], 1)).T
 
         raise RuntimeError(
-            "Vectorize func(x) so that it can be evaluated for multiple columns of x."
+            "Vectorize the function so that it can be evaluated for multiple columns"
+            + " of the input array."
         )
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
