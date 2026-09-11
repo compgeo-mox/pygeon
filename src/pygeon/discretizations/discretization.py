@@ -220,8 +220,8 @@ class Discretization(abc.ABC):
                 return np.full(coords.shape[1], interp)
             case 1:
                 return np.tile(interp, (coords.shape[1], 1)).T
-            case _:
-                raise RuntimeError
+
+        raise RuntimeError
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
