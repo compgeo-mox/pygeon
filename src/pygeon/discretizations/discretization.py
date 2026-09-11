@@ -201,8 +201,8 @@ class Discretization(abc.ABC):
         self, func: Callable[[np.ndarray], np.ndarray], coords: np.ndarray
     ) -> np.ndarray:
         """
-        Interpolates a function at given coordinates. We assume that the function is
-        vectorized so that func(x) can be evaluated for all columns of x.
+        Interpolates a function at given coordinates. We assume that func(x) rapidly
+        evaluates the given function for all coordinates in the columns of x.
 
         Args:
             func (Callable): A function that returns the function values at coordinates.
