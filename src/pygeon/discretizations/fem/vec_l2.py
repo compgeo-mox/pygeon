@@ -1,7 +1,5 @@
 """Module for the discretizations of the vector L2 space."""
 
-from __future__ import annotations
-
 from typing import Callable, Type
 
 import numpy as np

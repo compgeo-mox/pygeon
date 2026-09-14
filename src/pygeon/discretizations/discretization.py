@@ -1,7 +1,5 @@
 """Module for the discretization class."""
 
-from __future__ import annotations
-
 import abc
 from typing import Callable, Type
 
