@@ -29,6 +29,7 @@ def test_lloyd(sd_voronoi):
 
 def test_graph_laplace(sd_voronoi):
     sd = pg.graph_laplace_regularization(sd_voronoi)
+    sd.compute_geometry()
 
     # Topology is preserved
     assert (sd.face_ridges - sd_voronoi.face_ridges).nnz == 0
@@ -40,6 +41,7 @@ def test_graph_laplace(sd_voronoi):
 
 def test_graph_laplace_cart_grids(unit_cart_sd):
     sd = pg.graph_laplace_regularization(unit_cart_sd, False)
+    sd.compute_geometry()
 
     # The regularization leaves regular Cartesian grids intact
     assert np.allclose(sd.nodes, unit_cart_sd.nodes)
@@ -48,6 +50,7 @@ def test_graph_laplace_cart_grids(unit_cart_sd):
 
 def test_graph_laplace_dual(sd_voronoi):
     sd = pg.graph_laplace_dual_regularization(sd_voronoi)
+    sd.compute_geometry()
 
     # Aspect ratios have improved
     assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)
@@ -55,6 +58,7 @@ def test_graph_laplace_dual(sd_voronoi):
 
 def test_elasticity_regulatization(sd_voronoi):
     sd = pg.elasticity_regularization(sd_voronoi, 10, sliding=False)
+    sd.compute_geometry()
 
     # Aspect ratios have improved
     assert aspect_ratio(sd) < aspect_ratio(sd_voronoi)

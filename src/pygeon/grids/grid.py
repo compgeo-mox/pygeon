@@ -46,9 +46,9 @@ class Grid(pp.Grid):
         2: "ridges"
         3: "peaks"
 
-        This method computes the geometry of the grid by calling the
-        superclass's compute_geometry method, computing the ridge
-        and peak connectivities, and storing the edge lengths and mesh size.
+        This method computes the geometry of the grid by calling the superclass's
+        compute_geometry method if this has not been happened before, computing the
+        ridge and peak connectivities, and storing the edge lengths and mesh size.
 
         Args:
             None
@@ -56,7 +56,10 @@ class Grid(pp.Grid):
         Returns:
             None
         """
-        super().compute_geometry()
+        # We only invoke the porepy routine if it hasn't already been computed.
+        if "Compute geometry" not in self.history:
+            super().compute_geometry()
+
         self.compute_rotation_matrix()
         self.compute_ridges()
 
