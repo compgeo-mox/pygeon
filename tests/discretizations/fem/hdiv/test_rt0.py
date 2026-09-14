@@ -149,7 +149,7 @@ def test_range_discr_class(discr):
 
 def test_error_l2(discr, unit_sd):
     def fun(pt):
-        return np.array([pt[0] ** 2 + 2 * pt[1], 2 * pt[0] + pt[1], 0])
+        return np.array([pt[0] ** 2 + 2 * pt[1], 2 * pt[0] + pt[1], 0 * pt[0]])
 
     int_sol = discr.interpolate(unit_sd, fun)
 

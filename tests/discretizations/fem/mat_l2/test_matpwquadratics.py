@@ -22,9 +22,9 @@ def test_trace_2d(discr, unit_sd_2d):
 
     func = lambda x: np.array(
         [
-            [x[0], x[1], 0],
-            [x[1], x[0] * x[1], 0],
-            [0, 0, 0],
+            [x[0], x[1], 0 * x[0]],
+            [x[1], x[0] * x[1], 0 * x[0]],
+            [0 * x[0], 0 * x[0], 0 * x[0]],
         ]
     )
     func_trace = lambda x: x[0] + x[0] * x[1]
@@ -45,9 +45,9 @@ def test_asym_2d(discr, unit_sd_2d):
 
     func = lambda x: np.array(
         [
-            [x[0], x[1], 0],
-            [x[0] * x[1], x[1], 0],
-            [0, 0, 0],
+            [x[0], x[1], 0 * x[0]],
+            [x[0] * x[1], x[1], 0 * x[0]],
+            [0 * x[0], 0 * x[0], 0 * x[0]],
         ]
     )
     func_asym = lambda x: x[0] * x[1] - x[1]

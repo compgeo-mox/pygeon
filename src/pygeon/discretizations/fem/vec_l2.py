@@ -139,7 +139,8 @@ class VecPwPolynomials(pg.VecDiscretization):
             np.ndarray: The values of the degrees of freedom
         """
         # If the mesh is tilted, then the 3-vector from func needs to be rotated.
-        rotated_func = lambda x: sd.rotation_matrix @ func(x)
+        rotated_func = lambda x: np.einsum("ij,j...->i...", sd.rotation_matrix, func(x))
+
         return super().interpolate(sd, rotated_func)
 
     def local_dofs_of_cell(
