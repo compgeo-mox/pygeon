@@ -211,21 +211,30 @@ class Discretization(abc.ABC):
         Returns:
             np.ndarray: The values of the degrees of freedom
         """
+        # We first simply evaluate the function at the coordinates.
         interp = np.asarray(func(coords))
 
-        # If the function is properly vectorized, it returns an array with the last axis
-        # indexing the evaluation points.
+        # We can handle two cases: 1) the function is vectorized and returns an array
+        # with n entries, one for each column in coords. 2) It returns a constant value,
+        # either scalar or vector.
+
+        # 1) If the function is properly vectorized, it returns an array with the last
+        # axis indexing the evaluation points.
         if interp.ndim > 0 and interp.shape[-1] == coords.shape[-1]:
             return interp
 
-        # For constant functions, we populate the array ourselves.
+        # 2) For constant functions, we populate the array ourselves.
         match interp.ndim:
-            case 0:  # Scalar valued
+            # Interpolate constant scalar functions, e.g. lambda _: 1.
+            case 0:
                 return np.tile(interp, coords.shape[1])
-            case 1:  # Vector valued
+
+            # Interpolate constant vector functions, e.g. lambda _ : np.array([1, 0, 0])
+            case 1:
                 if interp.shape[0] == pg.AMBIENT_DIM:
                     return np.tile(interp, (coords.shape[1], 1)).T
 
+        # Else, the input function does not meet the assumptions.
         raise RuntimeError(
             "Vectorize the function so that it can be evaluated for multiple columns"
             + " of the input array."
