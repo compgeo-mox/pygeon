@@ -1,7 +1,7 @@
 """Module for the discretizations of the H1 space."""
 
 from functools import cache
-from typing import Callable, Type, cast
+from typing import Callable, Type
 
 import numpy as np
 import porepy as pp
@@ -289,17 +289,16 @@ class Lagrange1(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        vals = np.zeros(self.ndof(sd))
+        # This will be sd.dim on simplicial grids, but we generalize to handle VEM
+        num_nodes_per_face = (
+            sd.face_nodes.indptr[b_faces + 1] - sd.face_nodes.indptr[b_faces]
+        )
+        func_vals = self.eval_func_at_coords(func, sd.face_centers[:, b_faces])
 
-        for face in b_faces:
-            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
-            loc_n = sd.face_nodes.indices[loc]
+        face_vals = np.zeros(sd.num_faces)
+        face_vals[b_faces] = func_vals * sd.face_areas[b_faces] / num_nodes_per_face
 
-            vals[loc_n] += (
-                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
-            )
-
-        return vals
+        return sd.face_nodes @ face_vals
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -526,18 +525,16 @@ class Lagrange2(pg.Discretization):
         Returns:
             np.ndarray: The assembled 'natural' boundary condition values.
         """
+        vals = np.zeros(self.ndof(sd))
+
         # In 1D, we reuse the code from P1
         if sd.dim == 1:
-            # NOTE we pass self so that ndof() is taken from P2, not P1
-            return Lagrange1.assemble_nat_bc(
-                cast(pg.Lagrange1, self), sd, func, b_faces
-            )
+            vals[: sd.num_nodes] = Lagrange1().assemble_nat_bc(sd, func, b_faces)
+            return vals
 
         # 2D and 3D
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
-
-        vals = np.zeros(self.ndof(sd))
 
         M = pg.PwQuadratics().assemble_local_mass(sd.dim - 1)
         edge_nodes = sd.face_ridges if sd.dim == 2 else sd.ridge_peaks
