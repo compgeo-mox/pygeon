@@ -232,8 +232,8 @@ class RT0(pg.Discretization):
 
         vals = np.zeros(self.ndof(sd))
 
-        signs = sd.cell_faces.sum(axis=1)[b_faces]
-        vals[b_faces] = signs * func(sd.face_centers[:, b_faces])
+        signs = sd.cell_faces.sum(axis=1)
+        vals[b_faces] = signs[b_faces] * func(sd.face_centers[:, b_faces])
 
         return vals
 
@@ -396,21 +396,16 @@ class BDM1(pg.Discretization):
         p1 = pg.PwLinears(self.keyword)
         local_mass = p1.assemble_local_mass(sd.dim - 1)
 
-        vals = np.zeros(self.ndof(sd))
-        signs = sd.cell_faces @ np.ones(sd.num_cells)
-        fn = sd.face_nodes
+        signs = sd.cell_faces.sum(axis=1)
 
-        for face in b_faces:
-            loc_vals = np.array(
-                [
-                    func(sd.nodes[:, node])
-                    for node in fn.indices[fn.indptr[face] : fn.indptr[face + 1]]
-                ]
-            ).ravel()
+        fn_bdry = sd.face_nodes[:, b_faces]
+        func_vals = self.eval_func_at_coords(func, sd.nodes[:, fn_bdry.indices])
+        func_vals = func_vals.reshape((-1, b_faces.size), order="F")
 
-            vals[face + np.arange(sd.dim) * sd.num_faces] = (
-                signs[face] * local_mass @ loc_vals
-            )
+        face_vals = signs[b_faces] * (local_mass @ func_vals)
+        indices = b_faces + sd.num_faces * np.arange(sd.dim)[:, None]
+
+        vals = np.bincount(indices.ravel(), face_vals.ravel(), self.ndof(sd))
 
         return vals
 
