@@ -185,12 +185,16 @@ class Grid(pp.Grid):
         orientations = np.sign(ridges[1, :] - ridges[0, :])
 
         # Ridges are oriented from low to high node indices, i.e. [0,1], [0,2], [1,2].
-        ridges.sort(axis=0)
+        # Using np.sort on an array of length 2 is wasteful, so we simply compute the
+        # max and min in each column.
+        sorted_ridges = np.empty_like(ridges)
+        np.minimum(ridges[0], ridges[1], out=sorted_ridges[0])
+        np.maximum(ridges[0], ridges[1], out=sorted_ridges[1])
 
         # Identify the ridges based on unique pairs of peaks. We do this by encoding
-        # each integer pair as an integer using numpy multi-indexing. Calling unique on
+        # each index pair as an integer using numpy multi-indexing. Calling unique on
         # an integer array is much faster than comparing pairs of ints.
-        ridges_enc = np.ravel_multi_index(ridges, [self.num_nodes] * 2)
+        ridges_enc = np.ravel_multi_index(sorted_ridges, [self.num_nodes] * 2)
         unique_enc, indices = np.unique(ridges_enc, return_inverse=True)
         ridges = np.vstack(np.unravel_index(unique_enc, [self.num_nodes] * 2))
 
