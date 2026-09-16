@@ -185,22 +185,19 @@ class Grid(pp.Grid):
         orientations = np.sign(ridges[1, :] - ridges[0, :])
 
         # Ridges are oriented from low to high node indices, i.e. [0,1], [0,2], [1,2].
-        ridges.sort(axis=0)
+        # Using np.sort on an array of length 2 is wasteful, so we simply compute the
+        # max and min in each column.
+        sorted_ridges = np.empty_like(ridges)
+        np.minimum(ridges[0], ridges[1], out=sorted_ridges[0])
+        np.maximum(ridges[0], ridges[1], out=sorted_ridges[1])
 
-        # Identify the ridges based on unique pairs of peaks. We do this by creating a
-        # sparse array. If ridge r has nodes (x_i, x_j) then A_ij = index_r. This way we
-        # can easily look up the unique index of a ridge based on its nodes.
-        ridge_index = sps.coo_array(
-            (np.ones(ridges.shape[1]), (ridges[0], ridges[1])), dtype=int
-        )
-        ridge_index.sum_duplicates()
-        ridge_index.data = np.arange(ridge_index.nnz)
+        # Identify the ridges based on unique pairs of peaks. We do this by encoding
+        # each index pair as an integer using numpy multi-indexing. Calling unique on
+        # an integer array is much faster than comparing pairs of ints.
+        ridges_enc = np.ravel_multi_index(sorted_ridges, [self.num_nodes] * 2)
+        unique_enc, indices = np.unique(ridges_enc, return_inverse=True)
+        ridges = np.vstack(np.unravel_index(unique_enc, [self.num_nodes] * 2))
 
-        # Extract the indices of the found ridges
-        indices = ridge_index.tocsr()[ridges[0], ridges[1]]
-
-        # We can now replace the ridges array to the one without duplicates
-        ridges = np.vstack((ridge_index.row, ridge_index.col))
         self.num_ridges = np.size(ridges, 1)
 
         # Generate ridge-peak connectivity such that
