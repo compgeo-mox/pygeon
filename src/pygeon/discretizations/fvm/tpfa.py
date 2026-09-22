@@ -33,18 +33,6 @@ class TPFA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.FlowBC
 
-    def ndof_per_element(self, _sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per element, in this case one.
-
-        Args:
-            _sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return 1
-
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by

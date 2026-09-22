@@ -29,7 +29,8 @@ class RT0(pg.Discretization):
 
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Returns the number of faces.
+        Returns the number of degrees of freedom associated to the method.
+        In this case, the number of faces.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.
@@ -300,17 +301,14 @@ class BDM1(pg.Discretization):
 
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Return the number of degrees of freedom associated to the method.
-        In this case the number of faces times the dimension.
+        Returns the number of degrees of freedom associated to the method.
+        In this case, the number of faces times the dimension.
 
         Args:
-            sd (pp.Grid): Grid object or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
             int: The number of degrees of freedom.
-
-        Raises:
-            ValueError: If the input grid is not an instance of pp.Grid.
         """
         return sd.face_nodes.nnz
 
@@ -526,7 +524,8 @@ class RT1(pg.Discretization):
 
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom.
+        Returns the number of degrees of freedom associated to the method.
+        In this case, the dimension times the number of faces and cells.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.

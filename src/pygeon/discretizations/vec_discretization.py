@@ -21,11 +21,10 @@ class VecDiscretization(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the product of the number of nodes and
-        the dimension of the grid.
+        In this case, the dofs of the base discretization times the dimension.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
             int: The number of degrees of freedom.

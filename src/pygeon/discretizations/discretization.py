@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from math import comb
 from typing import Callable, Type
 
 import numpy as np
@@ -78,6 +79,21 @@ class Discretization(abc.ABC):
         Returns:
             np.ndarray: the number of degrees of freedom per entity, of size 4.
         """
+
+    def ndof_per_element(self, dim: int) -> int:
+        """
+        Returns the number of degrees of freedom of a single element, obtained by
+        contracting the dofs per entity with the number of entities of a simplex
+        of dimension dim.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            int: The number of degrees of freedom per element.
+        """
+        num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
+        return int(self.ndof_per_entity(dim) @ num_entities)
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None

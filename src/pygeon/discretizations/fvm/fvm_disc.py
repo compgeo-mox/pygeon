@@ -1,6 +1,7 @@
 """Module for base finite volume discretization classes."""
 
 import abc
+from math import comb
 import warnings
 from typing import Type
 
@@ -40,20 +41,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             int: The number of degrees of freedom.
         """
-        return self.ndof_per_element(sd) * sd.num_cells
-
-    @abc.abstractmethod
-    def ndof_per_entity(self, dim: int) -> np.ndarray:
-        """
-        Returns the number of degrees of freedom associated to a single geometric
-        entity, ordered by the dimension of the entity as [0, 1, 2, 3].
-
-        Args:
-            dim (int): The dimension of the grid.
-
-        Returns:
-            np.ndarray: The number of degrees of freedom per entity, of size 4.
-        """
+        return self.ndof_per_element(sd.dim) * sd.num_cells
 
     def assemble_system_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -97,7 +85,7 @@ class FiniteVolumeDiscretization(abc.ABC):
             sps.csc_array: The divergence operator
         """
         return sps.kron(
-            sps.eye_array(self.ndof_per_element(sd)), pg.div(sd), format="csc"
+            sps.eye_array(self.ndof_per_element(sd.dim)), pg.div(sd), format="csc"
         )
 
     def face_area_scaling(self, sd) -> np.ndarray:
@@ -111,7 +99,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             np.ndarray: The scaling vector
         """
-        return np.tile(sd.face_areas, self.ndof_per_element(sd))
+        return np.tile(sd.face_areas, self.ndof_per_element(sd.dim))
 
     def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
@@ -197,16 +185,32 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         return -self.div(sd) @ A_rhs @ g
 
-    @abc.abstractmethod
-    def ndof_per_element(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, dim: int) -> int:
         """
-        Returns the number of degrees of freedom per element.
+        Returns the number of degrees of freedom of a single element, obtained by
+        contracting the dofs per entity with the number of entities of a simplex
+        of dimension dim.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
             int: The number of degrees of freedom per element.
+        """
+        num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
+        return int(self.ndof_per_entity(dim) @ num_entities)
+
+    @abc.abstractmethod
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom associated to a single geometric
+        entity, ordered by the dimension of the entity as [0, 1, 2, 3].
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity, of size 4.
         """
 
     @abc.abstractmethod

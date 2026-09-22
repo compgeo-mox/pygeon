@@ -31,11 +31,10 @@ class Nedelec0(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the number of ridges in the given grid.
+        In this case, the number of edges.
 
         Args:
-            sd (pg.Grid): The grid for which the number of degrees of
-                freedom is calculated.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
             int: The number of degrees of freedom.
@@ -216,11 +215,11 @@ class Nedelec1(pg.Discretization):
 
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Return the number of degrees of freedom associated to the method.
-        In this case, it returns twice the number of ridges in the given grid.
+        Returns the number of degrees of freedom associated to the method.
+        In this case, twice the number of edges.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
             int: The number of degrees of freedom.

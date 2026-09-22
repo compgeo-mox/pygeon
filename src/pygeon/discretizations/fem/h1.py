@@ -29,10 +29,10 @@ class Lagrange1(pg.Discretization):
         In this case, the number of nodes.
 
         Args:
-            sd: Grid, or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
-            ndof: The number of degrees of freedom.
+            int: The number of degrees of freedom.
         """
         return sd.num_nodes
 
@@ -358,10 +358,10 @@ class Lagrange2(pg.Discretization):
         where edges are one-dimensional mesh entities.
 
         Args:
-            sd: Grid, or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
-            ndof: The number of degrees of freedom.
+            int: The number of degrees of freedom.
         """
         return sd.num_nodes + sd.num_edges
 
