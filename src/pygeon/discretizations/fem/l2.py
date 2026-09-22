@@ -35,7 +35,7 @@ class PwPolynomials(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return sd.num_cells * self.ndof_per_cell(sd)
+        return sd.num_cells * self.ndof_per_element(sd)
 
     def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
         """
@@ -48,18 +48,18 @@ class PwPolynomials(pg.Discretization):
         Returns:
             np.ndarray: Array of local DOF indices associated with the cell.
         """
-        return sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
+        return sd.num_cells * np.arange(self.ndof_per_element(sd)) + c
 
     @abc.abstractmethod
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom per element.
 
         Args:
             sd (pg.Grid): The grid object.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
         """
 
     def assemble_mass_matrix(
@@ -296,15 +296,15 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    def ndof_per_cell(self, _sd: pg.Grid) -> int:
+    def ndof_per_element(self, _sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom per element.
 
         Args:
             sd (pg.Grid): The grid object.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
         """
         return 1
 
@@ -444,15 +444,15 @@ class PwLinears(PwPolynomials):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom per element.
 
         Args:
             sd (pg.Grid): The grid object.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
         """
         return sd.dim + 1
 
@@ -654,15 +654,15 @@ class PwQuadratics(PwPolynomials):
     poly_order = 2
     """Polynomial degree of the basis functions"""
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom per element.
 
         Args:
             sd (pg.Grid): The grid object.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
         """
         return (sd.dim + 1) * (sd.dim + 2) // 2
 

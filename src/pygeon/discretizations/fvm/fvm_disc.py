@@ -40,7 +40,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             int: The number of degrees of freedom.
         """
-        return self.ndof_per_cell(sd) * sd.num_cells
+        return self.ndof_per_element(sd) * sd.num_cells
 
     def assemble_system_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -83,7 +83,9 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             sps.csc_array: The divergence operator
         """
-        return sps.kron(sps.eye_array(self.ndof_per_cell(sd)), pg.div(sd), format="csc")
+        return sps.kron(
+            sps.eye_array(self.ndof_per_element(sd)), pg.div(sd), format="csc"
+        )
 
     def face_area_scaling(self, sd) -> np.ndarray:
         """
@@ -96,7 +98,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             np.ndarray: The scaling vector
         """
-        return np.tile(sd.face_areas, self.ndof_per_cell(sd))
+        return np.tile(sd.face_areas, self.ndof_per_element(sd))
 
     def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
@@ -183,15 +185,15 @@ class FiniteVolumeDiscretization(abc.ABC):
         return -self.div(sd) @ A_rhs @ g
 
     @abc.abstractmethod
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom per element.
 
         Args:
             sd (pg.Grid): The grid object.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
         """
 
     @abc.abstractmethod

@@ -42,9 +42,9 @@ class SymMatPwPolynomials(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return self.ndof_per_cell(sd) * sd.num_cells
+        return self.ndof_per_element(sd) * sd.num_cells
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom for each cell in the symmetric
         matrix-valued piecewise polynomial discretization.
@@ -53,10 +53,10 @@ class SymMatPwPolynomials(pg.Discretization):
             sd (pg.Grid): The grid.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
         """
         scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
-        return (sd.dim + 1) * sd.dim // 2 * scalar_space.ndof_per_cell(sd)
+        return (sd.dim + 1) * sd.dim // 2 * scalar_space.ndof_per_element(sd)
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
