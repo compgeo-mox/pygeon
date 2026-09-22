@@ -45,6 +45,20 @@ class TPFA(pg.FiniteVolumeDiscretization):
         """
         return 1
 
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per cell.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.roll([1, 0, 0, 0], dim)  # cells
+
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:

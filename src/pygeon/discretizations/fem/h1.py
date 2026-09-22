@@ -36,6 +36,20 @@ class Lagrange1(pg.Discretization):
         """
         return sd.num_nodes
 
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.array([1, 0, 0, 0])  # nodes
+
     def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -350,6 +364,20 @@ class Lagrange2(pg.Discretization):
             ndof: The number of degrees of freedom.
         """
         return sd.num_nodes + sd.num_edges
+
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node and per edge.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.array([1, 1, 0, 0])  # nodes and edges
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""

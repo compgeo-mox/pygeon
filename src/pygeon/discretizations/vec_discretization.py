@@ -32,6 +32,21 @@ class VecDiscretization(pg.Discretization):
         """
         return self.base_discr.ndof(sd) * sd.dim
 
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, the degrees of freedom of the base discretization,
+        repeated dim times.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return self.base_discr.ndof_per_entity(dim) * dim
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:

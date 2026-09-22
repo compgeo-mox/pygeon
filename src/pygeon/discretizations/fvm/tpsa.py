@@ -57,6 +57,22 @@ class TPSA(pg.FiniteVolumeDiscretization):
         """
         return sd.dim + rotation_dim(sd.dim) + 1
 
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, the displacement, rotation and pressure degrees of
+        freedom per cell.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        ndof = dim + rotation_dim(dim) + 1
+        return ndof * np.roll([1, 0, 0, 0], dim)  # cells
+
     def interpolate(
         self,
         sd: pg.Grid,

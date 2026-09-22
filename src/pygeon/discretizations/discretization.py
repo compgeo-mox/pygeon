@@ -62,6 +62,23 @@ class Discretization(abc.ABC):
             ndof: the number of degrees of freedom.
         """
 
+    @abc.abstractmethod
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom of a single element, ordered by
+        the dimension of the entity they are associated with as [0, 1, 2, 3].
+
+        The entries count all the dofs of the element that lie on entities of a
+        given dimension, so that their sum is the number of dofs per element. The
+        implementations assume a simplicial element.
+
+        Args:
+            dim: The dimension of the grid.
+
+        Returns:
+            np.ndarray: the number of degrees of freedom per entity, of size 4.
+        """
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:

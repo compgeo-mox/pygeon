@@ -42,6 +42,19 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         return self.ndof_per_element(sd) * sd.num_cells
 
+    @abc.abstractmethod
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom associated to a single geometric
+        entity, ordered by the dimension of the entity as [0, 1, 2, 3].
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity, of size 4.
+        """
+
     def assemble_system_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:

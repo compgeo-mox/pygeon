@@ -308,6 +308,20 @@ class PwConstants(PwPolynomials):
         """
         return 1
 
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per cell.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.roll([1, 0, 0, 0], dim)  # cells
+
     def assemble_local_mass(self, _dim: int) -> np.ndarray:
         r"""
         Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
@@ -455,6 +469,20 @@ class PwLinears(PwPolynomials):
             int: The number of degrees of freedom per element.
         """
         return sd.dim + 1
+
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node, as for Lagrange1.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.array([1, 0, 0, 0])  # nodes
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         r"""
@@ -665,6 +693,21 @@ class PwQuadratics(PwPolynomials):
             int: The number of degrees of freedom per element.
         """
         return (sd.dim + 1) * (sd.dim + 2) // 2
+
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node and per edge, as for Lagrange2.
+        element, as for Lagrange2.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.array([1, 1, 0, 0])  # nodes and edges
 
     def num_edges_per_cell(self, dim: int) -> int:
         """

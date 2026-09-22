@@ -44,6 +44,22 @@ class SymMatPwPolynomials(pg.Discretization):
         """
         return self.ndof_per_element(sd) * sd.num_cells
 
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, the dofs of the scalar space, repeated for each
+        independent component.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        return ((dim + 1) * dim // 2) * scalar_space.ndof_per_entity(dim)
+
     def ndof_per_element(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom for each cell in the symmetric
