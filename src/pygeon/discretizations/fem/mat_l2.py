@@ -331,8 +331,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         # If one matrix is given per element, then we need to tile its values according
         # to the number of degrees of freedom per element.
-        if mult_mat.shape[-1] * self.ndof_per_element(sd.dim) == self.ndof(sd):
-            mult_mat = np.tile(mult_mat, self.ndof_per_element(sd.dim) // (sd.dim**2))
+        ndof_per_cell = self.ndof_per_cell(sd)[0]
+        if mult_mat.shape[-1] * ndof_per_cell == self.ndof(sd):
+            mult_mat = np.tile(mult_mat, ndof_per_cell // (sd.dim**2))
 
         # We create a sparse matrix with diagonal blocks based on the entries in
         # mult_mat.

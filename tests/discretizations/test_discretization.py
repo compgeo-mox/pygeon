@@ -116,14 +116,14 @@ def test_ndof_per_entity(discr_class, dim, known):
         pg.TPSA,
     ],
 )
-def test_ndof_per_element_on_reference_element(discr_class, ref_sd):
+def test_ndof_per_cell_on_reference_element(discr_class, ref_sd):
     discr = discr_class("test")
     dofs = discr.ndof_per_entity(ref_sd.dim)
 
     assert dofs.size == 4
     assert np.all(dofs >= 0)
     # a single element carries all the degrees of freedom of the grid
-    assert discr.ndof_per_element(ref_sd.dim) == discr.ndof(ref_sd)
+    assert np.sum(discr.ndof_per_cell(ref_sd)) == discr.ndof(ref_sd)
 
 
 def test_ndof_per_entity_of_point_grid(ref_sd_0d):
@@ -131,7 +131,7 @@ def test_ndof_per_entity_of_point_grid(ref_sd_0d):
     # place their only degree of freedom
     p0 = pg.PwConstants("test")
     assert np.array_equal(p0.ndof_per_entity(0), [1, 0, 0, 0])
-    assert p0.ndof_per_element(0) == 1
+    assert np.sum(p0.ndof_per_cell(ref_sd_0d)) == 1
     assert p0.ndof(ref_sd_0d) == 1
 
     # such a grid has neither nodes nor faces, so the other spaces have no dofs

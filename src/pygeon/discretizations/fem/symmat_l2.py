@@ -44,7 +44,7 @@ class SymMatPwPolynomials(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return sd.num_cells * self.ndof_per_element(sd.dim)
+        return int(np.sum(self.ndof_per_cell(sd)))
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """

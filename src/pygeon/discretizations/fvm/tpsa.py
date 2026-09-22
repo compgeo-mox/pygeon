@@ -89,7 +89,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         interp = np.hstack((u, r, p))
 
-        return interp / np.tile(sd.cell_volumes, self.ndof_per_element(sd.dim))
+        return interp / np.tile(sd.cell_volumes, self.ndof_per_cell(sd)[0])
 
     def assemble_accumulation_terms(
         self, sd: pg.Grid, data: dict | None

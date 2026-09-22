@@ -113,9 +113,9 @@ class VecPwPolynomials(pg.VecDiscretization):
         R = sd.rotation_matrix
         rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
 
-        # Due to our dof numbering convention, we loop through the grid ndof_per_element
-        # times.
-        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_element(sd.dim))
+        # Due to our dof numbering convention, we loop through the grid
+        # once for each dof of a cell.
+        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_cell(sd)[0])
 
         # Create a block-array of diagonal matrices containing the tensor entries.
         bmat = [
@@ -155,7 +155,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return sd.num_cells * self.ndof_per_element(sd.dim)
+        return int(np.sum(self.ndof_per_cell(sd)))
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
