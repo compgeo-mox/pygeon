@@ -28,19 +28,6 @@ class Nedelec0(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of edges.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.num_edges
-
     def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by
@@ -212,19 +199,6 @@ class Nedelec1(pg.Discretization):
 
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
-
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, twice the number of edges.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return 2 * sd.num_edges
 
     def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """

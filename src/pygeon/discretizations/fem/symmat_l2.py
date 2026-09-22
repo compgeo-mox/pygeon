@@ -35,7 +35,8 @@ class SymMatPwPolynomials(pg.Discretization):
     def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom associated to the method.
-        In this case, the number of cells times the dofs per element.
+        In this case, the dofs of an element are not shared with its neighbors,
+        so their number is the number of cells times the dofs per element.
 
         Args:
             sd (pg.Grid): Grid, or a subclass.

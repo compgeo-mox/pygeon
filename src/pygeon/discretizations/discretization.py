@@ -51,10 +51,13 @@ class Discretization(abc.ABC):
             s += f" with keyword {self.keyword}"
         return s
 
-    @abc.abstractmethod
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom associated to the method.
+        Returns the number of degrees of freedom associated to the method, given by
+        the dofs per entity contracted with the number of entities of the grid.
+
+        Spaces whose dofs are not shared between neighboring elements, such as the
+        discontinuous ones, override this method.
 
         Args:
             sd: Grid, or a subclass.
@@ -62,6 +65,7 @@ class Discretization(abc.ABC):
         Returns:
             ndof: the number of degrees of freedom.
         """
+        return int(self.ndof_per_entity(sd.dim) @ sd.num_entities())
 
     @abc.abstractmethod
     def ndof_per_entity(self, dim: int) -> np.ndarray:

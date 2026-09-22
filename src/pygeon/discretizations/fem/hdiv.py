@@ -27,19 +27,6 @@ class RT0(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of faces.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.num_faces
-
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by
@@ -299,19 +286,6 @@ class BDM1(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of faces times the dimension.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.face_nodes.nnz
-
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by
@@ -521,19 +495,6 @@ class RT1(pg.Discretization):
 
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
-
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the dimension times the number of faces and cells.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.dim * (sd.num_faces + sd.num_cells)
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """

@@ -143,6 +143,20 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         return super().interpolate(sd, rotated_func)
 
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+        In this case, the dofs of an element are not shared with its neighbors,
+        so their number is the number of cells times the dofs per element.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+
+        Returns:
+            int: The number of degrees of freedom.
+        """
+        return sd.num_cells * self.ndof_per_element(sd.dim)
+
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
     ) -> np.ndarray:

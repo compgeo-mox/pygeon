@@ -23,19 +23,6 @@ class Lagrange1(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.num_nodes
-
     def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by
@@ -350,20 +337,6 @@ class Lagrange2(pg.Discretization):
 
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
-
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes plus the number of edges,
-        where edges are one-dimensional mesh entities.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return sd.num_nodes + sd.num_edges
 
     def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """

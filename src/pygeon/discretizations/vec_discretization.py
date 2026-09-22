@@ -18,19 +18,6 @@ class VecDiscretization(pg.Discretization):
     base_discr: pg.Discretization
     """The scalar discretization method."""
 
-    def ndof(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the dofs of the base discretization times the dimension.
-
-        Args:
-            sd (pg.Grid): Grid, or a subclass.
-
-        Returns:
-            int: The number of degrees of freedom.
-        """
-        return self.base_discr.ndof(sd) * sd.dim
-
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by

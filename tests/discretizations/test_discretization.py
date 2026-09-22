@@ -158,3 +158,25 @@ def test_ndof_per_entity_on_polygonal_cells(unit_poly_sd):
     ]:
         dofs = discr.ndof_per_entity(sd.dim) @ num_entities
         assert np.array_equal(dofs, known)
+
+
+@pytest.mark.parametrize(
+    "dim, known",
+    [(1, [2, 1, 0, 0]), (2, [3, 3, 1, 0]), (3, [4, 6, 4, 1])],
+)
+def test_num_entities_of_reference_element(_ref_elements_dict, dim, known):
+    assert np.array_equal(_ref_elements_dict[dim].num_entities(), known)
+
+
+def test_num_entities(unit_sd):
+    num_entities = unit_sd.num_entities()
+
+    assert num_entities[0] == unit_sd.num_nodes
+    assert num_entities[1] == unit_sd.num_edges
+    assert num_entities[unit_sd.dim] == unit_sd.num_cells
+    assert np.all(num_entities[unit_sd.dim + 1 :] == 0)
+
+
+def test_num_entities_of_point_grid(ref_sd_0d):
+    # the single cell of a point grid is not a node
+    assert np.array_equal(ref_sd_0d.num_entities(), [0, 0, 0, 0])
