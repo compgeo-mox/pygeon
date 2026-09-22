@@ -1,8 +1,8 @@
 """Module for base finite volume discretization classes."""
 
 import abc
-from math import comb
 import warnings
+from math import comb
 from typing import Type
 
 import numpy as np

@@ -41,14 +41,14 @@ class Nedelec0(pg.Discretization):
         """
         return sd.num_edges
 
-    def ndof_per_entity(self, dim: int) -> np.ndarray:
+    def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by
         the dimension of the entity as [0, 1, 2, 3].
         In this case, one degree of freedom per edge.
 
         Args:
-            dim (int): The dimension of the grid.
+            _dim (int): The dimension of the grid.
 
         Returns:
             np.ndarray: The number of degrees of freedom per entity.
@@ -226,14 +226,14 @@ class Nedelec1(pg.Discretization):
         """
         return 2 * sd.num_edges
 
-    def ndof_per_entity(self, dim: int) -> np.ndarray:
+    def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
         Returns the number of degrees of freedom per geometric entity, ordered by
         the dimension of the entity as [0, 1, 2, 3].
         In this case, two degrees of freedom per edge.
 
         Args:
-            dim (int): The dimension of the grid.
+            _dim (int): The dimension of the grid.
 
         Returns:
             np.ndarray: The number of degrees of freedom per entity.
