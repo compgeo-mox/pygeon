@@ -301,7 +301,11 @@ class VBDM1(pg.BDM1):
             sps.csc_array: The degree of freedom enumeration.
         """
         dof = sd.face_nodes.copy()
-        dof.data = np.arange(sd.face_nodes.nnz)
+        # dof j of face f is numbered f + j * num_faces, as in BDM1
+        dof.data = (
+            np.arange(sd.num_faces)[:, None]
+            + sd.num_faces * np.arange(sd.dim)[None, :]
+        ).ravel()
         return dof
 
     def assemble_lumped_matrix(
