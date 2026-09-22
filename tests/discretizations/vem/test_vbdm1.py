@@ -74,8 +74,16 @@ def test_eval_at_cc(discr, ref_square):
 
 
 def test_interpolate(discr, ref_square):
-    with pytest.raises(NotImplementedError):
-        discr.interpolate(ref_square, None)
+    fun = lambda x: np.array([x[0], 0 * x[0], 0 * x[0]])
+
+    vals = discr.interpolate(ref_square, fun)
+    vals_known = np.array([0, 1, 0, 0, 0, 1, 0, 0])
+
+    assert np.allclose(vals, vals_known)
+
+    # projecting the interpolant gives the interpolant of the lowest order space
+    proj = discr.proj_to_VRT0(ref_square) @ vals
+    assert np.allclose(proj, pg.RT0("test").interpolate(ref_square, fun))
 
 
 def test_lumped(discr, ref_square):

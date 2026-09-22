@@ -236,59 +236,6 @@ class VBDM1(pg.BDM1):
         """
         raise NotImplementedError
 
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a function onto the given grid.
-
-        Args:
-            sd (pg.Grid): The grid onto which the function will be interpolated.
-            func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
-
-        Returns:
-            np.ndarray: The interpolated values on the grid.
-
-        Raises:
-            NotImplementedError: This method is not implemented and should be
-                overridden in a subclass.
-        """
-        raise NotImplementedError
-
-    def assemble_nat_bc(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
-    ) -> np.ndarray:
-        r"""
-        Assembles the natural boundary condition term
-        :math:`(q \cdot n, g)_{\partial\Omega}`.
-
-        Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
-                the values on the boundary.
-            b_faces (np.ndarray): The array of boundary faces.
-
-        Returns:
-            np.ndarray: The assembled natural boundary condition term.
-        """
-        if b_faces.dtype == "bool":
-            b_faces = np.where(b_faces)[0]
-
-        p1 = pg.PwLinears(self.keyword)
-        local_mass = p1.assemble_local_mass(sd.dim - 1)
-
-        dof = self.get_dof_enumeration(sd)
-        vals = np.zeros(self.ndof(sd))
-        for face in b_faces:
-            sign = sd.cell_faces.tocsr()[face, :].sum()
-            nodes_loc = sd.face_nodes[:, [face]].indices
-            loc_vals = np.array([func(sd.nodes[:, node]) for node in nodes_loc])
-            dof_loc = dof[nodes_loc, face].data
-
-            vals[dof_loc] = sign * local_mass @ loc_vals
-
-        return vals
-
     def get_dof_enumeration(self, sd: pg.Grid) -> sps.csc_array:
         """
         Get the degree of freedom enumeration for a given grid.
