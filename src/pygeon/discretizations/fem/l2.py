@@ -651,7 +651,6 @@ class PwQuadratics(PwPolynomials):
         Returns the number of degrees of freedom per geometric entity, ordered by
         the dimension of the entity as [0, 1, 2, 3].
         In this case, one degree of freedom per node and per edge, as for Lagrange2.
-        element, as for Lagrange2.
 
         Args:
             _dim (int): The dimension of the grid.
