@@ -248,8 +248,7 @@ class VBDM1(pg.BDM1):
         dof = sd.face_nodes.copy()
         # dof j of face f is numbered f + j * num_faces, as in BDM1
         dof.data = (
-            np.arange(sd.num_faces)[:, None]
-            + sd.num_faces * np.arange(sd.dim)[None, :]
+            np.arange(sd.num_faces)[:, None] + sd.num_faces * np.arange(sd.dim)[None, :]
         ).ravel()
         return dof
 
