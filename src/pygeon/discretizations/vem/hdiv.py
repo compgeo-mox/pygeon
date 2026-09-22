@@ -1,7 +1,5 @@
 """Module for the discretizations of the H(div) space."""
 
-from typing import Callable
-
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
