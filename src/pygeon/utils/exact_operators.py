@@ -210,7 +210,8 @@ def to_callable(
     Turns a symbolic expression into a function of the coordinates, vectorized as the
     discretizations expect it: the function takes an array of shape (3, n) with the
     coordinates in its columns and returns the values with the points along the last
-    axis.
+    axis. A single point is passed as a vector of three coordinates, and the value is
+    then returned without that axis.
 
     The first dim components of a vector, and the leading dim by dim block of a
     matrix, are retained, so that a two-dimensional problem is obtained by passing
@@ -239,12 +240,22 @@ def to_callable(
         entries = [sp.lambdify(symbols, expression, "numpy")]
 
     def evaluate(coords: np.ndarray) -> np.ndarray:
-        num_pts = np.shape(coords)[-1]
+        coords = np.asarray(coords, dtype=float)
+        if coords.shape[0] != pg.AMBIENT_DIM:
+            raise ValueError(
+                f"The coordinates must be given as {pg.AMBIENT_DIM} rows, while an "
+                f"array of shape {coords.shape} was passed."
+            )
+
+        # a single point is a vector of coordinates, several ones are the columns of
+        # an array, and the values follow the same convention
+        pts_shape = coords.shape[1:]
+
         # constant entries are not vectorized by lambdify, so they are broadcast
         values = [
-            np.broadcast_to(np.asarray(entry(*coords), dtype=float), (num_pts,))
+            np.broadcast_to(np.asarray(entry(*coords), dtype=float), pts_shape)
             for entry in entries
         ]
-        return np.reshape(values, shape + (num_pts,))
+        return np.reshape(values, shape + pts_shape)
 
     return evaluate
