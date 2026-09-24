@@ -116,6 +116,30 @@ def test_to_callable_shapes(coords):
     assert np.allclose(vector(pts), pts)
 
 
+def test_to_callable_at_a_single_point(coords):
+    x, y, _ = coords
+    point = [0.25, 0.75, 3.0]
+
+    scalar = pg.exact.to_callable(sp.sin(2 * sp.pi * x) * sp.sin(2 * sp.pi * y))
+    vector = pg.exact.to_callable(sp.Matrix([x, y, 0]))
+    matrix = pg.exact.to_callable(sp.Matrix([[x, 0, 0], [0, y, 0], [0, 0, 1]]))
+
+    # a point carries no axis of its own, so the value of a scalar is a scalar
+    assert scalar(point).shape == ()
+    assert vector(point).shape == (3,)
+    assert matrix(point).shape == (3, 3)
+
+    assert np.isclose(scalar(point), -1.0)
+    assert np.allclose(vector(point), [0.25, 0.75, 0.0])
+
+
+def test_to_callable_rejects_wrong_coordinates(coords):
+    x, _, _ = coords
+
+    with pytest.raises(ValueError):
+        pg.exact.to_callable(x)([0.25, 0.75])
+
+
 def test_to_callable_in_two_dimensions(coords):
     x, y, _ = coords
     pts = np.array([[0.0, 1.0], [0.0, 0.5], [0.0, 0.0]])
