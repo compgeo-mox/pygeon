@@ -113,9 +113,9 @@ class VecPwPolynomials(pg.VecDiscretization):
         R = sd.rotation_matrix
         rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
 
-        # Due to our dof numbering convention, we loop through the grid ndof_per_cell
-        # times.
-        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_cell(sd))
+        # Due to our dof numbering convention, we loop through the grid
+        # once for each dof of a cell.
+        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_cell(sd)[0])
 
         # Create a block-array of diagonal matrices containing the tensor entries.
         bmat = [
@@ -142,6 +142,20 @@ class VecPwPolynomials(pg.VecDiscretization):
         rotated_func = lambda x: np.einsum("ij,j...->i...", sd.rotation_matrix, func(x))
 
         return super().interpolate(sd, rotated_func)
+
+    def ndof(self, sd: pg.Grid) -> int:
+        """
+        Returns the number of degrees of freedom associated to the method.
+        In this case, the dofs of an element are not shared with its neighbors,
+        so their number is the number of cells times the dofs per element.
+
+        Args:
+            sd (pg.Grid): Grid, or a subclass.
+
+        Returns:
+            int: The number of degrees of freedom.
+        """
+        return int(np.sum(self.ndof_per_cell(sd)))
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
@@ -171,22 +185,6 @@ class VecPwPolynomials(pg.VecDiscretization):
         dof_base = np.tile(dof_base, ambient_dim)
 
         return dof_base + shift
-
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Computes the number of degrees of freedom (DOF) per cell for the given grid.
-
-        This method calculates the total number of DOFs per cell by multiplying
-        the number of DOFs per cell from the base discretization by the spatial
-        dimension of the grid.
-
-        Args:
-            sd (pg.Grid): The grid object representing the spatial discretization.
-
-        Returns:
-            int: The total number of degrees of freedom per cell.
-        """
-        return self.base_discr.ndof_per_cell(sd) * sd.dim
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """

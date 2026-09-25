@@ -20,6 +20,6 @@ def discr(request: pytest.FixtureRequest) -> pg.VecPwPolynomials:
 def test_assemble_local_dofs(discr, ref_sd):
     # Coverage test
     dofs = discr.local_dofs_of_cell(ref_sd, 0)
-    known_dofs = ref_sd.num_cells * np.arange(discr.ndof_per_cell(ref_sd))
+    known_dofs = ref_sd.num_cells * np.arange(discr.ndof_per_cell(ref_sd)[0])
 
     assert np.all(dofs == known_dofs)

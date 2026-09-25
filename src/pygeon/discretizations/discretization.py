@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from functools import cache
 from typing import Callable, Type
 
 import numpy as np
@@ -50,10 +51,13 @@ class Discretization(abc.ABC):
             s += f" with keyword {self.keyword}"
         return s
 
-    @abc.abstractmethod
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom associated to the method.
+        Returns the number of degrees of freedom associated to the method, given by
+        the dofs per entity contracted with the number of entities of the grid.
+
+        Spaces whose dofs are not shared between neighboring elements, such as the
+        discontinuous ones, override this method.
 
         Args:
             sd: Grid, or a subclass.
@@ -61,6 +65,40 @@ class Discretization(abc.ABC):
         Returns:
             ndof: the number of degrees of freedom.
         """
+        return int(self.ndof_per_entity(sd.dim) @ sd.num_entities())
+
+    @abc.abstractmethod
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom of a single element, ordered by
+        the dimension of the entity they are associated with as [0, 1, 2, 3].
+
+        The entries count all the dofs of the element that lie on entities of a
+        given dimension, so that their sum is the number of dofs per element. The
+        implementations assume a simplicial element.
+
+        Args:
+            dim: The dimension of the grid.
+
+        Returns:
+            np.ndarray: the number of degrees of freedom per entity, of size 4.
+        """
+
+    @cache
+    def ndof_per_cell(self, sd: pg.Grid) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom of each cell, obtained by
+        contracting the dofs per entity with the entities of the cell. The cells of
+        a general grid do not carry the same number of dofs, as for the polygons of
+        a virtual element space.
+
+        Args:
+            sd (pg.Grid): The grid object.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom of each cell.
+        """
+        return self.ndof_per_entity(sd.dim) @ sd.num_entities_per_cell()
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None

@@ -45,17 +45,21 @@ class TPSA(pg.FiniteVolumeDiscretization):
         super().__init__(keyword)
         self.bc_type = pg.ElasticityBC
 
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, the displacement, rotation and pressure degrees of
+        freedom per cell.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.dim + rotation_dim(sd.dim) + 1
+        ndof = dim + rotation_dim(dim) + 1
+        return ndof * np.roll([1, 0, 0, 0], dim)  # cells
 
     def interpolate(
         self,
@@ -85,7 +89,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         interp = np.hstack((u, r, p))
 
-        return interp / np.tile(sd.cell_volumes, self.ndof_per_cell(sd))
+        return interp / np.tile(sd.cell_volumes, self.ndof_per_cell(sd)[0])
 
     def assemble_accumulation_terms(
         self, sd: pg.Grid, data: dict | None

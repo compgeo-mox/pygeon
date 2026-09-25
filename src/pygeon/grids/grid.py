@@ -66,6 +66,52 @@ class Grid(pp.Grid):
         self.compute_edge_properties()
         self.compute_mesh_size()
 
+    def num_entities(self) -> np.ndarray:
+        """
+        Returns the number of geometric entities, ordered by the dimension of the
+        entity as [0, 1, 2, 3]. For a grid of dimension d, the entry d contains the
+        cells, d - 1 the faces, d - 2 the ridges and d - 3 the peaks, while the
+        entries above d are zero.
+
+        Args:
+            None
+
+        Returns:
+            np.ndarray: The number of entities per dimension, of size 4.
+        """
+        per_codim = np.array(
+            [self.num_cells, self.num_faces, self.num_ridges, self.num_peaks]
+        )
+        num_entities = np.zeros(4, dtype=int)
+        num_entities[: self.dim + 1] = per_codim[self.dim :: -1]
+        # the cell of a point grid is not a node, of which such a grid has none
+        num_entities[0] = self.num_nodes
+        return num_entities
+
+    def num_entities_per_cell(self) -> np.ndarray:
+        """
+        Returns the number of geometric entities of each cell, ordered by the
+        dimension of the entity as [0, 1, 2, 3]. The counts are read from the
+        topological maps of the grid, so that they also hold for general cells.
+
+        Args:
+            None
+
+        Returns:
+            np.ndarray: The number of entities per dimension of each cell, of
+            shape (4, num_cells).
+        """
+        num_entities = np.zeros((4, self.num_cells), dtype=int)
+        num_entities[self.dim] = 1  # the cell itself
+        if self.dim > 0:
+            num_entities[0] = np.diff(self.cell_nodes().indptr)
+            num_entities[self.dim - 1] = np.diff(self.cell_faces.indptr)
+        if self.dim == 3:
+            cell_ridges = abs(self.face_ridges) @ abs(self.cell_faces)
+            cell_ridges.data = np.ones_like(cell_ridges.data)
+            num_entities[1] = np.diff(cell_ridges.tocsc().indptr)
+        return num_entities
+
     def compute_ridges(self) -> None:
         """
         Computes the ridges of the grid and assigns the following attributes:

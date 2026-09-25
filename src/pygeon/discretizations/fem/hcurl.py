@@ -28,19 +28,19 @@ class Nedelec0(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the number of ridges in the given grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per edge.
 
         Args:
-            sd (pg.Grid): The grid for which the number of degrees of
-                freedom is calculated.
+            _dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_edges
+        return np.array([0, 1, 0, 0])  # edges
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
@@ -200,18 +200,19 @@ class Nedelec1(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
-        Return the number of degrees of freedom associated to the method.
-        In this case, it returns twice the number of ridges in the given grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, two degrees of freedom per edge.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            _dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return 2 * sd.num_edges
+        return np.array([0, 2, 0, 0])  # edges
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:

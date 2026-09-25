@@ -18,19 +18,20 @@ class VecDiscretization(pg.Discretization):
     base_discr: pg.Discretization
     """The scalar discretization method."""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the product of the number of nodes and
-        the dimension of the grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, the degrees of freedom of the base discretization,
+        repeated dim times.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return self.base_discr.ndof(sd) * sd.dim
+        return self.base_discr.ndof_per_entity(dim) * dim
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
