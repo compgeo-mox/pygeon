@@ -113,6 +113,7 @@ from pygeon.numerics.block_diag_solver import (
 )
 
 import pygeon.utils.bmat as bmat
+import pygeon.utils.exact_operators as exact
 import pygeon.utils.sort_points as sort_points
 
 from pygeon.viz.plot_spanningtree import plot_spanningtree
