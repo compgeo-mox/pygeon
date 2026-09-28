@@ -9,14 +9,14 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class Nedelec0(pg.Discretization):
+class NedelecR0(pg.Discretization):
     r"""
     Class implementing the finite element discretization of Nedelec elements of the
     first kind of lowest order
     :math:`\mathbb{N}_0(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \in \mathbb{R}^d`.
 
-    Each degree of freedom is the integral over a mesh edge in 3D.
+    Each degree of freedom is the tangential integral over a mesh edge in 3D.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
     corresponds to a rotated :math:`\mathbb{RT}_0(\Omega)`.
@@ -45,7 +45,7 @@ class Nedelec0(pg.Discretization):
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Constructs the projection matrix to the VecPwLinears space via Nedelec1. The
+        Constructs the projection matrix to the VecPwLinears space via NedelecF1. The
         projection operator :math:`\Pi` takes a function from
         :math:`\mathbb{N}_0(\Omega)` and maps it to a piecewise linear function in
         :math:`[\mathbb{P}_1(\Omega)]^d`.
@@ -58,7 +58,7 @@ class Nedelec0(pg.Discretization):
             the current space to VecPwLinears.
         """
         proj_to_Ne1 = self.proj_to_Ne1(sd)
-        proj_to_pwp = Nedelec1(self.keyword).proj_to_PwPolynomials(sd)
+        proj_to_pwp = NedelecF1(self.keyword).proj_to_PwPolynomials(sd)
 
         return proj_to_pwp @ proj_to_Ne1
 
@@ -181,14 +181,14 @@ class Nedelec0(pg.Discretization):
         ).tocsc()
 
 
-class Nedelec1(pg.Discretization):
+class NedelecF1(pg.Discretization):
     r"""
     Class implementing the finite element discretization of Nedelec elements of the
     second kind of lowest order
     :math:`\mathbb{N}_1(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \in \mathbb{R}^d`.
 
-    Each degree of freedom is a first moment over a mesh edge in 3D.
+    Each degree of freedom is a tangential evaluation at the edge nodes.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
     corresponds to a rotated :math:`\mathbb{BDM}_1(\Omega)`.
@@ -313,8 +313,8 @@ class Nedelec1(pg.Discretization):
         Assembles the differential matrix for the H(curl) finite element space.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
-        mapping from :class:`Nedelec1` (H(curl), two dofs per edge) to the
-        same range as :class:`Nedelec0` (i.e. :class:`~pygeon.RT0` in 3D
+        mapping from :class:`NedelecF1` (H(curl), two dofs per edge) to the
+        same range as :class:`NedelecR0` (i.e. :class:`~pygeon.RT0` in 3D
         or :class:`~pygeon.PwConstants` in 2D).
 
         Args:
@@ -323,7 +323,7 @@ class Nedelec1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled differential matrix.
         """
-        n0 = pg.Nedelec0(self.keyword)
+        n0 = pg.NedelecR0(self.keyword)
         Ne0_diff = n0.assemble_diff_matrix(sd)
 
         proj_to_ne0 = self.proj_to_Ne0(sd)
@@ -382,4 +382,4 @@ class Nedelec1(pg.Discretization):
         Returns:
             pg.Discretization: The range discretization class.
         """
-        return Nedelec0().get_range_discr_class(dim)
+        return NedelecR0().get_range_discr_class(dim)

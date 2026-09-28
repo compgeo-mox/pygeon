@@ -8,8 +8,8 @@ import pygeon as pg
 
 @pytest.fixture(
     params=[
-        pg.Nedelec0,
-        pg.Nedelec1,
+        pg.NedelecR0,
+        pg.NedelecF1,
     ]
 )
 def discr(request: pytest.FixtureRequest) -> pg.Discretization:
