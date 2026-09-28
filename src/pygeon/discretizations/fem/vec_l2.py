@@ -115,7 +115,7 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         # Due to our dof numbering convention, we loop through the grid
         # once for each dof of a cell.
-        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_cell(sd)[0])
+        tiled_sot = np.tile(rotated_sot, self.base_discr.ndof_per_element(sd.dim))
 
         # Create a block-array of diagonal matrices containing the tensor entries.
         bmat = [
@@ -155,7 +155,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return int(np.sum(self.ndof_per_cell(sd)))
+        return sd.num_cells * self.ndof_per_element(sd.dim)
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1

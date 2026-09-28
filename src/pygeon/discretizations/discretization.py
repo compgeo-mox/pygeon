@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import abc
-from functools import cache
+from math import comb
 from typing import Callable, Type
 
 import numpy as np
@@ -84,21 +84,20 @@ class Discretization(abc.ABC):
             np.ndarray: the number of degrees of freedom per entity, of size 4.
         """
 
-    @cache
-    def ndof_per_cell(self, sd: pg.Grid) -> np.ndarray:
+    def ndof_per_element(self, dim: int) -> int:
         """
-        Returns the number of degrees of freedom of each cell, obtained by
-        contracting the dofs per entity with the entities of the cell. The cells of
-        a general grid do not carry the same number of dofs, as for the polygons of
-        a virtual element space.
+        Returns the number of degrees of freedom of a single element, obtained by
+        contracting the dofs per entity with the number of entities of a simplex
+        of dimension dim.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
-            np.ndarray: The number of degrees of freedom of each cell.
+            int: The number of degrees of freedom per element.
         """
-        return self.ndof_per_entity(sd.dim) @ sd.num_entities_per_cell()
+        num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
+        return int(self.ndof_per_entity(dim) @ num_entities)
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None

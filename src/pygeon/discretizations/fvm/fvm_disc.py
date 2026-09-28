@@ -2,7 +2,7 @@
 
 import abc
 import warnings
-from functools import cache
+from math import comb
 from typing import Type
 
 import numpy as np
@@ -41,7 +41,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             int: The number of degrees of freedom.
         """
-        return int(np.sum(self.ndof_per_cell(sd)))
+        return self.ndof_per_element(sd.dim) * sd.num_cells
 
     def assemble_system_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -85,7 +85,7 @@ class FiniteVolumeDiscretization(abc.ABC):
             sps.csc_array: The divergence operator
         """
         return sps.kron(
-            sps.eye_array(self.ndof_per_cell(sd)[0]), pg.div(sd), format="csc"
+            sps.eye_array(self.ndof_per_element(sd.dim)), pg.div(sd), format="csc"
         )
 
     def face_area_scaling(self, sd) -> np.ndarray:
@@ -99,7 +99,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             np.ndarray: The scaling vector
         """
-        return np.tile(sd.face_areas, self.ndof_per_cell(sd)[0])
+        return np.tile(sd.face_areas, self.ndof_per_element(sd.dim))
 
     def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
@@ -185,20 +185,20 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         return -self.div(sd) @ A_rhs @ g
 
-    @cache
-    def ndof_per_cell(self, sd: pg.Grid) -> np.ndarray:
+    def ndof_per_element(self, dim: int) -> int:
         """
-        Returns the number of degrees of freedom of each cell, obtained by
-        contracting the dofs per entity with the entities of the cell. The dofs of a
-        finite volume method all lie on the cell, so the entries are all equal.
+        Returns the number of degrees of freedom of a single element, obtained by
+        contracting the dofs per entity with the number of entities of a simplex
+        of dimension dim.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
-            np.ndarray: The number of degrees of freedom of each cell.
+            int: The number of degrees of freedom per element.
         """
-        return self.ndof_per_entity(sd.dim) @ sd.num_entities_per_cell()
+        num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
+        return int(self.ndof_per_entity(dim) @ num_entities)
 
     @abc.abstractmethod
     def ndof_per_entity(self, dim: int) -> np.ndarray:

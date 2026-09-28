@@ -35,7 +35,7 @@ class PwPolynomials(pg.Discretization):
         Returns:
             np.ndarray: Array of local DOF indices associated with the cell.
         """
-        return sd.num_cells * np.arange(self.ndof_per_cell(sd)[c]) + c
+        return sd.num_cells * np.arange(self.ndof_per_element(sd.dim)) + c
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -49,7 +49,7 @@ class PwPolynomials(pg.Discretization):
         Returns:
             int: The number of degrees of freedom.
         """
-        return int(np.sum(self.ndof_per_cell(sd)))
+        return sd.num_cells * self.ndof_per_element(sd.dim)
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
