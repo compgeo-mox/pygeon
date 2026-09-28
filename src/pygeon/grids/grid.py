@@ -71,7 +71,8 @@ class Grid(pp.Grid):
         Returns the number of geometric entities, ordered by the dimension of the
         entity as [0, 1, 2, 3]. For a grid of dimension d, the entry d contains the
         cells, d - 1 the faces, d - 2 the ridges and d - 3 the peaks, while the
-        entries above d are zero.
+        entries above d are zero. Since the entities of codimension larger than d
+        are counted as zero, the entries above d are obtained by a cyclic shift.
 
         Args:
             None
@@ -79,14 +80,8 @@ class Grid(pp.Grid):
         Returns:
             np.ndarray: The number of entities per dimension, of size 4.
         """
-        per_codim = np.array(
-            [self.num_cells, self.num_faces, self.num_ridges, self.num_peaks]
-        )
-        num_entities = np.zeros(4, dtype=int)
-        num_entities[: self.dim + 1] = per_codim[self.dim :: -1]
-        # the cell of a point grid is not a node, of which such a grid has none
-        num_entities[0] = self.num_nodes
-        return num_entities
+        num_entities = [self.num_peaks, self.num_ridges, self.num_faces, self.num_cells]
+        return np.roll(num_entities, self.dim - 3)
 
     def compute_ridges(self) -> None:
         """

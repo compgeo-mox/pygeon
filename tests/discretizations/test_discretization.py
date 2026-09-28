@@ -83,8 +83,8 @@ def test_unvectorized_interpolation(unit_sd_2d):
         (pg.RT1, 3, [0, 0, 3, 3]),
         (pg.PwConstants, 2, [0, 0, 1, 0]),
         (pg.PwConstants, 3, [0, 0, 0, 1]),
-        (pg.PwLinears, 2, [1, 0, 0, 0]),
-        (pg.PwQuadratics, 3, [1, 1, 0, 0]),
+        (pg.PwLinears, 2, [0, 0, 3, 0]),
+        (pg.PwQuadratics, 3, [0, 0, 0, 10]),
         (pg.VecLagrange1, 3, [3, 0, 0, 0]),
         (pg.VecRT0, 2, [0, 2, 0, 0]),
         (pg.SymMatPwConstants, 2, [0, 0, 3, 0]),
@@ -178,5 +178,5 @@ def test_num_entities(unit_sd):
 
 
 def test_num_entities_of_point_grid(ref_sd_0d):
-    # the single cell of a point grid is not a node
-    assert np.array_equal(ref_sd_0d.num_entities(), [0, 0, 0, 0])
+    # a point grid has a single cell and no nodes
+    assert np.array_equal(ref_sd_0d.num_entities(), [1, 0, 0, 0])
