@@ -92,7 +92,7 @@ def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
             - pg.PwConstants: if ``n_minus_k == 0``.
             - pg.RT0: if ``n_minus_k == 1``.
             - pg.Lagrange1: if ``n_minus_k == sd.dim``.
-            - pg.Nedelec0: if ``n_minus_k == 2`` (valid for ``sd.dim == 3``).
+            - pg.NedelecR0: if ``n_minus_k == 2`` (valid for ``sd.dim == 3``).
 
     Raises:
         ValueError: If ``n_minus_k`` is not supported for the given grid
@@ -106,7 +106,7 @@ def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
     elif n_minus_k == sd.dim:
         return pg.Lagrange1(keyword)
     elif n_minus_k == 2:  # The only remaining case is (k, sd.dim) = (1, 3)
-        return pg.Nedelec0(keyword)
+        return pg.NedelecR0(keyword)
     else:
         raise ValueError
 

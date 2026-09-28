@@ -13,8 +13,8 @@ import pygeon as pg
         pg.RT0,
         pg.BDM1,
         pg.RT1,
-        pg.Nedelec0,
-        pg.Nedelec1,
+        pg.NedelecR0,
+        pg.NedelecF1,
     ]
 )
 def discr(request: pytest.FixtureRequest) -> pg.Discretization:
@@ -31,7 +31,7 @@ def test_string_repr():
 
 def test_cochain_property(discr, unit_sd):
     # Skip the Nedelec spaces in 1D
-    if isinstance(discr, (pg.Nedelec0, pg.Nedelec1)) and unit_sd.dim == 1:
+    if isinstance(discr, (pg.NedelecR0, pg.NedelecF1)) and unit_sd.dim == 1:
         return
 
     unit_sd.compute_geometry()

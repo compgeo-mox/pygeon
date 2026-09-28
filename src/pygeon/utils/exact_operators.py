@@ -59,7 +59,7 @@ def divergence(vector: sp.Matrix) -> sp.Expr:
 def curl(vector: sp.Matrix) -> sp.Matrix:
     r"""
     Computes the curl :math:`\nabla \times u` of a vector function, the rotor of a
-    three-dimensional problem. It matches the differential of Nedelec0, while for a
+    three-dimensional problem. It matches the differential of NedelecR0, while for a
     two-dimensional problem the third component is the scalar rotor of the vector.
 
     Args:

@@ -172,4 +172,4 @@ def test_assemble_stiff_matrix(discr, ref_sd):
 def test_range_discr(discr):
     assert discr.get_range_discr_class(1) is pg.PwLinears
     assert discr.get_range_discr_class(2) is pg.BDM1
-    assert discr.get_range_discr_class(3) is pg.Nedelec1
+    assert discr.get_range_discr_class(3) is pg.NedelecF1

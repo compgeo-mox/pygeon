@@ -156,7 +156,7 @@ class Lagrange1(pg.Discretization):
         The differential corresponds to the (co-)gradient operator :math:`d`,
         mapping from :math:`\mathbb{L}_1(\Omega)` to the appropriate range space:
 
-        - 3D: :math:`\mathbb{N}_0(\Omega)` :class:`~pygeon.Nedelec0` H(curl)
+        - 3D: :math:`\mathbb{N}_0(\Omega)` :class:`~pygeon.NedelecR0` H(curl)
         - 2D: :math:`\mathbb{RT}_0(\Omega)` :class:`~pygeon.RT0` H(div)
         - 1D: :math:`\mathbb{P}_0(\Omega)` :class:`~pygeon.PwConstants` L2
 
@@ -315,7 +315,7 @@ class Lagrange1(pg.Discretization):
         """
         match dim:
             case 3:
-                return pg.Nedelec0
+                return pg.NedelecR0
             case 2:
                 return pg.RT0
             case 1:
@@ -357,7 +357,7 @@ class Lagrange2(pg.Discretization):
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
         mapping from :class:`Lagrange2` (H1, dofs at nodes and edge midpoints)
-        to the :class:`~pygeon.Nedelec1` (H(curl)) space.
+        to the :class:`~pygeon.NedelecF1` (H(curl)) space.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -398,7 +398,7 @@ class Lagrange2(pg.Discretization):
             case 3:
                 edge_nodes = sd.ridge_peaks
                 num_edges = sd.num_ridges
-                # By design of Nedelec1, we orient the second dof
+                # By design of NedelecF1, we orient the second dof
                 # on an edge opposite to the first in 3D
                 second_dof_scaling = -1
             case _:
@@ -420,7 +420,7 @@ class Lagrange2(pg.Discretization):
         diff_nodes_1_csr.data[edge_nodes.data == 1] = 3
         diff_nodes_1_csr.data[edge_nodes.data == -1] = 1
 
-        # Rescale due to design choices in Nedelec1
+        # Rescale due to design choices in NedelecF1
         diff_1 = second_dof_scaling * sps.hstack(
             (diff_nodes_1_csr, -4 * sps.eye_array(num_edges))
         )
@@ -589,7 +589,7 @@ class Lagrange2(pg.Discretization):
         """
         match dim:
             case 3:
-                return pg.Nedelec1
+                return pg.NedelecF1
             case 2:
                 return pg.BDM1
             case 1:

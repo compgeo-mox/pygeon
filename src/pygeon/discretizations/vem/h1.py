@@ -303,7 +303,7 @@ class VLagrange1(pg.Lagrange1):
         match dim:
             case 3:
                 raise NotImplementedError(
-                    "There's no Virtual Nedelec0 discretization in PyGeoN"
+                    "There's no Virtual NedelecR0 discretization in PyGeoN"
                 )
             case 2:
                 return pg.VRT0
