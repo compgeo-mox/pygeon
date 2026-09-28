@@ -238,7 +238,7 @@ def test_gradient_matches_the_discrete_differential(coords, unit_sd_3d):
     discrete = discr.assemble_diff_matrix(unit_sd_3d) @ discr.interpolate(
         unit_sd_3d, pg.exact.to_callable(scalar)
     )
-    interpolated = pg.Nedelec0().interpolate(
+    interpolated = pg.NedelecR0().interpolate(
         unit_sd_3d, pg.exact.to_callable(pg.exact.gradient(scalar))
     )
 
@@ -249,7 +249,7 @@ def test_curl_matches_the_discrete_differential(coords, unit_sd_3d):
     x, y, _ = coords
     vector = sp.Matrix([-y, x, 0])
 
-    discr = pg.Nedelec0()
+    discr = pg.NedelecR0()
     discrete = discr.assemble_diff_matrix(unit_sd_3d) @ discr.interpolate(
         unit_sd_3d, pg.exact.to_callable(vector)
     )
