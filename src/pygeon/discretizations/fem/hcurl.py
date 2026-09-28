@@ -11,8 +11,8 @@ import pygeon as pg
 
 class NedelecR0(pg.Discretization):
     r"""
-    Class implementing the finite element discretization of Nedelec elements of the
-    first kind of lowest order
+    Class implementing the finite element discretization of reduced Nedelec elements (of
+    the first kind) of lowest order
     :math:`\mathbb{N}_0(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \in \mathbb{R}^d`.
 
@@ -183,8 +183,8 @@ class NedelecR0(pg.Discretization):
 
 class NedelecF1(pg.Discretization):
     r"""
-    Class implementing the finite element discretization of Nedelec elements of the
-    second kind of lowest order
+    Class implementing the finite element discretization of full Nedelec elements (of
+    the second kind) of lowest order
     :math:`\mathbb{N}_1(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \in \mathbb{R}^d`.
 
