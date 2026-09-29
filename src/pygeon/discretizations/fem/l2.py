@@ -2,7 +2,7 @@
 
 import abc
 from functools import cache
-from math import factorial
+from math import comb, factorial
 from typing import Callable, Type
 
 import numpy as np
@@ -24,18 +24,20 @@ class PwPolynomials(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the number of cells in the grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per cell.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_cells * self.ndof_per_cell(sd)
+        ndof = comb(dim + self.poly_order, self.poly_order)
+        return np.roll([ndof, 0, 0, 0], dim)  # cells
 
     def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
         """
@@ -48,19 +50,7 @@ class PwPolynomials(pg.Discretization):
         Returns:
             np.ndarray: Array of local DOF indices associated with the cell.
         """
-        return sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
-
-    @abc.abstractmethod
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
+        return sd.num_cells * np.arange(self.ndof_per_element(sd.dim)) + c
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -296,18 +286,6 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    def ndof_per_cell(self, _sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
-        return 1
-
     def assemble_local_mass(self, _dim: int) -> np.ndarray:
         r"""
         Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
@@ -443,18 +421,6 @@ class PwLinears(PwPolynomials):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
-        return sd.dim + 1
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         r"""
@@ -653,18 +619,6 @@ class PwQuadratics(PwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
-        return (sd.dim + 1) * (sd.dim + 2) // 2
 
     def num_edges_per_cell(self, dim: int) -> int:
         """

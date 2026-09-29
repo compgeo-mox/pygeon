@@ -23,18 +23,20 @@ class Lagrange1(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node. A point grid has no nodes,
+        since its only entity is the cell, hence no degrees of freedom.
 
         Args:
-            sd: Grid, or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            ndof: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_nodes
+        return np.array([int(dim > 0), 0, 0, 0])  # nodes
 
     def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -337,19 +339,20 @@ class Lagrange2(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes plus the number of edges,
-        where edges are one-dimensional mesh entities.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node and per edge. A point grid has
+        no nodes, since its only entity is the cell, hence no degrees of freedom.
 
         Args:
-            sd: Grid, or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            ndof: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_nodes + sd.num_edges
+        return np.array([int(dim > 0), 1, 0, 0])  # nodes and edges
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -368,7 +371,7 @@ class Lagrange2(pg.Discretization):
         match sd.dim:
             case 0:
                 # In a point, the differential is the trivial map
-                return sps.csc_array((0, 1))
+                return sps.csc_array((0, 0))
             case 1:
                 # In 1D, the gradient of the nodal functions scales as 1/h
                 diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()

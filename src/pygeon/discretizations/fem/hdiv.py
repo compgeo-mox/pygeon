@@ -27,17 +27,19 @@ class RT0(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of faces.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per face.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_faces
+        return np.roll([1, 0, 0, 0], dim - 1)  # faces
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -284,21 +286,19 @@ class BDM1(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Return the number of degrees of freedom associated to the method.
-        In this case the number of faces times the dimension.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, dim degrees of freedom per face.
 
         Args:
-            sd (pp.Grid): Grid object or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
-
-        Raises:
-            ValueError: If the input grid is not an instance of pp.Grid.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.face_nodes.nnz
+        return dim * np.roll([1, 0, 0, 0], dim - 1)  # faces
 
     def proj_to_RT0(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -496,17 +496,19 @@ class RT1(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, dim degrees of freedom per face and per cell.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.dim * (sd.num_faces + sd.num_cells)
+        return dim * np.roll([1, 1, 0, 0], dim - 1)  # faces and cells
 
     def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray, c: int):
         """

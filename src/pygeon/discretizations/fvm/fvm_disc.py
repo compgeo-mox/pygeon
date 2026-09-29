@@ -40,7 +40,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             int: The number of degrees of freedom.
         """
-        return self.ndof_per_cell(sd) * sd.num_cells
+        return self.ndof_per_element(sd.dim) * sd.num_cells
 
     def assemble_system_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -83,7 +83,9 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             sps.csc_array: The divergence operator
         """
-        return sps.kron(sps.eye_array(self.ndof_per_cell(sd)), pg.div(sd), format="csc")
+        return sps.kron(
+            sps.eye_array(self.ndof_per_element(sd.dim)), pg.div(sd), format="csc"
+        )
 
     def face_area_scaling(self, sd) -> np.ndarray:
         """
@@ -96,7 +98,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns:
             np.ndarray: The scaling vector
         """
-        return np.tile(sd.face_areas, self.ndof_per_cell(sd))
+        return np.tile(sd.face_areas, self.ndof_per_element(sd.dim))
 
     def check_nonnegative_weights(self, weight: np.ndarray) -> None:
         """
@@ -182,16 +184,30 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         return -self.div(sd) @ A_rhs @ g
 
-    @abc.abstractmethod
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
+    def ndof_per_element(self, dim: int) -> int:
         """
-        Returns the number of degrees of freedom per cell.
+        Returns the number of degrees of freedom of a single element, obtained by
+        summing the dofs per entity.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom per cell.
+            int: The number of degrees of freedom per element.
+        """
+        return self.ndof_per_entity(dim).sum()
+
+    @abc.abstractmethod
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom associated to a single geometric
+        entity, ordered by the dimension of the entity as [0, 1, 2, 3].
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity, of size 4.
         """
 
     @abc.abstractmethod
