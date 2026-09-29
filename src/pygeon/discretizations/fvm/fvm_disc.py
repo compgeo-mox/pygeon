@@ -2,7 +2,6 @@
 
 import abc
 import warnings
-from math import comb
 from typing import Type
 
 import numpy as np
