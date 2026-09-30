@@ -9,14 +9,14 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class Nedelec0(pg.Discretization):
+class NedelecR0(pg.Discretization):
     r"""
-    Class implementing the finite element discretization of Nedelec elements of the
-    first kind of lowest order
+    Class implementing the finite element discretization of reduced Nedelec elements (of
+    the first kind) of lowest order
     :math:`\mathbb{N}_0(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \in \mathbb{R}^d`.
 
-    Each degree of freedom is the integral over a mesh edge in 3D.
+    Each degree of freedom is the tangential integral over a mesh edge in 3D.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
     corresponds to a rotated :math:`\mathbb{RT}_0(\Omega)`.
@@ -28,24 +28,24 @@ class Nedelec0(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the number of ridges in the given grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per edge.
 
         Args:
-            sd (pg.Grid): The grid for which the number of degrees of
-                freedom is calculated.
+            _dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_edges
+        return np.array([0, 1, 0, 0])  # edges
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Constructs the projection matrix to the VecPwLinears space via Nedelec1. The
+        Constructs the projection matrix to the VecPwLinears space via NedelecF1. The
         projection operator :math:`\Pi` takes a function from
         :math:`\mathbb{N}_0(\Omega)` and maps it to a piecewise linear function in
         :math:`[\mathbb{P}_1(\Omega)]^d`.
@@ -58,7 +58,7 @@ class Nedelec0(pg.Discretization):
             the current space to VecPwLinears.
         """
         proj_to_Ne1 = self.proj_to_Ne1(sd)
-        proj_to_pwp = Nedelec1(self.keyword).proj_to_PwPolynomials(sd)
+        proj_to_pwp = NedelecF1(self.keyword).proj_to_PwPolynomials(sd)
 
         return proj_to_pwp @ proj_to_Ne1
 
@@ -158,12 +158,11 @@ class Nedelec0(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values on the grid.
         """
-        tangents = sd.edge_tangents
         midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
-        vals = [
-            np.inner(func(x).flatten(), t) for (x, t) in zip(midpoints.T, tangents.T)
-        ]
-        return np.array(vals)
+        func_vals = self.eval_func_at_coords(func, midpoints)
+        vals = (func_vals * sd.edge_tangents).sum(axis=0)
+
+        return vals
 
     def proj_to_Ne1(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -182,14 +181,14 @@ class Nedelec0(pg.Discretization):
         ).tocsc()
 
 
-class Nedelec1(pg.Discretization):
+class NedelecF1(pg.Discretization):
     r"""
-    Class implementing the finite element discretization of Nedelec elements of the
-    second kind of lowest order
+    Class implementing the finite element discretization of full Nedelec elements (of
+    the second kind) of lowest order
     :math:`\mathbb{N}_1(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \in \mathbb{R}^d`.
 
-    Each degree of freedom is a first moment over a mesh edge in 3D.
+    Each degree of freedom is a tangential evaluation at the edge nodes.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
     corresponds to a rotated :math:`\mathbb{BDM}_1(\Omega)`.
@@ -201,18 +200,19 @@ class Nedelec1(pg.Discretization):
     tensor_order = pg.VECTOR
     """Vector-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, _dim: int) -> np.ndarray:
         """
-        Return the number of degrees of freedom associated to the method.
-        In this case, it returns twice the number of ridges in the given grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, two degrees of freedom per edge.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            _dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return 2 * sd.num_edges
+        return np.array([0, 2, 0, 0])  # edges
 
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
@@ -314,8 +314,8 @@ class Nedelec1(pg.Discretization):
         Assembles the differential matrix for the H(curl) finite element space.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
-        mapping from :class:`Nedelec1` (H(curl), two dofs per edge) to the
-        same range as :class:`Nedelec0` (i.e. :class:`~pygeon.RT0` in 3D
+        mapping from :class:`NedelecF1` (H(curl), two dofs per edge) to the
+        same range as :class:`NedelecR0` (i.e. :class:`~pygeon.RT0` in 3D
         or :class:`~pygeon.PwConstants` in 2D).
 
         Args:
@@ -324,7 +324,7 @@ class Nedelec1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled differential matrix.
         """
-        n0 = pg.Nedelec0(self.keyword)
+        n0 = pg.NedelecR0(self.keyword)
         Ne0_diff = n0.assemble_diff_matrix(sd)
 
         proj_to_ne0 = self.proj_to_Ne0(sd)
@@ -343,13 +343,12 @@ class Nedelec1(pg.Discretization):
         Returns:
             np.ndarray: The interpolated values.
         """
-        vals = np.zeros(self.ndof(sd))
-        for r in np.arange(sd.num_edges):
-            loc = slice(sd.ridge_peaks.indptr[r], sd.ridge_peaks.indptr[r + 1])
-            peaks = sd.ridge_peaks.indices[loc]
-            t = sd.edge_tangents[:, r]
-            vals[r] = np.inner(func(sd.nodes[:, peaks[0]]).flatten(), t)
-            vals[r + sd.num_edges] = np.inner(func(sd.nodes[:, peaks[1]]).flatten(), -t)
+        edge_nodes = np.reshape(sd.ridge_peaks.indices, (-1, 2))
+        coords = sd.nodes[:, edge_nodes.ravel(order="F")]
+        func_vals = self.eval_func_at_coords(func, coords)
+
+        tangents = np.hstack((sd.edge_tangents, -sd.edge_tangents))
+        vals = (func_vals * tangents).sum(axis=0)
 
         return vals
 
@@ -384,4 +383,4 @@ class Nedelec1(pg.Discretization):
         Returns:
             pg.Discretization: The range discretization class.
         """
-        return Nedelec0().get_range_discr_class(dim)
+        return NedelecR0().get_range_discr_class(dim)

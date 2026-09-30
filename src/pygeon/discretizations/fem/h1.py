@@ -1,7 +1,7 @@
 """Module for the discretizations of the H1 space."""
 
 from functools import cache
-from typing import Callable, Type, cast
+from typing import Callable, Type
 
 import numpy as np
 import porepy as pp
@@ -23,18 +23,20 @@ class Lagrange1(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node. A point grid has no nodes,
+        since its only entity is the cell, hence no degrees of freedom.
 
         Args:
-            sd: Grid, or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            ndof: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_nodes
+        return np.array([int(dim > 0), 0, 0, 0])  # nodes
 
     def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -156,7 +158,7 @@ class Lagrange1(pg.Discretization):
         The differential corresponds to the (co-)gradient operator :math:`d`,
         mapping from :math:`\mathbb{L}_1(\Omega)` to the appropriate range space:
 
-        - 3D: :math:`\mathbb{N}_0(\Omega)` :class:`~pygeon.Nedelec0` H(curl)
+        - 3D: :math:`\mathbb{N}_0(\Omega)` :class:`~pygeon.NedelecR0` H(curl)
         - 2D: :math:`\mathbb{RT}_0(\Omega)` :class:`~pygeon.RT0` H(div)
         - 1D: :math:`\mathbb{P}_0(\Omega)` :class:`~pygeon.PwConstants` L2
 
@@ -267,7 +269,7 @@ class Lagrange1(pg.Discretization):
             np.ndarray: An array containing the interpolated values at each node of the
             grid.
         """
-        return np.array([func(x) for x in sd.nodes.T])
+        return self.eval_func_at_coords(func, sd.nodes)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -289,17 +291,16 @@ class Lagrange1(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        vals = np.zeros(self.ndof(sd))
+        # This will be sd.dim on simplicial grids, but we generalize to handle VEM
+        num_nodes_per_face = (
+            sd.face_nodes.indptr[b_faces + 1] - sd.face_nodes.indptr[b_faces]
+        )
+        func_vals = self.eval_func_at_coords(func, sd.face_centers[:, b_faces])
 
-        for face in b_faces:
-            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
-            loc_n = sd.face_nodes.indices[loc]
+        face_vals = np.zeros(sd.num_faces)
+        face_vals[b_faces] = func_vals * sd.face_areas[b_faces] / num_nodes_per_face
 
-            vals[loc_n] += (
-                func(sd.face_centers[:, face]) * sd.face_areas[face] / loc_n.size
-            )
-
-        return vals
+        return sd.face_nodes @ face_vals
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
@@ -316,7 +317,7 @@ class Lagrange1(pg.Discretization):
         """
         match dim:
             case 3:
-                return pg.Nedelec0
+                return pg.NedelecR0
             case 2:
                 return pg.RT0
             case 1:
@@ -338,19 +339,20 @@ class Lagrange2(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, the number of nodes plus the number of edges,
-        where edges are one-dimensional mesh entities.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node and per edge. A point grid has
+        no nodes, since its only entity is the cell, hence no degrees of freedom.
 
         Args:
-            sd: Grid, or a subclass.
+            dim (int): The dimension of the grid.
 
         Returns:
-            ndof: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_nodes + sd.num_edges
+        return np.array([int(dim > 0), 1, 0, 0])  # nodes and edges
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -358,7 +360,7 @@ class Lagrange2(pg.Discretization):
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
         mapping from :class:`Lagrange2` (H1, dofs at nodes and edge midpoints)
-        to the :class:`~pygeon.Nedelec1` (H(curl)) space.
+        to the :class:`~pygeon.NedelecF1` (H(curl)) space.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -369,7 +371,7 @@ class Lagrange2(pg.Discretization):
         match sd.dim:
             case 0:
                 # In a point, the differential is the trivial map
-                return sps.csc_array((0, 1))
+                return sps.csc_array((0, 0))
             case 1:
                 # In 1D, the gradient of the nodal functions scales as 1/h
                 diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()
@@ -399,7 +401,7 @@ class Lagrange2(pg.Discretization):
             case 3:
                 edge_nodes = sd.ridge_peaks
                 num_edges = sd.num_ridges
-                # By design of Nedelec1, we orient the second dof
+                # By design of NedelecF1, we orient the second dof
                 # on an edge opposite to the first in 3D
                 second_dof_scaling = -1
             case _:
@@ -421,7 +423,7 @@ class Lagrange2(pg.Discretization):
         diff_nodes_1_csr.data[edge_nodes.data == 1] = 3
         diff_nodes_1_csr.data[edge_nodes.data == -1] = 1
 
-        # Rescale due to design choices in Nedelec1
+        # Rescale due to design choices in NedelecF1
         diff_1 = second_dof_scaling * sps.hstack(
             (diff_nodes_1_csr, -4 * sps.eye_array(num_edges))
         )
@@ -507,7 +509,7 @@ class Lagrange2(pg.Discretization):
 
         coords = np.hstack((sd.nodes, edge_coords))
 
-        return np.array([func(x) for x in coords.T])
+        return self.eval_func_at_coords(func, coords)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -526,18 +528,16 @@ class Lagrange2(pg.Discretization):
         Returns:
             np.ndarray: The assembled 'natural' boundary condition values.
         """
+        vals = np.zeros(self.ndof(sd))
+
         # In 1D, we reuse the code from P1
         if sd.dim == 1:
-            # NOTE we pass self so that ndof() is taken from P2, not P1
-            return Lagrange1.assemble_nat_bc(
-                cast(pg.Lagrange1, self), sd, func, b_faces
-            )
+            vals[: sd.num_nodes] = Lagrange1().assemble_nat_bc(sd, func, b_faces)
+            return vals
 
         # 2D and 3D
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
-
-        vals = np.zeros(self.ndof(sd))
 
         M = pg.PwQuadratics().assemble_local_mass(sd.dim - 1)
         edge_nodes = sd.face_ridges if sd.dim == 2 else sd.ridge_peaks
@@ -592,7 +592,7 @@ class Lagrange2(pg.Discretization):
         """
         match dim:
             case 3:
-                return pg.Nedelec1
+                return pg.NedelecF1
             case 2:
                 return pg.BDM1
             case 1:

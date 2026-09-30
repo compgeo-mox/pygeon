@@ -22,14 +22,14 @@ def test_mass_matrix(discr, ref_square):
     M_known = (
         np.array(
             [
-                [17, -9, -9, 13, 0, 0, 0, 0],
-                [-9, 17, 13, -9, 0, 0, 0, 0],
-                [-9, 13, 17, -9, 0, 0, 0, 0],
-                [13, -9, -9, 17, 0, 0, 0, 0],
-                [0, 0, 0, 0, 17, -9, -9, 13],
-                [0, 0, 0, 0, -9, 17, 13, -9],
-                [0, 0, 0, 0, -9, 13, 17, -9],
-                [0, 0, 0, 0, 13, -9, -9, 17],
+                [17, -9, 0, 0, -9, 13, 0, 0],
+                [-9, 17, 0, 0, 13, -9, 0, 0],
+                [0, 0, 17, -9, 0, 0, -9, 13],
+                [0, 0, -9, 17, 0, 0, 13, -9],
+                [-9, 13, 0, 0, 17, -9, 0, 0],
+                [13, -9, 0, 0, -9, 17, 0, 0],
+                [0, 0, -9, 13, 0, 0, 17, -9],
+                [0, 0, 13, -9, 0, 0, -9, 17],
             ]
         )
         / 48
@@ -44,10 +44,10 @@ def test_proj_to_VRT0(discr, ref_square):
     P_known = (
         np.array(
             [
-                [1, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 1, 1, 0, 0, 0, 0],
-                [0, 0, 0, 0, 1, 1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 1, 0, 0, 0],
+                [0, 1, 0, 0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0, 0, 1, 0],
+                [0, 0, 0, 1, 0, 0, 0, 1],
             ]
         )
         / 2
@@ -64,7 +64,7 @@ def test_proj_from_RT0(discr, ref_square):
 def test_diff_matrix(discr, ref_square):
     D = discr.assemble_diff_matrix(ref_square)
 
-    D_known = np.array([[-1, -1, 1, 1, -1, -1, 1, 1]]) / 2
+    D_known = np.array([[-1, 1, -1, 1, -1, 1, -1, 1]]) / 2
     assert matrix_equals(D.todense(), D_known)
 
 
@@ -74,8 +74,16 @@ def test_eval_at_cc(discr, ref_square):
 
 
 def test_interpolate(discr, ref_square):
-    with pytest.raises(NotImplementedError):
-        discr.interpolate(ref_square, None)
+    fun = lambda x: np.array([x[0], 0 * x[0], 0 * x[0]])
+
+    vals = discr.interpolate(ref_square, fun)
+    vals_known = np.array([0, 1, 0, 0, 0, 1, 0, 0])
+
+    assert np.allclose(vals, vals_known)
+
+    # projecting the interpolant gives the interpolant of the lowest order space
+    proj = discr.proj_to_VRT0(ref_square) @ vals
+    assert np.allclose(proj, pg.RT0("test").interpolate(ref_square, fun))
 
 
 def test_lumped(discr, ref_square):
@@ -90,7 +98,7 @@ def test_assemble_nat_bc(discr, pentagon_sd):
     vals = discr.assemble_nat_bc(pentagon_sd, fun, faces.nonzero()[0])
     vals_from_bool = discr.assemble_nat_bc(pentagon_sd, fun, faces)
 
-    vals_known = np.array([6, 12, 22, 26, 31, 32, 30, 27, 16, 8]) / 12
+    vals_known = np.array([6, 22, 31, 30, 16, 12, 26, 32, 27, 8]) / 12
 
     assert np.allclose(vals, vals_known)
     assert np.allclose(vals_from_bool, vals_known)

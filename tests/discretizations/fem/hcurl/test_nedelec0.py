@@ -8,8 +8,8 @@ from tests.helpers import matrix_equals
 
 
 @pytest.fixture
-def discr() -> pg.Nedelec0:
-    return pg.Nedelec0("test")
+def discr() -> pg.NedelecR0:
+    return pg.NedelecR0("test")
 
 
 def test_ndof(discr, ref_sd):

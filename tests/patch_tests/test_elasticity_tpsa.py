@@ -24,7 +24,7 @@ def setup(request):
     tpsa = pg.TPSA("test")
 
     # Compute a known solution
-    displacement = lambda x: np.array([x[dim - 1], 0, 0])
+    displacement = lambda x: np.array([x[dim - 1], 0 * x[0], 0 * x[0]])
     if dim == 2:
         rotation = lambda _: 1
     else:

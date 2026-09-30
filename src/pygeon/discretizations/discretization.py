@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from math import comb
 from typing import Callable, Type
 
 import numpy as np
@@ -50,10 +51,13 @@ class Discretization(abc.ABC):
             s += f" with keyword {self.keyword}"
         return s
 
-    @abc.abstractmethod
     def ndof(self, sd: pg.Grid) -> int:
         """
-        Returns the number of degrees of freedom associated to the method.
+        Returns the number of degrees of freedom associated to the method, given by
+        the dofs per entity contracted with the number of entities of the grid.
+
+        Spaces whose dofs are not shared between neighboring elements, such as the
+        discontinuous ones, override this method.
 
         Args:
             sd: Grid, or a subclass.
@@ -61,6 +65,39 @@ class Discretization(abc.ABC):
         Returns:
             ndof: the number of degrees of freedom.
         """
+        return int(self.ndof_per_entity(sd.dim) @ sd.num_entities())
+
+    @abc.abstractmethod
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom of a single element, ordered by
+        the dimension of the entity they are associated with as [0, 1, 2, 3].
+
+        The entries count all the dofs of the element that lie on entities of a
+        given dimension, so that their sum is the number of dofs per element. The
+        implementations assume a simplicial element.
+
+        Args:
+            dim: The dimension of the grid.
+
+        Returns:
+            np.ndarray: the number of degrees of freedom per entity, of size 4.
+        """
+
+    def ndof_per_element(self, dim: int) -> int:
+        """
+        Returns the number of degrees of freedom of a single element, obtained by
+        contracting the dofs per entity with the number of entities of a simplex
+        of dimension dim.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            int: The number of degrees of freedom per element.
+        """
+        num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
+        return int(self.ndof_per_entity(dim) @ num_entities)
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -196,6 +233,49 @@ class Discretization(abc.ABC):
         Returns:
             np.ndarray: The values of the degrees of freedom
         """
+
+    def eval_func_at_coords(
+        self, func: Callable[[np.ndarray], np.ndarray], coords: np.ndarray
+    ) -> np.ndarray:
+        """
+        Interpolates a function at given coordinates. We assume that func(x) rapidly
+        evaluates the given function for all coordinates in the columns of x.
+
+        Args:
+            func (Callable): A function that returns the function values at coordinates.
+            coords (np.ndarray): A coordinate array with shape (3, n).
+
+        Returns:
+            np.ndarray: The values of the degrees of freedom
+        """
+        # We first simply evaluate the function at the coordinates.
+        interp = np.asarray(func(coords))
+
+        # We can handle two cases: 1) the function is vectorized and returns an array
+        # with n entries, one for each column in coords. 2) It returns a constant value,
+        # either scalar or vector.
+
+        # 1) If the function is properly vectorized, it returns an array with the last
+        # axis indexing the evaluation points.
+        if interp.ndim > 0 and interp.shape[-1] == coords.shape[-1]:
+            return interp
+
+        # 2) For constant functions, we populate the array ourselves.
+        match interp.ndim:
+            # Interpolate constant scalar functions, e.g. lambda _: 1.
+            case 0:
+                return np.tile(interp, coords.shape[1])
+
+            # Interpolate constant vector functions, e.g. lambda _ : np.array([1, 0, 0])
+            case 1:
+                if interp.shape[0] == pg.AMBIENT_DIM:
+                    return np.tile(interp, (coords.shape[1], 1)).T
+
+        # Else, the input function does not meet the assumptions.
+        raise RuntimeError(
+            "Vectorize the function so that it can be evaluated for multiple columns"
+            + " of the input array."
+        )
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """

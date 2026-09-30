@@ -18,7 +18,7 @@ def test_ndof(discr, ref_sd):
 def test_trace_2d(discr, unit_sd_2d):
     trace = discr.assemble_trace_matrix(unit_sd_2d)
 
-    func = lambda x: np.tile(x, (pg.AMBIENT_DIM, 1))
+    func = lambda x: np.tile(x, (pg.AMBIENT_DIM, 1, 1))
     func_interp = discr.interpolate(unit_sd_2d, func)
 
     func_trace = lambda x: x[0] + x[1]
@@ -30,7 +30,7 @@ def test_trace_2d(discr, unit_sd_2d):
 def test_asym_2d(discr, unit_sd_2d):
     asym = discr.assemble_asym_matrix(unit_sd_2d)
 
-    func = lambda x: np.tile(x, (pg.AMBIENT_DIM, 1))
+    func = lambda x: np.tile(x, (pg.AMBIENT_DIM, 1, 1))
     func_interp = discr.interpolate(unit_sd_2d, func)
 
     func_asym = lambda x: x[0] - x[1]
@@ -83,7 +83,7 @@ def test_asym_3d(discr, unit_sd_3d):
 
 def test_assemble_mult_matrix_constant(discr, unit_sd):
     # Linear matrix function
-    func = lambda x: np.vstack([x] * pg.AMBIENT_DIM)
+    func = lambda x: np.tile(x, (pg.AMBIENT_DIM, 1, 1))
     vec = discr.interpolate(unit_sd, func)
 
     # Non-trivial multiplication matrix
@@ -94,9 +94,9 @@ def test_assemble_mult_matrix_constant(discr, unit_sd):
     mult = discr.assemble_mult_matrix(unit_sd, mult_mat.ravel(), right_mult=True)
 
     def right_func(x):
-        result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
-        result[: unit_sd.dim, : unit_sd.dim] = (
-            func(x)[: unit_sd.dim, : unit_sd.dim] @ given_matrix
+        result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM, x.shape[-1]))
+        result[: unit_sd.dim, : unit_sd.dim] = np.einsum(
+            "ijk,jl->ilk", func(x)[: unit_sd.dim, : unit_sd.dim], given_matrix
         )
         return result
 
@@ -105,9 +105,9 @@ def test_assemble_mult_matrix_constant(discr, unit_sd):
 
     # Test the left multiplication
     def left_func(x):
-        result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
-        result[: unit_sd.dim, : unit_sd.dim] = (
-            given_matrix @ func(x)[: unit_sd.dim, : unit_sd.dim]
+        result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM, x.shape[-1]))
+        result[: unit_sd.dim, : unit_sd.dim] = np.einsum(
+            "ij,jkl->ikl", given_matrix, func(x)[: unit_sd.dim, : unit_sd.dim]
         )
         return result
 
@@ -119,25 +119,21 @@ def test_assemble_mult_matrix_constant(discr, unit_sd):
 
 def test_assemble_mult_matrix_heaviside(discr, unit_sd_1d):
     # Linear matrix function
-    func = lambda x: np.vstack([x] * pg.AMBIENT_DIM)
+    func = lambda x: np.tile(x, (pg.AMBIENT_DIM, 1, 1))
     linear = discr.interpolate(unit_sd_1d, func)
 
     # Heaviside
-    func_hs = lambda x: (
-        np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
-        if x[0] < np.median(unit_sd_1d.nodes[0])
-        else np.eye(pg.AMBIENT_DIM)
-    )
+    def func_hs(x):
+        hs = x[0] < np.median(unit_sd_1d.nodes[0])
+        ans = np.repeat(np.eye(pg.AMBIENT_DIM)[:, :, None], x.shape[-1], axis=2)
+
+        return ans * hs
+
     hs = discr.interpolate(unit_sd_1d, func_hs)
 
     # Known output
     def ramp(x):
-        result = np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
-        result[: unit_sd_1d.dim, : unit_sd_1d.dim] = (
-            func_hs(x)[: unit_sd_1d.dim, : unit_sd_1d.dim]
-            @ func(x)[: unit_sd_1d.dim, : unit_sd_1d.dim]
-        )
-        return result
+        return func(x) * (x[0] < np.median(unit_sd_1d.nodes[0]))
 
     known = discr.interpolate(unit_sd_1d, ramp)
 

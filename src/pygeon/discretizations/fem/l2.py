@@ -2,7 +2,7 @@
 
 import abc
 from functools import cache
-from math import factorial
+from math import comb, factorial
 from typing import Callable, Type
 
 import numpy as np
@@ -24,18 +24,20 @@ class PwPolynomials(pg.Discretization):
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
 
-    def ndof(self, sd: pg.Grid) -> int:
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
-        Returns the number of degrees of freedom associated to the method.
-        In this case, it returns the number of cells in the grid.
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per cell.
 
         Args:
-            sd (pg.Grid): The grid object.
+            dim (int): The dimension of the grid.
 
         Returns:
-            int: The number of degrees of freedom.
+            np.ndarray: The number of degrees of freedom per entity.
         """
-        return sd.num_cells * self.ndof_per_cell(sd)
+        ndof = comb(dim + self.poly_order, self.poly_order)
+        return np.roll([ndof, 0, 0, 0], dim)  # cells
 
     def local_dofs_of_cell(self, sd: pg.Grid, c: int) -> np.ndarray:
         """
@@ -48,19 +50,7 @@ class PwPolynomials(pg.Discretization):
         Returns:
             np.ndarray: Array of local DOF indices associated with the cell.
         """
-        return sd.num_cells * np.arange(self.ndof_per_cell(sd)) + c
-
-    @abc.abstractmethod
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
+        return sd.num_cells * np.arange(self.ndof_per_element(sd.dim)) + c
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -296,18 +286,6 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    def ndof_per_cell(self, _sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
-        return 1
-
     def assemble_local_mass(self, _dim: int) -> np.ndarray:
         r"""
         Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
@@ -404,9 +382,8 @@ class PwConstants(PwPolynomials):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        return np.array(
-            [func(x) * vol for (x, vol) in zip(sd.cell_centers.T, sd.cell_volumes)]
-        )
+        vals = self.eval_func_at_coords(func, sd.cell_centers)
+        return vals * sd.cell_volumes
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -444,18 +421,6 @@ class PwLinears(PwPolynomials):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
-        return sd.dim + 1
 
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         r"""
@@ -527,7 +492,7 @@ class PwLinears(PwPolynomials):
         gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
 
         # Evaluate the function at the Gauss points.
-        func_at_gauss = np.array([func(x) for x in gauss_pts.T])
+        func_at_gauss = self.eval_func_at_coords(func, gauss_pts)
 
         # To retrieve the values at the nodes, we first compute the value of the
         # interpolated function at the cell center. Since the Gauss points are
@@ -654,18 +619,6 @@ class PwQuadratics(PwPolynomials):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    def ndof_per_cell(self, sd: pg.Grid) -> int:
-        """
-        Returns the number of degrees of freedom per cell.
-
-        Args:
-            sd (pg.Grid): The grid object.
-
-        Returns:
-            int: The number of degrees of freedom per cell.
-        """
-        return (sd.dim + 1) * (sd.dim + 2) // 2
 
     def num_edges_per_cell(self, dim: int) -> int:
         """
@@ -897,23 +850,20 @@ class PwQuadratics(PwPolynomials):
         edge_nodes = self.get_local_edge_nodes(sd.dim)
 
         cell_nodes = sd.cell_nodes()
-        vals = np.empty((sd.num_cells, self.ndof_per_cell(sd)))
+        nodes_per_cell = np.reshape(cell_nodes.indices, (sd.num_cells, -1))
 
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        coord_list = [sd.nodes[:, nodes_per_cell.ravel(order="F")]]
 
-            vals[c, : sd.dim + 1] = [func(x) for x in sd.nodes[:, nodes_loc].T]
+        for edge in edge_nodes:
+            edge_coord = (
+                sd.nodes[:, nodes_per_cell[:, edge[0]]]
+                + sd.nodes[:, nodes_per_cell[:, edge[1]]]
+            ) / 2
+            coord_list.append(edge_coord)
 
-            edge_nodes_loc = nodes_loc[edge_nodes]
-            edge_mid_pt = (
-                sd.nodes[:, edge_nodes_loc[:, 0]] + sd.nodes[:, edge_nodes_loc[:, 1]]
-            )
-            edge_mid_pt /= 2
+        coords = np.hstack(coord_list)
 
-            vals[c, sd.dim + 1 :] = [func(x) for x in edge_mid_pt.T]
-
-        return vals.ravel(order="F")
+        return self.eval_func_at_coords(func, coords)
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""

@@ -66,6 +66,23 @@ class Grid(pp.Grid):
         self.compute_edge_properties()
         self.compute_mesh_size()
 
+    def num_entities(self) -> np.ndarray:
+        """
+        Returns the number of geometric entities, ordered by the dimension of the
+        entity as [0, 1, 2, 3]. For a grid of dimension d, the entry d contains the
+        cells, d - 1 the faces, d - 2 the ridges and d - 3 the peaks, while the
+        entries above d are zero. Since the entities of codimension larger than d
+        are counted as zero, the entries above d are obtained by a cyclic shift.
+
+        Args:
+            None
+
+        Returns:
+            np.ndarray: The number of entities per dimension, of size 4.
+        """
+        num_entities = [self.num_peaks, self.num_ridges, self.num_faces, self.num_cells]
+        return np.roll(num_entities, self.dim - 3)
+
     def compute_ridges(self) -> None:
         """
         Computes the ridges of the grid and assigns the following attributes:
@@ -185,22 +202,19 @@ class Grid(pp.Grid):
         orientations = np.sign(ridges[1, :] - ridges[0, :])
 
         # Ridges are oriented from low to high node indices, i.e. [0,1], [0,2], [1,2].
-        ridges.sort(axis=0)
+        # Using np.sort on an array of length 2 is wasteful, so we simply compute the
+        # max and min in each column.
+        sorted_ridges = np.empty_like(ridges)
+        np.minimum(ridges[0], ridges[1], out=sorted_ridges[0])
+        np.maximum(ridges[0], ridges[1], out=sorted_ridges[1])
 
-        # Identify the ridges based on unique pairs of peaks. We do this by creating a
-        # sparse array. If ridge r has nodes (x_i, x_j) then A_ij = index_r. This way we
-        # can easily look up the unique index of a ridge based on its nodes.
-        ridge_index = sps.coo_array(
-            (np.ones(ridges.shape[1]), (ridges[0], ridges[1])), dtype=int
-        )
-        ridge_index.sum_duplicates()
-        ridge_index.data = np.arange(ridge_index.nnz)
+        # Identify the ridges based on unique pairs of peaks. We do this by encoding
+        # each index pair as an integer using numpy multi-indexing. Calling unique on
+        # an integer array is much faster than comparing pairs of ints.
+        ridges_enc = np.ravel_multi_index(sorted_ridges, [self.num_nodes] * 2)
+        unique_enc, indices = np.unique(ridges_enc, return_inverse=True)
+        ridges = np.vstack(np.unravel_index(unique_enc, [self.num_nodes] * 2))
 
-        # Extract the indices of the found ridges
-        indices = ridge_index.tocsr()[ridges[0], ridges[1]]
-
-        # We can now replace the ridges array to the one without duplicates
-        ridges = np.vstack((ridge_index.row, ridge_index.col))
         self.num_ridges = np.size(ridges, 1)
 
         # Generate ridge-peak connectivity such that

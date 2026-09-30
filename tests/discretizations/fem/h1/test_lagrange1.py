@@ -187,7 +187,7 @@ def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
 def test_range_discr(discr: pg.Lagrange1):
     assert discr.get_range_discr_class(1) is pg.PwConstants
     assert discr.get_range_discr_class(2) is pg.RT0
-    assert discr.get_range_discr_class(3) is pg.Nedelec0
+    assert discr.get_range_discr_class(3) is pg.NedelecR0
 
 
 def test_assemble_lumped_matrix(discr: pg.Lagrange1, ref_sd: pg.Grid):

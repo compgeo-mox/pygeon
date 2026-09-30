@@ -76,7 +76,7 @@ def test_interpolate(discr, unit_sd):
 
 def test_interpolate_heaviside(discr, unit_sd_1d):
     def heaviside(x):
-        return 0 if x[0] < 0.5 else 1
+        return x[0] >= 0.5
 
     true_norm_squared = 0.5
     mass = discr.assemble_mass_matrix(unit_sd_1d)
@@ -96,7 +96,7 @@ def test_proj_to_lower_PwPolynomials(discr, unit_sd):
     P0 = pg.PwConstants()
 
     Proj = discr.proj_to_lower_PwPolynomials(unit_sd)
-    fun_P1 = discr.interpolate(unit_sd, lambda x: np.sum(x))
-    fun_P0 = P0.interpolate(unit_sd, lambda x: np.sum(x))
+    fun_P1 = discr.interpolate(unit_sd, lambda x: np.sum(x, axis=0))
+    fun_P0 = P0.interpolate(unit_sd, lambda x: np.sum(x, axis=0))
 
     assert np.allclose(Proj @ fun_P1, fun_P0)

@@ -101,7 +101,7 @@ Global index of face DOF $(f, k)$: $f + k\,N_\text{faces}$; global index of cell
 $(c, k)$: $d\,N_\text{faces} + c + k\,N_\text{cells}$.
 
 
-### `Nedelec0` — $H(\text{curl})$, lowest-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L11))
+### `NedelecR0` — $H(\text{curl})$, lowest-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L11))
 
 One DOF per mesh **edge**.
 
@@ -112,7 +112,7 @@ $$N_\text{dof} = N_\text{edges}$$
 **DOF ordering.** DOF $e$ has global index $e$ (directly indexed by edge number).
 
 
-### `Nedelec1` — $H(\text{curl})$, first-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L161))
+### `NedelecF1` — $H(\text{curl})$, first-order Nédélec ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hcurl.py#L161))
 
 Analogous to BDM1 but for tangential circulations: the tangential component along each
 edge is allowed to vary linearly, requiring one DOF per (edge, node) pair. Each edge

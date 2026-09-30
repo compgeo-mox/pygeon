@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # Project information.
 [project]
 name = "pygeon"
-version = "1.0.0"
+version = "1.1.0"
 description = "a Python package for GEO-Numerics"
 readme = "Readme.md"
 license = { text = "GPL" }
