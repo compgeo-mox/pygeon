@@ -6,10 +6,10 @@
 # all code owners, so the warning can easily go unnoticed.
 #
 # This workflow runs weekly and, if the repository has been quiet for a
-# while, opens (or comments on) a single GitHub issue assigning the code
-# owners, so everyone is aware the nightly schedules are close to being
-# auto-disabled. It does not push any commits and does not try to
-# artificially "revive" a stale repository -- it only notifies.
+# while, opens a new GitHub issue assigning the code owners, so everyone
+# is aware the nightly schedules are close to being auto-disabled. It
+# does not push any commits and does not try to artificially "revive" a
+# stale repository -- it only notifies.
 name: Schedule Health Check
 
 on:
@@ -66,26 +66,10 @@ jobs:
               "@wmboon @alessiofumagalli - please push a commit, merge a PR, or manually re-enable the scheduled workflows from the Actions tab to keep the nightly checks running.",
             ].join("\n");
 
-            const { data: issues } = await github.rest.issues.listForRepo({
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: "open",
+              title,
+              body,
               labels: ["workflow-health"],
             });
-
-            if (issues.length > 0) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issues[0].number,
-                body,
-              });
-            } else {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title,
-                body,
-                labels: ["workflow-health"],
-              });
-            }
