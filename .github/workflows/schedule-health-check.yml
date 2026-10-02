@@ -1,0 +1,75 @@
+# GitHub automatically disables *scheduled* workflows (like the nightly
+# Pytest run in run-pytest.yml) after 60 days without any repository
+# activity (pushes, merged PRs, etc.) -- there is no setting to opt out
+# of this. GitHub does send a warning email before that happens, but
+# only to the person who last edited the workflow's schedule, not to
+# all code owners, so the warning can easily go unnoticed.
+#
+# This workflow runs weekly and, if the repository has been quiet for a
+# while, opens a new GitHub issue assigning the code owners, so everyone
+# is aware the nightly schedules are close to being auto-disabled. It
+# does not push any commits and does not try to artificially "revive" a
+# stale repository -- it only notifies.
+name: Schedule Health Check
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # every Monday
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: schedule-health-check
+  cancel-in-progress: false
+
+jobs:
+  check-activity:
+    name: Check for stale scheduled workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check days since last commit
+        id: check
+        run: |
+          last_commit_epoch=$(git log -1 --format=%ct)
+          now_epoch=$(date +%s)
+          days_since=$(( (now_epoch - last_commit_epoch) / 86400 ))
+          echo "Days since last commit: $days_since"
+          echo "days_since=$days_since" >> "$GITHUB_OUTPUT"
+          # GitHub disables scheduled workflows after 60 days of
+          # inactivity, so warn with a week or so of lead time.
+          if [ "$days_since" -ge 53 ]; then
+            echo "warn=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "warn=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify code owners
+        if: steps.check.outputs.warn == 'true'
+        uses: actions/github-script@v7
+        env:
+          DAYS_SINCE: ${{ steps.check.outputs.days_since }}
+        with:
+          script: |
+            const title = "Repository inactivity: scheduled workflows may soon be disabled";
+            const body = [
+              `The repository has had no push/merge activity for **${process.env.DAYS_SINCE} days**.`,
+              "",
+              "GitHub automatically disables *scheduled* workflows (e.g. the nightly `run-pytest.yml` run) after 60 days of repository inactivity, with no way to opt out.",
+              "",
+              "@wmboon @alessiofumagalli - please push a commit, merge a PR, or manually re-enable the scheduled workflows from the Actions tab to keep the nightly checks running.",
+            ].join("\n");
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ["workflow-health"],
+            });
