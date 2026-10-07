@@ -1,6 +1,7 @@
 """Module contains tests for the symbolic differential operators."""
 
 import numpy as np
+import porepy as pp
 import pytest
 import sympy as sp
 
@@ -547,3 +548,50 @@ def test_divergence_matches_the_discrete_differential(coords, unit_sd_3d):
     )
 
     assert np.allclose(discrete, interpolated)
+
+
+def test_matrix_operators_match_the_discrete_ones(coords, unit_sd):
+    if unit_sd.dim == 1:
+        return  # the matrix operators are defined in two and three dimensions
+    x, y, z = coords
+    sd, dim = unit_sd, unit_sd.dim
+
+    if dim == 2:
+        matrix = sp.Matrix([[x + 2 * y, 3 * x, 0], [y, 2 * x + y, 0], [0, 0, 0]])
+    else:
+        matrix = sp.Matrix(
+            [[x + 2 * y, 3 * x - z, z], [y, 2 * x + z, x - y], [z + x, y, 3 * z]]
+        )
+    # the rotation is a scalar in two dimensions, the third component of vsk
+    vsk = pg.exact.vsk(matrix)
+    vsk = vsk[2] if dim == 2 else vsk
+
+    # piecewise constant matrices
+    discr = pg.MatPwConstants()
+    interp = discr.interpolate(sd, pg.exact.to_callable(matrix))
+
+    trace = pg.PwConstants().interpolate(sd, pg.exact.to_callable(matrix.trace()))
+    assert np.allclose(discr.assemble_trace_matrix(sd) @ interp, trace)
+
+    rot_space = pg.PwConstants() if dim == 2 else pg.VecPwConstants()
+    rot = rot_space.interpolate(sd, pg.exact.to_callable(vsk))
+    assert np.allclose(discr.assemble_asym_matrix(sd) @ interp, rot)
+
+    # the deviator matrix is (dev sigma / (2 mu), tau), here with mu = 1
+    data = pp.initialize_data({}, discr.keyword, {pg.LAME_MU: 1.0})
+    dev = discr.interpolate(sd, pg.exact.to_callable(pg.exact.dev(matrix, dim)))
+    assert np.allclose(
+        discr.assemble_deviator_matrix(sd, data) @ interp,
+        discr.assemble_mass_matrix(sd) @ dev / 2,
+    )
+
+    # BDM1 matrices, exact for linear functions
+    discr_bdm1 = pg.VecBDM1()
+    interp = discr_bdm1.interpolate(sd, pg.exact.to_callable(matrix))
+
+    trace = pg.PwLinears().interpolate(sd, pg.exact.to_callable(matrix.trace()))
+    assert np.allclose(discr_bdm1.assemble_trace_matrix(sd) @ interp, trace)
+
+    rot_space = pg.PwLinears() if dim == 2 else pg.VecPwLinears()
+    rot = rot_space.interpolate(sd, pg.exact.to_callable(vsk))
+    assert np.allclose(discr_bdm1.assemble_asym_matrix(sd) @ interp, rot)
