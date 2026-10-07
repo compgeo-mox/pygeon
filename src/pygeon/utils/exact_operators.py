@@ -418,7 +418,7 @@ def jaumann_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
 
 
 def to_callable(
-    expression: sp.Expr | sp.Matrix, dim: int = pg.AMBIENT_DIM
+    expression: sp.Expr | sp.Matrix, dim: int = pg.AMBIENT_DIM, t: float | None = None
 ) -> Callable[[np.ndarray], np.ndarray]:
     """
     Turns a symbolic expression into a function of the coordinates, vectorized as the
@@ -431,14 +431,30 @@ def to_callable(
     matrix, are retained, so that a two-dimensional problem is obtained by passing
     dim = 2.
 
+    An expression depending on the time, the symbol returned by time(), is evaluated
+    at the given time t, so that a function of the coordinates is obtained at each
+    time step. An expression independent of time needs no t.
+
     Args:
         expression (sp.Expr | sp.Matrix): The scalar, vector or matrix expression.
         dim (int): The number of components to retain. Default pg.AMBIENT_DIM.
+        t (float | None): The time at which the expression is evaluated. Default None.
 
     Returns:
         Callable[[np.ndarray], np.ndarray]: The function evaluating the expression.
+
+    Raises:
+        ValueError: If the expression depends on the time and no t is given.
     """
     symbols = coordinates()
+
+    if t is not None:
+        expression = expression.subs(time(), t)
+    if time() in expression.free_symbols:
+        raise ValueError(
+            f"The expression depends on the time {time()}, pass the time t at which "
+            "it is evaluated."
+        )
 
     if isinstance(expression, sp.MatrixBase):
         rows, cols = expression.shape

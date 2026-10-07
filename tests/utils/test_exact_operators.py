@@ -386,6 +386,27 @@ def test_to_callable_at_a_single_point(coords):
     assert np.allclose(vector(point), [0.25, 0.75, 0.0])
 
 
+def test_to_callable_in_time(coords):
+    x, y, _ = coords
+    t = pg.exact.time()
+    pts = np.array([[0.0, 1.0, 2.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]])
+
+    scalar = pg.exact.to_callable(x * t + y, t=2.0)
+    vector = pg.exact.to_callable(sp.Matrix([sp.sin(t) * x, y, 0]), 2, t=0.0)
+
+    assert np.allclose(scalar(pts), 2 * pts[0] + pts[1])
+    assert np.allclose(vector(pts), [np.zeros(3), pts[1]])
+    # a time is accepted, and ignored, by an expression independent of time
+    assert np.allclose(pg.exact.to_callable(x, t=1.0)(pts), pts[0])
+
+
+def test_to_callable_rejects_a_missing_time(coords):
+    x, _, _ = coords
+
+    with pytest.raises(ValueError):
+        pg.exact.to_callable(x * pg.exact.time())
+
+
 def test_to_callable_rejects_wrong_coordinates(coords):
     x, _, _ = coords
 
