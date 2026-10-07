@@ -155,7 +155,8 @@ def sym(matrix: sp.Matrix) -> sp.Matrix:
 
 def skew(matrix: sp.Matrix) -> sp.Matrix:
     r"""
-    Computes the skew-symmetric part :math:`(\sigma - \sigma^\top) / 2` of a matrix.
+    Computes the skew-symmetric part :math:`(\sigma - \sigma^\top) / 2 =
+    \frac{1}{2} \operatorname{msk} \operatorname{vsk} \sigma` of a matrix.
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
@@ -163,31 +164,36 @@ def skew(matrix: sp.Matrix) -> sp.Matrix:
     Returns:
         sp.Matrix: The skew-symmetric part.
     """
-    return sp.simplify((matrix - matrix.T) / 2)
+    return msk(vsk(matrix)) / 2
 
 
-def asym(matrix: sp.Matrix) -> sp.Matrix:
+def vsk(matrix: sp.Matrix) -> sp.Matrix:
     r"""
-    Computes the axial vector of the skew-symmetric part of a matrix, the inverse of
-    asym_T up to the factor two.
+    Computes the vector :math:`\operatorname{vsk} \sigma` collecting the entries of
+    :math:`\sigma - \sigma^\top`, so that it vanishes for symmetric matrices. In two
+    dimensions the scalar :math:`\sigma_{21} - \sigma_{12}` is the third component.
+    It is the adjoint of msk, and :math:`\sigma = \operatorname{sym} \sigma +
+    \frac{1}{2} \operatorname{msk} \operatorname{vsk} \sigma`.
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
 
     Returns:
-        sp.Matrix: The axial vector, of size three.
+        sp.Matrix: The vector, of size three.
     """
     diff = matrix - matrix.T
     return sp.simplify(sp.Matrix([diff[2, 1], diff[0, 2], diff[1, 0]]))
 
 
-def asym_T(vector: sp.Matrix) -> sp.Matrix:
+def msk(vector: sp.Matrix) -> sp.Matrix:
     r"""
-    Computes the skew-symmetric matrix having the given vector as axial vector, so
-    that the matrix times a vector is the cross product of the two vectors.
+    Computes the skew-symmetric matrix :math:`\operatorname{msk} w` such that the
+    matrix times a vector is the cross product of w with that vector. In two
+    dimensions only the third component of w enters the leading two by two block.
+    It is the adjoint of vsk.
 
     Args:
-        vector (sp.Matrix): The axial vector, of size three.
+        vector (sp.Matrix): The vector, of size three.
 
     Returns:
         sp.Matrix: The skew-symmetric matrix, of size three by three.

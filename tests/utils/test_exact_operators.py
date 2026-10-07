@@ -89,15 +89,59 @@ def test_sym_and_skew(coords):
 
     assert pg.exact.sym(matrix) == pg.exact.sym(matrix).T
     assert pg.exact.skew(matrix) == -pg.exact.skew(matrix).T
+    assert pg.exact.skew(matrix) == (matrix - matrix.T) / 2
     assert pg.exact.sym(matrix) + pg.exact.skew(matrix) == matrix
 
 
-def test_asym_of_asym_T(coords):
+def test_vsk_of_msk(coords):
     x, y, z = coords
     vector = sp.Matrix([x, y, z])
 
-    # asym collects the entries of the difference with the transpose, hence the two
-    assert list(pg.exact.asym(pg.exact.asym_T(vector))) == list(2 * vector)
+    # vsk collects the entries of the difference with the transpose, hence the two
+    assert list(pg.exact.vsk(pg.exact.msk(vector))) == list(2 * vector)
+
+
+def test_vsk_and_msk_in_two_dimensions(coords):
+    x, y, _ = coords
+    matrix = sp.Matrix([[x, y, 0], [x * y, 1, 0], [0, 0, 0]])
+
+    # the two-dimensional vsk is the scalar sigma_21 - sigma_12, in the third component
+    assert list(pg.exact.vsk(matrix)) == [0, 0, y * (x - 1)]
+    assert pg.exact.msk(sp.Matrix([0, 0, x])) == sp.Matrix(
+        [[0, -x, 0], [x, 0, 0], [0, 0, 0]]
+    )
+
+
+def test_msk_is_the_cross_product(coords):
+    x, y, z = coords
+    vector, other = sp.Matrix([x, y, z]), sp.Matrix([z, 1, x * y])
+
+    assert sp.simplify(pg.exact.msk(vector) @ other - vector.cross(other)) == sp.zeros(
+        3, 1
+    )
+
+
+def test_vsk_and_msk_are_adjoint(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, z], [y * z, 1, x], [0, x**2, z]])
+    vector = sp.Matrix([z, x, y])
+
+    # (vsk sigma) . w = sigma : msk w
+    lhs = pg.exact.vsk(matrix).dot(vector)
+    rhs = pg.exact.double_dot(matrix, pg.exact.msk(vector))
+
+    assert sp.simplify(lhs - rhs) == 0
+
+
+def test_sym_skew_decomposition_with_vsk_and_msk(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, z], [y * z, 1, x], [0, x**2, z]])
+
+    # sigma = sym sigma + msk vsk sigma / 2, and vsk vanishes on symmetric matrices
+    rebuilt = pg.exact.sym(matrix) + pg.exact.msk(pg.exact.vsk(matrix)) / 2
+
+    assert sp.simplify(rebuilt - matrix) == sp.zeros(3)
+    assert pg.exact.vsk(pg.exact.sym(matrix)) == sp.zeros(3, 1)
 
 
 def test_identity():
