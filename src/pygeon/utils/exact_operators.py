@@ -4,7 +4,8 @@ The operators act on sympy expressions written in the three coordinates returned
 coordinates(), so that scalars, vectors and matrices are always expressed in the
 ambient dimension. A two-dimensional problem is recovered by using expressions that
 do not depend on the third coordinate, and by asking to_callable for the components
-of interest.
+of interest. The time derivatives, as the material and the objective ones, act on the
+symbol returned by time().
 """
 
 from typing import Callable
@@ -26,6 +27,19 @@ def coordinates() -> tuple:
         tuple: The symbols (x, y, z).
     """
     return sp.symbols("x y z")
+
+
+def time() -> sp.Symbol:
+    """
+    Returns the symbol of the time, the variable of the time derivatives.
+
+    Args:
+        None
+
+    Returns:
+        sp.Symbol: The symbol t.
+    """
+    return sp.Symbol("t")
 
 
 def gradient(scalar: sp.Expr) -> sp.Matrix:
@@ -295,6 +309,112 @@ def spin_tensor(vector: sp.Matrix) -> sp.Matrix:
         sp.Matrix: The spin tensor, of size three by three.
     """
     return skew(vector_gradient(vector))
+
+
+def time_derivative(function: sp.Expr | sp.Matrix) -> sp.Expr | sp.Matrix:
+    r"""
+    Computes the partial derivative :math:`\partial_t f` in time, the symbol returned
+    by time(), componentwise for vectors and matrices.
+
+    Args:
+        function (sp.Expr | sp.Matrix): The scalar, vector or matrix function.
+
+    Returns:
+        sp.Expr | sp.Matrix: The time derivative, of the same type as the input.
+    """
+    return sp.simplify(sp.diff(function, time()))
+
+
+def advection(
+    function: sp.Expr | sp.Matrix, velocity: sp.Matrix
+) -> sp.Expr | sp.Matrix:
+    r"""
+    Computes the advective term :math:`(u \cdot \nabla) f = \nabla f \cdot u` of a
+    function transported by the velocity u, componentwise for vectors and matrices.
+
+    Args:
+        function (sp.Expr | sp.Matrix): The scalar, vector or matrix function.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Expr | sp.Matrix: The advective term, of the same type as the input.
+    """
+    if isinstance(function, sp.MatrixBase):
+        return function.applyfunc(lambda entry: advection(entry, velocity))
+    return sp.simplify(gradient(function).dot(velocity))
+
+
+def material_derivative(
+    function: sp.Expr | sp.Matrix, velocity: sp.Matrix
+) -> sp.Expr | sp.Matrix:
+    r"""
+    Computes the material derivative :math:`D_t f = \partial_t f + (u \cdot \nabla) f`
+    of a function transported by the velocity u, the sum of time_derivative and
+    advection, componentwise for vectors and matrices.
+
+    Args:
+        function (sp.Expr | sp.Matrix): The scalar, vector or matrix function.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Expr | sp.Matrix: The material derivative, of the same type as the input.
+    """
+    return sp.simplify(time_derivative(function) + advection(function, velocity))
+
+
+def upper_convected_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the upper-convected derivative :math:`D_t \tau - (\nabla u) \tau - \tau
+    (\nabla u)^\top` of a matrix transported by the velocity u.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Matrix: The upper-convected derivative, of size three by three.
+    """
+    grad = vector_gradient(velocity)
+    return sp.simplify(
+        material_derivative(matrix, velocity) - grad @ matrix - matrix @ grad.T
+    )
+
+
+def lower_convected_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the lower-convected derivative :math:`D_t \tau + (\nabla u)^\top \tau +
+    \tau \nabla u` of a matrix transported by the velocity u.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Matrix: The lower-convected derivative, of size three by three.
+    """
+    grad = vector_gradient(velocity)
+    return sp.simplify(
+        material_derivative(matrix, velocity) + grad.T @ matrix + matrix @ grad
+    )
+
+
+def jaumann_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the Jaumann, or co-rotational, derivative :math:`D_t \tau + \tau \Omega -
+    \Omega \tau` of a matrix transported by the velocity u, with :math:`\Omega` the
+    spin tensor of u.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Matrix: The Jaumann derivative, of size three by three.
+    """
+    spin = spin_tensor(velocity)
+    return sp.simplify(
+        material_derivative(matrix, velocity) + matrix @ spin - spin @ matrix
+    )
 
 
 def to_callable(

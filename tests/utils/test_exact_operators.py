@@ -229,6 +229,130 @@ def test_spin_of_rigid_rotation(coords):
     assert pg.exact.spin_tensor(vector) == pg.exact.msk(axis)
 
 
+@pytest.fixture
+def flow(coords):
+    x, y, z = coords
+    t = pg.exact.time()
+
+    velocity = sp.Matrix([y * t, x**2, sp.sin(z)])
+    tensor = sp.Matrix([[x * t, y, z], [y, t**2, x * z], [z, x * z, y]])
+
+    return velocity, tensor
+
+
+def test_time_derivative(coords):
+    x, y, _ = coords
+    t = pg.exact.time()
+
+    assert pg.exact.time_derivative(x * t**2 + y) == 2 * x * t
+    assert pg.exact.time_derivative(sp.Matrix([sp.sin(t), x])) == sp.Matrix(
+        [sp.cos(t), 0]
+    )
+
+
+def test_advection(coords):
+    x, y, z = coords
+    velocity = sp.Matrix([y, x * z, 1])
+    scalar = x**2 * y + sp.sin(z)
+    vector = sp.Matrix([x * y, z**2, x])
+
+    # (u . grad) f for a scalar, and (grad v) u for a vector
+    known = 2 * x * y**2 + x**3 * z + sp.cos(z)
+    assert sp.simplify(pg.exact.advection(scalar, velocity) - known) == 0
+    assert sp.simplify(
+        pg.exact.advection(vector, velocity)
+        - pg.exact.vector_gradient(vector) @ velocity
+    ) == sp.zeros(3, 1)
+
+
+def test_material_derivative(coords):
+    x, y, z = coords
+    t = pg.exact.time()
+    shift = sp.Matrix([1, 2, -1])
+
+    # a function transported rigidly by a constant velocity has no material derivative
+    moved = [var - c * t for var, c in zip((x, y, z), shift)]
+    scalar = sp.sin(moved[0]) * moved[1] ** 2 + sp.exp(moved[2])
+    tensor = sp.Matrix([[scalar, moved[0]], [0, moved[1] * moved[2]]])
+
+    assert pg.exact.material_derivative(scalar, shift) == 0
+    assert pg.exact.material_derivative(tensor, shift) == sp.zeros(2)
+
+    # without velocity it is the partial derivative in time
+    assert pg.exact.material_derivative(x * t**2, sp.zeros(3, 1)) == 2 * x * t
+
+
+def test_convected_derivatives_of_identity(flow):
+    velocity, _ = flow
+    eps = pg.exact.symmetric_gradient(velocity)
+    identity = sp.eye(3)
+
+    upper = pg.exact.upper_convected_derivative(identity, velocity)
+    lower = pg.exact.lower_convected_derivative(identity, velocity)
+
+    assert sp.simplify(upper + 2 * eps) == sp.zeros(3)
+    assert sp.simplify(lower - 2 * eps) == sp.zeros(3)
+    assert pg.exact.jaumann_derivative(identity, velocity) == sp.zeros(3)
+
+
+def test_convected_derivatives_and_jaumann(flow):
+    velocity, tensor = flow
+    eps = pg.exact.symmetric_gradient(velocity)
+
+    upper = pg.exact.upper_convected_derivative(tensor, velocity)
+    lower = pg.exact.lower_convected_derivative(tensor, velocity)
+    jaumann = pg.exact.jaumann_derivative(tensor, velocity)
+
+    # the convected derivatives differ from the Jaumann one by the stretching terms
+    stretch = eps @ tensor + tensor @ eps
+    assert sp.simplify(upper - (jaumann - stretch)) == sp.zeros(3)
+    assert sp.simplify(lower - (jaumann + stretch)) == sp.zeros(3)
+
+
+def test_objective_derivatives_preserve_symmetry(flow):
+    velocity, tensor = flow
+
+    for derivative in (
+        pg.exact.upper_convected_derivative,
+        pg.exact.lower_convected_derivative,
+        pg.exact.jaumann_derivative,
+    ):
+        value = derivative(tensor, velocity)
+        assert sp.simplify(value - value.T) == sp.zeros(3)
+
+
+def test_trace_of_upper_convected_derivative(flow):
+    velocity, tensor = flow
+    eps = pg.exact.symmetric_gradient(velocity)
+
+    # for a symmetric tensor, Tr of the upper-convected derivative is
+    # D_t Tr(gamma) - 2 eps(u) : gamma
+    trace = pg.exact.upper_convected_derivative(tensor, velocity).trace()
+    known = pg.exact.material_derivative(
+        tensor.trace(), velocity
+    ) - 2 * pg.exact.double_dot(eps, tensor)
+
+    assert sp.simplify(trace - known) == 0
+
+
+def test_upper_convected_maxwell_of_polymeric_stress(flow):
+    velocity, gamma = flow
+    nu, eta = sp.symbols("nu eta", positive=True)
+    identity = sp.eye(3)
+
+    # sigma_p = nu (gamma - I) satisfies sigma_p + eta UC(sigma_p) = 2 nu eta eps(u)
+    # up to nu times the residual of the evolution eta UC(gamma) = I - gamma
+    sigma_p = nu * (gamma - identity)
+    uc_sigma_p = pg.exact.upper_convected_derivative(sigma_p, velocity)
+    uc_gamma = pg.exact.upper_convected_derivative(gamma, velocity)
+
+    maxwell = sigma_p + eta * uc_sigma_p
+    eps = pg.exact.symmetric_gradient(velocity)
+    residual = eta * uc_gamma - (identity - gamma)
+
+    assert sp.simplify(maxwell - 2 * nu * eta * eps - nu * residual) == sp.zeros(3)
+
+
 def test_to_callable_shapes(coords):
     x, y, z = coords
     pts = np.array([[0.0, 1.0, 2.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]])
