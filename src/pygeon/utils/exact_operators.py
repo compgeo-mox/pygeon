@@ -140,6 +140,21 @@ def matrix_divergence(matrix: sp.Matrix) -> sp.Matrix:
     return sp.simplify(sp.Matrix([divergence(matrix.row(i).T) for i in range(3)]))
 
 
+def matrix_curl(matrix: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the curl of a matrix function, the matrix whose row i is the curl of the
+    row i. For a two-dimensional problem the third column holds the scalar rotor of
+    the rows. Its divergence vanishes, as matrix_divergence acts on the rows.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+
+    Returns:
+        sp.Matrix: The curl, a matrix of size three by three.
+    """
+    return sp.Matrix.vstack(*[curl(matrix.row(i).T).T for i in range(3)])
+
+
 def sym(matrix: sp.Matrix) -> sp.Matrix:
     r"""
     Computes the symmetric part :math:`(\sigma + \sigma^\top) / 2` of a matrix.
@@ -252,6 +267,34 @@ def dev(matrix: sp.Matrix, dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
         sp.Matrix: The deviatoric part, of size three by three.
     """
     return sp.simplify(matrix - matrix.trace() / dim * identity(dim))
+
+
+def symmetric_gradient(vector: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the symmetric gradient :math:`\epsilon(u) = \operatorname{sym} \nabla u`
+    of a vector function.
+
+    Args:
+        vector (sp.Matrix): The vector function, of size three.
+
+    Returns:
+        sp.Matrix: The symmetric gradient, of size three by three.
+    """
+    return sym(vector_gradient(vector))
+
+
+def spin_tensor(vector: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the spin tensor :math:`\Omega(u) = \operatorname{skew} \nabla u` of a
+    vector function, so that :math:`\nabla u = \epsilon(u) + \Omega(u)`.
+
+    Args:
+        vector (sp.Matrix): The vector function, of size three.
+
+    Returns:
+        sp.Matrix: The spin tensor, of size three by three.
+    """
+    return skew(vector_gradient(vector))
 
 
 def to_callable(

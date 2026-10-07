@@ -144,6 +144,18 @@ def test_sym_skew_decomposition_with_vsk_and_msk(coords):
     assert pg.exact.vsk(pg.exact.sym(matrix)) == sp.zeros(3, 1)
 
 
+def test_matrix_curl(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x * y, z, 0], [y**2, x, z * x], [0, sp.sin(x), y]])
+
+    curl = pg.exact.matrix_curl(matrix)
+
+    for i in range(3):
+        assert curl.row(i).T == pg.exact.curl(matrix.row(i).T)
+    # the divergence of a curl vanishes row by row
+    assert pg.exact.matrix_divergence(curl) == sp.zeros(3, 1)
+
+
 def test_identity():
     assert pg.exact.identity() == sp.eye(3)
     assert pg.exact.identity(2) == sp.diag(1, 1, 0)
@@ -180,6 +192,41 @@ def test_dev_in_two_dimensions(coords):
 
     assert deviator == sp.Matrix([[(x - 1) / 2, y, 0], [y, (1 - x) / 2, 0], [0, 0, 0]])
     assert pg.exact.dev(sp.diag(1, 1, 0), 2) == sp.zeros(3)
+
+
+def test_gradient_decomposition(coords):
+    x, y, z = coords
+    vector = sp.Matrix([x * y, sp.sin(z), x**2 * z])
+
+    grad = pg.exact.vector_gradient(vector)
+    eps = pg.exact.symmetric_gradient(vector)
+    spin = pg.exact.spin_tensor(vector)
+
+    # grad u = eps(u) + Omega(u), with Omega(u) = msk vsk grad u / 2
+    assert sp.simplify(eps + spin - grad) == sp.zeros(3)
+    assert eps == eps.T
+    assert spin == -spin.T
+    assert sp.simplify(spin - pg.exact.msk(pg.exact.vsk(grad)) / 2) == sp.zeros(3)
+
+
+def test_trace_of_symmetric_gradient_is_divergence(coords):
+    x, y, z = coords
+    vector = sp.Matrix([x * y, sp.sin(z), x**2 * z])
+
+    trace = pg.exact.symmetric_gradient(vector).trace()
+
+    assert sp.simplify(trace - pg.exact.divergence(vector)) == 0
+
+
+def test_spin_of_rigid_rotation(coords):
+    x, y, z = coords
+    axis = sp.Matrix([1, 2, 3])
+
+    # the rigid rotation u = axis x x has no strain and constant spin msk(axis)
+    vector = axis.cross(sp.Matrix([x, y, z]))
+
+    assert pg.exact.symmetric_gradient(vector) == sp.zeros(3)
+    assert pg.exact.spin_tensor(vector) == pg.exact.msk(axis)
 
 
 def test_to_callable_shapes(coords):
