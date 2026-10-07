@@ -203,6 +203,51 @@ def asym_T(vector: sp.Matrix) -> sp.Matrix:
     )
 
 
+def identity(dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
+    """
+    Returns the identity of the leading dim by dim block, zero elsewhere, so that a
+    two-dimensional problem has no entries outside that block.
+
+    Args:
+        dim (int): The dimension of the problem. Default pg.AMBIENT_DIM.
+
+    Returns:
+        sp.Matrix: The identity, of size three by three.
+    """
+    return sp.diag(*([1] * dim + [0] * (pg.AMBIENT_DIM - dim)))
+
+
+def double_dot(matrix: sp.Matrix, other: sp.Matrix) -> sp.Expr:
+    r"""
+    Computes the double dot product :math:`\sigma : \tau = \sum_{ij} \sigma_{ij}
+    \tau_{ij}` of two matrices.
+
+    Args:
+        matrix (sp.Matrix): The first matrix, of size three by three.
+        other (sp.Matrix): The second matrix, of size three by three.
+
+    Returns:
+        sp.Expr: The double dot product.
+    """
+    return sp.simplify(sum(a * b for a, b in zip(matrix, other)))
+
+
+def dev(matrix: sp.Matrix, dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
+    r"""
+    Computes the deviatoric part :math:`\sigma - \frac{1}{d} \operatorname{Tr}(\sigma)
+    I` of a matrix, with I the identity of the leading dim by dim block, so that a
+    two-dimensional matrix stays zero outside that block.
+
+    Args:
+        matrix (sp.Matrix): The matrix, of size three by three.
+        dim (int): The dimension d of the problem. Default pg.AMBIENT_DIM.
+
+    Returns:
+        sp.Matrix: The deviatoric part, of size three by three.
+    """
+    return sp.simplify(matrix - matrix.trace() / dim * identity(dim))
+
+
 def to_callable(
     expression: sp.Expr | sp.Matrix, dim: int = pg.AMBIENT_DIM
 ) -> Callable[[np.ndarray], np.ndarray]:

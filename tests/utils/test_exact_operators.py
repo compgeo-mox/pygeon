@@ -100,6 +100,44 @@ def test_asym_of_asym_T(coords):
     assert list(pg.exact.asym(pg.exact.asym_T(vector))) == list(2 * vector)
 
 
+def test_identity():
+    assert pg.exact.identity() == sp.eye(3)
+    assert pg.exact.identity(2) == sp.diag(1, 1, 0)
+
+
+def test_double_dot(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, 0], [0, z, 1], [2, 0, x]])
+
+    assert pg.exact.double_dot(matrix, sp.eye(3)) == matrix.trace()
+    assert pg.exact.double_dot(matrix, matrix) == 2 * x**2 + y**2 + z**2 + 5
+    # symmetric and skew-symmetric matrices are orthogonal
+    assert pg.exact.double_dot(pg.exact.sym(matrix), pg.exact.skew(matrix)) == 0
+
+
+def test_dev(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, 0], [y, z, 0], [0, 0, x * y]])
+
+    deviator = pg.exact.dev(matrix)
+
+    assert sp.simplify(deviator.trace()) == 0
+    assert deviator == deviator.T
+    assert pg.exact.dev(sp.eye(3)) == sp.zeros(3)
+    # the deviator is a projection
+    assert sp.simplify(pg.exact.dev(deviator) - deviator) == sp.zeros(3)
+
+
+def test_dev_in_two_dimensions(coords):
+    x, y, _ = coords
+    matrix = sp.Matrix([[x, y, 0], [y, 1, 0], [0, 0, 0]])
+
+    deviator = pg.exact.dev(matrix, 2)
+
+    assert deviator == sp.Matrix([[(x - 1) / 2, y, 0], [y, (1 - x) / 2, 0], [0, 0, 0]])
+    assert pg.exact.dev(sp.diag(1, 1, 0), 2) == sp.zeros(3)
+
+
 def test_to_callable_shapes(coords):
     x, y, z = coords
     pts = np.array([[0.0, 1.0, 2.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]])
