@@ -61,6 +61,7 @@ def test_flux_bcs(unit_cart_sd):
 
     check_residual(tpfa, unit_cart_sd, data, p_known)
     check_residual(tpfa, unit_cart_sd, data, 1 + p_known)
+    check_flux_reconstruction(tpfa, unit_cart_sd, data, p_known)
 
 
 def test_robin_bcs(unit_cart_sd):
