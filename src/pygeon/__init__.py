@@ -62,6 +62,8 @@ from pygeon.discretizations.fem.symmat_l2 import (
     SymMatPwQuadratics,
 )
 
+from pygeon.discretizations.fem.mat_h1 import MatLagrange1
+
 from pygeon.discretizations.fvm.boundary_conditions import (
     FiniteVolumeBC,
     ElasticityBC,
