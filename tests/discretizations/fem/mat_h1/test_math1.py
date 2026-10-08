@@ -28,3 +28,8 @@ def test_assemble_adv_matrix(
     M_known = sps.kron(sps.eye_array(ref_sd.dim**2), scalar_adv)
 
     assert np.allclose((M_known - M).data, 0)
+
+
+def test_undefined_range_class(discr):
+    with pytest.raises(NotImplementedError):
+        discr.get_range_discr_class(3)
