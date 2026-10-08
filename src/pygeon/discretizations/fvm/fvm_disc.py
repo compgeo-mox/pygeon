@@ -155,7 +155,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         return bcs
 
     def assemble_rhs_boundary_vector(
-        self, sd: pg.Grid, data: dict | None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> np.ndarray:
         r"""
         Assembles the right-hand side vector related to the boundary conditions. The
