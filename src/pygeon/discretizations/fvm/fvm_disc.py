@@ -155,7 +155,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         return bcs
 
     def assemble_rhs_boundary_vector(
-        self, sd: pg.Grid, data: dict | None = None
+        self, sd: pg.Grid, data: dict | None
     ) -> np.ndarray:
         r"""
         Assembles the right-hand side vector related to the boundary conditions. The
@@ -179,7 +179,9 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         return -self.div(sd) @ dual_var
 
-    def bdry_contribution_dual_variable(self, sd: pg.Grid, data: dict) -> np.ndarray:
+    def bdry_contribution_dual_variable(
+        self, sd: pg.Grid, data: dict | None
+    ) -> np.ndarray:
         r"""
         Assembles the contributions of the boundary conditions on the dual variable.
 
@@ -220,7 +222,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         return self.ndof_per_entity(dim).sum()
 
     def postprocess_dual_variable(
-        self, primary_var: np.ndarray, sd: pg.Grid, data: dict
+        self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
     ) -> np.ndarray:
         r"""
         Assembles the dual variable on the grid faces based on the primary variable and
