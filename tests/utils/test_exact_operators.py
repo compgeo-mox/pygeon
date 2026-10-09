@@ -186,6 +186,9 @@ def test_double_dot(coords):
     # symmetric and skew-symmetric matrices are orthogonal
     assert pg.exact.double_dot(pg.exact.sym(matrix), pg.exact.skew(matrix)) == 0
 
+    with pytest.raises(ValueError):
+        pg.exact.double_dot(matrix, sp.eye(2))
+
 
 def test_dev(coords):
     x, y, z = coords
