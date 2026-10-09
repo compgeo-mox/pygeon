@@ -244,6 +244,31 @@ class VecLagrange1(pg.VecDiscretization):
         # Reshape and return
         return (proj @ sigma).reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the advection matrix for Lagrange1 finite
+        elements, which is given by
+        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
+        :math:`u,v \in \mathbb{L}_1(\Omega)`.
+
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
+        accessible via pg.VECTOR-FIELD. It is a given as a vector field, assumed
+        constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
+        defaults to :math:`(0, 0, 0)`.
+
+        Args:
+            sd (pg.Grid): The grid object representing the discretization.
+            data (dict | None): Optional data for scaling, in particular
+            pg.VECTOR-FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The assembled advection matrix.
+        """
+        adv_matrix = self.base_discr.assemble_adv_matrix(sd, data)
+        return self.vectorize(sd.dim, adv_matrix)
+
 
 class VecLagrange2(pg.VecDiscretization):
     """

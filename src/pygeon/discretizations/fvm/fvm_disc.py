@@ -158,12 +158,36 @@ class FiniteVolumeDiscretization(abc.ABC):
         self, sd: pg.Grid, data: dict | None = None
     ) -> np.ndarray:
         r"""
-        Assembles the right-hand side vector related to the boundary conditions.
-        This encodes boundary contributions to the divergence term:
+        Assembles the right-hand side vector related to the boundary conditions. The
+        boundary conditions are encoded by taking the divergence of the dual variable
+        and negating it, because it was moved to the rhs.
 
         .. math::
 
             -\nabla \cdot (A_{\text{bdry}} g)
+
+        where :math:`g` contains boundary dual and primary variable values.
+
+        Args:
+            sd (pg.Grid): The grid object.
+            data (dict): The data dictionary
+
+        Returns:
+            np.ndarray: The right-hand side vector
+        """
+        dual_var = self.bdry_contribution_dual_variable(sd, data)
+
+        return -self.div(sd) @ dual_var
+
+    def bdry_contribution_dual_variable(
+        self, sd: pg.Grid, data: dict | None
+    ) -> np.ndarray:
+        r"""
+        Assembles the contributions of the boundary conditions on the dual variable.
+
+        .. math::
+
+            q_bdry = A_{\text{bdry}} g
 
         where :math:`g` contains boundary dual and primary variable values.
 
@@ -182,7 +206,7 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         g = np.hstack((dual.ravel(), prim.ravel()))
 
-        return -self.div(sd) @ A_rhs @ g
+        return A_rhs @ g
 
     def ndof_per_element(self, dim: int) -> int:
         """
@@ -196,6 +220,26 @@ class FiniteVolumeDiscretization(abc.ABC):
             int: The number of degrees of freedom per element.
         """
         return self.ndof_per_entity(dim).sum()
+
+    def postprocess_dual_variable(
+        self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
+    ) -> np.ndarray:
+        r"""
+        Assembles the dual variable on the grid faces based on the primary variable and
+        the boundary conditions.
+
+        Args:
+            primary_var (np.ndarray): The degrees of freedom of the primary variable.
+            sd (pg.Grid): The grid object.
+            data (dict): The data dictionary
+
+        Returns:
+            np.ndarray: The right-hand side vector
+        """
+        dual_var = self.assemble_dual_var_map(sd, data) @ primary_var
+        dual_var += self.bdry_contribution_dual_variable(sd, data)
+
+        return dual_var
 
     @abc.abstractmethod
     def ndof_per_entity(self, dim: int) -> np.ndarray:
