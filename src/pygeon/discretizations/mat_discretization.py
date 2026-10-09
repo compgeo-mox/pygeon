@@ -8,9 +8,9 @@ import pygeon as pg
 
 
 class MatDiscretization(pg.VecDiscretization):
-    """Base class for matrix-valued discretizations.
-    This class provides methods for assembling mass matrices, trace matrices, asymmetric
-    matrices, and lumped matrices.
+    """
+    Base class for matrix-valued discretizations. This class provides methods for
+    assembling mass matrices, trace matrices, asymmetric matrices, and lumped matrices.
     """
 
     poly_order: int
@@ -49,7 +49,7 @@ class MatDiscretization(pg.VecDiscretization):
     ) -> sps.csc_array:
         r"""
         Assembles and returns the elasticity inner product matrix for
-        :math:`\sigma \in` :class:`MatDiscretization` (matrix-valued H(div)), which is
+        :math:`\sigma \in` :class:`MatDiscretization` (matrix-valued), which is
         given by :math:`(A \sigma, \tau)_\Omega` where
 
         .. math::
