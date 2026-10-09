@@ -266,9 +266,10 @@ def double_dot(matrix: sp.Matrix, other: sp.Matrix) -> sp.Expr:
     Returns:
         sp.Expr: The double dot product.
     """
-if matrix.shape != other.shape:
+    if matrix.shape != other.shape:
         raise ValueError(
-            f"The matrices must have the same shape, got {matrix.shape} and {other.shape}."
+            "The matrices must have the same shape, "
+            f"got {matrix.shape} and {other.shape}."
         )
     return sp.simplify(sum(a * b for a, b in zip(matrix, other)))
 
