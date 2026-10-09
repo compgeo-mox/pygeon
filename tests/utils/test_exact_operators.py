@@ -1,6 +1,7 @@
 """Module contains tests for the symbolic differential operators."""
 
 import numpy as np
+import porepy as pp
 import pytest
 import sympy as sp
 
@@ -10,6 +11,16 @@ import pygeon as pg
 @pytest.fixture
 def coords():
     return pg.exact.coordinates()
+
+
+@pytest.fixture
+def matrix(coords, unit_sd):
+    x, y, z = coords
+    if unit_sd.dim == 2:
+        return sp.Matrix([[x + 2 * y, 3 * x, 0], [y, 2 * x + y, 0], [0, 0, 0]])
+    return sp.Matrix(
+        [[x + 2 * y, 3 * x - z, z], [y, 2 * x + z, x - y], [z + x, y, 3 * z]]
+    )
 
 
 def test_gradient(coords):
@@ -89,15 +100,276 @@ def test_sym_and_skew(coords):
 
     assert pg.exact.sym(matrix) == pg.exact.sym(matrix).T
     assert pg.exact.skew(matrix) == -pg.exact.skew(matrix).T
+    assert pg.exact.skew(matrix) == (matrix - matrix.T) / 2
     assert pg.exact.sym(matrix) + pg.exact.skew(matrix) == matrix
 
 
-def test_asym_of_asym_T(coords):
+def test_vsk_of_msk(coords):
     x, y, z = coords
     vector = sp.Matrix([x, y, z])
 
-    # asym collects the entries of the difference with the transpose, hence the two
-    assert list(pg.exact.asym(pg.exact.asym_T(vector))) == list(2 * vector)
+    # vsk collects the entries of the difference with the transpose, hence the two
+    assert list(pg.exact.vsk(pg.exact.msk(vector))) == list(2 * vector)
+
+
+def test_vsk_and_msk_in_two_dimensions(coords):
+    x, y, _ = coords
+    matrix = sp.Matrix([[x, y, 0], [x * y, 1, 0], [0, 0, 0]])
+
+    # the two-dimensional vsk is the scalar sigma_21 - sigma_12, in the third component
+    assert list(pg.exact.vsk(matrix)) == [0, 0, y * (x - 1)]
+    assert pg.exact.msk(sp.Matrix([0, 0, x])) == sp.Matrix(
+        [[0, -x, 0], [x, 0, 0], [0, 0, 0]]
+    )
+
+
+def test_msk_is_the_cross_product(coords):
+    x, y, z = coords
+    vector, other = sp.Matrix([x, y, z]), sp.Matrix([z, 1, x * y])
+
+    assert sp.simplify(pg.exact.msk(vector) @ other - vector.cross(other)) == sp.zeros(
+        3, 1
+    )
+
+
+def test_vsk_and_msk_are_adjoint(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, z], [y * z, 1, x], [0, x**2, z]])
+    vector = sp.Matrix([z, x, y])
+
+    # (vsk sigma) . w = sigma : msk w
+    lhs = pg.exact.vsk(matrix).dot(vector)
+    rhs = pg.exact.double_dot(matrix, pg.exact.msk(vector))
+
+    assert sp.simplify(lhs - rhs) == 0
+
+
+def test_sym_skew_decomposition_with_vsk_and_msk(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, z], [y * z, 1, x], [0, x**2, z]])
+
+    # sigma = sym sigma + msk vsk sigma / 2, and vsk vanishes on symmetric matrices
+    rebuilt = pg.exact.sym(matrix) + pg.exact.msk(pg.exact.vsk(matrix)) / 2
+
+    assert sp.simplify(rebuilt - matrix) == sp.zeros(3)
+    assert pg.exact.vsk(pg.exact.sym(matrix)) == sp.zeros(3, 1)
+
+
+def test_matrix_curl(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x * y, z, 0], [y**2, x, z * x], [0, sp.sin(x), y]])
+
+    curl = pg.exact.matrix_curl(matrix)
+
+    for i in range(3):
+        assert curl.row(i).T == pg.exact.curl(matrix.row(i).T)
+    # the divergence of a curl vanishes row by row
+    assert pg.exact.matrix_divergence(curl) == sp.zeros(3, 1)
+
+
+def test_identity():
+    assert pg.exact.identity() == sp.eye(3)
+    assert pg.exact.identity(2) == sp.diag(1, 1, 0)
+
+    with pytest.raises(ValueError):
+        pg.exact.identity(0)
+    with pytest.raises(ValueError):
+        pg.exact.identity(pg.AMBIENT_DIM + 1)
+
+
+def test_double_dot(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, 0], [0, z, 1], [2, 0, x]])
+
+    assert pg.exact.double_dot(matrix, sp.eye(3)) == matrix.trace()
+    assert pg.exact.double_dot(matrix, matrix) == 2 * x**2 + y**2 + z**2 + 5
+    # symmetric and skew-symmetric matrices are orthogonal
+    assert pg.exact.double_dot(pg.exact.sym(matrix), pg.exact.skew(matrix)) == 0
+
+    with pytest.raises(ValueError):
+        pg.exact.double_dot(matrix, sp.eye(2))
+
+
+def test_dev(coords):
+    x, y, z = coords
+    matrix = sp.Matrix([[x, y, 0], [y, z, 0], [0, 0, x * y]])
+
+    deviator = pg.exact.dev(matrix)
+
+    assert sp.simplify(deviator.trace()) == 0
+    assert deviator == deviator.T
+    assert pg.exact.dev(sp.eye(3)) == sp.zeros(3)
+    # the deviator is a projection
+    assert sp.simplify(pg.exact.dev(deviator) - deviator) == sp.zeros(3)
+
+
+def test_dev_in_two_dimensions(coords):
+    x, y, _ = coords
+    matrix = sp.Matrix([[x, y, 0], [y, 1, 0], [0, 0, 0]])
+
+    deviator = pg.exact.dev(matrix, 2)
+
+    assert deviator == sp.Matrix([[(x - 1) / 2, y, 0], [y, (1 - x) / 2, 0], [0, 0, 0]])
+    assert pg.exact.dev(sp.diag(1, 1, 0), 2) == sp.zeros(3)
+
+
+def test_gradient_decomposition(coords):
+    x, y, z = coords
+    vector = sp.Matrix([x * y, sp.sin(z), x**2 * z])
+
+    grad = pg.exact.vector_gradient(vector)
+    eps = pg.exact.symmetric_gradient(vector)
+    spin = pg.exact.spin_tensor(vector)
+
+    # grad u = eps(u) + Omega(u), with Omega(u) = msk vsk grad u / 2
+    assert sp.simplify(eps + spin - grad) == sp.zeros(3)
+    assert eps == eps.T
+    assert spin == -spin.T
+    assert sp.simplify(spin - pg.exact.msk(pg.exact.vsk(grad)) / 2) == sp.zeros(3)
+
+
+def test_trace_of_symmetric_gradient_is_divergence(coords):
+    x, y, z = coords
+    vector = sp.Matrix([x * y, sp.sin(z), x**2 * z])
+
+    trace = pg.exact.symmetric_gradient(vector).trace()
+
+    assert sp.simplify(trace - pg.exact.divergence(vector)) == 0
+
+
+def test_spin_of_rigid_rotation(coords):
+    x, y, z = coords
+    axis = sp.Matrix([1, 2, 3])
+
+    # the rigid rotation u = axis x x has no strain and constant spin msk(axis)
+    vector = axis.cross(sp.Matrix([x, y, z]))
+
+    assert pg.exact.symmetric_gradient(vector) == sp.zeros(3)
+    assert pg.exact.spin_tensor(vector) == pg.exact.msk(axis)
+
+
+@pytest.fixture
+def flow(coords):
+    x, y, z = coords
+    t = pg.exact.time()
+
+    velocity = sp.Matrix([y * t, x**2, sp.sin(z)])
+    tensor = sp.Matrix([[x * t, y, z], [y, t**2, x * z], [z, x * z, y]])
+
+    return velocity, tensor
+
+
+def test_time_derivative(coords):
+    x, y, _ = coords
+    t = pg.exact.time()
+
+    assert pg.exact.time_derivative(x * t**2 + y) == 2 * x * t
+    assert pg.exact.time_derivative(sp.Matrix([sp.sin(t), x])) == sp.Matrix(
+        [sp.cos(t), 0]
+    )
+
+
+def test_advection(coords):
+    x, y, z = coords
+    velocity = sp.Matrix([y, x * z, 1])
+    scalar = x**2 * y + sp.sin(z)
+    vector = sp.Matrix([x * y, z**2, x])
+
+    # (u . grad) f for a scalar, and (grad v) u for a vector
+    known = 2 * x * y**2 + x**3 * z + sp.cos(z)
+    assert sp.simplify(pg.exact.advection(scalar, velocity) - known) == 0
+    assert sp.simplify(
+        pg.exact.advection(vector, velocity)
+        - pg.exact.vector_gradient(vector) @ velocity
+    ) == sp.zeros(3, 1)
+
+
+def test_material_derivative(coords):
+    x, y, z = coords
+    t = pg.exact.time()
+    shift = sp.Matrix([1, 2, -1])
+
+    # a function transported rigidly by a constant velocity has no material derivative
+    moved = [var - c * t for var, c in zip((x, y, z), shift)]
+    scalar = sp.sin(moved[0]) * moved[1] ** 2 + sp.exp(moved[2])
+    tensor = sp.Matrix([[scalar, moved[0]], [0, moved[1] * moved[2]]])
+
+    assert pg.exact.material_derivative(scalar, shift) == 0
+    assert pg.exact.material_derivative(tensor, shift) == sp.zeros(2)
+
+    # without velocity it is the partial derivative in time
+    assert pg.exact.material_derivative(x * t**2, sp.zeros(3, 1)) == 2 * x * t
+
+
+def test_convected_derivatives_of_identity(flow):
+    velocity, _ = flow
+    eps = pg.exact.symmetric_gradient(velocity)
+    identity = sp.eye(3)
+
+    upper = pg.exact.upper_convected_derivative(identity, velocity)
+    lower = pg.exact.lower_convected_derivative(identity, velocity)
+
+    assert sp.simplify(upper + 2 * eps) == sp.zeros(3)
+    assert sp.simplify(lower - 2 * eps) == sp.zeros(3)
+    assert pg.exact.jaumann_derivative(identity, velocity) == sp.zeros(3)
+
+
+def test_convected_derivatives_and_jaumann(flow):
+    velocity, tensor = flow
+    eps = pg.exact.symmetric_gradient(velocity)
+
+    upper = pg.exact.upper_convected_derivative(tensor, velocity)
+    lower = pg.exact.lower_convected_derivative(tensor, velocity)
+    jaumann = pg.exact.jaumann_derivative(tensor, velocity)
+
+    # the convected derivatives differ from the Jaumann one by the stretching terms
+    stretch = eps @ tensor + tensor @ eps
+    assert sp.simplify(upper - (jaumann - stretch)) == sp.zeros(3)
+    assert sp.simplify(lower - (jaumann + stretch)) == sp.zeros(3)
+
+
+def test_objective_derivatives_preserve_symmetry(flow):
+    velocity, tensor = flow
+
+    for derivative in (
+        pg.exact.upper_convected_derivative,
+        pg.exact.lower_convected_derivative,
+        pg.exact.jaumann_derivative,
+    ):
+        value = derivative(tensor, velocity)
+        assert sp.simplify(value - value.T) == sp.zeros(3)
+
+
+def test_trace_of_upper_convected_derivative(flow):
+    velocity, tensor = flow
+    eps = pg.exact.symmetric_gradient(velocity)
+
+    # for a symmetric tensor, Tr of the upper-convected derivative is
+    # D_t Tr(gamma) - 2 eps(u) : gamma
+    trace = pg.exact.upper_convected_derivative(tensor, velocity).trace()
+    known = pg.exact.material_derivative(
+        tensor.trace(), velocity
+    ) - 2 * pg.exact.double_dot(eps, tensor)
+
+    assert sp.simplify(trace - known) == 0
+
+
+def test_upper_convected_maxwell_of_polymeric_stress(flow):
+    velocity, gamma = flow
+    nu, eta = sp.symbols("nu eta", positive=True)
+    identity = sp.eye(3)
+
+    # sigma_p = nu (gamma - I) satisfies sigma_p + eta UC(sigma_p) = 2 nu eta eps(u)
+    # up to nu times the residual of the evolution eta UC(gamma) = I - gamma
+    sigma_p = nu * (gamma - identity)
+    uc_sigma_p = pg.exact.upper_convected_derivative(sigma_p, velocity)
+    uc_gamma = pg.exact.upper_convected_derivative(gamma, velocity)
+
+    maxwell = sigma_p + eta * uc_sigma_p
+    eps = pg.exact.symmetric_gradient(velocity)
+    residual = eta * uc_gamma - (identity - gamma)
+
+    assert sp.simplify(maxwell - 2 * nu * eta * eps - nu * residual) == sp.zeros(3)
 
 
 def test_to_callable_shapes(coords):
@@ -131,6 +403,27 @@ def test_to_callable_at_a_single_point(coords):
 
     assert np.isclose(scalar(point), -1.0)
     assert np.allclose(vector(point), [0.25, 0.75, 0.0])
+
+
+def test_to_callable_in_time(coords):
+    x, y, _ = coords
+    t = pg.exact.time()
+    pts = np.array([[0.0, 1.0, 2.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]])
+
+    scalar = pg.exact.to_callable(x * t + y, t=2.0)
+    vector = pg.exact.to_callable(sp.Matrix([sp.sin(t) * x, y, 0]), 2, t=0.0)
+
+    assert np.allclose(scalar(pts), 2 * pts[0] + pts[1])
+    assert np.allclose(vector(pts), [np.zeros(3), pts[1]])
+    # a time is accepted, and ignored, by an expression independent of time
+    assert np.allclose(pg.exact.to_callable(x, t=1.0)(pts), pts[0])
+
+
+def test_to_callable_rejects_a_missing_time(coords):
+    x, _, _ = coords
+
+    with pytest.raises(ValueError):
+        pg.exact.to_callable(x * pg.exact.time())
 
 
 def test_to_callable_rejects_wrong_coordinates(coords):
@@ -273,3 +566,51 @@ def test_divergence_matches_the_discrete_differential(coords, unit_sd_3d):
     )
 
     assert np.allclose(discrete, interpolated)
+
+
+@pytest.fixture
+def rotation(matrix, unit_sd):
+    # the rotation is a scalar in two dimensions, the third component of vsk
+    vsk = pg.exact.vsk(matrix)
+    return vsk[2] if unit_sd.dim == 2 else vsk
+
+
+def test_mat_pw_constants_operators_match_the_discrete_ones(matrix, rotation, unit_sd):
+    if unit_sd.dim == 1:
+        return  # the matrix operators are defined in two and three dimensions
+    sd, dim = unit_sd, unit_sd.dim
+
+    discr = pg.MatPwConstants()
+    interp = discr.interpolate(sd, pg.exact.to_callable(matrix))
+
+    trace = pg.PwConstants().interpolate(sd, pg.exact.to_callable(matrix.trace()))
+    assert np.allclose(discr.assemble_trace_matrix(sd) @ interp, trace)
+
+    rot_space = pg.PwConstants() if dim == 2 else pg.VecPwConstants()
+    rot = rot_space.interpolate(sd, pg.exact.to_callable(rotation))
+    assert np.allclose(discr.assemble_asym_matrix(sd) @ interp, rot)
+
+    # the deviator matrix is (dev sigma / (2 mu), tau), here with mu = 1
+    data = pp.initialize_data({}, discr.keyword, {pg.LAME_MU: 1.0})
+    dev = discr.interpolate(sd, pg.exact.to_callable(pg.exact.dev(matrix, dim)))
+    assert np.allclose(
+        discr.assemble_deviator_matrix(sd, data) @ interp,
+        discr.assemble_mass_matrix(sd) @ dev / 2,
+    )
+
+
+def test_vec_bdm1_operators_match_the_discrete_ones(matrix, rotation, unit_sd):
+    if unit_sd.dim == 1:
+        return  # the matrix operators are defined in two and three dimensions
+    sd, dim = unit_sd, unit_sd.dim
+
+    # exact for linear functions
+    discr = pg.VecBDM1()
+    interp = discr.interpolate(sd, pg.exact.to_callable(matrix))
+
+    trace = pg.PwLinears().interpolate(sd, pg.exact.to_callable(matrix.trace()))
+    assert np.allclose(discr.assemble_trace_matrix(sd) @ interp, trace)
+
+    rot_space = pg.PwLinears() if dim == 2 else pg.VecPwLinears()
+    rot = rot_space.interpolate(sd, pg.exact.to_callable(rotation))
+    assert np.allclose(discr.assemble_asym_matrix(sd) @ interp, rot)
