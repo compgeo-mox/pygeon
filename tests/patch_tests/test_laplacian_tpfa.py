@@ -28,6 +28,15 @@ def check_residual(tpfa, sd, data, x_known):
     assert np.allclose(M @ x_known, rhs)
 
 
+def check_flux_reconstruction(tpfa, sd, data, pressure):
+    q_known = pg.VRT0().interpolate(
+        sd, lambda x: np.tile([-1, 0, 0], (x.shape[1], 1)).T
+    )
+    q_post_processed = tpfa.postprocess_dual_variable(pressure, sd, data)
+
+    assert np.allclose(q_known, q_post_processed)
+
+
 def test_pressure_bcs(unit_cart_sd):
     """
     Pressure conditions on all boundaries.
@@ -37,6 +46,7 @@ def test_pressure_bcs(unit_cart_sd):
     bcs.set_pressure_bcs(bdry_faces, unit_cart_sd.face_centers[0])
 
     check_residual(tpfa, unit_cart_sd, data, p_known)
+    check_flux_reconstruction(tpfa, unit_cart_sd, data, p_known)
 
 
 def test_flux_bcs(unit_cart_sd):
@@ -51,6 +61,7 @@ def test_flux_bcs(unit_cart_sd):
 
     check_residual(tpfa, unit_cart_sd, data, p_known)
     check_residual(tpfa, unit_cart_sd, data, 1 + p_known)
+    check_flux_reconstruction(tpfa, unit_cart_sd, data, p_known)
 
 
 def test_robin_bcs(unit_cart_sd):
