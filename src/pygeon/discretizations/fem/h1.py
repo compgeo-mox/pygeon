@@ -354,6 +354,47 @@ class Lagrange2(pg.Discretization):
         """
         return np.array([int(dim > 0), 1, 0, 0])  # nodes and edges
 
+    def assemble_grad_grad_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles the :math:`(K \nabla u, \nabla v)_\Omega`, for
+        :math:`u,v \in \mathbb{L}_1(\Omega)` matrix for the nodal finite elements of
+        degree 2.
+
+        This corresponds to the output of assemble_stiff_matrix, except in 2D.
+        In that case the diff operator is a rotated gradient, leading to a different
+        output for tensor-valued K.
+
+        The scalar (pg.WEIGHT) and tensor-valued (pg.SECOND_ORDER_TENSOR) entries in the
+        data dictionary are used as weights in the inner product.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict): A dictionary containing the weight for the inner product.
+
+        Returns:
+            sps.csc_array: The assembled stiffness matrix.
+        """
+        M = pg.VecPwLinears(self.keyword).assemble_mass_matrix(sd, data)
+        grad = self.assemble_grad_to_p1(sd)
+
+        return (grad.T @ M @ grad).tocsc()
+
+    def assemble_grad_to_p1(self, sd: pg.Grid) -> sps.csc_array:
+        r"""
+        Assembles the matrix that computes the gradient :math:`\nabla u`, with
+        :math:`u \in \mathbb{L}_1(\Omega)`, as a piecewise linear vector field in
+        :math:`[\mathbb{P}_1(\Omega)]^d`.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The gradient matrix.
+        """
+        return self.assemble_broken_grad_matrix(sd)
+
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the differential matrix based on the dimension of the grid.
