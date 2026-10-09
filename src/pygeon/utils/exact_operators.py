@@ -249,7 +249,7 @@ def identity(dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
     Returns:
         sp.Matrix: The identity, of size three by three.
     """
-if not 1 <= dim <= pg.AMBIENT_DIM:
+    if not 1 <= dim <= pg.AMBIENT_DIM:
         raise ValueError(f"The dimension must be between 1 and {pg.AMBIENT_DIM}.")
     return sp.diag(*([1] * dim + [0] * (pg.AMBIENT_DIM - dim)))
 
