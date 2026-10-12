@@ -4,7 +4,8 @@ The operators act on sympy expressions written in the three coordinates returned
 coordinates(), so that scalars, vectors and matrices are always expressed in the
 ambient dimension. A two-dimensional problem is recovered by using expressions that
 do not depend on the third coordinate, and by asking to_callable for the components
-of interest.
+of interest. The time derivatives, as the material and the objective ones, act on the
+symbol returned by time().
 """
 
 from typing import Callable
@@ -26,6 +27,19 @@ def coordinates() -> tuple:
         tuple: The symbols (x, y, z).
     """
     return sp.symbols("x y z")
+
+
+def time() -> sp.Symbol:
+    """
+    Returns the symbol of the time, the variable of the time derivatives.
+
+    Args:
+        None
+
+    Returns:
+        sp.Symbol: The symbol t.
+    """
+    return sp.Symbol("t")
 
 
 def gradient(scalar: sp.Expr) -> sp.Matrix:
@@ -140,6 +154,21 @@ def matrix_divergence(matrix: sp.Matrix) -> sp.Matrix:
     return sp.simplify(sp.Matrix([divergence(matrix.row(i).T) for i in range(3)]))
 
 
+def matrix_curl(matrix: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the curl of a matrix function, the matrix whose row i is the curl of the
+    row i. For a two-dimensional problem the third column holds the scalar rotor of
+    the rows. Its divergence vanishes, as matrix_divergence acts on the rows.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+
+    Returns:
+        sp.Matrix: The curl, a matrix of size three by three.
+    """
+    return sp.Matrix.vstack(*[curl(matrix.row(i).T).T for i in range(3)])
+
+
 def sym(matrix: sp.Matrix) -> sp.Matrix:
     r"""
     Computes the symmetric part :math:`(\sigma + \sigma^\top) / 2` of a matrix.
@@ -155,7 +184,8 @@ def sym(matrix: sp.Matrix) -> sp.Matrix:
 
 def skew(matrix: sp.Matrix) -> sp.Matrix:
     r"""
-    Computes the skew-symmetric part :math:`(\sigma - \sigma^\top) / 2` of a matrix.
+    Computes the skew-symmetric part :math:`(\sigma - \sigma^\top) / 2 =
+    \frac{1}{2} \operatorname{msk} \operatorname{vsk} \sigma` of a matrix.
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
@@ -163,31 +193,36 @@ def skew(matrix: sp.Matrix) -> sp.Matrix:
     Returns:
         sp.Matrix: The skew-symmetric part.
     """
-    return sp.simplify((matrix - matrix.T) / 2)
+    return msk(vsk(matrix)) / 2
 
 
-def asym(matrix: sp.Matrix) -> sp.Matrix:
+def vsk(matrix: sp.Matrix) -> sp.Matrix:
     r"""
-    Computes the axial vector of the skew-symmetric part of a matrix, the inverse of
-    asym_T up to the factor two.
+    Computes the vector :math:`\operatorname{vsk} \sigma` collecting the entries of
+    :math:`\sigma - \sigma^\top`, so that it vanishes for symmetric matrices. In two
+    dimensions the scalar :math:`\sigma_{21} - \sigma_{12}` is the third component.
+    It is the adjoint of msk, and :math:`\sigma = \operatorname{sym} \sigma +
+    \frac{1}{2} \operatorname{msk} \operatorname{vsk} \sigma`.
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
 
     Returns:
-        sp.Matrix: The axial vector, of size three.
+        sp.Matrix: The vector, of size three.
     """
     diff = matrix - matrix.T
     return sp.simplify(sp.Matrix([diff[2, 1], diff[0, 2], diff[1, 0]]))
 
 
-def asym_T(vector: sp.Matrix) -> sp.Matrix:
+def msk(vector: sp.Matrix) -> sp.Matrix:
     r"""
-    Computes the skew-symmetric matrix having the given vector as axial vector, so
-    that the matrix times a vector is the cross product of the two vectors.
+    Computes the skew-symmetric matrix :math:`\operatorname{msk} w` such that the
+    matrix times a vector is the cross product of w with that vector. In two
+    dimensions only the third component of w enters the leading two by two block.
+    It is the adjoint of vsk.
 
     Args:
-        vector (sp.Matrix): The axial vector, of size three.
+        vector (sp.Matrix): The vector, of size three.
 
     Returns:
         sp.Matrix: The skew-symmetric matrix, of size three by three.
@@ -203,8 +238,194 @@ def asym_T(vector: sp.Matrix) -> sp.Matrix:
     )
 
 
+def identity(dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
+    """
+    Returns the identity of the leading dim by dim block, zero elsewhere, so that a
+    two-dimensional problem has no entries outside that block.
+
+    Args:
+        dim (int): The dimension of the problem. Default pg.AMBIENT_DIM.
+
+    Returns:
+        sp.Matrix: The identity, of size three by three.
+    """
+    if not 1 <= dim <= pg.AMBIENT_DIM:
+        raise ValueError(f"The dimension must be between 1 and {pg.AMBIENT_DIM}.")
+    return sp.diag(*([1] * dim + [0] * (pg.AMBIENT_DIM - dim)))
+
+
+def double_dot(matrix: sp.Matrix, other: sp.Matrix) -> sp.Expr:
+    r"""
+    Computes the double dot product :math:`\sigma : \tau = \sum_{ij} \sigma_{ij}
+    \tau_{ij}` of two matrices.
+
+    Args:
+        matrix (sp.Matrix): The first matrix, of size three by three.
+        other (sp.Matrix): The second matrix, of size three by three.
+
+    Returns:
+        sp.Expr: The double dot product.
+    """
+    if matrix.shape != other.shape:
+        raise ValueError(
+            "The matrices must have the same shape, "
+            f"got {matrix.shape} and {other.shape}."
+        )
+    return sp.simplify(sum(a * b for a, b in zip(matrix, other)))
+
+
+def dev(matrix: sp.Matrix, dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
+    r"""
+    Computes the deviatoric part :math:`\sigma - \frac{1}{d} \operatorname{Tr}(\sigma)
+    I` of a matrix, with I the identity of the leading dim by dim block, so that a
+    two-dimensional matrix stays zero outside that block.
+
+    Args:
+        matrix (sp.Matrix): The matrix, of size three by three.
+        dim (int): The dimension d of the problem. Default pg.AMBIENT_DIM.
+
+    Returns:
+        sp.Matrix: The deviatoric part, of size three by three.
+    """
+    return sp.simplify(matrix - matrix.trace() / dim * identity(dim))
+
+
+def symmetric_gradient(vector: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the symmetric gradient :math:`\epsilon(u) = \operatorname{sym} \nabla u`
+    of a vector function.
+
+    Args:
+        vector (sp.Matrix): The vector function, of size three.
+
+    Returns:
+        sp.Matrix: The symmetric gradient, of size three by three.
+    """
+    return sym(vector_gradient(vector))
+
+
+def spin_tensor(vector: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the spin tensor :math:`\Omega(u) = \operatorname{skew} \nabla u` of a
+    vector function, so that :math:`\nabla u = \epsilon(u) + \Omega(u)`.
+
+    Args:
+        vector (sp.Matrix): The vector function, of size three.
+
+    Returns:
+        sp.Matrix: The spin tensor, of size three by three.
+    """
+    return skew(vector_gradient(vector))
+
+
+def time_derivative(function: sp.Expr | sp.Matrix) -> sp.Expr | sp.Matrix:
+    r"""
+    Computes the partial derivative :math:`\partial_t f` in time, the symbol returned
+    by time(), componentwise for vectors and matrices.
+
+    Args:
+        function (sp.Expr | sp.Matrix): The scalar, vector or matrix function.
+
+    Returns:
+        sp.Expr | sp.Matrix: The time derivative, of the same type as the input.
+    """
+    return sp.simplify(sp.diff(function, time()))
+
+
+def advection(
+    function: sp.Expr | sp.Matrix, velocity: sp.Matrix
+) -> sp.Expr | sp.Matrix:
+    r"""
+    Computes the advective term :math:`(u \cdot \nabla) f = \nabla f \cdot u` of a
+    function transported by the velocity u, componentwise for vectors and matrices.
+
+    Args:
+        function (sp.Expr | sp.Matrix): The scalar, vector or matrix function.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Expr | sp.Matrix: The advective term, of the same type as the input.
+    """
+    if isinstance(function, sp.MatrixBase):
+        return function.applyfunc(lambda entry: advection(entry, velocity))
+    return sp.simplify(gradient(function).dot(velocity))
+
+
+def material_derivative(
+    function: sp.Expr | sp.Matrix, velocity: sp.Matrix
+) -> sp.Expr | sp.Matrix:
+    r"""
+    Computes the material derivative :math:`D_t f = \partial_t f + (u \cdot \nabla) f`
+    of a function transported by the velocity u, the sum of time_derivative and
+    advection, componentwise for vectors and matrices.
+
+    Args:
+        function (sp.Expr | sp.Matrix): The scalar, vector or matrix function.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Expr | sp.Matrix: The material derivative, of the same type as the input.
+    """
+    return sp.simplify(time_derivative(function) + advection(function, velocity))
+
+
+def upper_convected_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the upper-convected derivative :math:`D_t \tau - (\nabla u) \tau - \tau
+    (\nabla u)^\top` of a matrix transported by the velocity u.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Matrix: The upper-convected derivative, of size three by three.
+    """
+    grad = vector_gradient(velocity)
+    return sp.simplify(
+        material_derivative(matrix, velocity) - grad @ matrix - matrix @ grad.T
+    )
+
+
+def lower_convected_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the lower-convected derivative :math:`D_t \tau + (\nabla u)^\top \tau +
+    \tau \nabla u` of a matrix transported by the velocity u.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Matrix: The lower-convected derivative, of size three by three.
+    """
+    grad = vector_gradient(velocity)
+    return sp.simplify(
+        material_derivative(matrix, velocity) + grad.T @ matrix + matrix @ grad
+    )
+
+
+def jaumann_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
+    r"""
+    Computes the Jaumann, or co-rotational, derivative :math:`D_t \tau + \tau \Omega -
+    \Omega \tau` of a matrix transported by the velocity u, with :math:`\Omega` the
+    spin tensor of u.
+
+    Args:
+        matrix (sp.Matrix): The matrix function, of size three by three.
+        velocity (sp.Matrix): The velocity, of size three.
+
+    Returns:
+        sp.Matrix: The Jaumann derivative, of size three by three.
+    """
+    spin = spin_tensor(velocity)
+    return sp.simplify(
+        material_derivative(matrix, velocity) + matrix @ spin - spin @ matrix
+    )
+
+
 def to_callable(
-    expression: sp.Expr | sp.Matrix, dim: int = pg.AMBIENT_DIM
+    expression: sp.Expr | sp.Matrix, dim: int = pg.AMBIENT_DIM, t: float | None = None
 ) -> Callable[[np.ndarray], np.ndarray]:
     """
     Turns a symbolic expression into a function of the coordinates, vectorized as the
@@ -217,14 +438,30 @@ def to_callable(
     matrix, are retained, so that a two-dimensional problem is obtained by passing
     dim = 2.
 
+    An expression depending on the time, the symbol returned by time(), is evaluated
+    at the given time t, so that a function of the coordinates is obtained at each
+    time step. An expression independent of time needs no t.
+
     Args:
         expression (sp.Expr | sp.Matrix): The scalar, vector or matrix expression.
         dim (int): The number of components to retain. Default pg.AMBIENT_DIM.
+        t (float | None): The time at which the expression is evaluated. Default None.
 
     Returns:
         Callable[[np.ndarray], np.ndarray]: The function evaluating the expression.
+
+    Raises:
+        ValueError: If the expression depends on the time and no t is given.
     """
     symbols = coordinates()
+
+    if t is not None:
+        expression = expression.subs(time(), t)
+    if time() in expression.free_symbols:
+        raise ValueError(
+            f"The expression depends on the time {time()}, pass the time t at which "
+            "it is evaluated."
+        )
 
     if isinstance(expression, sp.MatrixBase):
         rows, cols = expression.shape
