@@ -181,6 +181,21 @@ def test_grid_with_constraint():
     assert np.isclose(sd.num_nodes, 15)
 
 
+def test_copy_pygeon_attributes(unit_sd):
+    unit_sd.compute_opposite_nodes()
+    sd = unit_sd.copy()
+
+    for attr in ["num_ridges", "ridge_peaks", "face_ridges", "opposite_nodes"]:
+        assert hasattr(sd, attr)
+    for attr in ["num_edges", "edge_tangents", "edge_lengths", "mesh_size"]:
+        assert np.all(getattr(sd, attr) == getattr(unit_sd, attr))
+    assert np.all(sd.rotation_matrix == unit_sd.rotation_matrix)
+
+    # The copy is independent of the original
+    assert sd.edge_lengths is not unit_sd.edge_lengths
+    assert sd.history is not unit_sd.history
+
+
 def test_copy_history(unit_sd):
     assert "Compute geometry" in unit_sd.copy().history
 

@@ -1,5 +1,6 @@
 """Grid class for the pygeon package."""
 
+import copy
 from typing import Tuple
 
 import numpy as np
@@ -399,7 +400,24 @@ class Grid(pp.Grid):
 
         """
         h = super().copy()
-        if not keep_history:
-            h.history = []
+        h.history = list(self.history) if keep_history else []
         pg.convert_from_pp(h)
+
+        # Attributes added by PyGeoN, which are copied only if already computed
+        copy_attributes = [
+            "num_peaks",
+            "num_ridges",
+            "ridge_peaks",
+            "face_ridges",
+            "opposite_nodes",
+            "num_edges",
+            "edge_tangents",
+            "edge_lengths",
+            "mesh_size",
+            "rotation_matrix",
+        ]
+        for attr in copy_attributes:
+            if hasattr(self, attr):
+                setattr(h, attr, copy.deepcopy(getattr(self, attr)))
+
         return h
