@@ -139,4 +139,7 @@ def test_postprocess_darcy_flux_on_tilted_grid(discr_cls):
     u = discr.interpolate(sd, lambda x: direction @ x)
     q = discr.postprocess_darcy_flux(u, sd, data)
 
-    assert np.allclose(q, -1.5)
+    q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
+    q_known = q_space.interpolate(sd, lambda _: -(K @ direction))
+
+    assert np.allclose(q, q_known)
