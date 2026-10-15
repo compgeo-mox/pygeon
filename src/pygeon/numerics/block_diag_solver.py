@@ -1,7 +1,6 @@
 """Solvers for linear systems with block-diagonal structure."""
 
 import numpy as np
-import scipy.linalg
 import scipy.sparse as sps
 import scipy.sparse.csgraph as csgraph
 
@@ -25,8 +24,12 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     Notes:
         - The function uses the connected components of the graph represented by M
           to determine the blocks for inversion.
-        - The inversion is performed using dense matrix operations for each block,
-          which may be computationally expensive for large blocks.
+        - The components are many (e.g. one per node patch) and small, so the
+          cost of a Python loop over them is dominated by the fixed overhead of each
+          sparse slicing call, not by the arithmetic. The blocks are therefore
+          grouped by size: each group is a regular (k, s, s) stack that
+          np.linalg.inv inverts in a single LAPACK call. The groups are few (the
+          distinct patch sizes), so the cost is linear in the size of M.
     """
     # Remove small entries in the matrix
     M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
@@ -35,24 +38,45 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     # Get connected components
     n_components, labels = csgraph.connected_components(M, directed=False)
 
-    # Convert M to LIL format for efficient row and column access
-    M_lil = M.tolil()
-    inv_M_lil = sps.lil_array(M_lil.shape)
+    # Sort the indices by component: the component c owns the global indices
+    # order[starts[c] : starts[c] + sizes[c]], and local is the position of each
+    # index within its component, i.e. its row/column in the dense block
+    order = np.argsort(labels, kind="stable")
+    sizes = np.bincount(labels, minlength=n_components)
+    starts = np.cumsum(sizes) - sizes
+    local = np.empty_like(order)
+    local[order] = np.arange(order.size) - np.repeat(starts, sizes)
 
-    # Iterate over each connected component of the matrix M
-    for patch in np.arange(n_components):
-        # Get the indices of the connected component
-        indices = np.where(labels == patch)[0]
+    # The entries of M as triplets, without duplicates since they are assigned (not
+    # summed) into the blocks; row and column of an entry share the component
+    M_coo = M.tocoo()
+    M_coo.sum_duplicates()
+    size_of_entry = sizes[labels[M_coo.row]]
 
-        # Create a submatrix for the connected component
-        submat = M_lil[np.ix_(indices, indices)].toarray()
-        inv_submat = np.linalg.inv(submat)
+    rows_inv, cols_inv, vals_inv = [], [], []
+    for size in np.unique(sizes):
+        # The components of this size and their position in the stack
+        comps = np.flatnonzero(sizes == size)
+        stack_id = np.full(n_components, -1)
+        stack_id[comps] = np.arange(comps.size)
 
-        # Store the inverse in the corresponding positions
-        inv_M_lil[np.ix_(indices, indices)] = inv_submat
+        # Scatter the entries of these components into the stack of dense blocks
+        mask = size_of_entry == size
+        rows, cols = M_coo.row[mask], M_coo.col[mask]
+        blocks = np.zeros((comps.size, size, size))
+        blocks[stack_id[labels[rows]], local[rows], local[cols]] = M_coo.data[mask]
 
-    # Convert the inverse matrix back to CSC format
-    return inv_M_lil.tocsc()
+        # Global indices of each block, shape (k, s): the inverse of the block i is
+        # a dense s x s matrix with rows and columns indices[i], stored row-wise to
+        # match the ravel of the inverted stack
+        indices = order[starts[comps, None] + np.arange(size)]
+        rows_inv.append(np.repeat(indices, size, axis=1).ravel())
+        cols_inv.append(np.tile(indices, size).ravel())
+        vals_inv.append(np.linalg.inv(blocks).ravel())
+
+    data = np.concatenate(vals_inv)
+    ij = (np.concatenate(rows_inv), np.concatenate(cols_inv))
+    return sps.csc_array((data, ij), shape=M.shape)
 
 
 def block_diag_solver(
@@ -82,47 +106,14 @@ def block_diag_solver(
     Notes:
         - The function identifies connected components of the matrix M using the
           connected_components function from `scipy.sparse.csgraph`.
-        - For each connected component, the corresponding submatrix and subvector are
-          extracted, and the system is solved using `numpy.linalg.solve`.
-        - If the right-hand side B is sparse and contains zero entries for a connected
-          component, the solution for that component is skipped.
+        - For each connected component, the corresponding submatrix is
+          inverted with `numpy.linalg.inv`, stacking the blocks of equal size.
+        - The solution is the product of the block-wise inverse with B.
     """
-    # Remove small entries in the matrix
-    M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
-    M.eliminate_zeros()
-
-    # Get connected components
-    n_components, labels = csgraph.connected_components(M, directed=False)
-
-    # Convert M and B to LIL format for efficient row and column access
-    M_lil = M.tolil()
-    B_lil = B.tolil()
-    sol = sps.lil_array(B.shape)
-
-    # Iterate over each connected component of the matrix M
-    for patch in np.arange(n_components):
-        # Get the indices of the connected component
-        rows = np.where(labels == patch)[0]
-
-        # Create a submatrix for the connected component
-        sub_B = B_lil[rows, :]
-        # Get the non-zero columns of the submatrix
-        cols = np.unique(sub_B.tocoo().nonzero()[1])
-
-        # If there are no non-zero columns, skip this component
-        if cols.size == 0:
-            continue
-
-        # Create a dense submatrix for the connected component
-        sub_M = M_lil[np.ix_(rows, rows)].toarray()
-
-        # Solve the dense system and distribute to the solution matrix
-        sol[np.ix_(rows, cols)] = scipy.linalg.solve(
-            sub_M, sub_B[:, cols].toarray(), assume_a="pos"
-        )
-
-    # Convert the inverse matrix back to CSC format
-    return sol.tocsc()
+    # The solution is the product with the block-wise inverse, which is zero on the
+    # components where B vanishes; the sparse product avoids a loop over the
+    # components, see assemble_inverse
+    return (assemble_inverse(M, rtol) @ B).tocsc()
 
 
 def block_diag_solver_dense(
