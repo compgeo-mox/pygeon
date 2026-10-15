@@ -1,6 +1,7 @@
 """Module contains general tests for all H1 discretizations."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
@@ -94,3 +95,26 @@ def test_point_grid(discr, ref_sd_0d):
         sd_copy = ref_sd_0d.copy()
         sd_copy.dim = -1
         discr.assemble_diff_matrix(sd_copy)
+
+
+@pytest.mark.parametrize("discr_cls", [pg.Lagrange1, pg.Lagrange2])
+def test_postprocess_dual_variable(discr_cls, unit_sd: pg.Grid):
+    discr = discr_cls("test")
+
+    K = np.diag(np.arange(1.0, pg.AMBIENT_DIM + 1))
+    perm = pp.SecondOrderTensor(
+        kxx=K[0, 0] * np.ones(unit_sd.num_cells),
+        kyy=K[1, 1] * np.ones(unit_sd.num_cells),
+        kzz=K[2, 2] * np.ones(unit_sd.num_cells),
+    )
+    data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
+
+    # The flux of a linear function is constant, equal to -K grad u
+    slope = np.arange(1.0, pg.AMBIENT_DIM + 1)
+    u = discr.interpolate(unit_sd, lambda x: slope @ x)
+    q = discr.postprocess_dual_variable(u, unit_sd, data)
+
+    q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
+    q_known = q_space.interpolate(unit_sd, lambda _: -(K @ slope))
+
+    assert np.allclose(q, q_known)

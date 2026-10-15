@@ -10,40 +10,22 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class Lagrange1(pg.Discretization):
+class Lagrange(pg.Discretization):
     r"""
-    Class implementing the finite element discretization Lagrange1
-    :math:`\mathbb{L}_1(\Omega) \subset H^1(\Omega)`, for a generic domain
-    :math:`\Omega \in \mathbb{R}^d`.
+    Abstract class collecting the features shared by the nodal Lagrange finite element
+    discretizations :math:`\mathbb{L}_k(\Omega) \subset H^1(\Omega)`, for a generic
+    domain :math:`\Omega \in \mathbb{R}^d`.
     """
-
-    poly_order = 1
-    """Polynomial degree of the basis functions"""
 
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
-
-    def ndof_per_entity(self, dim: int) -> np.ndarray:
-        """
-        Returns the number of degrees of freedom per geometric entity, ordered by
-        the dimension of the entity as [0, 1, 2, 3].
-        In this case, one degree of freedom per node. A point grid has no nodes,
-        since its only entity is the cell, hence no degrees of freedom.
-
-        Args:
-            dim (int): The dimension of the grid.
-
-        Returns:
-            np.ndarray: The number of degrees of freedom per entity.
-        """
-        return np.array([int(dim > 0), 0, 0, 0])  # nodes
 
     def assemble_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
         Assembles the :math:`(K \nabla u, \nabla v)_\Omega`, for
-        :math:`u,v \in \mathbb{L}_1(\Omega)` matrix for the nodal finite elements.
+        :math:`u,v \in \mathbb{L}_k(\Omega)` matrix for the nodal finite elements.
 
         This corresponds to the output of assemble_stiff_matrix, except in 2D.
         In that case the diff operator is a rotated gradient, leading to a different
@@ -59,24 +41,67 @@ class Lagrange1(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        M = pg.VecPwConstants(self.keyword).assemble_mass_matrix(sd, data)
-        grad = self.assemble_grad_to_p0(sd)
+        grad_space = pg.get_PwPolynomials(self.poly_order - 1, pg.VECTOR)(self.keyword)
+        M = grad_space.assemble_mass_matrix(sd, data)
+        grad = self.assemble_broken_grad_matrix(sd)
 
         return (grad.T @ M @ grad).tocsc()
 
-    def assemble_grad_to_p0(self, sd: pg.Grid) -> sps.csc_array:
+    def postprocess_dual_variable(
+        self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
+    ) -> np.ndarray:
         r"""
-        Assembles the matrix that computes the gradient :math:`\nabla u`, with
-        :math:`u \in \mathbb{L}_1(\Omega)`, as a piecewise constant vector field in
-        :math:`[\mathbb{P}_0(\Omega)]^d`.
+        Computes the flux :math:`-K \nabla u` as a vector piecewise polynomial of
+        degree :math:`k - 1`, with :math:`K` the tensor (pg.SECOND_ORDER_TENSOR) and
+        the weight (pg.WEIGHT) in the data dictionary.
 
         Args:
-            sd (pg.Grid): The grid.
+            primary_var (np.ndarray): The degrees of freedom of the primary variable.
+            sd (pg.Grid): The grid object.
+            data (dict): The data dictionary.
 
         Returns:
-            sps.csc_array: The gradient matrix.
+            np.ndarray: The degrees of freedom of the flux in the vector piecewise
+            polynomial space of degree :math:`k - 1`.
         """
-        return self.assemble_broken_grad_matrix(sd)
+        grad = (self.assemble_broken_grad_matrix(sd) @ primary_var).reshape(sd.dim, -1)
+
+        tensor = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
+        )
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+        K = tensor.values[: sd.dim, : sd.dim] * weight
+
+        # The local dofs of each polynomial component are ordered as (local, cell)
+        cells = np.tile(np.arange(sd.num_cells), grad.shape[1] // sd.num_cells)
+
+        return -np.einsum("ijn,jn->in", K[:, :, cells], grad).ravel()
+
+
+class Lagrange1(Lagrange):
+    r"""
+    Class implementing the finite element discretization Lagrange1
+    :math:`\mathbb{L}_1(\Omega) \subset H^1(\Omega)`, for a generic domain
+    :math:`\Omega \in \mathbb{R}^d`.
+    """
+
+    poly_order = 1
+    """Polynomial degree of the basis functions"""
+
+    def ndof_per_entity(self, dim: int) -> np.ndarray:
+        """
+        Returns the number of degrees of freedom per geometric entity, ordered by
+        the dimension of the entity as [0, 1, 2, 3].
+        In this case, one degree of freedom per node. A point grid has no nodes,
+        since its only entity is the cell, hence no degrees of freedom.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The number of degrees of freedom per entity.
+        """
+        return np.array([int(dim > 0), 0, 0, 0])  # nodes
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -326,7 +351,7 @@ class Lagrange1(pg.Discretization):
                 raise NotImplementedError("There's no zero discretization in PyGeoN")
 
 
-class Lagrange2(pg.Discretization):
+class Lagrange2(Lagrange):
     r"""
     Class implementing the finite element discretization Lagrange2
     :math:`\mathbb{L}_2(\Omega) \subset H^1(\Omega)`, for a generic domain
@@ -335,9 +360,6 @@ class Lagrange2(pg.Discretization):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -353,47 +375,6 @@ class Lagrange2(pg.Discretization):
             np.ndarray: The number of degrees of freedom per entity.
         """
         return np.array([int(dim > 0), 1, 0, 0])  # nodes and edges
-
-    def assemble_grad_grad_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles the :math:`(K \nabla u, \nabla v)_\Omega`, for
-        :math:`u,v \in \mathbb{L}_1(\Omega)` matrix for the nodal finite elements of
-        degree 2.
-
-        This corresponds to the output of assemble_stiff_matrix, except in 2D.
-        In that case the diff operator is a rotated gradient, leading to a different
-        output for tensor-valued K.
-
-        The scalar (pg.WEIGHT) and tensor-valued (pg.SECOND_ORDER_TENSOR) entries in the
-        data dictionary are used as weights in the inner product.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict): A dictionary containing the weight for the inner product.
-
-        Returns:
-            sps.csc_array: The assembled stiffness matrix.
-        """
-        M = pg.VecPwLinears(self.keyword).assemble_mass_matrix(sd, data)
-        grad = self.assemble_grad_to_p1(sd)
-
-        return (grad.T @ M @ grad).tocsc()
-
-    def assemble_grad_to_p1(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Assembles the matrix that computes the gradient :math:`\nabla u`, with
-        :math:`u \in \mathbb{L}_1(\Omega)`, as a piecewise linear vector field in
-        :math:`[\mathbb{P}_1(\Omega)]^d`.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The gradient matrix.
-        """
-        return self.assemble_broken_grad_matrix(sd)
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
