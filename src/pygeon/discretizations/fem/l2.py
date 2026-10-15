@@ -803,8 +803,7 @@ class PwQuadratics(PwPolynomials):
         node_0 = loc_nodes[loc_en[:, 0]].ravel()
         node_1 = loc_nodes[loc_en[:, 1]].ravel()
 
-        # Column slicing in CSC format: on a COO matrix it scales quadratically with
-        # the matrix size, which dominated the assembly on fine grids
+        # Column slicing in CSC format
         ij_term = grad_lambda.tocsc()[:, node_0].tocoo()
         ji_term = grad_lambda.tocsc()[:, node_1].tocoo()
 
