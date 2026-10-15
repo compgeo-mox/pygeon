@@ -97,10 +97,7 @@ def test_point_grid(discr, ref_sd_0d):
         discr.assemble_diff_matrix(sd_copy)
 
 
-@pytest.mark.parametrize("discr_cls", [pg.Lagrange1, pg.Lagrange2])
-def test_postprocess_darcy_flux(discr_cls, unit_sd: pg.Grid):
-    discr = discr_cls("test")
-
+def test_postprocess_darcy_flux(discr, unit_sd: pg.Grid):
     K = np.diag(np.arange(1.0, pg.AMBIENT_DIM + 1))
     perm = pp.SecondOrderTensor(
         kxx=K[0, 0] * np.ones(unit_sd.num_cells),
@@ -120,26 +117,36 @@ def test_postprocess_darcy_flux(discr_cls, unit_sd: pg.Grid):
     assert np.allclose(q, q_known)
 
 
-@pytest.mark.parametrize("discr_cls", [pg.Lagrange1, pg.Lagrange2])
-def test_postprocess_darcy_flux_on_tilted_grid(discr_cls):
-    sd = pg.unit_grid(1, 1, as_mdg=False)
-    direction = np.array([1.0, 1.0, 0.0]) / np.sqrt(2)
-    sd.nodes[:] = direction[:, None] * sd.nodes[0, :]
+def test_postprocess_darcy_flux_on_tilted_grid(discr):
+    # A 2d grid rotated into a generic plane of the ambient space
+    Q, _ = np.linalg.qr(np.array([[1.0, 2.0, 0.0], [0.0, 1.0, 3.0], [2.0, 0.0, 1.0]]))
+    sd = pp.StructuredTriangleGrid([4, 4], [1, 1])
+    sd.nodes = Q @ sd.nodes
+    pg.convert_from_pp(sd)
     sd.compute_geometry()
 
-    discr = discr_cls("test")
-    K = np.diag([1.0, 2.0, 3.0])
+    # A full tensor, which couples the tangential and normal directions
+    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
+    ones = np.ones(sd.num_cells)
     perm = pp.SecondOrderTensor(
-        kxx=K[0, 0] * np.ones(sd.num_cells),
-        kyy=K[1, 1] * np.ones(sd.num_cells),
-        kzz=K[2, 2] * np.ones(sd.num_cells),
+        kxx=K[0, 0] * ones,
+        kyy=K[1, 1] * ones,
+        kzz=K[2, 2] * ones,
+        kxy=K[0, 1] * ones,
+        kxz=K[0, 2] * ones,
+        kyz=K[1, 2] * ones,
     )
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
-    u = discr.interpolate(sd, lambda x: direction @ x)
+    # A linear function with a slope not tangent to the plane: its gradient is the
+    # tangential projection P slope, and the flux is the tangential part of
+    # -K P slope, with P the projection onto the plane
+    slope = np.array([1.0, -2.0, 0.5])
+    P = np.eye(3) - np.outer(Q[:, 2], Q[:, 2])
+    u = discr.interpolate(sd, lambda x: slope @ x)
     q = discr.postprocess_darcy_flux(u, sd, data)
 
     q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
-    q_known = q_space.interpolate(sd, lambda _: -(K @ direction))
+    q_known = q_space.interpolate(sd, lambda _: -(P @ K @ P @ slope))
 
     assert np.allclose(q, q_known)
