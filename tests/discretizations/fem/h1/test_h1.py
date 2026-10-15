@@ -98,7 +98,7 @@ def test_point_grid(discr, ref_sd_0d):
 
 
 @pytest.mark.parametrize("discr_cls", [pg.Lagrange1, pg.Lagrange2])
-def test_postprocess_dual_variable(discr_cls, unit_sd: pg.Grid):
+def test_postprocess_darcy_flux(discr_cls, unit_sd: pg.Grid):
     discr = discr_cls("test")
 
     K = np.diag(np.arange(1.0, pg.AMBIENT_DIM + 1))
@@ -112,9 +112,31 @@ def test_postprocess_dual_variable(discr_cls, unit_sd: pg.Grid):
     # The flux of a linear function is constant, equal to -K grad u
     slope = np.arange(1.0, pg.AMBIENT_DIM + 1)
     u = discr.interpolate(unit_sd, lambda x: slope @ x)
-    q = discr.postprocess_dual_variable(u, unit_sd, data)
+    q = discr.postprocess_darcy_flux(u, unit_sd, data)
 
     q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
     q_known = q_space.interpolate(unit_sd, lambda _: -(K @ slope))
 
     assert np.allclose(q, q_known)
+
+
+@pytest.mark.parametrize("discr_cls", [pg.Lagrange1, pg.Lagrange2])
+def test_postprocess_darcy_flux_on_tilted_grid(discr_cls):
+    sd = pg.unit_grid(1, 1, as_mdg=False)
+    direction = np.array([1.0, 1.0, 0.0]) / np.sqrt(2)
+    sd.nodes[:] = direction[:, None] * sd.nodes[0, :]
+    sd.compute_geometry()
+
+    discr = discr_cls("test")
+    K = np.diag([1.0, 2.0, 3.0])
+    perm = pp.SecondOrderTensor(
+        kxx=K[0, 0] * np.ones(sd.num_cells),
+        kyy=K[1, 1] * np.ones(sd.num_cells),
+        kzz=K[2, 2] * np.ones(sd.num_cells),
+    )
+    data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
+
+    u = discr.interpolate(sd, lambda x: direction @ x)
+    q = discr.postprocess_darcy_flux(u, sd, data)
+
+    assert np.allclose(q, -1.5)

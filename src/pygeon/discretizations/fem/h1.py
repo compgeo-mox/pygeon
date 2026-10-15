@@ -47,7 +47,7 @@ class Lagrange(pg.Discretization):
 
         return (grad.T @ M @ grad).tocsc()
 
-    def postprocess_dual_variable(
+    def postprocess_darcy_flux(
         self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
     ) -> np.ndarray:
         r"""
@@ -70,7 +70,9 @@ class Lagrange(pg.Discretization):
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
-        K = tensor.values[: sd.dim, : sd.dim] * weight
+        R = sd.rotation_matrix
+        K = np.tensordot(R.T, np.tensordot(R, tensor.values, (1, 0)), (0, 1))
+        K *= weight
 
         # The local dofs of each polynomial component are ordered as (local, cell)
         cells = np.tile(np.arange(sd.num_cells), grad.shape[1] // sd.num_cells)
