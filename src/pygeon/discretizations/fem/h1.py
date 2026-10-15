@@ -594,13 +594,15 @@ class Lagrange2(pg.Discretization):
                     # List local edges
                     edges = sd.face_ridges.indices[loc]
 
-                    # Swap ordering so that edge 0 is opposite node 2
+                    # Swap ordering so that edge k is opposite node 2 - k, as in the
+                    # local edges (0, 1), (0, 2), (1, 2) of the local mass matrix
                     check = sd.face_nodes[:, [face] * 3].astype(bool) - edge_nodes[
                         :, edges
                     ].astype(bool)
-                    edges = edges[np.argsort(check.indices)]
+                    opposite = [np.flatnonzero(loc_n == n)[0] for n in check.indices]
+                    edges = edges[np.argsort(opposite)[::-1]]
 
-                    assert not np.any(edge_nodes[loc_n, edges])
+                    assert not np.any(edge_nodes[loc_n[::-1], edges])
 
             # Evaluate f at the nodes and edges
             f_vals = np.empty(sd.dim + len(edges))
