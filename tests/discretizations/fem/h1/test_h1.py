@@ -17,6 +17,13 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 
+@pytest.fixture(params=[0.0, np.pi / 4])
+def rotation(request: pytest.FixtureRequest) -> np.ndarray:
+    """Rotation of the given angle around the z axis."""
+    c, s = np.cos(request.param), np.sin(request.param)
+    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+
+
 def test_interpolate_and_evaluate(discr, unit_sd):
     func = lambda x: x[0] ** discr.poly_order
     known_vals = func(unit_sd.cell_centers)
@@ -97,19 +104,13 @@ def test_point_grid(discr, ref_sd_0d):
         discr.assemble_diff_matrix(sd_copy)
 
 
-@pytest.fixture(params=[0.0, np.pi / 4], ids=["0deg", "45deg"])
-def rotation(request: pytest.FixtureRequest) -> np.ndarray:
-    """Rotation of the given angle around the z axis."""
-    c, s = np.cos(request.param), np.sin(request.param)
-    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
-
-
 def test_postprocess_darcy_flux(discr, unit_sd, rotation):
-    if unit_sd.dim == 3:
-        pytest.skip("The grid cannot be rotated within its own space in 3D.")
+    if unit_sd.dim == 3 and not np.allclose(rotation, np.eye(3)):
+        pytest.skip("A 3D grid is only tested without rotation.")
 
-    # The problem is posed on the grid rotated by Q, with the tensor and the linear
-    # function rotated accordingly, so the flux is the rotated unrotated flux.
+    # The problem is posed on the grid rotated by the given rotation, with the tensor
+    # and the linear function rotated accordingly, so the flux is the rotated flux
+    # of the unrotated problem.
     sd = unit_sd.copy()
     sd.nodes = rotation @ sd.nodes
     # The geometry of the copy is not recomputed unless forced
@@ -128,8 +129,8 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
     slope = np.array([1.0, 2.0, 3.0])
-    u = discr.interpolate(sd, lambda x: (rotation @ slope) @ x)
-    q = discr.postprocess_darcy_flux(u, sd, data)
+    p = discr.interpolate(sd, lambda x: (rotation @ slope) @ x)
+    q = discr.postprocess_darcy_flux(p, sd, data)
 
     # Only the part of the gradient and of the flux along the grid is seen
     P = np.diag([1.0] * sd.dim + [0.0] * (3 - sd.dim))
