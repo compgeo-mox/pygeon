@@ -111,10 +111,8 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
     # The problem is posed on the grid rotated by the given rotation, with the tensor
     # and the linear function rotated accordingly, so the flux is the rotated flux
     # of the unrotated problem.
-    sd = unit_sd.copy()
+    sd = unit_sd.copy(keep_history=False)
     sd.nodes = rotation @ sd.nodes
-    # The geometry of the copy is not recomputed unless forced
-    pp.Grid.compute_geometry(sd)
     sd.compute_geometry()
 
     K = np.array([[3.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 1.0]])

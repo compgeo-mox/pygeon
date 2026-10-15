@@ -179,3 +179,15 @@ def test_grid_with_constraint():
     assert np.isclose(sd.num_cells, 20)
     assert np.isclose(sd.num_faces, 34)
     assert np.isclose(sd.num_nodes, 15)
+
+
+def test_copy_history(unit_sd):
+    assert "Compute geometry" in unit_sd.copy().history
+
+    sd = unit_sd.copy(keep_history=False)
+    assert sd.history == []
+    assert "Compute geometry" in unit_sd.history
+
+    sd.nodes = 2 * sd.nodes
+    sd.compute_geometry()
+    assert np.isclose(sd.cell_volumes.sum(), 2**sd.dim)

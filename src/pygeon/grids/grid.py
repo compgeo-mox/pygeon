@@ -386,13 +386,20 @@ class Grid(pp.Grid):
         else:
             self.rotation_matrix = np.eye(self.dim, pg.AMBIENT_DIM)
 
-    def copy(self):
+    def copy(self, keep_history: bool = True):
         """Create a new instance with some attributes deep-copied from the grid.
+
+        Args:
+            keep_history (bool): If False, the copy starts with an empty history, so
+                that its geometry is computed from scratch by compute_geometry, e.g.,
+                after the nodes have been modified. Default True.
 
         Returns:
             A deep copy of ``self``. Some predefined attributes are also copied.
 
         """
         h = super().copy()
+        if not keep_history:
+            h.history = []
         pg.convert_from_pp(h)
         return h
