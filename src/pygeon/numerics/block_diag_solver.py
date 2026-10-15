@@ -36,13 +36,13 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     M.eliminate_zeros()
 
     # Get connected components
-    n_components, labels = csgraph.connected_components(M, directed=False)
+    n_patches, labels = csgraph.connected_components(M, directed=False)
 
     # Sort the indices by component: the component c owns the global indices
     # order[starts[c] : starts[c] + sizes[c]], and local is the position of each
     # index within its component, i.e. its row/column in the dense block
     order = np.argsort(labels, kind="stable")
-    sizes = np.bincount(labels, minlength=n_components)
+    sizes = np.bincount(labels, minlength=n_patches)
     starts = np.cumsum(sizes) - sizes
     local = np.empty_like(order)
     local[order] = np.arange(order.size) - np.repeat(starts, sizes)
@@ -53,30 +53,34 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     M_coo.sum_duplicates()
     size_of_entry = sizes[labels[M_coo.row]]
 
-    rows_inv, cols_inv, vals_inv = [], [], []
+    rows_list, cols_list, data_list = [], [], []
     for size in np.unique(sizes):
         # The components of this size and their position in the stack
-        comps = np.flatnonzero(sizes == size)
-        stack_id = np.full(n_components, -1)
-        stack_id[comps] = np.arange(comps.size)
+        patches = np.flatnonzero(sizes == size)
+        stack_id = np.full(n_patches, -1)
+        stack_id[patches] = np.arange(patches.size)
 
-        # Scatter the entries of these components into the stack of dense blocks
+        # Populate the stack of dense blocks with entries
         mask = size_of_entry == size
         rows, cols = M_coo.row[mask], M_coo.col[mask]
-        blocks = np.zeros((comps.size, size, size))
+        blocks = np.zeros((patches.size, size, size))
         blocks[stack_id[labels[rows]], local[rows], local[cols]] = M_coo.data[mask]
 
-        # Global indices of each block, shape (k, s): the inverse of the block i is
-        # a dense s x s matrix with rows and columns indices[i], stored row-wise to
-        # match the ravel of the inverted stack
-        indices = order[starts[comps, None] + np.arange(size)]
-        rows_inv.append(np.repeat(indices, size, axis=1).ravel())
-        cols_inv.append(np.tile(indices, size).ravel())
-        vals_inv.append(np.linalg.inv(blocks).ravel())
+        # Inversion of all patches with equal size
+        block_invs = np.linalg.inv(blocks)
 
-    data = np.concatenate(vals_inv)
-    ij = (np.concatenate(rows_inv), np.concatenate(cols_inv))
-    return sps.csc_array((data, ij), shape=M.shape)
+        # Global indices of each block: the inverse of the block i is a dense s x s
+        # matrix, stored row-wise to match the ravel of the inverted stack
+        indices = order[starts[patches, None] + np.arange(size)]
+        rows_list.append(np.repeat(indices, size, axis=1).ravel())
+        cols_list.append(np.tile(indices, size).ravel())
+        data_list.append(block_invs.ravel())
+
+    rows_I = np.concatenate(rows_list)
+    cols_J = np.concatenate(cols_list)
+    data_IJ = np.concatenate(data_list)
+
+    return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=M.shape)
 
 
 def block_diag_solver(
