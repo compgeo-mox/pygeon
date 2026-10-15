@@ -19,9 +19,10 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
 
 @pytest.fixture(params=[0.0, np.pi / 4])
 def rotation(request: pytest.FixtureRequest) -> np.ndarray:
-    """Rotation of the given angle around the z axis."""
+    """Rotation of the given angle around the y axis, which tilts the 1D grid along x
+    and the 2D grid in the xy-plane out of their coordinate planes."""
     c, s = np.cos(request.param), np.sin(request.param)
-    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+    return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
 
 
 def test_interpolate_and_evaluate(discr, unit_sd):
@@ -105,9 +106,6 @@ def test_point_grid(discr, ref_sd_0d):
 
 
 def test_postprocess_darcy_flux(discr, unit_sd, rotation):
-    if unit_sd.dim == 3 and not np.allclose(rotation, np.eye(3)):
-        pytest.skip("A 3D grid is only tested without rotation.")
-
     # The problem is posed on the grid rotated by the given rotation, with the tensor
     # and the linear function rotated accordingly, so the flux is the rotated flux
     # of the unrotated problem.
@@ -115,7 +113,7 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
     sd.nodes = rotation @ sd.nodes
     sd.compute_geometry()
 
-    K = np.array([[3.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 1.0]])
+    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
     K_rot = rotation @ K @ rotation.T
     ones = np.ones(sd.num_cells)
     perm = pp.SecondOrderTensor(
@@ -123,6 +121,8 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
         kyy=K_rot[1, 1] * ones,
         kzz=K_rot[2, 2] * ones,
         kxy=K_rot[0, 1] * ones,
+        kxz=K_rot[0, 2] * ones,
+        kyz=K_rot[1, 2] * ones,
     )
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
