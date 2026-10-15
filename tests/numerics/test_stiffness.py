@@ -9,7 +9,7 @@ import pygeon as pg
 @pytest.mark.parametrize("n_minus_k", range(0, 4))
 def test_stiffness_aliases(mdg, n_minus_k):
     if n_minus_k > mdg.dim_max():
-        return
+        pytest.skip("No entities of this codimension")
 
     match n_minus_k:
         case 0:
