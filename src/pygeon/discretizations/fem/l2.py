@@ -803,8 +803,10 @@ class PwQuadratics(PwPolynomials):
         node_0 = loc_nodes[loc_en[:, 0]].ravel()
         node_1 = loc_nodes[loc_en[:, 1]].ravel()
 
-        ij_term = grad_lambda.tocoo()[:, node_0]
-        ji_term = grad_lambda.tocoo()[:, node_1]
+        # Column slicing in CSC format: on a COO matrix it scales quadratically with
+        # the matrix size, which dominated the assembly on fine grids
+        ij_term = grad_lambda.tocsc()[:, node_0].tocoo()
+        ji_term = grad_lambda.tocsc()[:, node_1].tocoo()
 
         ij_term.data *= np.where(ij_term.row % P1.ndof(sd) == node_1[ij_term.col], 1, 0)
         ji_term.data *= np.where(ji_term.row % P1.ndof(sd) == node_0[ji_term.col], 1, 0)
