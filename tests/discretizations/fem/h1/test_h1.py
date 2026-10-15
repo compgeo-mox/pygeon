@@ -97,56 +97,44 @@ def test_point_grid(discr, ref_sd_0d):
         discr.assemble_diff_matrix(sd_copy)
 
 
-def test_postprocess_darcy_flux(discr, unit_sd: pg.Grid):
-    K = np.diag(np.arange(1.0, pg.AMBIENT_DIM + 1))
-    perm = pp.SecondOrderTensor(
-        kxx=K[0, 0] * np.ones(unit_sd.num_cells),
-        kyy=K[1, 1] * np.ones(unit_sd.num_cells),
-        kzz=K[2, 2] * np.ones(unit_sd.num_cells),
-    )
-    data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
-
-    # The flux of a linear function is constant, equal to -K grad u
-    slope = np.arange(1.0, pg.AMBIENT_DIM + 1)
-    u = discr.interpolate(unit_sd, lambda x: slope @ x)
-    q = discr.postprocess_darcy_flux(u, unit_sd, data)
-
-    q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
-    q_known = q_space.interpolate(unit_sd, lambda _: -(K @ slope))
-
-    assert np.allclose(q, q_known)
+@pytest.fixture(params=[0.0, np.pi / 4], ids=["0deg", "45deg"])
+def rotation(request: pytest.FixtureRequest) -> np.ndarray:
+    """Rotation of the given angle around the z axis."""
+    c, s = np.cos(request.param), np.sin(request.param)
+    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
 
 
-def test_postprocess_darcy_flux_on_tilted_grid(discr):
-    # A 2d grid rotated into a generic plane of the ambient space
-    Q, _ = np.linalg.qr(np.array([[1.0, 2.0, 0.0], [0.0, 1.0, 3.0], [2.0, 0.0, 1.0]]))
-    sd = pp.StructuredTriangleGrid([4, 4], [1, 1])
-    sd.nodes = Q @ sd.nodes
-    pg.convert_from_pp(sd)
+def test_postprocess_darcy_flux(discr, unit_sd, rotation):
+    if unit_sd.dim == 3:
+        pytest.skip("The grid cannot be rotated within its own space in 3D.")
+
+    # The problem is posed on the grid rotated by Q, with the tensor and the linear
+    # function rotated accordingly, so the flux is the rotated unrotated flux.
+    sd = unit_sd.copy()
+    sd.nodes = rotation @ sd.nodes
+    # The geometry of the copy is not recomputed unless forced
+    pp.Grid.compute_geometry(sd)
     sd.compute_geometry()
 
-    # A full tensor, which couples the tangential and normal directions
-    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
+    K = np.array([[3.0, 1.0, 0.0], [1.0, 2.0, 0.0], [0.0, 0.0, 1.0]])
+    K_rot = rotation @ K @ rotation.T
     ones = np.ones(sd.num_cells)
     perm = pp.SecondOrderTensor(
-        kxx=K[0, 0] * ones,
-        kyy=K[1, 1] * ones,
-        kzz=K[2, 2] * ones,
-        kxy=K[0, 1] * ones,
-        kxz=K[0, 2] * ones,
-        kyz=K[1, 2] * ones,
+        kxx=K_rot[0, 0] * ones,
+        kyy=K_rot[1, 1] * ones,
+        kzz=K_rot[2, 2] * ones,
+        kxy=K_rot[0, 1] * ones,
     )
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
-    # A linear function with a slope not tangent to the plane: its gradient is the
-    # tangential projection P slope, and the flux is the tangential part of
-    # -K P slope, with P the projection onto the plane
-    slope = np.array([1.0, -2.0, 0.5])
-    P = np.eye(3) - np.outer(Q[:, 2], Q[:, 2])
-    u = discr.interpolate(sd, lambda x: slope @ x)
+    slope = np.array([1.0, 2.0, 3.0])
+    u = discr.interpolate(sd, lambda x: (rotation @ slope) @ x)
     q = discr.postprocess_darcy_flux(u, sd, data)
 
-    q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
-    q_known = q_space.interpolate(sd, lambda _: -(P @ K @ P @ slope))
+    # Only the part of the gradient and of the flux along the grid is seen
+    P = np.diag([1.0] * sd.dim + [0.0] * (3 - sd.dim))
+    q_known = rotation @ (-P @ K @ P @ slope)
 
-    assert np.allclose(q, q_known)
+    q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
+
+    assert np.allclose(q, q_space.interpolate(sd, lambda _: q_known))
