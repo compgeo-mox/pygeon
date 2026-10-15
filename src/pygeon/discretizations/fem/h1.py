@@ -51,7 +51,7 @@ class Lagrange(pg.Discretization):
         self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
     ) -> np.ndarray:
         r"""
-        Computes the flux :math:`-K \nabla u` as a vector piecewise polynomial of
+        Computes the Darcy flux :math:`-K \nabla u` as a vector piecewise polynomial of
         degree :math:`k - 1`, with :math:`K` the tensor (pg.SECOND_ORDER_TENSOR) and
         the weight (pg.WEIGHT) in the data dictionary.
 
@@ -61,7 +61,7 @@ class Lagrange(pg.Discretization):
             data (dict): The data dictionary.
 
         Returns:
-            np.ndarray: The degrees of freedom of the flux in the vector piecewise
+            np.ndarray: The degrees of freedom of the Darcy flux in the vector piecewise
             polynomial space of degree :math:`k - 1`.
         """
         grad = (self.assemble_broken_grad_matrix(sd) @ primary_var).reshape(sd.dim, -1)
