@@ -221,7 +221,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         return self.ndof_per_entity(dim).sum()
 
-    def postprocess_dual_variable(
+    def postprocess_darcy_flux(
         self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
     ) -> np.ndarray:
         r"""

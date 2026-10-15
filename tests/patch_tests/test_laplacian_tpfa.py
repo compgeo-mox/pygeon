@@ -32,7 +32,7 @@ def check_flux_reconstruction(tpfa, sd, data, pressure):
     q_known = pg.VRT0().interpolate(
         sd, lambda x: np.tile([-1, 0, 0], (x.shape[1], 1)).T
     )
-    q_post_processed = tpfa.postprocess_dual_variable(pressure, sd, data)
+    q_post_processed = tpfa.postprocess_darcy_flux(pressure, sd, data)
 
     assert np.allclose(q_known, q_post_processed)
 
