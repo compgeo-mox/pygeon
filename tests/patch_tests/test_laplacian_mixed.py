@@ -29,8 +29,7 @@ def test_linear_distribution(discr, unit_sd, use_lumped):
     discr_q, discr_p = discr
 
     if isinstance(discr_q, pg.RT0) and use_lumped:
-        # The lumped version of RT0 is not consistent
-        return
+        pytest.skip("The lumped version of RT0 is not consistent")
 
     # Provide the solution
     def q_func(_):

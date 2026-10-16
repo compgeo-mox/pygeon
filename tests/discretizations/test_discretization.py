@@ -30,9 +30,8 @@ def test_string_repr():
 
 
 def test_cochain_property(discr, unit_sd):
-    # Skip the Nedelec spaces in 1D
     if isinstance(discr, (pg.NedelecR0, pg.NedelecF1)) and unit_sd.dim == 1:
-        return
+        pytest.skip("No Nedelec spaces in 1D")
 
     unit_sd.compute_geometry()
 

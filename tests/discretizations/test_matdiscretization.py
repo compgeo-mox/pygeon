@@ -32,7 +32,7 @@ def constant_fun():
 
 def test_assemble_elasticity_matrices(discr, unit_sd, data, constant_fun):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No elasticity in 1D")
     M = discr.assemble_mass_matrix_elasticity(unit_sd, data)
     u = discr.interpolate(unit_sd, constant_fun)
 
@@ -48,7 +48,7 @@ def test_assemble_elasticity_matrices(discr, unit_sd, data, constant_fun):
 
 def test_assemble_deviator_matrix(discr, unit_sd, data, constant_fun):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No deviator in 1D")
     M = discr.assemble_deviator_matrix(unit_sd, data)
     u = discr.interpolate(unit_sd, constant_fun)
 
@@ -58,7 +58,7 @@ def test_assemble_deviator_matrix(discr, unit_sd, data, constant_fun):
 
 def test_assemble_cosserat_matrices(discr, unit_sd, data, constant_fun):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No Cosserat in 1D")
     M = discr.assemble_mass_matrix_cosserat(unit_sd, data)
     u = discr.interpolate(unit_sd, constant_fun)
 
@@ -85,7 +85,7 @@ def test_assemble_trace_matrix(discr, unit_sd, constant_fun):
 
 def test_assemble_asym_matrix(discr, unit_sd, constant_fun):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No asymmetry in 1D")
 
     u = discr.interpolate(unit_sd, constant_fun)
     asym = discr.assemble_asym_matrix(unit_sd)
@@ -104,7 +104,7 @@ def test_assemble_asym_matrix(discr, unit_sd, constant_fun):
 
 def test_trace_with_proj(discr, unit_sd):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No elasticity in 1D")
 
     P1 = pg.get_PwPolynomials(discr.poly_order, discr.tensor_order)(discr.keyword)
     trace = P1.assemble_trace_matrix(unit_sd)
@@ -118,7 +118,7 @@ def test_trace_with_proj(discr, unit_sd):
 
 def test_asym_with_proj(discr, unit_sd):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No asymmetry in 1D")
 
     P1 = pg.get_PwPolynomials(discr.poly_order, discr.tensor_order)(discr.keyword)
     asym = P1.assemble_asym_matrix(unit_sd)
@@ -146,7 +146,7 @@ def test_interp_eval_linears(discr, unit_sd):
 
 def test_linear_asym(discr, unit_sd):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No asymmetry in 1D")
 
     asym = discr.assemble_asym_matrix(unit_sd)
 
