@@ -1,6 +1,7 @@
 """Module contains general tests for all H1 discretizations."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
@@ -14,6 +15,14 @@ import pygeon as pg
 )
 def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
+
+
+@pytest.fixture(params=[0.0, np.pi / 4])
+def rotation(request: pytest.FixtureRequest) -> np.ndarray:
+    """Rotation of the given angle around the y axis, which tilts the 1D grid along x
+    and the 2D grid in the xy-plane out of their coordinate planes."""
+    c, s = np.cos(request.param), np.sin(request.param)
+    return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
 
 
 def test_interpolate_and_evaluate(discr, unit_sd):
@@ -94,3 +103,34 @@ def test_point_grid(discr, ref_sd_0d):
         sd_copy = ref_sd_0d.copy()
         sd_copy.dim = -1
         discr.assemble_diff_matrix(sd_copy)
+
+
+def test_postprocess_darcy_flux(discr, unit_sd, rotation):
+    # The rotation tilts the grid, the tensor is given in the local coordinates of the
+    # grid and mapped to the ambient space with the rotation matrix of the grid
+    sd = unit_sd.copy(keep_history=False)
+    sd.nodes = rotation @ sd.nodes
+    sd.compute_geometry()
+    R = sd.rotation_matrix
+
+    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
+    K_rot = R.T @ K[: sd.dim, : sd.dim] @ R
+    ones = np.ones(sd.num_cells)
+    perm = pp.SecondOrderTensor(
+        kxx=K_rot[0, 0] * ones,
+        kyy=K_rot[1, 1] * ones,
+        kzz=K_rot[2, 2] * ones,
+        kxy=K_rot[0, 1] * ones,
+        kxz=K_rot[0, 2] * ones,
+        kyz=K_rot[1, 2] * ones,
+    )
+    data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
+
+    # The flux of a linear function is constant, equal to -K grad p
+    slope = rotation @ np.array([1.0, 2.0, 3.0])
+    p = discr.interpolate(sd, lambda x: slope @ x)
+    q = discr.postprocess_darcy_flux(p, sd, data)
+
+    q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
+
+    assert np.allclose(q, q_space.interpolate(sd, lambda _: -K_rot @ slope))

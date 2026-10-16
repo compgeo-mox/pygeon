@@ -34,7 +34,7 @@ from pygeon.discretizations.mat_discretization import MatDiscretization
 
 from pygeon.discretizations.fem.hcurl import NedelecR0, NedelecF1
 from pygeon.discretizations.fem.hdiv import RT0, BDM1, RT1
-from pygeon.discretizations.fem.h1 import Lagrange1, Lagrange2
+from pygeon.discretizations.fem.h1 import Lagrange, Lagrange1, Lagrange2
 from pygeon.discretizations.fem.l2 import (
     PwPolynomials,
     PwConstants,
