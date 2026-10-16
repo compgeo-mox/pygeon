@@ -46,7 +46,7 @@ def test_lumped_matrix(discr, unit_sd):
     if isinstance(discr, pg.RT0):
         pytest.skip(
             "The RT0 lumped matrix does not coincide with the one from the piecewise "
-            "polynomial interpretation"
+            "polynomial interpolation"
         )
 
     poly_order = discr.poly_order
