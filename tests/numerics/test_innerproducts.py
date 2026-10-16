@@ -23,7 +23,7 @@ def test_cell_mass_simplices(unit_sd):
 @pytest.mark.parametrize("n_minus_k", range(0, 4))
 def test_matrix_aliases(mdg, n_minus_k):
     if n_minus_k > mdg.dim_max():
-        pytest.skip("No entities of this codimension")
+        pytest.skip("No entities with codimension larger than the dimension")
 
     match n_minus_k:
         case 0:
