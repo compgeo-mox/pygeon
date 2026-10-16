@@ -563,41 +563,61 @@ class Lagrange2(Lagrange):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
-        M = pg.PwQuadratics().assemble_local_mass(sd.dim - 1)
-        edge_nodes = sd.face_ridges if sd.dim == 2 else sd.ridge_peaks
+        if b_faces.size == 0:
+            return vals
 
-        for face in b_faces:
-            loc = slice(sd.face_nodes.indptr[face], sd.face_nodes.indptr[face + 1])
-            loc_n = sd.face_nodes.indices[loc]
+        p2 = pg.PwQuadratics()
+        M = p2.assemble_local_mass(sd.dim - 1)
+        # local edges of a face as pairs of its local nodes, in the ordering of M
+        loc_en = p2.get_local_edge_nodes(sd.dim - 1)
 
-            match sd.dim:
-                case 2:
-                    edges = np.array([face])
-                case 3:
-                    # List local edges
-                    edges = sd.face_ridges.indices[loc]
+        # Nodes of each boundary face, shape (num_b_faces, dim)
+        face_nodes = sd.face_nodes.tocsc()
+        face_nodes.sort_indices()
+        nodes = face_nodes.indices.reshape(sd.num_faces, sd.dim)[b_faces]
 
-                    # Swap ordering so that edge 0 is opposite node 2
-                    check = sd.face_nodes[:, [face] * 3].astype(bool) - edge_nodes[
-                        :, edges
-                    ].astype(bool)
-                    edges = edges[np.argsort(check.indices)]
+        match sd.dim:
+            case 2:
+                # the only edge of a face is the face itself
+                edges = b_faces[:, None]
+            case 3:
+                # The ids of the edges of each face and of their nodes
+                face_ridges = sd.face_ridges.tocsc()
+                ridge_peaks = sd.ridge_peaks.tocsc()
+                ridge_peaks.sort_indices()
+                ridges = face_ridges.indices.reshape(sd.num_faces, -1)[b_faces]
+                ridge_nodes = ridge_peaks.indices.reshape(-1, 2)[ridges]
 
-                    assert not np.any(edge_nodes[loc_n, edges])
+                # In M the local edge k, with local nodes loc_en[k], is opposite the
+                # local node 2 - k. The node opposite each edge, shape
+                # (num_b_faces, 3), is the one of the face not in the edge, i.e. the
+                # difference of the sums of their ids
+                opposite = nodes.sum(axis=1, keepdims=True) - ridge_nodes.sum(axis=2)
 
-            # Evaluate f at the nodes and edges
-            f_vals = np.empty(sd.dim + len(edges))
-            f_vals[: sd.dim] = [func(x) for x in sd.nodes[:, loc_n].T]
+                # Its local index: is_opposite[f, e, j] tells whether the local node j
+                # of the face f is opposite its edge e
+                is_opposite = nodes[:, None, :] == opposite[:, :, None]
+                loc_opposite = np.argmax(is_opposite, axis=2)
 
-            for ind, edge in enumerate(edges):
-                x0, x1 = sd.nodes[:, edge_nodes[:, [edge]].indices].T
-                f_vals[sd.dim + ind] = func((x0 + x1) / 2)
+                edges = np.empty_like(ridges)
+                np.put_along_axis(edges, 2 - loc_opposite, ridges, axis=1)
 
-            # Use the local mass matrix on the boundary
-            vals_loc = M @ f_vals * sd.face_areas[face]
+        # Evaluate func at the nodes and at the midpoints of the local edges
+        coords = sd.nodes.T[nodes]
+        midpoints = 0.5 * (coords[:, loc_en[:, 0]] + coords[:, loc_en[:, 1]])
+        points = np.concatenate((coords, midpoints), axis=1)
+        f_vals = self.eval_func_at_coords(func, points.reshape(-1, 3).T)
+        f_vals = f_vals.reshape(points.shape[:2])
 
-            vals[loc_n] += vals_loc[: sd.dim]
-            vals[sd.num_nodes + edges] += vals_loc[sd.dim :]
+        # Use the local mass matrix on each boundary face, each row scaled by the area
+        # of its face
+        vals_loc = (f_vals @ M.T) * sd.face_areas[b_faces, None]
+
+        # Sum the local contributions into the global dofs: a node or an edge shared
+        # by several boundary faces appears more than once in dofs, so the unbuffered
+        # np.add.at is needed, vals[dofs] += vals_loc would keep only one of them
+        dofs = np.hstack((nodes, sd.num_nodes + edges))
+        np.add.at(vals, dofs.ravel(), vals_loc.ravel())
 
         return vals
 
