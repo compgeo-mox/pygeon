@@ -106,15 +106,15 @@ def test_point_grid(discr, ref_sd_0d):
 
 
 def test_postprocess_darcy_flux(discr, unit_sd, rotation):
-    # The problem is posed on the grid rotated by the given rotation, with the tensor
-    # and the linear function rotated accordingly, so the flux is the rotated flux
-    # of the unrotated problem.
+    # The rotation tilts the grid, the tensor is given in the local coordinates of the
+    # grid and mapped to the ambient space with the rotation matrix of the grid
     sd = unit_sd.copy(keep_history=False)
     sd.nodes = rotation @ sd.nodes
     sd.compute_geometry()
+    R = sd.rotation_matrix
 
     K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    K_rot = rotation @ K @ rotation.T
+    K_rot = R.T @ K[: sd.dim, : sd.dim] @ R
     ones = np.ones(sd.num_cells)
     perm = pp.SecondOrderTensor(
         kxx=K_rot[0, 0] * ones,
@@ -126,14 +126,11 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
     )
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
-    slope = np.array([1.0, 2.0, 3.0])
-    p = discr.interpolate(sd, lambda x: (rotation @ slope) @ x)
+    # The flux of a linear function is constant, equal to -K grad p
+    slope = rotation @ np.array([1.0, 2.0, 3.0])
+    p = discr.interpolate(sd, lambda x: slope @ x)
     q = discr.postprocess_darcy_flux(p, sd, data)
-
-    # Only the part of the gradient and of the flux along the grid is seen
-    P = np.diag([1.0] * sd.dim + [0.0] * (3 - sd.dim))
-    q_known = rotation @ (-P @ K @ P @ slope)
 
     q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
 
-    assert np.allclose(q, q_space.interpolate(sd, lambda _: q_known))
+    assert np.allclose(q, q_space.interpolate(sd, lambda _: -K_rot @ slope))
