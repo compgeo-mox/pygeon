@@ -580,6 +580,9 @@ class Lagrange2(pg.Discretization):
         if b_faces.dtype == "bool":
             b_faces = np.where(b_faces)[0]
 
+        if b_faces.size == 0:
+            return vals
+
         p2 = pg.PwQuadratics()
         M = p2.assemble_local_mass(sd.dim - 1)
         # local edges of a face as pairs of its local nodes, in the ordering of M
