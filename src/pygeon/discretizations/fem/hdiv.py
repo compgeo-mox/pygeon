@@ -712,7 +712,7 @@ class RT1(pg.Discretization):
         # The cell-based basis function ind at the center is
         # sum_k (x_k - x_ind) / (dim + 1)^2 / (dim * volume), stacked as the columns
         # of basis[c], restricted to the first dim components
-        basis = nodes.sum(axis=1)[:, None] - (sd.dim + 1) * nodes[:, : sd.dim]
+        basis = (nodes[:, None] - nodes[:, : sd.dim, None]).sum(axis=2)
         basis /= ((sd.dim + 1) ** 2 * sd.dim * sd.cell_volumes)[:, None, None]
         basis = basis[:, :, : sd.dim].transpose(0, 2, 1)
 
