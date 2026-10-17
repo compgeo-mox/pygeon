@@ -200,7 +200,7 @@ class VecLagrange(pg.VecDiscretization):
             "PyGeoN"
         )
 
-    def _mat_space(self) -> pg.MatPwPolynomials:
+    def _mat_space(self) -> "pg.MatPwPolynomials":
         """The matrix piecewise polynomials of degree k - 1, the range of the
         symmetric gradient."""
         mat_space = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
