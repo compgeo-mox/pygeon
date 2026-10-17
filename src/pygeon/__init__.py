@@ -42,7 +42,7 @@ from pygeon.discretizations.fem.l2 import (
     PwQuadratics,
 )
 from pygeon.discretizations.fem.vec_hdiv import VecBDM1, VecRT0, VecRT1
-from pygeon.discretizations.fem.vec_h1 import VecLagrange1, VecLagrange2
+from pygeon.discretizations.fem.vec_h1 import VecLagrange, VecLagrange1, VecLagrange2
 from pygeon.discretizations.fem.vec_l2 import (
     VecPwPolynomials,
     VecPwConstants,
