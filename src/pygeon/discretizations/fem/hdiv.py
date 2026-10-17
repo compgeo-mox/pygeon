@@ -701,27 +701,25 @@ class RT1(pg.Discretization):
         # The face dofs are determined as in BDM1
         interp_faces = pg.BDM1().interpolate(sd, func)
 
-        # The cell dofs are determined by solving (d x d) linear systems
-        interp_cells = np.zeros(sd.dim * sd.num_cells)
-        cell_nodes = sd.cell_nodes()
-
+        # The cell dofs are determined by solving (d x d) linear systems, all the
+        # cells at once
         func_at_centers = self.eval_func_at_coords(func, sd.cell_centers)
 
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        # Nodes of each cell, shape (num_cells, dim + 1, 3), in the order of
+        # eval_basis_functions_at_center
+        nodes = sd.nodes.T[sd.cell_nodes().indices.reshape(sd.num_cells, -1)]
 
-            basis_at_center = self.eval_basis_functions_at_center(
-                sd, nodes_loc, sd.cell_volumes[c]
-            )
+        # The cell-based basis function ind at the center is
+        # sum_k (x_k - x_ind) / (dim + 1)^2 / (dim * volume), stacked as the columns
+        # of basis[c], restricted to the first dim components
+        basis = (nodes[:, None] - nodes[:, : sd.dim, None]).sum(axis=2)
+        basis /= ((sd.dim + 1) ** 2 * sd.dim * sd.cell_volumes)[:, None, None]
+        basis = basis[:, :, : sd.dim].transpose(0, 2, 1)
 
-            # Compute the coefficients c_i such
-            # that sum_i c_i phi_i = f at the cell center
-            coefficients = np.linalg.solve(
-                basis_at_center[: sd.dim, :], func_at_centers[: sd.dim, c]
-            )
-
-            interp_cells[sd.num_cells * np.arange(sd.dim) + c] = coefficients
+        # Compute the coefficients c_i such that sum_i c_i phi_i = f at the cell
+        # center, ordered as (local, cell)
+        rhs = func_at_centers[: sd.dim].T[..., None]
+        interp_cells = np.linalg.solve(basis, rhs)[..., 0].T.ravel()
 
         return np.hstack((interp_faces, interp_cells))
 
