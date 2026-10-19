@@ -18,6 +18,6 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
 
 def test_range(discr, ref_sd):
     if ref_sd.dim == 1:
-        return
+        pytest.skip("No range space in 1D")
     known_range = pg.get_PwPolynomials(discr.poly_order - 1, 1)
     assert discr.get_range_discr_class(ref_sd.dim) is known_range

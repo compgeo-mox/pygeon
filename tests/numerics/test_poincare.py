@@ -33,7 +33,7 @@ def test_chain_property_sd(poin, k):
     Check the chain property, i.e. whether pp=0
     """
     if k > poin.dim:
-        return
+        pytest.skip("No k-forms with k larger than the dimension")
 
     f = np.random.rand(poin.bar_spaces[k].size)
     pf = poin.apply(k, f)
@@ -48,7 +48,7 @@ def test_decomposition(poin, k):
     For given f, check whether the decomposition (pd + pd + q) f = f holds
     """
     if k > poin.dim:
-        return
+        pytest.skip("No k-forms with k larger than the dimension")
 
     f = np.random.rand(poin.bar_spaces[k].size)
     pdf, dpf, qf = poin.decompose(k, f)
@@ -58,7 +58,7 @@ def test_decomposition(poin, k):
 @pytest.mark.parametrize("k", range(0, 4))
 def test_solve_subproblem(poin, k):
     if k > poin.dim:
-        return
+        pytest.skip("No k-forms with k larger than the dimension")
 
     ndof = poin.bar_spaces[k].size
     system = sps.eye(ndof)

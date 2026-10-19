@@ -44,9 +44,10 @@ def test_lumped_matrix(discr, unit_sd):
     # Test if the lumped mass matrix corresponds to the matrix obtained by first mapping
     # to the piecewise polynomials.
     if isinstance(discr, pg.RT0):
-        # The RT0 lumped matrix does not coincide with the one from the piecewise
-        # polynomial interpretation so this test is skipped
-        return
+        pytest.skip(
+            "The RT0 lumped matrix does not coincide with the one from the piecewise "
+            "polynomial interpolation"
+        )
 
     poly_order = discr.poly_order
     tensor_order = discr.tensor_order
