@@ -31,7 +31,7 @@ def test_interp_eval_constants(discr, unit_sd):
 
 def test_interp_eval_linears(discr, unit_sd):
     if isinstance(discr, pg.RT0):
-        return
+        pytest.skip("RT0 does not contain all the linear functions")
 
     def q_linear(x):
         return x
@@ -46,7 +46,7 @@ def test_interp_eval_linears(discr, unit_sd):
 
 def test_norm_of_linear_function(discr, unit_sd):
     if isinstance(discr, pg.RT0):
-        return
+        pytest.skip("RT0 does not contain all the linear functions")
 
     def q_linear(x):
         return x

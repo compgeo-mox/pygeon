@@ -90,7 +90,7 @@ def setup_elasticity_natural_bcs(
 
 def test_elasticity_rbm(unit_sd, spaces, use_lumped):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No elasticity in 1D")
 
     S_h, U_h, R_h = spaces
     R_h = R_h[unit_sd.dim - 2]  # Select the scalar or vector variant
@@ -112,7 +112,7 @@ def test_elasticity_rbm(unit_sd, spaces, use_lumped):
 
 def test_elasticity_stretching(unit_sd, spaces, use_lumped):
     if unit_sd.dim == 1:
-        return
+        pytest.skip("No elasticity in 1D")
 
     u_stretch = lambda x: np.array([x[0], 0 * x[0], 0 * x[0]])
     r_stretch = lambda _: np.zeros(pg.AMBIENT_DIM) if unit_sd.dim == 3 else 0
