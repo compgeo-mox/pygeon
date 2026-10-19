@@ -186,3 +186,11 @@ def test_assemble_nat_bc(discr, unit_sd):
     b = discr.assemble_nat_bc(unit_sd, g, b_faces)
 
     assert np.isclose(b @ discr.interpolate(unit_sd, w), exact)
+
+
+def test_assemble_nat_bc_no_faces(discr, unit_sd):
+    b_faces = np.zeros(unit_sd.num_faces, dtype=bool)
+    b = discr.assemble_nat_bc(unit_sd, lambda x: x[0], b_faces)
+
+    assert b.shape == (discr.ndof(unit_sd),)
+    assert not np.any(b)
