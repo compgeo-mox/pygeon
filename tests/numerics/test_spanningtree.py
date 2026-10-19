@@ -122,7 +122,7 @@ def test_elasticity_spanningtree_solve(sd_and_sptr_elas):
     mdg, sptr = sd_and_sptr_elas
 
     if mdg.dim_max() == 1:
-        return
+        pytest.skip("No elasticity in 1D")
 
     B = assemble_B(mdg)
 
