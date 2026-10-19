@@ -705,21 +705,27 @@ class RT1(pg.Discretization):
         # cells at once
         func_at_centers = self.eval_func_at_coords(func, sd.cell_centers)
 
-        # Nodes of each cell, shape (num_cells, dim + 1, 3), in the order of
-        # eval_basis_functions_at_center
-        nodes = sd.nodes.T[sd.cell_nodes().indices.reshape(sd.num_cells, -1)]
+        # Nodes of each cell in the order of eval_basis_functions_at_center, with the
+        # coordinates along the first axis: shape (3, num_cells, dim + 1)
+        cell_nodes = sd.cell_nodes().indices.reshape(sd.num_cells, -1)
+        nodes = sd.nodes[:, cell_nodes]
+        centroids = nodes.mean(axis=2, keepdims=True)
 
-        # The cell-based basis function ind at the center is
-        # sum_k (x_k - x_ind) / (dim + 1)^2 / (dim * volume), stacked as the columns
-        # of basis[c], restricted to the first dim components
-        basis = (nodes[:, None] - nodes[:, : sd.dim, None]).sum(axis=2)
-        basis /= ((sd.dim + 1) ** 2 * sd.dim * sd.cell_volumes)[:, None, None]
-        basis = basis[:, :, : sd.dim].transpose(0, 2, 1)
+        # The cell-based basis function i at the centroid x_c is
+        # (x_c - x_i) / ((dim + 1) dim volume), for the first dim nodes:
+        # basis[j, c, i] is its component j in the cell c
+        scaling = (sd.dim + 1) * sd.dim * sd.cell_volumes
+        basis = (centroids - nodes[:, :, : sd.dim]) / scaling[:, None]
 
-        # Compute the coefficients c_i such that sum_i c_i phi_i = f at the cell
-        # center, ordered as (local, cell)
-        rhs = func_at_centers[: sd.dim].T[..., None]
-        interp_cells = np.linalg.solve(basis, rhs)[..., 0].T.ravel()
+        # In each cell, the coefficients c_i such that sum_i c_i phi_i = f at the
+        # center, on the first dim components: a stack of (dim x dim) systems with
+        # the components as rows and the basis functions as columns
+        matrices = basis[: sd.dim].transpose(1, 0, 2)
+        rhs = func_at_centers[: sd.dim].T[:, :, None]
+        coeffs = np.linalg.solve(matrices, rhs)[:, :, 0]
+
+        # The dofs are ordered as (local, cell)
+        interp_cells = coeffs.T.ravel()
 
         return np.hstack((interp_faces, interp_cells))
 
