@@ -566,10 +566,7 @@ class Lagrange2(Lagrange):
         if b_faces.size == 0:
             return vals
 
-        p2 = pg.PwQuadratics()
-        M = p2.assemble_local_mass(sd.dim - 1)
-        # local edges of a face as pairs of its local nodes, in the ordering of M
-        loc_en = p2.get_local_edge_nodes(sd.dim - 1)
+        M = pg.PwQuadratics().assemble_local_mass(sd.dim - 1)
 
         # Nodes of each boundary face, shape (num_b_faces, dim)
         face_nodes = sd.face_nodes.tocsc()
@@ -588,26 +585,27 @@ class Lagrange2(Lagrange):
                 ridges = face_ridges.indices.reshape(sd.num_faces, -1)[b_faces]
                 ridge_nodes = ridge_peaks.indices.reshape(-1, 2)[ridges]
 
-                # In M the local edge k, with local nodes loc_en[k], is opposite the
-                # local node 2 - k. The node opposite each edge, shape
+                # In M the local edges are (0, 1), (0, 2), (1, 2), so the local edge k
+                # is opposite the local node 2 - k. The node opposite each edge, shape
                 # (num_b_faces, 3), is the one of the face not in the edge, i.e. the
                 # difference of the sums of their ids
                 opposite = nodes.sum(axis=1, keepdims=True) - ridge_nodes.sum(axis=2)
 
                 # Its local index: is_opposite[f, e, j] tells whether the local node j
-                # of the face f is opposite its edge e
-                is_opposite = nodes[:, None, :] == opposite[:, :, None]
+                # of the face f is opposite its edge e, comparing the nodes of each
+                # face with the opposite node of each edge
+                face_nodes_row = nodes.reshape(b_faces.size, 1, 3)
+                opposite_col = opposite.reshape(b_faces.size, 3, 1)
+                is_opposite = face_nodes_row == opposite_col
                 loc_opposite = np.argmax(is_opposite, axis=2)
 
                 edges = np.empty_like(ridges)
                 np.put_along_axis(edges, 2 - loc_opposite, ridges, axis=1)
 
-        # Evaluate func at the nodes and at the midpoints of the local edges
-        coords = sd.nodes.T[nodes]
-        midpoints = 0.5 * (coords[:, loc_en[:, 0]] + coords[:, loc_en[:, 1]])
-        points = np.concatenate((coords, midpoints), axis=1)
-        f_vals = self.eval_func_at_coords(func, points.reshape(-1, 3).T)
-        f_vals = f_vals.reshape(points.shape[:2])
+        # The local dofs of each boundary face, in the ordering of M, where func is
+        # interpolated: at the nodes and at the midpoints of the edges
+        dofs = np.hstack((nodes, sd.num_nodes + edges))
+        f_vals = self.interpolate(sd, func)[dofs]
 
         # Use the local mass matrix on each boundary face, each row scaled by the area
         # of its face
@@ -616,7 +614,6 @@ class Lagrange2(Lagrange):
         # Sum the local contributions into the global dofs: a node or an edge shared
         # by several boundary faces appears more than once in dofs, so the unbuffered
         # np.add.at is needed, vals[dofs] += vals_loc would keep only one of them
-        dofs = np.hstack((nodes, sd.num_nodes + edges))
         np.add.at(vals, dofs.ravel(), vals_loc.ravel())
 
         return vals
