@@ -705,8 +705,9 @@ class RT1(pg.Discretization):
         # cells at once
         func_at_centers = self.eval_func_at_coords(func, sd.cell_centers)
 
-        # Nodes of each cell in the order of eval_basis_functions_at_center, with the
-        # coordinates along the first axis: shape (3, num_cells, dim + 1)
+        # Nodes of each cell in increasing order, as the local nodes of the basis
+        # functions, with the coordinates along the first axis: shape
+        # (3, num_cells, dim + 1)
         cell_nodes = sd.cell_nodes().indices.reshape(sd.num_cells, -1)
         nodes = sd.nodes[:, cell_nodes]
         centroids = nodes.mean(axis=2, keepdims=True)
