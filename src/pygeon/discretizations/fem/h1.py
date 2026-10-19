@@ -545,9 +545,9 @@ class Lagrange2(Lagrange):
 
         Args:
             sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
-                the 'natural' boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            func (Callable[[np.ndarray], np.ndarray]): The datum :math:`g`, evaluated
+                as in interpolate at the nodes and at the edge midpoints.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled 'natural' boundary condition values.
