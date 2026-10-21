@@ -89,7 +89,8 @@ class VecLagrange(pg.VecDiscretization):
             sps.csc_array: The sparse symmetric gradient matrix operator.
         """
         grad = self.assemble_broken_grad_matrix(sd)
-        sym = self.get_broken_grad_discr().assemble_symmetrizing_matrix(sd)
+        grad_space = cast(pg.MatPwPolynomials, self.get_broken_grad_discr())
+        sym = grad_space.assemble_symmetrizing_matrix(sd)
 
         return sym @ grad
 
@@ -162,7 +163,7 @@ class VecLagrange(pg.VecDiscretization):
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
 
-        grad_space = self.get_broken_grad_discr()
+        grad_space = cast(pg.MatPwPolynomials, self.get_broken_grad_discr())
         proj = grad_space.eval_at_cell_centers(sd)
         ident = grad_space.assemble_trace_matrix(sd).T
 
@@ -199,17 +200,6 @@ class VecLagrange(pg.VecDiscretization):
             f"There's no range discr for the vector Lagrangian {self.poly_order} in "
             "PyGeoN"
         )
-
-    def get_broken_grad_discr(self) -> "pg.MatPwPolynomials":
-        """
-        Returns the range of the broken gradient, the matrix piecewise polynomials of
-        degree k - 1, which also contains the symmetric gradient.
-
-        Returns:
-            pg.MatPwPolynomials: The discretization of the broken gradient.
-        """
-        grad_space = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
-        return cast(pg.MatPwPolynomials, grad_space)
 
 
 class VecLagrange1(VecLagrange):
