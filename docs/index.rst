@@ -1,87 +1,51 @@
-PyGeoN Documentation
-====================
+PyGeoN
+======
 
-.. image:: https://github.com/compgeo-mox/pygeon/actions/workflows/run-pytest.yml/badge.svg
-   :target: https://github.com/compgeo-mox/pygeon/actions/workflows/run-pytest.yml
-   :alt: Pytest
-
-.. image:: https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml/badge.svg
-   :target: https://github.com/compgeo-mox/pygeon/actions/workflows/run-static-checks.yml
-   :alt: Mypy, ruff, isort
-
-.. image:: https://zenodo.org/badge/455087135.svg
-   :target: https://zenodo.org/badge/latestdoi/455087135
-   :alt: DOI
-
-.. image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
-   :target: https://www.gnu.org/licenses/gpl-3.0
-   :alt: License: GPL v3
-
-**PyGeoN** is a Python package for Geo-Numerics, focusing on structure-preserving numerical methods for porous media and mixed-dimensional modeling.
-
-Features
---------
-
-* Structure-preserving discretizations
-* Mixed-dimensional modeling support
-* Integration with PorePy
-* Comprehensive test suite
-* Tutorials and examples
+**PyGeoN** is a Python package for Geo-Numerics: structure-preserving numerical
+methods for porous media and mixed-dimensional problems. It provides finite element,
+virtual element and finite volume discretizations of the :math:`H^1`,
+:math:`H(\mathrm{curl})`, :math:`H(\mathrm{div})` and :math:`L^2` spaces, the
+discrete differential operators between them, spanning tree and Poincaré operators,
+and the integration with `PorePy <https://github.com/pmgbergen/porepy>`_.
 
 Installation
 ------------
 
-PyGeoN requires Python >= 3.12
-
-Since PyGeoN depends on `PorePy <https://github.com/pmgbergen/porepy>`_, ensure that it is accessible in your PYTHONPATH.
-
-To install PyGeoN:
+PyGeoN requires Python >= 3.13 and installs PorePy as a dependency:
 
 .. code-block:: bash
 
-   pip install -e .
+   git clone https://github.com/compgeo-mox/pygeon.git
+   pip install -e pygeon
 
-Omit the ``-e`` flag if you don't want the editable version.
+A `Docker image <https://hub.docker.com/r/pygeon/main>`_ of the main branch is also
+available.
 
-Quick Start
------------
+Getting started
+---------------
 
-See the `tutorials <https://github.com/compgeo-mox/pygeon/tree/main/tutorials>`_ to get started with PyGeoN.
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 2
-   :caption: User Guide
-
-   installation
-   tutorials
-   examples
+The tutorials, listed in the sidebar, cover fluid flow, solid mechanics and coupled
+problems. They are Jupyter notebooks in the
+`tutorials <https://github.com/compgeo-mox/pygeon/tree/main/tutorials>`_ folder of the
+repository, to be downloaded and run. Bugs and feature requests go to the
+`issue tracker <https://github.com/compgeo-mox/pygeon/issues>`_.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: API Reference
-
-   api/modules
-
-.. toctree::
+   :caption: Tutorials
    :maxdepth: 1
-   :caption: Reports
+   :hidden:
+   :glob:
 
+   tutorials/fluid_flow/*
+   tutorials/solid_mechanics/*
+   tutorials/coupled_problems/*
+   tutorials/advanced_topics/*
+
+.. toctree::
+   :caption: Reference
+   :maxdepth: 1
+   :hidden:
+
+   API reference <api/pygeon>
    reports/index
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Additional Information
-
-   contributing
    papers
-   license
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
