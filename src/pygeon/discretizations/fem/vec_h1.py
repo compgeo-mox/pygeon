@@ -89,7 +89,7 @@ class VecLagrange(pg.VecDiscretization):
             sps.csc_array: The sparse symmetric gradient matrix operator.
         """
         grad = self.assemble_broken_grad_matrix(sd)
-        sym = self._mat_space().assemble_symmetrizing_matrix(sd)
+        sym = self.get_broken_grad_discr().assemble_symmetrizing_matrix(sd)
 
         return sym @ grad
 
@@ -118,7 +118,7 @@ class VecLagrange(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         data_mu = pp.initialize_data({}, self.keyword, {pg.WEIGHT: 2 * mu})
 
-        mu_mass = self._mat_space().assemble_mass_matrix(sd, data_mu)
+        mu_mass = self.get_broken_grad_discr().assemble_mass_matrix(sd, data_mu)
 
         symgrad = self.assemble_symgrad_matrix(sd)
         sym_sym = symgrad.T @ mu_mass @ symgrad
@@ -162,9 +162,9 @@ class VecLagrange(pg.VecDiscretization):
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
 
-        mat_space = self._mat_space()
-        proj = mat_space.eval_at_cell_centers(sd)
-        ident = mat_space.assemble_trace_matrix(sd).T
+        grad_space = self.get_broken_grad_discr()
+        proj = grad_space.eval_at_cell_centers(sd)
+        ident = grad_space.assemble_trace_matrix(sd).T
 
         # Retrieve Lamé parameters, repeated for each dof of the matrix space
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
@@ -200,11 +200,16 @@ class VecLagrange(pg.VecDiscretization):
             "PyGeoN"
         )
 
-    def _mat_space(self) -> "pg.MatPwPolynomials":
-        """The matrix piecewise polynomials of degree k - 1, the range of the
-        symmetric gradient."""
-        mat_space = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
-        return cast(pg.MatPwPolynomials, mat_space)
+    def get_broken_grad_discr(self) -> "pg.MatPwPolynomials":
+        """
+        Returns the range of the broken gradient, the matrix piecewise polynomials of
+        degree k - 1, which also contains the symmetric gradient.
+
+        Returns:
+            pg.MatPwPolynomials: The discretization of the broken gradient.
+        """
+        grad_space = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
+        return cast(pg.MatPwPolynomials, grad_space)
 
 
 class VecLagrange1(VecLagrange):
