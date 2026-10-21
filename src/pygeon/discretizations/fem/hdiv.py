@@ -701,27 +701,32 @@ class RT1(pg.Discretization):
         # The face dofs are determined as in BDM1
         interp_faces = pg.BDM1().interpolate(sd, func)
 
-        # The cell dofs are determined by solving (d x d) linear systems
-        interp_cells = np.zeros(sd.dim * sd.num_cells)
-        cell_nodes = sd.cell_nodes()
-
+        # The cell dofs are determined by solving (d x d) linear systems, all the
+        # cells at once
         func_at_centers = self.eval_func_at_coords(func, sd.cell_centers)
 
-        for c in range(sd.num_cells):
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        # Nodes of each cell in increasing order, as the local nodes of the basis
+        # functions, with the coordinates along the first axis: shape
+        # (3, num_cells, dim + 1)
+        cell_nodes = sd.cell_nodes().indices.reshape(sd.num_cells, -1)
+        nodes = sd.nodes[:, cell_nodes]
+        centroids = nodes.mean(axis=2, keepdims=True)
 
-            basis_at_center = self.eval_basis_functions_at_center(
-                sd, nodes_loc, sd.cell_volumes[c]
-            )
+        # The cell-based basis function i at the centroid x_c is
+        # (x_c - x_i) / ((dim + 1) dim volume), for the first dim nodes:
+        # basis[j, c, i] is its component j in the cell c
+        scaling = (sd.dim + 1) * sd.dim * sd.cell_volumes
+        basis = (centroids - nodes[:, :, : sd.dim]) / scaling[:, None]
 
-            # Compute the coefficients c_i such
-            # that sum_i c_i phi_i = f at the cell center
-            coefficients = np.linalg.solve(
-                basis_at_center[: sd.dim, :], func_at_centers[: sd.dim, c]
-            )
+        # In each cell, the coefficients c_i such that sum_i c_i phi_i = f at the
+        # center, on the first dim components: a stack of (dim x dim) systems with
+        # the components as rows and the basis functions as columns
+        matrices = basis[: sd.dim].transpose(1, 0, 2)
+        rhs = func_at_centers[: sd.dim].T[:, :, None]
+        coeffs = np.linalg.solve(matrices, rhs)[:, :, 0]
 
-            interp_cells[sd.num_cells * np.arange(sd.dim) + c] = coefficients
+        # The dofs are ordered as (local, cell)
+        interp_cells = coeffs.T.ravel()
 
         return np.hstack((interp_faces, interp_cells))
 
