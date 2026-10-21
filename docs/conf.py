@@ -2,6 +2,10 @@
 
 import shutil
 import sys
+from collections import defaultdict
+from pathlib import Path
+
+import bibtexparser
 
 project = "PyGeoN"
 author = "Wietse M. Boon, Alessio Fumagalli"
@@ -90,6 +94,47 @@ def copy_tutorial_figures(app, exception):
         print(f"Copied the figures of the tutorials from {src} to {dst}")
 
 
+def write_papers(app):
+    """
+    Write papers.rst from papers.bib, the papers grouped by year and the titles linked
+    to the DOI, so that adding a paper only takes its BibTeX entry.
+    """
+    entries = bibtexparser.parse_file(Path(app.confdir) / "papers.bib").entries
+    clean = lambda s: " ".join(s.replace("{", "").replace("}", "").split())
+
+    by_year = defaultdict(list)
+    for e in entries:
+        authors = "; ".join(a.strip() for a in clean(e["author"]).split(" and "))
+        title = clean(e["title"]).rstrip(".")
+        if "doi" in e:
+            title = f"`{title} <https://doi.org/{e['doi']}>`__"
+        journal = e["journal"] if "journal" in e else e["booktitle"]
+        line = f"- {authors} ({e['year']}). {title}. *{journal}*."
+        if "url" in e:
+            line += f" `Code <{e['url']}>`__."
+        by_year[e["year"]].append(line)
+
+    years = sorted(by_year, reverse=True)
+    out = Path(app.confdir) / "papers.rst"
+    out.write_text(
+        PAPERS_HEADER
+        + "\n\n".join(f"{y}\n{'-' * len(y)}\n\n" + "\n".join(by_year[y]) for y in years)
+        + "\n"
+    )
+    print(f"Written {len(entries)} papers in the years {years} to {out}")
+
+
+PAPERS_HEADER = """Papers using PyGeoN
+===================
+
+If you use PyGeoN in your research, please cite it through its
+`DOI <https://zenodo.org/badge/latestdoi/455087135>`_. To add your paper to this list,
+open a pull request with its entry in ``docs/papers.bib``.
+
+"""
+
+
 def setup(app):
+    app.connect("builder-inited", write_papers)
     app.connect("missing-reference", resolve_alias, priority=400)
     app.connect("build-finished", copy_tutorial_figures)

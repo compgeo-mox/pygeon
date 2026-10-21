@@ -1,3 +1,4 @@
 _build/
-# generated at each build by sphinx.ext.apidoc
+# generated at each build by sphinx.ext.apidoc and from papers.bib
 api/
+papers.rst
