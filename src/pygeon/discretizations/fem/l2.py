@@ -528,9 +528,9 @@ class PwLinears(PwPolynomials):
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Projects the discretization to +1 order discretization. The projection operator
-        :math:`\Pi` takes a function from :math:`\mathbb{P}_0(\Omega)` and maps it
+        :math:`\Pi` takes a function from :math:`\mathbb{P}_1(\Omega)` and maps it
         to a piecewise polynomial function of higher order in
-        :math:`\mathbb{P}_1(\Omega)`.
+        :math:`\mathbb{P}_2(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid object.
@@ -546,19 +546,17 @@ class PwLinears(PwPolynomials):
         edge_nodes = p2.get_local_edge_nodes(sd.dim).ravel()
         vals = np.concatenate((np.ones(sd.dim + 1), 0.5 * np.ones(num_cell_edges * 2)))
 
-        # Define the vectors for storing the matrix entries
-        rows_I = np.empty((sd.num_cells, vals.size), dtype=int)
-        cols_J = np.empty((sd.num_cells, vals.size), dtype=int)
+        # The local dofs of all the cells at once, one row per cell: the dofs of the
+        # cell c are c + num_cells * k, with k running over its local dofs
+        cells = np.arange(sd.num_cells)[:, None]
+        dofs_p1 = sd.num_cells * np.arange(p1.ndof_per_element(sd.dim)) + cells
+        dofs_p2 = sd.num_cells * np.arange(p2.ndof_per_element(sd.dim)) + cells
+
+        rows_I = np.hstack(
+            (dofs_p2[:, : sd.dim + 1], np.repeat(dofs_p2[:, sd.dim + 1 :], 2, axis=1))
+        )
+        cols_J = np.hstack((dofs_p1, dofs_p1[:, edge_nodes]))
         data_IJ = np.tile(vals, (sd.num_cells, 1))
-
-        for c in range(sd.num_cells):
-            dofs_p1 = p1.local_dofs_of_cell(sd, c)
-            dofs_p2 = p2.local_dofs_of_cell(sd, c)
-
-            rows_I[c] = np.concatenate(
-                (dofs_p2[: sd.dim + 1], np.repeat(dofs_p2[sd.dim + 1 :], 2))
-            )
-            cols_J[c] = np.concatenate((dofs_p1, dofs_p1[edge_nodes]))
 
         return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
 
