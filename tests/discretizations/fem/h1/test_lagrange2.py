@@ -173,3 +173,24 @@ def test_range_discr(discr):
     assert discr.get_range_discr_class(1) is pg.PwLinears
     assert discr.get_range_discr_class(2) is pg.BDM1
     assert discr.get_range_discr_class(3) is pg.NedelecF1
+
+
+def test_assemble_nat_bc(discr, unit_sd):
+    # Quadratic data and test function are represented exactly, so the product is
+    # the exact integral over the face x = 0, a point in 1d
+    g = lambda x: 1 + x[1] ** 2 + x[1] * x[2]
+    w = lambda x: 2 + x[2] ** 2 + x[1]
+    exact = {1: 2, 2: 41 / 12, 3: 335 / 72}[unit_sd.dim]
+
+    b_faces = np.isclose(unit_sd.face_centers[0], 0)
+    b = discr.assemble_nat_bc(unit_sd, g, b_faces)
+
+    assert np.isclose(b @ discr.interpolate(unit_sd, w), exact)
+
+
+def test_assemble_nat_bc_no_faces(discr, unit_sd):
+    b_faces = np.zeros(unit_sd.num_faces, dtype=bool)
+    b = discr.assemble_nat_bc(unit_sd, lambda x: x[0], b_faces)
+
+    assert b.shape == (discr.ndof(unit_sd),)
+    assert not np.any(b)
