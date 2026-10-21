@@ -49,7 +49,7 @@ class LinearSystem:
     def flag_ess_bc(self, is_ess_dof: np.ndarray, ess_vals: np.ndarray) -> None:
         """
         Flags the essential boundary conditions for the degrees of freedom specified
-        by `is_ess_dof`.
+        by ``is_ess_dof``.
 
         Args:
             is_ess_dof (np.ndarray): Boolean array indicating the degrees of freedom
@@ -100,8 +100,9 @@ class LinearSystem:
         """
         Repeat the essential values of the linear system.
 
-        If the input vector `b` has dimension 1, the method returns the essential values
-        as is. Otherwise, it repeats the essential values for each column of `b`.
+        If the input vector ``b`` has dimension 1, the method returns the essential
+        values as is. Otherwise, it repeats the essential values for each column of
+        ``b``.
 
         Returns:
             numpy.ndarray or scipy.sparse.csc_array: The repeated essential values.

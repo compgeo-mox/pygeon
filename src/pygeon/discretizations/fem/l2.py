@@ -319,7 +319,8 @@ class PwConstants(PwPolynomials):
         r"""
         Computes the mass matrix for piecewise constants, representing the bilinear form
         :math:`(\sigma u, v)_\Omega` where :math:`u, v \in \mathbb{P}_0(\Omega)` and
-        :math:`\sigma` is the datum. Both domain and range lie in :class:`P0`.
+        :math:`\sigma` is the datum. Both domain and range lie in
+        :math:`\mathbb{P}_0(\Omega)`.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.

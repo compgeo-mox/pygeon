@@ -112,7 +112,7 @@ def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
 
     Returns:
         sps.csc_array: A sparse array in CSC format where each entry (i, j) indicates
-        that node `i` is connected to face `j` in the refined grid.
+        that node ``i`` is connected to face ``j`` in the refined grid.
     """
     match sd.dim:
         case 1:

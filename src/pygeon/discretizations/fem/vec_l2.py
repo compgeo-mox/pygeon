@@ -103,7 +103,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Args:
             sd (pg.Grid): Grid object or a subclass.
             sot (pp.SecondOrderTensor): The physical scaling parameter. Usually the
-            inverse of the permeability
+                inverse of the permeability.
 
         Returns:
             sps.csc_array: The weighting matrix.
@@ -154,7 +154,7 @@ class VecPwPolynomials(pg.VecDiscretization):
             sd (pg.Grid): The grid object representing the discretization domain.
             c (int): The index of the cell for which the local DOFs are to be computed.
                 ambient_dim (int, optional): The ambient dimension of the space. If not
-                provided, it defaults to the dimension of the grid (`sd.dim`).
+                provided, it defaults to the dimension of the grid (``sd.dim``).
 
         Returns:
             np.ndarray: An array containing the local DOFs of the specified cell,

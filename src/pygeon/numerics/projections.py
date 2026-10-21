@@ -14,8 +14,8 @@ def eval_at_cell_centers(
     """
     Create an operator that evaluates a solution in the cell centers.
 
-    This function takes a mixed-dimensional grid `mdg` and a discretization `discr`
-    (optional) and returns an operator that can be used to evaluate a solution in
+    This function takes a mixed-dimensional grid ``mdg`` and a discretization ``discr``
+    and returns an operator that can be used to evaluate a solution in
     the cell centers of the grid.
 
     Args:
@@ -27,10 +27,9 @@ def eval_at_cell_centers(
               sub-blocks. Default is False.
 
     Returns:
-        sps.csc_array or sps.block_array: The operator that evaluates the solution in
-        the cell centers. If `as_bmat` is True, the operator is returned as sparse
-        sub-blocks in `sps.csc_array` format. Otherwise, the operator is returned as a
-        block matrix in `sps.block_array` format.
+        sps.csc_array | np.ndarray: The operator that evaluates the solution in the
+        cell centers. If ``as_bmat`` is True, the operator is returned as an array of
+        sparse sub-blocks, otherwise as a single sparse matrix.
 
     """
     as_bmat = kwargs.get("as_bmat", False)

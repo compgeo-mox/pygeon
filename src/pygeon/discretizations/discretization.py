@@ -60,10 +60,10 @@ class Discretization(abc.ABC):
         discontinuous ones, override this method.
 
         Args:
-            sd: Grid, or a subclass.
+            sd (pg.Grid): Grid, or a subclass.
 
         Returns:
-            ndof: the number of degrees of freedom.
+            int: The number of degrees of freedom.
         """
         return int(self.ndof_per_entity(sd.dim) @ sd.num_entities())
 
@@ -197,13 +197,13 @@ class Discretization(abc.ABC):
         :math:`V_h` to its range space :math:`W_h`) and :math:`A` is the
         mass matrix of the range discretization :math:`W_h`.
 
-        This method takes a grid object `sd` and an optional data dictionary `data` as
-        input. It first calls the `assemble_diff_matrix` method to obtain the
-        differential matrix `B`.
-        Then, it creates an instance of the range discretization class using the `dim`
-        attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
-        discretization class to obtain the mass matrix `A`.
-        Finally, it returns the product of the transpose of `B`, `A`, and `B`.
+        This method takes a grid object ``sd`` and an optional data dictionary
+        ``data`` as input. It first calls the ``assemble_diff_matrix`` method to obtain
+        the differential matrix ``B``.
+        Then, it creates an instance of the range discretization class using the
+        ``dim`` attribute of ``sd``. Next, it calls the ``assemble_mass_matrix`` method
+        of the range discretization class to obtain the mass matrix ``A``.
+        Finally, it returns the product of the transpose of ``B``, ``A``, and ``B``.
 
         Args:
             sd (pg.Grid): Grid object or a subclass.

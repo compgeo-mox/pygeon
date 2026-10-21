@@ -12,7 +12,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     """
     Represents a mixed-dimensional grid.
 
-    This class extends the functionality of the `pp.MixedDimensionalGrid` class.
+    This class extends the functionality of the ``pp.MixedDimensionalGrid`` class.
     It provides methods for initializing the grid, computing geometry, and tagging mesh
     entities.
     """
@@ -23,7 +23,7 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
 
         This method iterates over the subdomains and interfaces of the grid
         and computes their geometric entities and tags. It calls the
-        `compute_geometry` method of each subdomain and interface, passing
+        ``compute_geometry`` method of each subdomain and interface, passing
         the necessary parameters. Finally, it tags the leaf nodes of the grid.
 
         Args:

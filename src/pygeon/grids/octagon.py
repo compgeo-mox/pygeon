@@ -246,7 +246,7 @@ class OctagonGrid(pg.Grid):
 
         Args:
             nx (np.ndarray): Array containing the number of cells in the x
-            and y directions.
+                and y directions.
 
         Returns:
             sps.csc_array: Sparse matrix representing the cell faces.

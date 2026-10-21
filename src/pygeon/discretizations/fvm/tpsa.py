@@ -466,8 +466,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
             Xi_list (list): The averaging operators in the coordinate directions
 
         Returns:
-            R_xi (sps.csc_array): The operator that averages and then crosses with n
-            n_xi (sps.csc_array): The operator that averages and then dots with n
+            tuple[sps.csc_array, sps.csc_array]: R_xi, the operator that averages and
+            then crosses with n, and n_xi, the operator that averages and then dots
+            with n.
         """
         Xi = sps.block_diag(Xi_list, format="csc")
         R_Xi = self.assemble_rot(sd) @ Xi
@@ -493,8 +494,9 @@ class TPSA(pg.FiniteVolumeDiscretization):
             Xi_list (list): The tilde averaging operators in the coordinate directions
 
         Returns:
-            R_xi (sps.csc_array): The operator that crosses with n and then averages
-            n_xi (sps.csc_array): The operator that multiplies with n and then averages
+            tuple[sps.csc_array, sps.csc_array]: R_xi, the operator that crosses with n
+            and then averages, and n_xi, the operator that multiplies with n and then
+            averages.
         """
         unit_normals = sd.face_normals / sd.face_areas
         nx, ny, nz = [ni[:, None] for ni in unit_normals]

@@ -20,15 +20,12 @@ class VoronoiGrid(pg.Grid):
         Args:
             num_pts (int, optional): The number of internal seed points. Defaults to
                 None.
-            pts (ndarray, optional): The internal seed points, to be in the unit square.
-                Defaults to None.
+            vrt (np.ndarray, optional): The internal seed points, to be in the unit
+                square. Defaults to None.
             **kwargs: Additional keyword arguments, like the seed for the random number
                 and a parameter to fit the grid to a bounding box in case the standard
                 value does not work as expected. The former with key "seed" and the
                 latter with key "factor".
-
-        Returns:
-            None
         """
         tol = kwargs.get("tol", 1e-8)
         # Generate the internal seed points for the Voronoi grid

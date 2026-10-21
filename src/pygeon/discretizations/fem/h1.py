@@ -115,14 +115,14 @@ class Lagrange1(Lagrange):
         :math:`u,v \in \mathbb{L}_1(\Omega)`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR-FIELD. It is a given as a vector field, assumed
+        accessible via pg.VECTOR_FIELD. It is a given as a vector field, assumed
         constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
         defaults to :math:`(0, 0, 0)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
             data (dict | None): Optional data for scaling, in particular
-            pg.VECTOR-FIELD (advection velocity field).
+                pg.VECTOR_FIELD (advection velocity field).
 
         Returns:
             sps.csc_array: The assembled advection matrix.

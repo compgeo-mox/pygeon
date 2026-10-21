@@ -109,9 +109,9 @@ def block_diag_solver(
 
     Notes:
         - The function identifies connected components of the matrix M using the
-          connected_components function from `scipy.sparse.csgraph`.
+          connected_components function from ``scipy.sparse.csgraph``.
         - For each connected component, the corresponding submatrix is
-          inverted with `numpy.linalg.inv`, stacking the blocks of equal size.
+          inverted with ``numpy.linalg.inv``, stacking the blocks of equal size.
         - The solution is the product of the block-wise inverse with B.
     """
     # The solution is the product with the block-wise inverse, which is zero on the

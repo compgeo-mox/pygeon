@@ -196,8 +196,8 @@ class VecLagrange1(pg.VecDiscretization):
             the differential.
 
         Raises:
-            NotImplementedError: If there is no range discretization for the vector
-            Lagrangian 1 in PyGeoN.
+            NotImplementedError: There is no range discretization for the vector
+                Lagrangian 1 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 1 in PyGeoN"
@@ -215,13 +215,13 @@ class VecLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The spatial discretization object.
-            u (ndarray): The displacement field.
+            u (np.ndarray): The displacement field.
             data (dict): Data for the computation including the Lame parameters accessed
                 with the keys pg.LAME_LAMBDA and pg.LAME_MU.
                 Both float and np.ndarray are accepted.
 
         Returns:
-            ndarray: The stress tensor.
+            np.ndarray: The stress tensor.
         """
         # Construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -254,14 +254,14 @@ class VecLagrange1(pg.VecDiscretization):
         :math:`u,v \in \mathbb{L}_1(\Omega)`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR-FIELD. It is a given as a vector field, assumed
+        accessible via pg.VECTOR_FIELD. It is a given as a vector field, assumed
         constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
         defaults to :math:`(0, 0, 0)`.
 
         Args:
             sd (pg.Grid): The grid object representing the discretization.
             data (dict | None): Optional data for scaling, in particular
-            pg.VECTOR-FIELD (advection velocity field).
+                pg.VECTOR_FIELD (advection velocity field).
 
         Returns:
             sps.csc_array: The assembled advection matrix.
@@ -310,8 +310,8 @@ class VecLagrange2(pg.VecDiscretization):
             differential.
 
         Raises:
-            NotImplementedError: If there is no range discretization for the vector
-            Lagrangian 2 in PyGeoN.
+            NotImplementedError: There is no range discretization for the vector
+                Lagrangian 2 in PyGeoN.
         """
         raise NotImplementedError(
             "There's no range discr for the vector Lagrangian 2 in PyGeoN"

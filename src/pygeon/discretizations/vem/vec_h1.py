@@ -119,7 +119,7 @@ class VecVLagrange1(pg.VecDiscretization):
             nodes (np.ndarray): The array of node indices.
 
         Returns:
-            ndarray: Local mass Hdiv matrix.
+            np.ndarray: Local mass Hdiv matrix.
         """
         proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
@@ -396,13 +396,13 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The spatial discretization object.
-            u (ndarray): The displacement field.
+            u (np.ndarray): The displacement field.
             data (dict): Data for the computation including the Lame parameters accessed
                 with the keys pg.LAME_LAMBDA and pg.LAME_MU.
                 Both float and np.ndarray are accepted.
 
         Returns:
-            ndarray: The stress tensor.
+            np.ndarray: The stress tensor.
 
         Notes:
             Duplicate of pg.VecLagrange1.compute_stress

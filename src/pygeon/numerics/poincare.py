@@ -587,9 +587,21 @@ class Poincare:
         Computes the linking number of two closed polygons U and P.
 
         The linking number is the double contour integral
-            1/(4*pi) * \int_P \int_U  Z \cdot (x - y) / |x - y|^3
-        where x(alpha) traces P, y(beta) traces U, and Z is the cross product of
-        the two segment tangents.
+
+        .. math::
+
+            \frac{1}{4 \pi} \int_P \int_U \frac{Z \cdot (x - y)}{|x - y|^3}
+
+        where :math:`x(\alpha)` traces P, :math:`y(\beta)` traces U, and :math:`Z` is
+        the cross product of the two segment tangents.
+
+        Args:
+            U (np.ndarray): The vertices of the first polygon, of shape (3, n).
+            P (np.ndarray): The vertices of the second polygon, of shape (3, m).
+            n_points (int): The number of quadrature points on each segment of U.
+
+        Returns:
+            float: The linking number.
         """
         integral = 0.0
 
@@ -808,8 +820,8 @@ class Poincare:
             f (np.ndarray): The function to be decomposed.
 
         Returns:
-            Tuple[np.ndarray]: The decomposition of f as :math:`(dp(f), pd(f),
-                q(f))`.
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: The decomposition of f as
+            :math:`(pd(f), dp(f), q(f))`.
         """
 
         pdf, dpf = self._decompose_without_cohomology(k, f)

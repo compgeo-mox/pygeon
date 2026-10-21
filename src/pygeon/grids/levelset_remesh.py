@@ -126,7 +126,7 @@ def create_splitting_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_a
     Args:
         cut_entities (np.ndarray): Boolean array indicating which entities are cut.
         offset (int, optional): Offset value for the rows of the mapping matrix.
-        Defaults to 0.
+            Defaults to 0.
 
     Returns:
         sps.csc_array: Mapping matrix of size n_new x n_old
@@ -152,7 +152,7 @@ def intersect_faces(
     Args:
         sd (pg.Grid): The grid object.
         levelset (Callable): The level set function.
-        root_finder (brentq): The root finder function. Default is brentq.
+        root_finder (Callable): The root finder function. Defaults to brentq.
 
     Returns:
         Tuple[np.ndarray[Any, bool], np.ndarray]: A tuple containing the cut_faces array

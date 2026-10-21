@@ -334,7 +334,7 @@ class NedelecF1(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates the given function `func` over the specified grid `sd`.
+        Interpolates the given function ``func`` over the specified grid ``sd``.
 
         Args:
             sd (pg.Grid): The grid over which to interpolate the function.
