@@ -165,15 +165,19 @@ class VecDiscretization(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
     ) -> np.ndarray:
         r"""
-        Assembles the natural boundary condition vector
-        :math:`(\boldsymbol{v} \cdot \boldsymbol{n}, g)_{\partial\Omega}`,
-        applied component-wise using the scalar base discretization
-        (:attr:`base_discr`). The result is a vector in the dual of :math:`V_h^d`.
+        Assembles the natural boundary condition vector component-wise: the natural
+        condition of the scalar base discretization (:attr:`base_discr`) for each
+        component of the vector datum :math:`\boldsymbol{g}`. This is
+        :math:`(\boldsymbol{v}, \boldsymbol{g})_{\partial\Omega}` for the vector
+        Lagrange spaces and :math:`(\boldsymbol{\tau} \boldsymbol{n},
+        \boldsymbol{g})_{\partial\Omega}` for the vector H(div) spaces, with one row
+        of :math:`\boldsymbol{\tau}` per component. The result is a vector in the
+        dual of :math:`V_h^d`.
 
         Args:
             sd (pg.Grid): The grid object.
-            func (Callable[[np.ndarray], np.ndarray]): The function defining the
-                 natural boundary condition.
+            func (Callable[[np.ndarray], np.ndarray]): The vector function defining
+                 the natural boundary condition.
             b_faces (np.ndarray): The array of boundary faces.
 
         Returns:
