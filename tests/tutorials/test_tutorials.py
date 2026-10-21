@@ -19,7 +19,12 @@ except ModuleNotFoundError:
 
 import pytest
 
-TUTORIAL_FILENAMES = glob.glob("tutorials/*.ipynb")
+# the tutorials are grouped in subfolders; the checkpoints of Jupyter are skipped
+TUTORIAL_FILENAMES = sorted(
+    f
+    for f in glob.glob("tutorials/**/*.ipynb", recursive=True)
+    if ".ipynb_checkpoints" not in f
+)
 
 if HAVE_NBCONVERT:
 
@@ -77,8 +82,9 @@ else:
         pass
 
 
-def edit_imports(filename: str):
-    """Patch the generated script to avoid opening windows with Matplotlib/VTK."""
+def edit_imports(filename: str, folder: str):
+    """Patch the generated script to avoid opening windows with Matplotlib/VTK, and to
+    run it in folder."""
     with open(filename, encoding="utf-8") as f:
         content = f.readlines()
 
@@ -89,8 +95,8 @@ def edit_imports(filename: str):
         f.write("os.environ['PYVISTA_USE_PANEL'] = 'false'\n")
         f.write("os.environ.pop('DISPLAY', None)\n")
 
-        # Ensure we are in tutorials directory (so relative paths inside tutorials work)
-        f.write("os.chdir('./tutorials')\n")
+        # Run in the folder of the tutorial, so that its relative paths work
+        f.write(f"os.chdir({folder!r})\n")
 
         # Disable matplotlib windows
         f.write("import matplotlib; matplotlib.use('template')\n")
@@ -127,8 +133,8 @@ def test_run_tutorials(tutorial_path: str):
     with open(new_file, "w", encoding="utf-8") as f:
         f.write(body)
 
-    # Patch imports to avoid opening windows
-    edit_imports(new_file)
+    # Patch imports to avoid opening windows, and run in the folder of the tutorial
+    edit_imports(new_file, os.path.dirname(os.path.abspath(tutorial_path)))
 
     # Run the generated Python script
     cmd_run = f"python {new_file}"
