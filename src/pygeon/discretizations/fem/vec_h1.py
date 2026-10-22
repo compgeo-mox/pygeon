@@ -89,7 +89,9 @@ class VecLagrange(pg.VecDiscretization):
             sps.csc_array: The sparse symmetric gradient matrix operator.
         """
         grad = self.assemble_broken_grad_matrix(sd)
-        grad_space = cast(pg.MatPwPolynomials, self.get_broken_grad_discr())
+        grad_space = cast(
+            pg.MatPwPolynomials, self.get_broken_grad_discr()(self.keyword)
+        )
         sym = grad_space.assemble_symmetrizing_matrix(sd)
 
         return sym @ grad
@@ -119,7 +121,8 @@ class VecLagrange(pg.VecDiscretization):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         data_mu = pp.initialize_data({}, self.keyword, {pg.WEIGHT: 2 * mu})
 
-        mu_mass = self.get_broken_grad_discr().assemble_mass_matrix(sd, data_mu)
+        grad_space = self.get_broken_grad_discr()(self.keyword)
+        mu_mass = grad_space.assemble_mass_matrix(sd, data_mu)
 
         symgrad = self.assemble_symgrad_matrix(sd)
         sym_sym = symgrad.T @ mu_mass @ symgrad
@@ -163,7 +166,9 @@ class VecLagrange(pg.VecDiscretization):
         symgrad = self.assemble_symgrad_matrix(sd)
         div = self.assemble_div_matrix(sd)
 
-        grad_space = cast(pg.MatPwPolynomials, self.get_broken_grad_discr())
+        grad_space = cast(
+            pg.MatPwPolynomials, self.get_broken_grad_discr()(self.keyword)
+        )
         proj = grad_space.eval_at_cell_centers(sd)
         ident = grad_space.assemble_trace_matrix(sd).T
 

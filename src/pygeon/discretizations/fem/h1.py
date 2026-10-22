@@ -41,7 +41,8 @@ class Lagrange(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        M = self.get_broken_grad_discr().assemble_mass_matrix(sd, data)
+        grad_space = self.get_broken_grad_discr()(self.keyword)
+        M = grad_space.assemble_mass_matrix(sd, data)
         grad = self.assemble_broken_grad_matrix(sd)
 
         return (grad.T @ M @ grad).tocsc()

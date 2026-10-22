@@ -192,6 +192,4 @@ def test_num_entities_of_point_grid(ref_sd_0d):
     ],
 )
 def test_get_broken_grad_discr(discr_class, known):
-    grad_space = discr_class("test").get_broken_grad_discr()
-    assert type(grad_space) is known
-    assert grad_space.keyword == "test"
+    assert discr_class("test").get_broken_grad_discr() is known

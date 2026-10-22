@@ -380,17 +380,19 @@ class Discretization(abc.ABC):
 
         return grad @ proj
 
-    def get_broken_grad_discr(self) -> pg.VecPwPolynomials:
+    def get_broken_grad_discr(self) -> Type[pg.VecPwPolynomials]:
         """
-        Returns the range of the broken gradient, the piecewise polynomials of one
-        degree less and one tensor order more than the discretization.
+        Returns the discretization class of the range of the broken gradient, the
+        piecewise polynomials of one degree less and one tensor order more than the
+        discretization.
 
         Returns:
-            pg.VecPwPolynomials: The discretization of the broken gradient.
+            Type[pg.VecPwPolynomials]: The discretization class of the broken
+            gradient.
         """
         grad_order = self.tensor_order + 1
-        grad_space = pg.get_PwPolynomials(self.poly_order - 1, grad_order)(self.keyword)
-        return cast(pg.VecPwPolynomials, grad_space)
+        grad_class = pg.get_PwPolynomials(self.poly_order - 1, grad_order)
+        return cast(Type[pg.VecPwPolynomials], grad_class)
 
     def error_l2(
         self,
