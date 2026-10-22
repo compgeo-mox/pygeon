@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import abc
 from math import comb
-from typing import Callable, Type
+from typing import Callable, Type, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -364,10 +364,9 @@ class Discretization(abc.ABC):
         Assembles the broken (element-wise) gradient matrix for the given grid.
 
         The broken gradient :math:`\nabla_h` acts element-wise on functions in
-        the current finite element space :math:`V_h`, mapping to the vector
-        piecewise polynomial space of the same order. Both spaces are internal
-        implementation details; see :meth:`proj_to_PwPolynomials` for the
-        projection used.
+        the current finite element space :math:`V_h`, mapping to the piecewise
+        polynomials of :meth:`get_broken_grad_discr`; see
+        :meth:`proj_to_PwPolynomials` for the projection used.
 
         Args:
             sd (pg.Grid): The grid or a subclass.
@@ -380,6 +379,20 @@ class Discretization(abc.ABC):
         grad = pwp.assemble_broken_grad_matrix(sd)
 
         return grad @ proj
+
+    def get_broken_grad_discr(self) -> Type[pg.VecPwPolynomials]:
+        """
+        Returns the discretization class of the range of the broken gradient, the
+        piecewise polynomials of one degree less and one tensor order more than the
+        discretization.
+
+        Returns:
+            Type[pg.VecPwPolynomials]: The discretization class of the broken
+            gradient.
+        """
+        grad_order = self.tensor_order + 1
+        grad_class = pg.get_PwPolynomials(self.poly_order - 1, grad_order)
+        return cast(Type[pg.VecPwPolynomials], grad_class)
 
     def error_l2(
         self,
