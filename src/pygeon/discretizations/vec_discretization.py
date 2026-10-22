@@ -208,9 +208,10 @@ class VecDiscretization(pg.Discretization):
         assert self.tensor_order == pg.VECTOR
 
         grad = self.assemble_broken_grad_matrix(sd)
-        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
-        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
-        trace = mat_pwp.assemble_trace_matrix(sd)
+        grad_space = cast(
+            pg.MatPwPolynomials, self.get_broken_grad_discr()(self.keyword)
+        )
+        trace = grad_space.assemble_trace_matrix(sd)
 
         return trace @ grad
 
@@ -233,9 +234,10 @@ class VecDiscretization(pg.Discretization):
         assert self.tensor_order == pg.VECTOR
 
         grad = self.assemble_broken_grad_matrix(sd)
-        mat_pwp = pg.get_PwPolynomials(self.poly_order - 1, pg.MATRIX)(self.keyword)
-        mat_pwp = cast(pg.MatPwPolynomials, mat_pwp)
-        asym = mat_pwp.assemble_asym_matrix(sd)
+        grad_space = cast(
+            pg.MatPwPolynomials, self.get_broken_grad_discr()(self.keyword)
+        )
+        asym = grad_space.assemble_asym_matrix(sd)
 
         return asym @ grad
 

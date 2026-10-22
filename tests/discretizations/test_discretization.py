@@ -179,3 +179,17 @@ def test_num_entities(unit_sd):
 def test_num_entities_of_point_grid(ref_sd_0d):
     # a point grid has a single cell and no nodes
     assert np.array_equal(ref_sd_0d.num_entities(), [1, 0, 0, 0])
+
+
+@pytest.mark.parametrize(
+    "discr_class, known",
+    [
+        (pg.Lagrange1, pg.VecPwConstants),
+        (pg.Lagrange2, pg.VecPwLinears),
+        (pg.PwQuadratics, pg.VecPwLinears),
+        (pg.RT1, pg.MatPwLinears),
+        (pg.VecLagrange2, pg.MatPwLinears),
+    ],
+)
+def test_get_broken_grad_discr(discr_class, known):
+    assert discr_class("test").get_broken_grad_discr() is known
