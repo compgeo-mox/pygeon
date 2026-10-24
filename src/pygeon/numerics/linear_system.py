@@ -21,11 +21,8 @@ class LinearSystem:
 
         Args:
             A (sps.csc_array): The coefficient matrix of the linear system.
-            b (np.ndarray, optional): The right-hand side vector of the linear system.
+            b (np.ndarray | None): The right-hand side vector of the linear system.
                 Defaults to None.
-
-        Returns:
-            None
         """
         self.A = A
 
@@ -55,10 +52,7 @@ class LinearSystem:
             is_ess_dof (np.ndarray): Boolean array indicating the degrees of freedom
                 to flag as essential.
             ess_vals (np.ndarray): Array of essential values corresponding to the
-                flagged degrees of freedom.
-
-        Returns:
-            None
+                flagged degrees of freedom, added to the values flagged before.
         """
         self.is_dof[is_ess_dof] = False
         self.ess_vals[is_ess_dof] += ess_vals[is_ess_dof]
@@ -69,8 +63,8 @@ class LinearSystem:
         the reduced system.
 
         Returns:
-            A tuple containing the reduced matrix A, the reduced vector b, and the
-            restriction operator R.
+            tuple[sps.csc_array, np.ndarray, sps.csc_array]: The reduced matrix A, the
+            reduced right-hand side b, and the restriction operator R.
         """
         R_0 = pg.create_restriction(self.is_dof)
         A_0 = R_0 @ self.A @ R_0.T
@@ -87,7 +81,8 @@ class LinearSystem:
                 sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The solution to the linear system of equations.
+            np.ndarray: The solution to the linear system of equations, with the shape
+            of the right-hand side.
         """
         A_0, b_0, R_0 = self.reduce_system()
         sol_0 = solver(A_0.tocsc(), b_0)
@@ -105,7 +100,7 @@ class LinearSystem:
         ``b``.
 
         Returns:
-            numpy.ndarray or scipy.sparse.csc_array: The repeated essential values.
+            np.ndarray | sps.csc_array: The repeated essential values.
         """
         if self.b.ndim == 1:
             return self.ess_vals

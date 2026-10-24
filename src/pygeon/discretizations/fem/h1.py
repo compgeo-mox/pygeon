@@ -14,7 +14,7 @@ class Lagrange(pg.Discretization):
     r"""
     Abstract class collecting the features shared by the nodal Lagrange finite element
     discretizations :math:`\mathbb{L}_k(\Omega) \subset H^1(\Omega)`, for a generic
-    domain :math:`\Omega \in \mathbb{R}^d`.
+    domain :math:`\Omega \subset \mathbb{R}^d`.
     """
 
     tensor_order = pg.SCALAR
@@ -36,7 +36,8 @@ class Lagrange(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): A dictionary containing the weight for the inner product.
+            data (dict | None): A dictionary containing the weights for the inner
+                product.
 
         Returns:
             sps.csc_array: The assembled stiffness matrix.
@@ -57,8 +58,8 @@ class Lagrange(pg.Discretization):
 
         Args:
             primary_var (np.ndarray): The degrees of freedom of the primary variable.
-            sd (pg.Grid): The grid object.
-            data (dict): The data dictionary.
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             np.ndarray: The degrees of freedom of the Darcy flux in the vector piecewise
@@ -84,7 +85,7 @@ class Lagrange1(Lagrange):
     r"""
     Class implementing the finite element discretization Lagrange1
     :math:`\mathbb{L}_1(\Omega) \subset H^1(\Omega)`, for a generic domain
-    :math:`\Omega \in \mathbb{R}^d`.
+    :math:`\Omega \subset \mathbb{R}^d`.
     """
 
     poly_order = 1
@@ -115,12 +116,14 @@ class Lagrange1(Lagrange):
         :math:`u,v \in \mathbb{L}_1(\Omega)`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR_FIELD. It is a given as a vector field, assumed
-        constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
-        defaults to :math:`(0, 0, 0)`.
+        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
+        constant per cell (:class:`~pygeon.VecPwConstants`). If not provided, it
+        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
+        rotated to the plane or the line of the grid, unless the entry "is_tangential"
+        of data is True.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data for scaling, in particular
                 pg.VECTOR_FIELD (advection velocity field).
 
@@ -183,14 +186,14 @@ class Lagrange1(Lagrange):
         Assembles the differential matrix based on the dimension of the grid.
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
-        mapping from :math:`\mathbb{L}_1(\Omega)` to the appropriate range space:
+        mapping from :class:`~pygeon.Lagrange1` to the appropriate range space:
 
-        - 3D: :math:`\mathbb{N}_0(\Omega)` :class:`~pygeon.NedelecR0` H(curl)
-        - 2D: :math:`\mathbb{RT}_0(\Omega)` :class:`~pygeon.RT0` H(div)
-        - 1D: :math:`\mathbb{P}_0(\Omega)` :class:`~pygeon.PwConstants` L2
+        - 3D: :class:`~pygeon.NedelecR0`, H(curl)
+        - 2D: :class:`~pygeon.RT0`, H(div)
+        - 1D: :class:`~pygeon.PwConstants`, L2
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -214,13 +217,14 @@ class Lagrange1(Lagrange):
         Compute the local advection matrix for linear elements.
 
         Args:
-            V (np.ndarray): vector field over the cell of (dim, dim) shape.
-            c_volume (np.ndarray): scalar cell volume.
-            coord (np.ndarray): coordinates of the cell vertices of (dim+1, dim) shape.
-            dim (int): dimension of the problem.
+            V (np.ndarray): The vector field in the cell, of shape (dim,).
+            c_volume (np.ndarray): The cell volume.
+            coord (np.ndarray): The coordinates of the cell vertices, of shape
+                (dim, dim + 1).
+            dim (int): The dimension of the problem.
 
         Returns:
-            np.ndarray: local advection matrix of (dim+1, dim+1) shape.
+            np.ndarray: The local advection matrix, of shape (dim + 1, dim + 1).
         """
         phi = np.full((dim + 1,), (1 / (dim + 1)))
 
@@ -231,14 +235,16 @@ class Lagrange1(Lagrange):
     @staticmethod
     def local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
         """
-        Calculate the local gradients of the finite element basis functions.
+        Calculate the local gradients of the linear finite element basis functions.
 
         Args:
-            coord (np.ndarray): The coordinates of the nodes in the element.
+            coord (np.ndarray): The coordinates of the nodes in the element, of shape
+                (dim, dim + 1).
             dim (int): The dimension of the element.
 
         Returns:
-            np.ndarray: The local gradients of the finite element basis functions.
+            np.ndarray: The gradients of the basis functions in the columns, of shape
+            (dim, dim + 1).
         """
         Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
         invQ = np.linalg.inv(Q)
@@ -249,8 +255,8 @@ class Lagrange1(Lagrange):
         r"""
         Construct the matrix for projecting a Lagrangian function to a piecewise linear
         function. The projection operator :math:`\Pi` takes a function from
-        :math:`\mathbb{L}_1(\Omega)` and maps it to a piecewise linear function in
-        :math:`\mathbb{P}_1(\Omega)`.
+        :class:`~pygeon.Lagrange1` and maps it to a piecewise linear function in
+        :class:`~pygeon.PwLinears`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -275,7 +281,7 @@ class Lagrange1(Lagrange):
             sd (pg.Grid): The grid on which to construct the matrix.
 
         Returns:
-            sps.csc_array: The matrix representing the projection at the cell centers.
+            sps.csc_array: The evaluation matrix.
         """
         eval = sps.csc_array(sd.cell_nodes())
         num_nodes = sps.diags_array(1.0 / sd.num_cell_nodes())
@@ -304,13 +310,13 @@ class Lagrange1(Lagrange):
         r"""
         Assembles the 'natural' boundary condition
         :math:`(v, g)_{\partial\Omega}` with :math:`v` a test function in
-        :math:`\mathbb{L}_1(\Omega)` and :math:`g` the prescribed datum.
+        :class:`~pygeon.Lagrange1` and :math:`g` the prescribed datum, evaluated at the
+        face centers and distributed equally to the nodes of each face.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            func (Callable[[np.ndarray], np.ndarray]): The function used to evaluate
-                the 'natural' boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            sd (pg.Grid): The grid.
+            func (Callable[[np.ndarray], np.ndarray]): The datum :math:`g`.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled 'natural' boundary condition values.
@@ -337,10 +343,11 @@ class Lagrange1(Lagrange):
             dim (int): The dimension of the problem.
 
         Returns:
-            object: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
 
         Raises:
-            NotImplementedError: If there's no zero discretization in PyGeoN.
+            NotImplementedError: In dimension 0, there is no zero discretization in
+                PyGeoN.
         """
         match dim:
             case 3:
@@ -357,7 +364,7 @@ class Lagrange2(Lagrange):
     r"""
     Class implementing the finite element discretization Lagrange2
     :math:`\mathbb{L}_2(\Omega) \subset H^1(\Omega)`, for a generic domain
-    :math:`\Omega \in \mathbb{R}^d`.
+    :math:`\Omega \subset \mathbb{R}^d`.
     """
 
     poly_order = 2
@@ -383,11 +390,14 @@ class Lagrange2(Lagrange):
         Assembles the differential matrix based on the dimension of the grid.
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
-        mapping from :class:`Lagrange2` (H1, dofs at nodes and edge midpoints)
-        to the :class:`~pygeon.NedelecF1` (H(curl)) space.
+        mapping from :class:`~pygeon.Lagrange2` to the appropriate range space:
+
+        - 3D: :class:`~pygeon.NedelecF1`, H(curl)
+        - 2D: :class:`~pygeon.BDM1`, H(div)
+        - 1D: :class:`~pygeon.PwLinears`, L2
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -460,8 +470,8 @@ class Lagrange2(Lagrange):
         r"""
         Construct the matrix for projecting a quadratic Lagrangian function to a
         piecewise quadratic function. The projection operator :math:`\Pi` takes a
-        function from :math:`\mathbb{L}_2(\Omega)` and maps it to a piecewise linear
-        function in :math:`\mathbb{P}_2(\Omega)`.
+        function from :class:`~pygeon.Lagrange2` and maps it to a piecewise quadratic
+        function in :class:`~pygeon.PwQuadratics`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -506,15 +516,16 @@ class Lagrange2(Lagrange):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a given function over the nodes of a grid.
+        Interpolates a given function at the nodes and at the midpoints of the edges
+        of a grid.
 
         Args:
             sd (pg.Grid): The grid on which to interpolate the function.
             func (Callable[[np.ndarray], np.ndarray]): The function to be interpolated.
 
         Returns:
-            np.ndarray: An array containing the interpolated values at each node of the
-            grid.
+            np.ndarray: The values at the nodes followed by the values at the edge
+            midpoints.
         """
         match sd.dim:
             case 0:
@@ -541,10 +552,10 @@ class Lagrange2(Lagrange):
         r"""
         Assembles the 'natural' boundary condition
         :math:`(v, g)_{\partial\Omega}` with :math:`v` a test function in
-        :math:`\mathbb{L}_2(\Omega)` and :math:`g` the prescribed datum.
+        :class:`~pygeon.Lagrange2` and :math:`g` the prescribed datum.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The datum :math:`g`, evaluated
                 as in interpolate at the nodes and at the edge midpoints.
             b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
@@ -626,10 +637,11 @@ class Lagrange2(Lagrange):
             dim (int): The dimension of the problem.
 
         Returns:
-            object: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
 
         Raises:
-            NotImplementedError: There is no zero-dimensional discretization in PyGeoN.
+            NotImplementedError: In dimension 0, there is no zero discretization in
+                PyGeoN.
         """
         match dim:
             case 3:

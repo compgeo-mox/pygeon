@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H1 space."""
+"""Module for the virtual element discretizations of the vector H1 space."""
 
 from typing import Type
 
@@ -50,14 +50,11 @@ class VecVLagrange1(pg.VecDiscretization):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The base discretization class is pg.Lagrange1.
+        The base discretization class is pg.VLagrange1.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.VLagrange1 = pg.VLagrange1(keyword)
@@ -68,7 +65,7 @@ class VecVLagrange1(pg.VecDiscretization):
         order vector virtual Lagrange element.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The div matrix obtained from the discretization.
@@ -110,16 +107,16 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         """
-        Compute the local div matrix for vector P1.
+        Compute the local divergence matrix for the vector virtual Lagrange1.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell on which to compute the div matrix.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of node indices.
 
         Returns:
-            np.ndarray: Local mass Hdiv matrix.
+            np.ndarray: The local divergence matrix.
         """
         proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
@@ -135,13 +132,13 @@ class VecVLagrange1(pg.VecDiscretization):
         :math:`\lambda`.
 
         Args:
-            sd (pg.Grid): The grid object.
-            data (dict | None): Additional data, the Lame' parameter lambda.
+            sd (pg.Grid): The grid.
+            data (dict | None): Additional data, the Lamé parameter lambda.
                 Defaults to None.
 
         Returns:
-            sps.csc_array: Sparse (sd.num_nodes, sd.num_nodes) Div-div matrix obtained
-            from the discretization.
+            sps.csc_array: The div-div matrix obtained from the discretization, of
+            shape (ndof, ndof).
         """
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
@@ -159,19 +156,13 @@ class VecVLagrange1(pg.VecDiscretization):
         order vector virtual Lagrange element.
 
         Args:
-            sd (pg.Grid): The grid object representing the domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
 
-        Notes:
-            - If a 0-dimensional grid is given, a zero matrix is returned.
-            - The method maps the domain to a reference geometry.
-            - The method allocates data to store matrix entries efficiently.
-            - The symmetrization matrix is constructed differently for 2D and 3D cases.
-            - The method computes the symgrad local matrix for each cell and saves
-              the values in the global structure.
-            - Finally, the method constructs the global matrices using the saved values.
+        Raises:
+            ValueError: If the grid is not two-dimensional.
         """
         cell_nodes = sd.cell_nodes()
         cell_diams = sd.cell_diameters()
@@ -225,11 +216,11 @@ class VecVLagrange1(pg.VecDiscretization):
         Compute the local symgrad matrix for vector virtual Lagrangian.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            cell (int): The index of the cell on which to compute the div matrix.
+            sd (pg.Grid): The grid.
+            cell (int): The index of the cell on which to compute the symgrad matrix.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of node indices.
-            sym (np.ndarray): Symmetric matrix.
+            sym (np.ndarray): The symmetrization matrix of the unrolled tensors.
 
         Returns:
             np.ndarray: Local symmetric gradient matrix.
@@ -251,15 +242,12 @@ class VecVLagrange1(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict | None): Additional data, the Lame' parameter mu. Defaults to
+            data (dict | None): Additional data, the Lamé parameter mu. Defaults to
                 None.
 
         Returns:
-            sps.csc_array: Sparse symgrad-symgrad matrix of shape (sd.num_nodes,
-            sd.num_nodes). The matrix obtained from the discretization.
-
-        Notes:
-            Duplicate of pg.VecLagrange1.assemble_symgrad_symgrad_matrix
+            sps.csc_array: The symgrad-symgrad matrix obtained from the discretization,
+            of shape (ndof, ndof).
         """
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         p0 = pg.PwConstants(self.keyword)
@@ -316,17 +304,18 @@ class VecVLagrange1(pg.VecDiscretization):
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
         r"""
-        Computes the local VEM penalisation matrix :math:`(I - \Pi) u` on a given
-        cell, stabilizing the non-polynomial part. Based on the Hitchhiker's (6.5).
+        Computes the local VEM penalisation matrix
+        :math:`((I - \Pi) u, (I - \Pi) v)` on a given cell, in the degrees of freedom,
+        stabilizing the non-polynomial part. Based on the Hitchhiker's (6.5).
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
-            cell (int): The index of the cell on which to compute the mass matrix.
+            sd (pg.Grid): The grid.
+            cell (int): The index of the cell on which to compute the matrix.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of nodes associated with the cell.
 
         Returns:
-            np.ndarray: The computed local VEM mass matrix.
+            np.ndarray: The computed local VEM penalisation matrix.
         """
         proj = self.base_discr.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
 
@@ -373,10 +362,6 @@ class VecVLagrange1(pg.VecDiscretization):
         Args:
             dim (int): The dimension of the range.
 
-        Returns:
-            Discretization: The discretization class that contains the range of
-            the differential.
-
         Raises:
             NotImplementedError: There is no range discretization for the vector
                 Lagrangian 1 in PyGeoN.
@@ -392,20 +377,18 @@ class VecVLagrange1(pg.VecDiscretization):
         data: dict,
     ) -> np.ndarray:
         """
-        Compute the stress tensor for a given displacement field.
+        Compute the stress tensor for a given displacement field at the cell centers,
+        as a (num_cells, dim, dim) array.
 
         Args:
-            sd (pg.Grid): The spatial discretization object.
+            sd (pg.Grid): The grid.
             u (np.ndarray): The displacement field.
-            data (dict): Data for the computation including the Lame parameters accessed
+            data (dict): Data for the computation including the Lamé parameters accessed
                 with the keys pg.LAME_LAMBDA and pg.LAME_MU.
                 Both float and np.ndarray are accepted.
 
         Returns:
             np.ndarray: The stress tensor.
-
-        Notes:
-            Duplicate of pg.VecLagrange1.compute_stress
         """
         # construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)

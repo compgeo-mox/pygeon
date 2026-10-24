@@ -94,11 +94,10 @@ def stiff_matrix(
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of
             the differential.
-        discr (pg.Discretization | None): The discretization, the default one
-            if None.
-        data (dict): The data object associated to the grid.
-        local_matrix (Callable): Function that generates the local mass matrix on a
-            grid.
+        discr (pg.Discretization | None): The discretization of the range of the
+            differential, the default one if None.
+        **kwargs: Optional parameters, passed to mass_matrix for the mass matrix of
+            the range of the differential.
 
     Returns:
         sps.csc_array: The stiffness matrix, of size num_dofs x num_dofs.

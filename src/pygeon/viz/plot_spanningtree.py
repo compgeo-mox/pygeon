@@ -19,16 +19,17 @@ def plot_spanningtree(
     Create a graphical illustration of the spanning tree superimposed on the grid.
 
     Args:
-        spt (pg.SpanningTree): The spanningtree object
-        mdg (pg.MixedDimensionalGrid | pg.Grid): The object representing the grid.
-        fig_name (str): The name of the figure file to save the
-            visualization.
+        spt (pg.SpanningTree): The spanning tree object.
+        mdg (pg.MixedDimensionalGrid | pg.Grid): The two-dimensional grid.
+        fig_name (str | None): The name of the figure file to save the
+            visualization. Defaults to None, the figure is shown instead.
         **kwargs: Additional options:
 
-            - draw_grid (bool): Plot the grid.
-            - draw_tree (bool): Plot the tree spanning the cells.
-            - draw_cotree (bool): Plot the tree spanning the nodes.
-            - start_color (str): Color of the "starting" cells, next to the boundary
+            - draw_grid (bool): Plot the grid. Defaults to True.
+            - draw_tree (bool): Plot the tree spanning the cells. Defaults to True.
+            - draw_cotree (bool): Plot the tree spanning the nodes. Defaults to False.
+            - start_color (str): Color of the "starting" cells, next to the boundary.
+              Defaults to "green".
     """
     if isinstance(mdg, pg.Grid):
         mdg = pg.as_mdg(mdg)

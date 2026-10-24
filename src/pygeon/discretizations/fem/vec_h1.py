@@ -69,7 +69,7 @@ class VecLagrange(pg.VecDiscretization):
         scalar piecewise polynomials of degree k - 1.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The div matrix obtained from the discretization.
@@ -83,7 +83,7 @@ class VecLagrange(pg.VecDiscretization):
         matrix piecewise polynomials of degree k - 1.
 
         Args:
-            sd (pg.Grid): The grid object representing the domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
@@ -194,10 +194,6 @@ class VecLagrange(pg.VecDiscretization):
         Args:
             dim (int): The dimension of the range.
 
-        Returns:
-            Type[pg.Discretization]: The discretization class that contains the range
-            of the differential.
-
         Raises:
             NotImplementedError: There is no range discretization for the vector
                 Lagrangian in PyGeoN.
@@ -229,10 +225,7 @@ class VecLagrange1(VecLagrange):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.Lagrange1(keyword)
@@ -242,10 +235,10 @@ class VecLagrange1(VecLagrange):
         Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-             sps.csc_array: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
         # Avoid division by zero for 0D grids (and handle the no-dof case consistently).
         if sd.dim == 0 or self.ndof(sd) == 0:
@@ -273,7 +266,7 @@ class VecLagrange1(VecLagrange):
         defaults to :math:`(0, 0, 0)`.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data for scaling, in particular
                 pg.VECTOR_FIELD (advection velocity field).
 
@@ -303,10 +296,7 @@ class VecLagrange2(VecLagrange):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.Lagrange2 = pg.Lagrange2(keyword)

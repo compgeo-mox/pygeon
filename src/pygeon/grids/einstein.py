@@ -21,9 +21,6 @@ class EinSteinGrid(pg.Grid):
 
         Args:
             file_name (str): The name of the file containing the grid data.
-
-        Returns:
-            None
         """
         # read all the data from the file
         self.poly, self.trans, self.root = self.from_file(file_name)
@@ -48,12 +45,6 @@ class EinSteinGrid(pg.Grid):
         This function adds a hanging node to each polygon in the grid
         to fix T-junctions. The hanging node is inserted at the midpoint
         of the third and fourth vertices of each polygon.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         for key, p in self.poly.items():
             self.poly[key] = np.insert(p, 3, 0.5 * (p[:, 2] + p[:, 3]), axis=1)
@@ -62,19 +53,16 @@ class EinSteinGrid(pg.Grid):
         """
         Build the connectivity of the grid.
 
-        Args:
-            None
-
         Returns:
-            Tuple[np.ndarray, sps.csc_array, sps.csc_array]:
-                A tuple containing the following:
+            tuple[np.ndarray, sps.csc_array, sps.csc_array]: A tuple containing the
+            following:
 
-                - coords (np.ndarray): The rescaled points of the polygons in the unit
-                  square.
-                - cell_faces (sps.csc_array): The sparse matrix representing the
-                  cell-face relations.
-                - face_nodes (sps.csc_array): The sparse matrix representing the
-                  face-nodes relations.
+            - coords (np.ndarray): The rescaled points of the polygons in the unit
+              square.
+            - cell_faces (sps.csc_array): The sparse matrix representing the
+              cell-face relations.
+            - face_nodes (sps.csc_array): The sparse matrix representing the
+              face-nodes relations.
         """
         # rescale the points of the polygons to be in the unit square
         all_pts = self.rescale()
@@ -139,9 +127,6 @@ class EinSteinGrid(pg.Grid):
         Args:
             input_str (str): The input string representing the current tag.
             transform (np.ndarray): The transformation matrix.
-
-        Returns:
-            None
         """
         if input_str in self.poly:
             # if the current tag is a polygon then build it and add it to the list
@@ -160,15 +145,14 @@ class EinSteinGrid(pg.Grid):
             file_name (str): The path to the SVG file.
 
         Returns:
-            Tuple[dict, dict, tuple]:
-                A tuple containing three elements:
+            tuple[dict, dict, tuple]: A tuple containing three elements:
 
-                - poly_dict: A dictionary mapping polygon IDs to their corresponding
-                  polygons.
-                - trans_dict: A dictionary mapping transformation IDs to a
-                  list of transformations.
-                - use_info: A tuple containing the ID and transformation matrix of
-                  the root use element.
+            - poly_dict: A dictionary mapping polygon IDs to their corresponding
+              polygons.
+            - trans_dict: A dictionary mapping transformation IDs to a
+              list of transformations.
+            - use_info: A tuple containing the ID and transformation matrix of
+              the root use element.
         """
         root = ET.parse(file_name).getroot()[0]
         tag_str = r"{http://www.w3.org/1999/xlink}href"

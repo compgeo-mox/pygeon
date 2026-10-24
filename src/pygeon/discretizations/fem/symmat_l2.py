@@ -27,7 +27,7 @@ class SymMatPwPolynomials(pg.Discretization):
 
         Args:
             keyword (str): The keyword for the symmetric matrix discretization class.
-                Default is pg.UNITARY_DATA.
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(keyword)
@@ -39,7 +39,7 @@ class SymMatPwPolynomials(pg.Discretization):
         so their number is the number of cells times the dofs per element.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             int: The number of degrees of freedom.
@@ -65,8 +65,8 @@ class SymMatPwPolynomials(pg.Discretization):
     @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the projection matrix from the symmetric matrix-valued piecewise
-        polynomial space to the full matrix-valued piecewise polynomial space.
+        Returns the inclusion matrix of the symmetric matrix-valued piecewise
+        polynomial space in the full matrix-valued piecewise polynomial space.
 
         Args:
             sd (pg.Grid): The grid.
@@ -113,6 +113,9 @@ class SymMatPwPolynomials(pg.Discretization):
 
         Returns:
             sps.csc_array: The projection matrix.
+
+        Raises:
+            ValueError: If the grid is zero-dimensional.
         """
         if sd.dim == 0:
             raise ValueError(f"Invalid grid dimension, sd.dim is {sd.dim}.")
@@ -144,7 +147,7 @@ class SymMatPwPolynomials(pg.Discretization):
         valued piecewise polynomials, without symmetrization.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix.
@@ -172,11 +175,12 @@ class SymMatPwPolynomials(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
-        For symmetric matrix-valued piecewise polynomials, the differential is the
-        zero matrix since these are discontinuous functions with no global differential.
+        For symmetric matrix-valued piecewise polynomials, the differential maps to the
+        zero space, so the matrix has no rows, since these are discontinuous functions
+        with no global differential.
 
         Args:
-            sd (pg.Grid): The grid object or its subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -193,7 +197,7 @@ class SymMatPwPolynomials(pg.Discretization):
         the zero matrix since the differential operator is trivial.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Additional data for the assembly process.
 
         Returns:
@@ -215,10 +219,10 @@ class SymMatPwPolynomials(pg.Discretization):
         trace.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The function defining the
                  natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.

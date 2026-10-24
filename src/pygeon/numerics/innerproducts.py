@@ -89,6 +89,8 @@ def default_discr(sd: pg.Grid, n_minus_k: int, **kwargs) -> pg.Discretization:
     Args:
         sd (pg.Grid): Grid on which the discretization is defined.
         n_minus_k (int): Difference between space dimension and form order.
+        **kwargs: Optional parameters, "keyword" of the discretization. Defaults to
+            pg.UNITARY_DATA.
 
     Returns:
         pg.Discretization: One of:
@@ -131,7 +133,7 @@ def _sd_mass_matrix(
             the differential.
         discr (pg.Discretization | None): The discretization, the default one
             if None.
-        data (dict): The data object associated to the grid.
+        data (dict | None): The data object associated to the grid.
 
     Returns:
         sps.csc_array: The mass matrix, of size num_dofs x num_dofs.
@@ -149,14 +151,16 @@ def local_matrix(
     sd: pg.Grid, n_minus_k: int, discr: pg.Discretization, d_sd: dict, **kwargs
 ) -> sps.csc_array:
     """
-    Compute the local matrix for a given spatial domain.
+    Compute the local mass matrix on a subdomain, the default local_matrix of
+    mass_matrix.
 
     Args:
-        sd (pg.Grid): The spatial domain.
-        n_minus_k (int): The number of basis functions minus the number of constraints.
+        sd (pg.Grid): The grid.
+        n_minus_k (int): The difference between the dimension and the order of
+            the differential.
         discr (pg.Discretization): The discretization scheme.
-        d_sd (dict): Additional parameters for the spatial domain.
-        **kwargs: Additional keyword arguments.
+        d_sd (dict): The data of the subdomain.
+        **kwargs: Additional keyword arguments, passed to default_discr.
 
     Returns:
         sps.csc_array: The computed local matrix.
@@ -180,16 +184,21 @@ def mass_matrix(
             the differential.
         discr (pg.Discretization | None): The discretization, the default one
             if None.
-        data (dict): The data object associated to the grid.
         local_matrix (Callable): Function that generates the local mass matrix on a
-            grid.
-        kwargs: Optional parameters:
+            grid, from the grid, n_minus_k, discr and the data of the subdomain.
+        **kwargs: Optional parameters:
 
-            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default False.
+            - as_bmat (bool): Return the matrix as sparse sub-blocks. Defaults to
+              False.
+            - keyword (str): The keyword of the data. Defaults to the one of discr,
+              or pg.UNITARY_DATA.
+            - trace_contribution (bool): For n_minus_k == 1, add the mortar
+              contribution with the normal diffusivity of the interfaces. Defaults to
+              True.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_dofs x num_dofs.
+        sps.csc_array | np.ndarray: The mass matrix, of size num_dofs x num_dofs, or
+        its sparse sub-blocks.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -253,7 +262,7 @@ def lumped_cell_mass(
             if None.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_cells x num_cells.
+        sps.csc_array: The lumped mass matrix, of size num_cells x num_cells.
     """
     return lumped_mass_matrix(mdg, 0, discr, **kwargs)
 
@@ -271,7 +280,7 @@ def lumped_face_mass(
             if None.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_faces x num_faces.
+        sps.csc_array: The lumped mass matrix, of size num_faces x num_faces.
     """
     return lumped_mass_matrix(mdg, 1, discr, **kwargs)
 
@@ -289,7 +298,7 @@ def lumped_ridge_mass(
             if None.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_ridges x num_ridges.
+        sps.csc_array: The lumped mass matrix, of size num_ridges x num_ridges.
     """
     return lumped_mass_matrix(mdg, 2, discr, **kwargs)
 
@@ -307,7 +316,7 @@ def lumped_peak_mass(
             if None.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_peaks x num_peaks.
+        sps.csc_array: The lumped mass matrix, of size num_peaks x num_peaks.
     """
     return lumped_mass_matrix(mdg, 3, discr, **kwargs)
 
@@ -327,13 +336,11 @@ def lumped_mass_matrix(
             the differential.
         discr (pg.Discretization | None): The discretization, the default one
             if None.
-        kwargs: Optional parameters:
-
-            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default False.
+        **kwargs: Optional parameters, as in mass_matrix.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_dofs x num_dofs.
+        sps.csc_array | np.ndarray: The lumped mass matrix, of size
+        num_dofs x num_dofs, or its sparse sub-blocks.
     """
     return mass_matrix(mdg, n_minus_k, discr, _sd_lumped_mass, **kwargs)
 
@@ -354,10 +361,10 @@ def _sd_lumped_mass(
             the differential.
         discr (pg.Discretization | None): The discretization, the default one
             if None.
-        data (dict): The data object associated to the grid.
+        data (dict | None): The data object associated to the grid.
 
     Returns:
-        sps.csc_array: The mass matrix, of size num_dofs x num_dofs.
+        sps.csc_array: The lumped mass matrix, of size num_dofs x num_dofs.
     """
     if n_minus_k > sd.dim:
         return sps.csc_array((0, 0))

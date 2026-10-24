@@ -29,9 +29,6 @@ class Grid(pp.Grid):
         Args:
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            None
         """
         super().__init__(*args, **kwargs)
         self.face_nodes: sps.csc_array
@@ -48,14 +45,9 @@ class Grid(pp.Grid):
         3: "peaks"
 
         This method computes the geometry of the grid by calling the superclass's
-        compute_geometry method if this has not been happened before, computing the
-        ridge and peak connectivities, and storing the edge lengths and mesh size.
-
-        Args:
-            None
-
-        Returns:
-            None
+        compute_geometry method if this has not happened before, computing the rotation
+        matrix, the ridge and peak connectivities, and storing the edge lengths and mesh
+        size.
         """
         # We only invoke the porepy routine if it hasn't already been computed.
         if "Compute geometry" not in self.history:
@@ -75,9 +67,6 @@ class Grid(pp.Grid):
         entries above d are zero. Since the entities of codimension larger than d
         are counted as zero, the entries above d are obtained by a cyclic shift.
 
-        Args:
-            None
-
         Returns:
             np.ndarray: The number of entities per dimension, of size 4.
         """
@@ -94,12 +83,6 @@ class Grid(pp.Grid):
         - ridge_peaks: connectivity between each ridge and peak
         - tags['tip_ridges']: tags for entities at fracture tips
         - tags['tip_peaks']: tags for entities at fracture tips
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         if self.dim == 3:
             self._compute_ridges_3d()
@@ -119,12 +102,6 @@ class Grid(pp.Grid):
         0 or 1.
         It also initializes the ridge_peaks and face_ridges matrices with the
         appropriate dimensions.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         self.num_peaks = 0
         self.num_ridges = 0
@@ -139,12 +116,6 @@ class Grid(pp.Grid):
         This method computes the number of ridges, number of peaks, and connectivity
         matrices for a 2-dimensional grid. It also computes the face-ridge orientation
         based on the rotated normal and the difference vector between the ridges.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         self.num_peaks = 0
         self.num_ridges = self.num_nodes
@@ -176,12 +147,6 @@ class Grid(pp.Grid):
         matrices for a 3-dimensional grid. It calculates the ridges between each pair of
         nodes in each face, determines the orientation of each ridge with respect to the
         face, and generates the ridge-peak and face-ridge connectivity matrices.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         self.num_peaks = self.num_nodes
 
@@ -241,15 +206,10 @@ class Grid(pp.Grid):
         tips. It sets the "tip_peaks" and "tip_ridges" tags in the grid object.
         For 2D grids, the "tip_ridges" tag is determined based on the "tip_faces" tag
         and the face ridges.
-        For 3D grids, the "tip_ridges" tag is initialized as an array of zeros.
+        For the other dimensions, the "tip_ridges" tag is initialized as an array of
+        zeros.
         The "domain_boundary_ridges" tag is also set based on the face ridges and the
         "domain_boundary_faces" tag.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
         fr_bool = self.face_ridges.astype("bool")
@@ -269,12 +229,14 @@ class Grid(pp.Grid):
         Compute the subvolumes of the grid.
 
         Args:
-            return_subsimplices (bool, optional): Whether to return the sub-simplices.
+            return_subsimplices (bool): Whether to return the sub-simplices.
                 Defaults to False.
 
         Returns:
-            sps.csc_array: The computed subvolumes with each entry [node, cell]
-            describing the signed measure of the associated sub-volume
+            sps.csc_array | tuple[sps.csc_array, sps.csc_array]: The computed
+            subvolumes, with each entry [node, cell] describing the signed measure of
+            the associated sub-volume, and, with return_subsimplices, the sub-simplices
+            as well.
         """
         sub_simplices = sps.csc_array(self.cell_faces.copy().astype(float))
 
@@ -300,11 +262,15 @@ class Grid(pp.Grid):
         for every (face, cell) pair. Sets it as an attribute for later use.
 
         Args:
-            recompute (bool, optional): Whether to recompute the opposite nodes.
+            recompute (bool): Whether to recompute the opposite nodes.
                 Defaults to False.
 
         Returns:
-            sps.csc_array: The index k of the opposite node is in the entry (face, cell)
+            sps.csc_array: The index k of the opposite node is in the entry
+            (face, cell).
+
+        Raises:
+            NotImplementedError: If the grid is not simplicial.
         """
         if recompute or not hasattr(self, "opposite_nodes"):
             cell_nodes = self.cell_nodes()
@@ -330,12 +296,6 @@ class Grid(pp.Grid):
         """
         Computes and stores the tangent vectors and lengths
         of the grid edges (1D entities).
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         match self.dim:
             case 0:
@@ -358,12 +318,6 @@ class Grid(pp.Grid):
         """
         Computes and stores the typical
         mesh size as the mean of the edge lengths.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         if self.dim == 0:
             self.mesh_size = 0.0
@@ -374,12 +328,6 @@ class Grid(pp.Grid):
         """
         Computes and stores the rotation matrix that maps the subdomain to the xy-plane
         or x-axis.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         if np.any(self.nodes[self.dim :, :]):
             *_, R, keep_dims, _ = pp.map_geometry.map_grid(self)
@@ -388,16 +336,17 @@ class Grid(pp.Grid):
             self.rotation_matrix = np.eye(self.dim, pg.AMBIENT_DIM)
 
     def copy(self, keep_history: bool = True):
-        """Create a new instance with some attributes deep-copied from the grid.
+        """
+        Create a new instance with some attributes deep-copied from the grid.
 
         Args:
             keep_history (bool): If False, the copy starts with an empty history, so
                 that its geometry is computed from scratch by compute_geometry, e.g.,
-                after the nodes have been modified. Default True.
+                after the nodes have been modified. Defaults to True.
 
         Returns:
-            A deep copy of ``self``. Some predefined attributes are also copied.
-
+            pg.Grid: A copy of the grid, with the attributes added by PyGeoN, when
+            already computed, deep-copied as well.
         """
         h = super().copy()
         h.history = list(self.history) if keep_history else []

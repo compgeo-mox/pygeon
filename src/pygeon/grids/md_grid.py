@@ -25,12 +25,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         and computes their geometric entities and tags. It calls the
         ``compute_geometry`` method of each subdomain and interface, passing
         the necessary parameters. Finally, it tags the leaf nodes of the grid.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         for sd in self.subdomains():
             sd.compute_geometry()
@@ -47,10 +41,12 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         Compute the total number of faces of the mixed-dimensional grid.
 
-        A function can be passed to filter subdomains and/or interfaces.
+        A function can be passed to filter the subdomains.
 
         Args:
-            cond: Callable, predicate with a grid as input.
+            cond (Callable | None): A predicate with a grid as input, only the
+                subdomains for which it is True are counted. Defaults to None,
+                all the subdomains.
 
         Returns:
             int: The total number of faces of the mixed-dimensional grid.
@@ -68,10 +64,12 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         Compute the total number of ridges in the mixed-dimensional grid.
 
-        A function can be passed to filter subdomains and/or interfaces.
+        A function can be passed to filter the subdomains.
 
         Args:
-            cond: Callable. A predicate function that takes a grid as input.
+            cond (Callable | None): A predicate with a grid as input, only the
+                subdomains for which it is True are counted. Defaults to None,
+                all the subdomains.
 
         Returns:
             int: The total number of ridges in the mixed-dimensional grid.
@@ -89,10 +87,12 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
         """
         Compute the total number of peaks in the mixed-dimensional grid.
 
-        A function can be passed to filter subdomains and/or interfaces.
+        A function can be passed to filter the subdomains.
 
         Args:
-            cond: Callable. A predicate function that takes a grid as input.
+            cond (Callable | None): A predicate with a grid as input, only the
+                subdomains for which it is True are counted. Defaults to None,
+                all the subdomains.
 
         Returns:
             int: The total number of peaks in the mixed-dimensional grid.
@@ -109,14 +109,8 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     def tag_leafs(self) -> None:
         """
         Tag the mesh entities that correspond to a mesh entity of a lower-dimensional
-        grid in a grid bucket.
+        grid in the mixed-dimensional grid.
         TODO: Use these tags to generate mixed-dimensional inner products.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         for sd in self.subdomains():
             sd = cast(pg.Grid, sd)
