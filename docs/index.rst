@@ -5,8 +5,8 @@ PyGeoN
 methods for porous media and mixed-dimensional problems. It provides finite element,
 virtual element and finite volume discretizations of the :math:`H^1`,
 :math:`H(\mathrm{curl})`, :math:`H(\mathrm{div})` and :math:`L^2` spaces, the
-discrete differential operators between them, spanning tree and Poincaré operators,
-and the integration with `PorePy <https://github.com/pmgbergen/porepy>`_.
+discrete differential operators between them, and spanning tree and Poincaré
+operators, using the grid structures of `PorePy <https://github.com/pmgbergen/porepy>`_.
 
 Installation
 ------------
@@ -36,10 +36,7 @@ repository, to be downloaded and run. Bugs and feature requests go to the
    :hidden:
    :glob:
 
-   tutorials/fluid_flow/*
-   tutorials/solid_mechanics/*
-   tutorials/coupled_problems/*
-   tutorials/advanced_topics/*
+   tutorials/**
 
 .. toctree::
    :caption: Reference
