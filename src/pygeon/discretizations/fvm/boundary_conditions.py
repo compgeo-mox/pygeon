@@ -43,11 +43,13 @@ class FiniteVolumeBC:
         Set boundary condition values on selected faces.
 
         Args:
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-            input (np.ndarray): Array of boundary values.
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. None for no faces.
+            input (np.ndarray | None): Array of boundary values, zero if None.
             internal_var (np.ndarray): Internal BC storage to update.
-            dist (np.ndarray): dist[indices] contains the weighted distances on the
-                exterior of the domain. Zero for Dirichlet, infinite for Neumann.
+            dist (np.ndarray | float): The weighted distances on the exterior of the
+                domain, an array read at indices or a value for all of them. Zero for
+                Dirichlet, infinite for Neumann.
         """
         if input is None:
             input = np.zeros_like(self.weighted_dists)
@@ -71,8 +73,8 @@ class FiniteVolumeBC:
 
         if np.any(np.logical_and(self.primary_var, self.dual_var)):
             warnings.warn(
-                "Boundary conditions imposed on both the primary and dual variables may"
-                "lead to unexpected results"
+                "Boundary conditions imposed on both the primary and dual variables "
+                "may lead to unexpected results"
             )
 
 
@@ -104,10 +106,10 @@ class ElasticityBC(FiniteVolumeBC):
         Sets displacement boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-                Defaults to None.
-            u_0 (np.ndarray): shape [dim, n_faces] such that u_0[indices] contains
-                the BC values. Defaults to zero.
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. Defaults to None, no faces.
+            u_0 (np.ndarray | None): shape [dim, n_faces] such that u_0[indices]
+                contains the BC values. Defaults to zero.
         """
         self._set_bcs(indices, u_0, self.primary_var, 0)
 
@@ -120,9 +122,9 @@ class ElasticityBC(FiniteVolumeBC):
         Set traction boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-                Defaults to None.
-            sig_0 (np.ndarray): shape [dim, n_faces] such that sig_0[indices]
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. Defaults to None, no faces.
+            sig_0 (np.ndarray | None): shape [dim, n_faces] such that sig_0[indices]
                 contains the BC values. Defaults to zero.
         """
         self._set_bcs(indices, sig_0, self.dual_var, np.inf)
@@ -143,10 +145,10 @@ class ElasticityBC(FiniteVolumeBC):
 
         Args:
             dists (np.ndarray): Weighted distance (inverse spring constant).
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-                Defaults to None.
-            u_0 (np.ndarray): shape [dim, n_faces] such that u_0[indices] contains
-                the BC values. Defaults to zero.
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. Defaults to None, no faces.
+            u_0 (np.ndarray | None): shape [dim, n_faces] such that u_0[indices]
+                contains the BC values. Defaults to zero.
         """
         self._set_bcs(indices, u_0, self.primary_var, dists)
 
@@ -179,9 +181,9 @@ class FlowBC(FiniteVolumeBC):
         Set pressure boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-                Defaults to None.
-            p_0 (np.ndarray): shape [n_faces, ] such that p_0[indices] contains
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. Defaults to None, no faces.
+            p_0 (np.ndarray | None): shape [n_faces, ] such that p_0[indices] contains
                 the BC values. Defaults to zero.
         """
         self._set_bcs(indices, p_0, self.primary_var, 0)
@@ -195,9 +197,9 @@ class FlowBC(FiniteVolumeBC):
         Set flux boundary conditions.
 
         Args:
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-                Defaults to None.
-            q_0 (np.ndarray): shape [n_faces, ] such that q_0[indices] contains
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. Defaults to None, no faces.
+            q_0 (np.ndarray | None): shape [n_faces, ] such that q_0[indices] contains
                 the BC values. Defaults to zero.
         """
         self._set_bcs(indices, q_0, self.dual_var, np.inf)
@@ -217,9 +219,9 @@ class FlowBC(FiniteVolumeBC):
 
         Args:
             dists (np.ndarray): Weighted distance (inverse permeability).
-            indices (np.ndarray): The global face indices on which the BC is imposed.
-                Defaults to None.
-            p_0 (np.ndarray): shape [n_faces, ] such that p_0[indices] contains
+            indices (np.ndarray | None): The faces on which the BC is imposed, as a
+                boolean mask or as indices. Defaults to None, no faces.
+            p_0 (np.ndarray | None): shape [n_faces, ] such that p_0[indices] contains
                 the BC values. Defaults to zero.
         """
         self._set_bcs(indices, p_0, self.primary_var, dists)

@@ -11,15 +11,19 @@ def get_PwPolynomials(
     poly_order: int, tensor_order: int
 ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
     """
-    Returns the piecewise polynomial discretization class based on the polynomial order.
+    Returns the piecewise polynomial discretization class based on the polynomial
+    order and the tensor order.
 
     Args:
         poly_order (int): The polynomial order.
         tensor_order (int): The tensor order.
 
     Returns:
-        Type[pg.Discretization]: The corresponding piecewise polynomial discretization
-        class.
+        Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]: The corresponding
+        piecewise polynomial discretization class.
+
+    Raises:
+        KeyError: If the polynomial or the tensor order is not supported.
     """
     pwp_dict: dict[
         tuple[int, int],
@@ -49,7 +53,7 @@ def proj_to_PwPolynomials(
 ) -> sps.csc_array:
     """
     Constructs a projection operator to piecewise polynomial spaces of a specified
-    order.
+    order, composing the projections to the higher or lower orders.
 
     Args:
         discr (pg.Discretization): The current discretization object.

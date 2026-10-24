@@ -24,7 +24,8 @@ class SpanningTree:
 
         Args:
             mdg (pg.MixedDimensionalGrid | pg.Grid): The mixed-dimensional grid.
-            starting_faces (np.ndarray | int | str):
+            starting_faces (str | np.ndarray | int): The starting faces:
+
                 - "first_bdry" (default): Choose the first boundary face.
                 - "all_bdry": Choose all boundary faces.
                 - np.array or int: Indices of the starting faces.
@@ -54,9 +55,6 @@ class SpanningTree:
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
             flagged_faces (np.ndarray): Array of flagged faces.
-
-        Returns:
-            None
         """
         self.expand = pg.create_restriction(flagged_faces).T.tocsc()
 
@@ -75,7 +73,8 @@ class SpanningTree:
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid object.
-            starting_faces:
+            starting_faces (str | np.ndarray | int): The starting faces:
+
                 - "first_bdry" (default): Choose the first boundary face.
                 - "all_bdry": Choose all boundary faces.
                 - np.array or int: Indices of the starting faces.
@@ -84,7 +83,7 @@ class SpanningTree:
             np.ndarray: The indices of the starting faces for the spanning tree.
 
         Raises:
-            KeyError: if starting_faces does not have the right type
+            KeyError: If starting_faces is neither a valid string, an array nor an int.
         """
         if isinstance(starting_faces, str):
             # Extract top-dimensional domain
@@ -136,7 +135,7 @@ class SpanningTree:
 
     def remove_outside_cell(self) -> None:
         """
-        Remove the fictitious outside cell from the div operator and the tree
+        Remove the fictitious outside cell from the div operator and the tree.
         """
         self.div = self.div[:-1, :]
         self.tree = self.tree[:-1, :-1]
@@ -204,7 +203,7 @@ class SpanningTree:
             f (np.ndarray): Mass source, integrated against PwConstants.
 
         Returns:
-            np.ndarray: The post-processed flux field
+            np.ndarray: The post-processed flux field.
         """
         return self.expand @ self.system_splu.solve(f)
 
@@ -213,7 +212,7 @@ class SpanningTree:
         Assembles the operator S_I as a sparse array.
 
         Returns:
-            sps.sparray: S_I, a right inverse of the B-operator
+            sps.sparray: S_I, a right inverse of the B-operator.
 
         Notes:
             This will be slow for large systems. If you only need the action of S_I,
@@ -230,10 +229,10 @@ class SpanningTree:
 
         Args:
             rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
-                              minus boundary terms.
+                minus boundary terms.
 
         Returns:
-            np.ndarray: The post-processed pressure field
+            np.ndarray: The post-processed pressure field.
         """
         return self.system_splu.solve(self.expand.T.tocsc() @ rhs, "T")
 
@@ -252,9 +251,6 @@ class SpanningTreeElasticity(SpanningTree):
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
             flagged_faces (np.ndarray): Array of flagged faces.
-
-        Returns:
-            None
         """
         # Extract top-dimensional domain
         sd = mdg.subdomains(dim=mdg.dim_max())[0]
@@ -269,7 +265,7 @@ class SpanningTreeElasticity(SpanningTree):
         Compute the expanded matrix for spanning tree computation.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             flagged_faces (np.ndarray): Array of flagged faces.
 
         Returns:
@@ -376,7 +372,7 @@ class SpanningTreeElasticity(SpanningTree):
         Computes the system matrix for the given grid.
 
         Args:
-            sd (pg.Grid): The grid object representing the domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The computed system matrix.
@@ -412,7 +408,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         Compute the expanded matrix for spanning tree computation.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             flagged_faces (np.ndarray): Array of flagged faces.
 
         Returns:
@@ -429,7 +425,7 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
         Computes the system matrix for the given grid.
 
         Args:
-            sd (pg.Grid): The grid object representing the domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The computed system matrix.
@@ -471,11 +467,11 @@ class SpanningWeightedTrees:
 
         Args:
             mdg (pg.MixedDimensionalGrid): The mixed dimensional grid.
-            spt (object): The spanning tree object to use.
+            spt (Type[SpanningTree]): The class of the spanning trees to use.
             weights (np.ndarray): The weights to impose for each spanning tree, they
                 need to sum to 1.
-            starting_faces (np.ndarray): The set of starting faces, if not
-                specified equi-distributed boundary faces are selected.
+            starting_faces (np.ndarray | None): The set of starting faces, one per tree.
+                Defaults to None, equi-distributed boundary faces.
         """
         if starting_faces is None:
             num = np.asarray(weights).size
@@ -504,7 +500,7 @@ class SpanningWeightedTrees:
         If you only need the action of S_I, consider using self.solve() instead.
 
         Returns:
-            sps.sparray: S_I, a right inverse of the B-operator
+            sps.sparray: S_I, a right inverse of the B-operator.
         """
         return self.avg([st.assemble_SI() for st in self.sptrs])
 
@@ -514,7 +510,7 @@ class SpanningWeightedTrees:
 
         Args:
             rhs (np.ndarray): Right-hand side, usually the mass matrix times the flux
-                              minus boundary terms.
+                minus boundary terms.
 
         Returns:
             np.ndarray: The post-processed pressure field.

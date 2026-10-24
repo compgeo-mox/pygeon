@@ -22,10 +22,7 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         self.keyword = keyword
         self.bc_type: Type[pg.FiniteVolumeBC]
@@ -35,7 +32,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         Returns the number of degrees of freedom on a given grid.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             int: The number of degrees of freedom.
@@ -57,8 +54,8 @@ class FiniteVolumeDiscretization(abc.ABC):
         using the material parameters in the data dictionary.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             sps.csc_array: The discretization matrix.
@@ -78,10 +75,10 @@ class FiniteVolumeDiscretization(abc.ABC):
         dual variables.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The divergence operator
+            sps.csc_array: The divergence operator.
         """
         return sps.kron(
             sps.eye_array(self.ndof_per_element(sd.dim)), pg.div(sd), format="csc"
@@ -93,10 +90,10 @@ class FiniteVolumeDiscretization(abc.ABC):
         variables.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
-            np.ndarray: The scaling vector
+            np.ndarray: The scaling vector.
         """
         return np.tile(sd.face_areas, self.ndof_per_element(sd.dim))
 
@@ -109,8 +106,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         if np.any(weight < 0):
             warnings.warn(
-                f"There are {(weight < 0).sum()} extra-cellular \
-                    cell centers."
+                f"There are {(weight < 0).sum()} extra-cellular cell centers."
             )
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:
@@ -139,11 +135,11 @@ class FiniteVolumeDiscretization(abc.ABC):
         Else, it creates a new one and inserts it in data.
 
         Args:
-            sd (pg.Grid): The grid object.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            pg.FiniteVolumeBC: The boundary condition object
+            pg.FiniteVolumeBC: The boundary condition object.
         """
         if not data:
             data = pp.initialize_data({}, self.keyword)
@@ -169,11 +165,11 @@ class FiniteVolumeDiscretization(abc.ABC):
         where :math:`g` contains boundary dual and primary variable values.
 
         Args:
-            sd (pg.Grid): The grid object.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            np.ndarray: The right-hand side vector
+            np.ndarray: The right-hand side vector.
         """
         dual_var = self.bdry_contribution_dual_variable(sd, data)
 
@@ -187,16 +183,17 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         .. math::
 
-            q_bdry = A_{\text{bdry}} g
+            q_{\text{bdry}} = A_{\text{bdry}} g
 
         where :math:`g` contains boundary dual and primary variable values.
 
         Args:
-            sd (pg.Grid): The grid object.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            np.ndarray: The right-hand side vector
+            np.ndarray: The contribution of the boundary conditions to the dual
+            variable on the faces.
         """
         A_rhs = self.assemble_bdry_dual_var_map(sd, data)
 
@@ -230,11 +227,11 @@ class FiniteVolumeDiscretization(abc.ABC):
 
         Args:
             primary_var (np.ndarray): The degrees of freedom of the primary variable.
-            sd (pg.Grid): The grid object.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            np.ndarray: The right-hand side vector
+            np.ndarray: The dual variable on the faces.
         """
         dual_var = self.assemble_dual_var_map(sd, data) @ primary_var
         dual_var += self.bdry_contribution_dual_variable(sd, data)
@@ -262,11 +259,11 @@ class FiniteVolumeDiscretization(abc.ABC):
         fluxes :math:`q = |F| K_{\text{eff}} (p_i - p_j)`.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            sps.csc_array: The matrix mapping primary to dual variables
+            sps.csc_array: The matrix mapping primary to dual variables.
         """
 
     @abc.abstractmethod
@@ -279,11 +276,11 @@ class FiniteVolumeDiscretization(abc.ABC):
         :math:`S_0` is the storativity coefficient.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            sps.csc_array: The diagonal mass matrix
+            sps.csc_array: The diagonal mass matrix.
         """
 
     @abc.abstractmethod
@@ -296,8 +293,8 @@ class FiniteVolumeDiscretization(abc.ABC):
         flux computation.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             sps.csc_array: The matrix to be multiplied with the boundary data g.

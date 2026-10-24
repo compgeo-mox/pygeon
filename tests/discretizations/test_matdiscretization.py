@@ -182,3 +182,19 @@ def test_cosserat_1d(discr, unit_sd_1d):
 
     with pytest.raises(ValueError):
         discr.assemble_lumped_matrix_cosserat(unit_sd_1d, None)
+
+
+def test_lumped_matrix_elasticity_incompressible(discr, unit_sd):
+    if unit_sd.dim == 1 or isinstance(discr, pg.VecRT0):
+        pytest.skip("No lumped elasticity for VecRT0 and in 1D")
+
+    # An infinite lambda is the limit of a large one, not nan
+    data = {
+        lam: pp.initialize_data({}, "test", {pg.LAME_MU: 0.5, pg.LAME_LAMBDA: lam})
+        for lam in (np.inf, 1e12)
+    }
+    L_inf = discr.assemble_lumped_matrix_elasticity(unit_sd, data[np.inf])
+    L_large = discr.assemble_lumped_matrix_elasticity(unit_sd, data[1e12])
+
+    assert np.all(np.isfinite(L_inf.data))
+    assert np.allclose(L_inf.toarray(), L_large.toarray())

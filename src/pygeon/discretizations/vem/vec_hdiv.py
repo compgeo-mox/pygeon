@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H(div) space."""
+"""Module for the virtual element discretizations of the matrix-valued H(div) space."""
 
 from typing import Type
 
@@ -57,10 +57,7 @@ class VecVRT0(pg.VecDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.VRT0 = pg.VRT0(keyword)
@@ -73,6 +70,6 @@ class VecVRT0(pg.VecDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwConstants

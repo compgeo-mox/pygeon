@@ -20,11 +20,8 @@ def coordinates() -> tuple:
     """
     Returns the symbols of the coordinates the operators differentiate with respect to.
 
-    Args:
-        None
-
     Returns:
-        tuple: The symbols (x, y, z).
+        tuple[sp.Symbol, sp.Symbol, sp.Symbol]: The symbols (x, y, z).
     """
     return sp.symbols("x y z")
 
@@ -32,9 +29,6 @@ def coordinates() -> tuple:
 def time() -> sp.Symbol:
     """
     Returns the symbol of the time, the variable of the time derivatives.
-
-    Args:
-        None
 
     Returns:
         sp.Symbol: The symbol t.
@@ -244,7 +238,7 @@ def identity(dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
     two-dimensional problem has no entries outside that block.
 
     Args:
-        dim (int): The dimension of the problem. Default pg.AMBIENT_DIM.
+        dim (int): The dimension of the problem. Defaults to pg.AMBIENT_DIM.
 
     Returns:
         sp.Matrix: The identity, of size three by three.
@@ -282,7 +276,7 @@ def dev(matrix: sp.Matrix, dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
-        dim (int): The dimension d of the problem. Default pg.AMBIENT_DIM.
+        dim (int): The dimension d of the problem. Defaults to pg.AMBIENT_DIM.
 
     Returns:
         sp.Matrix: The deviatoric part, of size three by three.
@@ -444,8 +438,9 @@ def to_callable(
 
     Args:
         expression (sp.Expr | sp.Matrix): The scalar, vector or matrix expression.
-        dim (int): The number of components to retain. Default pg.AMBIENT_DIM.
-        t (float | None): The time at which the expression is evaluated. Default None.
+        dim (int): The number of components to retain. Defaults to pg.AMBIENT_DIM.
+        t (float | None): The time at which the expression is evaluated. Defaults to
+            None.
 
     Returns:
         Callable[[np.ndarray], np.ndarray]: The function evaluating the expression.

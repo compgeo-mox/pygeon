@@ -15,8 +15,8 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
 
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
-        rtol (float): Relative tolerance for removing small matrix entries.
-            Default 1e-10.
+        rtol (float): Relative tolerance for removing small matrix entries, which are
+            removed from M in place. Defaults to 1e-10.
 
     Returns:
         sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
@@ -90,28 +90,28 @@ def block_diag_solver(
     Solves a block diagonal system of linear equations for each connected component.
 
     This function takes a sparse block diagonal matrix M assumed to be symmetric and
-    positive defined and a right-hand side matrix B, and solves the system MX = B for
+    positive definite and a right-hand side matrix B, and solves the system MX = B for
     each connected component of the matrix M.
 
     The connected components are determined using a graph representation of the matrix.
 
     Args:
-        M (sps.csc_array): A symmetric and positive defined sparse matrix in Compressed
+        M (sps.csc_array): A symmetric and positive definite sparse matrix in Compressed
             Sparse Column (CSC) format, representing the block diagonal system. It is
             assumed to be symmetric and positive definite.
         B (sps.csc_array): The right-hand side matrix in Compressed Sparse Column (CSC)
             format.
         rtol (float): Relative tolerance for removing small matrix entries.
-            Default 1e-10.
+            Defaults to 1e-10.
 
     Returns:
         sps.csc_array: The solution matrix X.
 
     Notes:
         - The function identifies connected components of the matrix M using the
-          connected_components function from `scipy.sparse.csgraph`.
+          connected_components function from ``scipy.sparse.csgraph``.
         - For each connected component, the corresponding submatrix is
-          inverted with `numpy.linalg.inv`, stacking the blocks of equal size.
+          inverted with ``numpy.linalg.inv``, stacking the blocks of equal size.
         - The solution is the product of the block-wise inverse with B.
     """
     # The solution is the product with the block-wise inverse, which is zero on the
@@ -135,7 +135,7 @@ def block_diag_solver_dense(
         b (np.ndarray): The right-hand side of the equation. Can be a 1D array (vector)
             or a 2D array (matrix). If 1D, it will be treated as a column vector.
         rtol (float): Relative tolerance for removing small matrix entries.
-            Default 1e-10.
+            Defaults to 1e-10.
 
     Returns:
         np.ndarray: The solution to the system of equations. If b is a 1D array, the

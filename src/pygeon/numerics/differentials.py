@@ -25,14 +25,14 @@ def div(
     Compute the divergence.
 
     Args:
-        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
-        kwargs: Optional parameters:
+        grid (pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid): The grid.
+        **kwargs: Optional parameters:
 
-            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default False.
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Defaults to False.
 
     Returns:
-        sps.csc_array. The divergence operator.
+        sps.csc_array | np.ndarray: The divergence operator, or its sparse sub-blocks.
     """
     return exterior_derivative(grid, 1, **kwargs)
 
@@ -44,14 +44,14 @@ def curl(
     Compute the curl.
 
     Args:
-        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
-        kwargs: Optional parameters:
+        grid (pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid): The grid.
+        **kwargs: Optional parameters:
 
-            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default False.
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Defaults to False.
 
     Returns:
-        sps.csc_array. The curl operator.
+        sps.csc_array | np.ndarray: The curl operator, or its sparse sub-blocks.
     """
     return exterior_derivative(grid, 2, **kwargs)
 
@@ -63,14 +63,14 @@ def grad(
     Compute the gradient.
 
     Args:
-        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
-        kwargs: Optional parameters:
+        grid (pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid): The grid.
+        **kwargs: Optional parameters:
 
-            - as_bmat: In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default False.
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Defaults to False.
 
     Returns:
-        sps.csc_array. The gradient operator.
+        sps.csc_array | np.ndarray: The gradient operator, or its sparse sub-blocks.
     """
     return exterior_derivative(grid, 3, **kwargs)
 
@@ -88,12 +88,21 @@ def exterior_derivative(
     order n - k.
 
     Args:
-        grid (pg.Grid, pg.MortarGrid, or pg.MixedDimensionalGrid).
+        grid (pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid): The grid.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
+        **kwargs: Optional parameters:
+
+            - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
+              sub-blocks. Defaults to False.
 
     Returns:
-        sps.csc_array. The differential operator.
+        sps.csc_array | np.ndarray: The differential operator, or its sparse
+        sub-blocks.
+
+    Raises:
+        TypeError: If the grid is not a grid, a mortar grid or a mixed-dimensional
+            grid.
     """
     if isinstance(grid, (pp.Grid, pp.MortarGrid)):
         return _g_exterior_derivative(grid, n_minus_k, **kwargs)
@@ -114,15 +123,16 @@ def _g_exterior_derivative(
     **_kwargs,
 ) -> sps.csc_array:
     """
-    Compute the exterior derivative on a grid.
+    Compute the exterior derivative on a grid. A warning is raised, and an empty
+    matrix returned, if n_minus_k is not between 0 and 4.
 
     Args:
-        grid (pg.Grid or pg.MortarGrid): The grid.
+        grid (pg.Grid | pg.MortarGrid): The grid.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
 
     Returns:
-        sps.csc_array. The differential operator.
+        sps.csc_array: The differential operator.
     """
     if n_minus_k == 0:
         derivative = sps.csc_array((0, grid.num_cells))
@@ -145,17 +155,21 @@ def _mdg_exterior_derivative(
     mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
 ) -> sps.csc_array:
     """
-    Compute the mixed-dimensional exterior derivative on a grid bucket.
+    Compute the mixed-dimensional exterior derivative on a mixed-dimensional grid,
+    with the degrees of freedom at the tips set to zero.
 
     Args:
-        grid (pg.MixedDimensionalGrid): The grid bucket.
+        mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the ambient dimension and the order of
             the differential form.
-        kwargs: Optional parameters
-            as_bmat: In case of mixed-dimensional, return the matrix as sparse
-                sub-blocks. Default False.
-    Return:
-        sps.csc_array: the differential operator.
+        **kwargs: Optional parameters:
+
+            - as_bmat (bool): Return the matrix as sparse sub-blocks. Defaults to
+              False.
+
+    Returns:
+        sps.csc_array | np.ndarray: The differential operator, or its sparse
+        sub-blocks.
     """
     as_bmat = kwargs.get("as_bmat", False)
 

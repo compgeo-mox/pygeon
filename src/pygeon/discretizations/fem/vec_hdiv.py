@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H(div) space."""
+"""Module for the discretizations of the matrix-valued H(div) space."""
 
 from typing import Type
 
@@ -59,10 +59,7 @@ class VecBDM1(pg.MatDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.BDM1 = pg.BDM1(keyword)
@@ -72,7 +69,7 @@ class VecBDM1(pg.MatDiscretization):
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
@@ -82,7 +79,7 @@ class VecBDM1(pg.MatDiscretization):
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Project the RT0 finite element space onto the faces of the given grid.
+        Include the vector RT0 finite element space in the vector BDM1 one.
 
         Args:
             sd (pg.Grid): The grid on which the projection is performed.
@@ -95,14 +92,14 @@ class VecBDM1(pg.MatDiscretization):
 
     def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential
+        Returns the discretization class that contains the range of the differential.
 
         Args:
             dim (int): The dimension of the range.
 
         Returns:
-            pg.Discretization: The discretization class containing the range of the
-            differential
+            Type[pg.Discretization]: The discretization class containing the range of
+            the differential.
         """
         return pg.VecPwConstants
 
@@ -159,10 +156,7 @@ class VecRT0(pg.MatDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.RT0 = pg.RT0(keyword)
@@ -175,7 +169,7 @@ class VecRT0(pg.MatDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwConstants
 
@@ -198,10 +192,7 @@ class VecRT1(pg.MatDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.RT1 = pg.RT1(keyword)
@@ -214,6 +205,6 @@ class VecRT1(pg.MatDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwLinears

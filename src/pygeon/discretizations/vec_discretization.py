@@ -68,7 +68,7 @@ class VecDiscretization(pg.Discretization):
         component-wise from :math:`V_h^d` to its range space :math:`W_h^d`.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -86,10 +86,11 @@ class VecDiscretization(pg.Discretization):
         :math:`A` is the range mass matrix of :math:`W_h^d`.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_array: The differential matrix.
+            sps.csc_array: The stiffness matrix.
         """
         diff = self.base_discr.assemble_stiff_matrix(sd, data)
         return self.vectorize(sd.dim, diff)
@@ -105,7 +106,7 @@ class VecDiscretization(pg.Discretization):
         component-wise from the scalar base discretization (:attr:`base_discr`).
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
@@ -133,14 +134,15 @@ class VecDiscretization(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space
+        Interpolates a function onto the finite element space, component-wise with
+        the scalar base discretization.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: The values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         interp = [
             self.base_discr.interpolate(sd, lambda x: func(x)[d])
@@ -153,10 +155,10 @@ class VecDiscretization(pg.Discretization):
         Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-             sps.csc_array: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
         P = self.base_discr.eval_at_cell_centers(sd)
         return self.vectorize(sd.dim, P)
@@ -175,10 +177,10 @@ class VecDiscretization(pg.Discretization):
         dual of :math:`V_h^d`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The vector function defining
                  the natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.
@@ -200,7 +202,7 @@ class VecDiscretization(pg.Discretization):
         the underlying scalar space.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The divergence matrix.
@@ -221,12 +223,13 @@ class VecDiscretization(pg.Discretization):
         This operator is only implemented for vector-valued functions.
 
         The broken curl :math:`\nabla_h \times` acts element-wise on functions
-        in the vector finite element space :math:`V_h^d`, mapping to the
-        skew-symmetric part of the piecewise polynomial space. See
-        :attr:`base_discr` for the underlying scalar space.
+        in the vector finite element space :math:`V_h^d`, as the asymmetry operator
+        of :meth:`~pygeon.MatPwPolynomials.assemble_asym_matrix` applied to the
+        broken gradient: a scalar in 2D and a vector in 3D. See :attr:`base_discr`
+        for the underlying scalar space.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The curl matrix.

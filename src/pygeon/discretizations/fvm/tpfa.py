@@ -25,10 +25,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.bc_type = pg.FlowBC
@@ -51,15 +48,16 @@ class TPFA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolate a scalar function onto the grid.
+        Interpolate a scalar function onto the grid, evaluating it at the cell
+        centers.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): A function that returns the pressure values
                 at coordinates.
 
         Returns:
-            np.ndarray: The values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         interp = pg.PwConstants().interpolate(sd, func)
         return interp / sd.cell_volumes
@@ -73,11 +71,11 @@ class TPFA(pg.FiniteVolumeDiscretization):
         For now, this is zero, but it can be overwritten by a child class.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            _data (dict): The data dictionary.
+            sd (pg.Grid): The grid.
+            _data (dict | None): The data dictionary.
 
         Returns:
-            sps.csc_array: The TPFA discretization matrix.
+            sps.csc_array: The accumulation matrix, zero.
         """
         return sps.csc_array((self.ndof(sd), self.ndof(sd)))
 
@@ -89,8 +87,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
         for the right.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             dict: The precomputed arrays.
@@ -130,8 +128,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
         the permeability tensor. Boundary conditions are handled later.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
             find_cell_faces (Tuple): Output of scipy.sparse.find on sd.cell_faces.
 
         Returns:
@@ -171,14 +169,14 @@ class TPFA(pg.FiniteVolumeDiscretization):
         Incorporate the boundary conditions by extending the face and distance arrays.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
-            faces (np.ndarray): The array of face indices
-            weighted_dists (np.ndarray): The array of weighted distances
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
+            faces (np.ndarray): The array of face indices.
+            weighted_dists (np.ndarray): The array of weighted distances.
 
         Returns:
-            np.ndarray: The extended array of face indices.
-            np.ndarray: The extended array of weighted distances.
+            tuple[np.ndarray, np.ndarray]: The extended arrays of the face indices and
+            of the weighted distances.
         """
         bcs = self.get_bcs_from_data(sd, data)
 
@@ -202,8 +200,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
         where :math:`K_{\text{eff}}` is the effective permeability at the face.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             sps.csc_array: The matrix mapping primary to dual variables
@@ -225,8 +223,8 @@ class TPFA(pg.FiniteVolumeDiscretization):
         and Neumann BCs in a unified way. Inspired by the TPSA paper, Appendix A2.2.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             sps.csc_array: The matrix to be multiplied with the boundary data g.
@@ -267,10 +265,13 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         .. math::
 
-            \int_\Omega f \, dx
+            \int_K f \, dx
+
+        in each cell :math:`K`, approximated with the value of :math:`f` at the cell
+        center times the cell volume.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): The source function.
 
         Returns:

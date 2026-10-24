@@ -68,7 +68,7 @@ class MatDiscretization(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            data (dict | None): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -94,7 +94,7 @@ class MatDiscretization(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            data (dict | None): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -116,7 +116,7 @@ class MatDiscretization(pg.VecDiscretization):
             + \frac{1}{2\mu_c} \text{skw}(\sigma)
 
         with :math:`\mu` and :math:`\lambda` the Lamé constants,
-        :math:`\mu_c` the coupling Lamé modulus, and
+        :math:`\mu_c` the Cosserat couple modulus, and
 
         .. math::
 
@@ -126,7 +126,7 @@ class MatDiscretization(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            data (dict | None): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -138,12 +138,13 @@ class MatDiscretization(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles the lumped elasticity matrix for the given grid. This is a diagonal
-        approximation of :math:`(A \sigma, \tau)` where :math:`A` is the elasticity
+        Assembles the lumped elasticity matrix for the given grid. This is an
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
+        :math:`A` is the elasticity
         compliance operator from :meth:`assemble_mass_matrix_elasticity`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data dictionary.
 
         Returns:
@@ -156,12 +157,13 @@ class MatDiscretization(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles the lumped Cosserat matrix for the given grid. This is a diagonal
-        approximation of :math:`(A \sigma, \tau)` where :math:`A` is the Cosserat
+        Assembles the lumped Cosserat matrix for the given grid. This is an
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
+        :math:`A` is the Cosserat
         compliance operator from :meth:`assemble_mass_matrix_cosserat`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data dictionary.
 
         Returns:
@@ -174,22 +176,23 @@ class MatDiscretization(pg.VecDiscretization):
         self, sd: pg.Grid, as_pwconstant: bool = False
     ) -> sps.csc_array:
         r"""
-        Assembles the skew-symmetry (asymmetry) matrix
-        :math:`\text{skw}(\sigma) = \frac{1}{2}(\sigma - \sigma^T)`.
+        Assembles the asymmetry matrix, mapping :math:`\sigma` to
+        :math:`\sigma_{21} - \sigma_{12}` in 2D and to
+        :math:`(\sigma_{32} - \sigma_{23}, \sigma_{13} - \sigma_{31},
+        \sigma_{21} - \sigma_{12})` in 3D, see
+        :meth:`~pygeon.MatPwPolynomials.assemble_asym_matrix`.
 
-        This method constructs an asymmetric matrix by projecting to
-        matrix piecewise polynomials and combining it with the
-        discretization's asymmetric matrix.
+        The operator is obtained by projecting to the matrix piecewise polynomials and
+        applying their asymmetry matrix.
 
         Args:
-            sd (pg.Grid): The grid object representing the spatial discretization.
-            as_pwconstant (bool): Compute the operator with the range on the piece-wise
-                polynomials (default), otherwise the mapping is on the piece-wise
-                constant.
+            sd (pg.Grid): The grid.
+            as_pwconstant (bool): If True, the range is projected to the piecewise
+                constants, otherwise it is in the piecewise polynomials of the same
+                order. Defaults to False.
 
         Returns:
-            sps.csc_array: The assembled asymmetric matrix in compressed sparse column
-            format.
+            sps.csc_array: The assembled asymmetry matrix.
         """
         P = self.proj_to_PwPolynomials(sd)
         mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)

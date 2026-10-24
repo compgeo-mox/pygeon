@@ -37,10 +37,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.bc_type = pg.ElasticityBC
@@ -72,7 +69,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Interpolate a triplet of functions onto the finite volume space.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             displacement (Callable): A function that returns the displacement values
                 at coordinates.
             rotation (Callable): A function that returns the rotation values at
@@ -81,7 +78,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
                 at coordinates.
 
         Returns:
-            np.ndarray: The values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         u = pg.VecPwConstants().interpolate(sd, displacement)
         r = pg.get_PwPolynomials(0, sd.dim - 2)().interpolate(sd, rotation)
@@ -95,18 +92,17 @@ class TPSA(pg.FiniteVolumeDiscretization):
         self, sd: pg.Grid, data: dict | None
     ) -> sps.csc_array:
         r"""
-        Assemble the zeroth-order terms on the diagonal, representing the
-        accumulation terms :math:`S_0 \partial_t u`, :math:`S_r \partial_t r`,
-        and :math:`S_p \partial_t p` for displacement, rotation, and solid pressure,
-        respectively.
+        Assemble the zeroth-order terms of (3.9) on the diagonal: zero for the
+        displacement, :math:`-|K| / \mu` for the rotation and :math:`-|K| / \lambda`
+        for the solid pressure, in each cell :math:`K`.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            lame_mu (np.ndarray): The Lamé parameter mu
-            lame_lambda (np.ndarray): The Lamé parameter lambda
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary, with the Lamé parameters
+                pg.LAME_MU and pg.LAME_LAMBDA.
 
         Returns:
-            sps.csc_array: The diagonal mass matrix
+            sps.csc_array: The diagonal mass matrix.
         """
         # Extract the Lamé parameters from the data dictionary
         lame_mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
@@ -130,8 +126,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         for the right.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
             dict: The precomputed arrays.
@@ -171,8 +167,8 @@ class TPSA(pg.FiniteVolumeDiscretization):
         pair :math:`(k, i)`. Boundary conditions are handled later.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
             find_cell_faces (Tuple): Output of scipy.sparse.find on sd.cell_faces.
 
         Returns:
@@ -206,14 +202,14 @@ class TPSA(pg.FiniteVolumeDiscretization):
         Incorporate the boundary conditions by extending the face and distance arrays.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary.
-            faces (np.ndarray): The array of face indices
-            weighted_dists (np.ndarray): The array of weighted distances
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
+            faces (np.ndarray): The array of face indices.
+            weighted_dists (np.ndarray): The array of weighted distances.
 
         Returns:
-            np.ndarray: The extended array of face indices.
-            np.ndarray: The extended array of weighted distances.
+            tuple[np.ndarray, np.ndarray]: The extended arrays of the face indices and
+            of the weighted distances.
         """
         bcs = self.get_bcs_from_data(sd, data)
 
@@ -290,10 +286,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         and volume flux), as in the TPSA scheme.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            sps.csc_array: The matrix mapping primary to dual variables
+            sps.csc_array: The matrix mapping primary to dual variables.
         """
         # Preallocate the block matrix
         A = np.empty((3, 3), dtype=sps.csc_array)
@@ -343,10 +340,13 @@ class TPSA(pg.FiniteVolumeDiscretization):
         outward normal vector :math:`n` on each face.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The R^n matrix
+            sps.csc_array: The R^n matrix.
+
+        Raises:
+            ValueError: If the grid is neither two nor three-dimensional.
         """
         unit_normals = sd.face_normals / sd.face_areas
         nx, ny, nz = [sps.diags_array(n_i) for n_i in unit_normals]
@@ -371,10 +371,10 @@ class TPSA(pg.FiniteVolumeDiscretization):
         unit outward normal vector :math:`n` on each face.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The n cdot matrix
+            sps.csc_array: The n cdot matrix.
         """
         unit_normals = sd.face_normals / sd.face_areas
         return sps.hstack(
@@ -393,11 +393,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         to more involved boundary conditions, such as rollers.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             cached_arrays (dict): The output of self.precompute_arrays
 
         Returns:
-            sps.csc_array: The double rotation matrix
+            sps.csc_array: The double rotation matrix.
         """
         delta_mu_k = cached_arrays["delta_mu_k"]
 
@@ -423,7 +423,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             cached_arrays (dict): The output of self.precompute_arrays.
 
         Returns:
-            list: The averaging operators in the coordinate directions
+            list: The averaging operators in the coordinate directions.
         """
         faces, cells, _ = cached_arrays["find_cell_faces"]
         weighted_dists = cached_arrays["weighted_dists"]
@@ -445,7 +445,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
             Xi (list): The averaging operators in the coordinate directions.
 
         Returns:
-            list: The tilde averaging operators in the coordinate directions
+            list: The tilde averaging operators in the coordinate directions.
         """
         for Xi_i in Xi:
             Xi_i.data = 1 - Xi_i.data
@@ -462,12 +462,13 @@ class TPSA(pg.FiniteVolumeDiscretization):
         together because their construction uses similar components.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            Xi_list (list): The averaging operators in the coordinate directions
+            sd (pg.Grid): The grid.
+            Xi_list (list): The averaging operators in the coordinate directions.
 
         Returns:
-            R_xi (sps.csc_array): The operator that averages and then crosses with n
-            n_xi (sps.csc_array): The operator that averages and then dots with n
+            tuple[sps.csc_array, sps.csc_array]: R_xi, the operator that averages and
+            then crosses with n, and n_xi, the operator that averages and then dots
+            with n.
         """
         Xi = sps.block_diag(Xi_list, format="csc")
         R_Xi = self.assemble_rot(sd) @ Xi
@@ -486,15 +487,16 @@ class TPSA(pg.FiniteVolumeDiscretization):
         These are computed together because their construction uses similar components.
 
         This is a generalization compared to the paper to handle more involved boundary
-        conditions. In particular, we have to change the order of the operators
+        conditions. In particular, we have to change the order of the operators.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            Xi_list (list): The tilde averaging operators in the coordinate directions
+            sd (pg.Grid): The grid.
+            Xi_list (list): The tilde averaging operators in the coordinate directions.
 
         Returns:
-            R_xi (sps.csc_array): The operator that crosses with n and then averages
-            n_xi (sps.csc_array): The operator that multiplies with n and then averages
+            tuple[sps.csc_array, sps.csc_array]: R_xi, the operator that crosses with n
+            and then averages, and n_xi, the operator that multiplies with n and then
+            averages.
         """
         unit_normals = sd.face_normals / sd.face_areas
         nx, ny, nz = [ni[:, None] for ni in unit_normals]
@@ -529,11 +531,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
         weight with :math:`\delta` and then apply rot/dot with :math:`n`.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            data (dict): The data dictionary
+            sd (pg.Grid): The grid.
+            data (dict | None): The data dictionary.
 
         Returns:
-            sps.csc_array: the matrix to be multiplied with the boundary data g
+            sps.csc_array: The matrix to be multiplied with the boundary data g.
         """
         # Preallocation and precomputation
         A_rhs = np.empty((3, 2), dtype=sps.csc_array)
@@ -578,14 +580,17 @@ class TPSA(pg.FiniteVolumeDiscretization):
     ) -> np.ndarray:
         r"""
         Assembles the right-hand side vector for a given body-force function
-        :math:`f`:
+        :math:`f`, with the sign of the TPSA system:
 
         .. math::
 
-            \int_\Omega f \cdot v \, dx
+            -\int_K f \, dx
+
+        in each cell :math:`K`, approximated with the value at the cell center, for
+        the displacement, and zero for the rotation and the solid pressure.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): The body force function.
 
         Returns:
@@ -599,11 +604,11 @@ class TPSA(pg.FiniteVolumeDiscretization):
     def split_solution(self, sd: pg.Grid, sol: np.ndarray) -> list:
         """
         Split a given TPSA solution into its displacement, rotation, and solid pressure
-        components
+        components.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
-            sol (np.ndarray): The solution to be split
+            sd (pg.Grid): The grid.
+            sol (np.ndarray): The solution to be split.
 
         Returns:
             list: The solution components.

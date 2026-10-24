@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H1 space."""
+"""Module for the virtual element discretizations of the H1 space."""
 
 from typing import Callable, Type
 
@@ -10,7 +10,8 @@ import pygeon as pg
 
 class VLagrange1(pg.Lagrange1):
     """
-    Discretization class for the virtual Lagrange1 method.
+    Discretization class for the virtual Lagrange1 method, on two-dimensional
+    polygonal grids, following the Hitchhiker's guide to the virtual element method.
     """
 
     poly_order = 1
@@ -87,7 +88,7 @@ class VLagrange1(pg.Lagrange1):
         according to the Hitchhiker's (6.5).
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell on which to compute the mass matrix.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of nodes associated with the cell.
@@ -114,13 +115,14 @@ class VLagrange1(pg.Lagrange1):
 
             a_0 + \frac{1}{d}[a_1, a_2] \cdot (x - c)
 
-        for each VL1 basis function.
+        for each VL1 basis function, with :math:`d` the diameter and :math:`c` the
+        center of the cell.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell in which the projection is computed.
             diam (float): The diameter of the cell.
-            nodes (np.ndarray): The coordinates of the nodes in the cell.
+            nodes (np.ndarray): The array of node indices of the cell.
 
         Returns:
             np.ndarray: The coefficients of the local projection onto the monomials.
@@ -137,7 +139,7 @@ class VLagrange1(pg.Lagrange1):
         Returns the system G from the Hitchhiker's (3.9)
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of node indices.
@@ -160,7 +162,7 @@ class VLagrange1(pg.Lagrange1):
         Returns the righthand side B from the Hitchhiker's (3.14)
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             cell (int): The cell index.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of node indices.
@@ -191,7 +193,7 @@ class VLagrange1(pg.Lagrange1):
         Reference: Hitchhiker's (5.3)
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell.
             diam (float): The diameter of the cell.
 
@@ -230,7 +232,7 @@ class VLagrange1(pg.Lagrange1):
         the local monomial basis functions, from the Hitchhiker's (3.17).
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell.
             diam (float): The diameter of the cell.
             nodes (np.ndarray): The array of node indices.
@@ -270,10 +272,10 @@ class VLagrange1(pg.Lagrange1):
         given cell according to the Hitchhiker's (3.25).
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
             cell (int): The index of the cell on which to compute the stiffness matrix.
             diam (float): The diameter of the cell.
-            nodes (np.ndarray): The array of nodal values on the cell.
+            nodes (np.ndarray): The array of node indices of the cell.
 
         Returns:
             np.ndarray: The computed local VEM stiffness matrix.
@@ -295,7 +297,7 @@ class VLagrange1(pg.Lagrange1):
             dim (int): The dimension of the range.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
 
         Raises:
             NotImplementedError: For dimensions other than 1 and 2.

@@ -8,12 +8,12 @@ import pygeon as pg
 
 def barycentric_split(sd: pg.Grid) -> pg.Grid:
     """
-    This function constructs a new grid where each original cell is split into (dim+1)
-    subcells by introducing a new node at the cell center and connecting it to the
-    original cell's nodes.
+    This function constructs a new grid where each original simplicial cell is split
+    into (dim+1) subcells by introducing a new node at the cell center and connecting
+    it to the original cell's nodes.
 
     Args:
-        sd (pg.Grid): The input grid split.
+        sd (pg.Grid): The grid to split.
 
     Returns:
         pg.Grid: A new grid object representing the barycentric split of the input grid.
@@ -43,8 +43,8 @@ def compute_cell_faces(sd: pg.Grid, face_nodes: sps.csc_array) -> sps.csc_array:
     created by refinement) for a given grid structure.
 
     Args:
-        sd (pg.Grid): The input grid.
-        face_nodes (sps.csc_array): Connectivity matrix.
+        sd (pg.Grid): The grid.
+        face_nodes (sps.csc_array): The face-node connectivity of the refined grid.
 
     Returns:
         sps.csc_array: A sparse matrix representing the mapping between the faces
@@ -107,12 +107,15 @@ def compute_face_nodes(sd: pg.Grid, new_nodes: np.ndarray) -> sps.csc_array:
     Compute the connectivity between new faces and nodes.
 
     Args:
-        sd (pg.Grid): The input grid.
+        sd (pg.Grid): The grid.
         new_nodes (np.ndarray): Array of new node indices.
 
     Returns:
         sps.csc_array: A sparse array in CSC format where each entry (i, j) indicates
-        that node `i` is connected to face `j` in the refined grid.
+        that node ``i`` is connected to the new face ``j`` in the refined grid.
+
+    Raises:
+        ValueError: If the dimension is not 1, 2 or 3.
     """
     match sd.dim:
         case 1:

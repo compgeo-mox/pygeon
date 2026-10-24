@@ -164,3 +164,15 @@ def test_error_l2(discr, unit_sd):
     # Test that the error is nonzero with lowest-order integration
     err = discr.error_l2(unit_sd, int_sol, fun, poly_order=0)
     assert not np.isclose(err, 0)
+
+
+def test_nat_bc_of_constant_function(discr, unit_sd):
+    # A constant datum is broadcast to the boundary faces as its vectorized version
+    b_faces = unit_sd.tags["domain_boundary_faces"]
+    constant = discr.assemble_nat_bc(unit_sd, lambda _: 2.0, b_faces)
+    vectorized = discr.assemble_nat_bc(
+        unit_sd, lambda x: 2.0 * np.ones(x.shape[1]), b_faces
+    )
+
+    assert np.allclose(constant, vectorized)
+    assert np.allclose(np.abs(constant), 2.0 * b_faces)

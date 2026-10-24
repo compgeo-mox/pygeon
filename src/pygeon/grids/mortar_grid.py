@@ -27,22 +27,14 @@ class MortarGrid(pp.MortarGrid):
         Assign the pair of adjacent subdomains connected by this mortar grid.
 
         Args:
-            sd_pair (Tuple[pg.Grid, pg.Grid]): Pair of adjacent subdomains.
-
-        Returns:
-            None
+            sd_pair (tuple[pg.Grid, pg.Grid]): Pair of adjacent subdomains.
         """
         self.sd_pair = sd_pair
 
     def compute_geometry(self) -> None:
         """
-        Computes the geometry of the MortarGrid.
-
-        Args:
-            sd_pair: The pair of subdomains.
-
-        Returns:
-            None
+        Computes the geometry of the MortarGrid, using the pair of subdomains set by
+        assign_sd_pair.
         """
         super().compute_geometry()
 
@@ -54,13 +46,8 @@ class MortarGrid(pp.MortarGrid):
 
     def compute_ridges(self) -> None:
         """
-        Assign the face-ridge and ridge-peak connectivities to the mortar grid
-
-        Args:
-            sd_pair (Tuple[pp.Grid, pp.Grid]): Pair of adjacent subdomains.
-
-        Returns:
-            None
+        Assign the face-ridge and ridge-peak connectivities to the mortar grid,
+        between the pair of adjacent subdomains set by assign_sd_pair.
         """
         sd_up, sd_down = self.sd_pair
 
@@ -177,15 +164,8 @@ class MortarGrid(pp.MortarGrid):
     def assign_signed_mortar_to_primary(self) -> None:
         """
         Compute the mapping from mortar cells to the faces of the primary grid that
-        respects orientation.
-
-        Args:
-            sd_pair (Tuple[pp.Grid, pp.Grid]): Pair of adjacent subdomains.
-
-        Returns:
-            sps.csc_array: A sparse matrix representing the mapping from mortar
-            cells to primary grid faces. The matrix has dimensions num_primary_faces x
-            num_mortar_cells.
+        respects orientation, and store it in the attribute signed_mortar_to_primary,
+        a sparse matrix of size num_primary_faces x num_mortar_cells.
         """
         sd_up = self.sd_pair[0]
         cells, faces, _ = sps.find(self.primary_to_mortar_int())
@@ -205,12 +185,6 @@ class MortarGrid(pp.MortarGrid):
         secondary grid and the faces of the primary grid. It uses the signed mortar
         values and the secondary-to-mortar interface function to determine the
         connectivity.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
         self.cell_faces = (
             -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()
