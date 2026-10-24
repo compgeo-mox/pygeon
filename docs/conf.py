@@ -51,9 +51,8 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
 }
-# PorePy and SymPy do not publish an inventory with the objects used by PyGeoN, and
-# optional is the Google style mark of the arguments with a default
-nitpick_ignore_regex = [("py:class", r"(pp|porepy|sp)\..*|optional")]
+# PorePy and SymPy do not publish an inventory with the objects used by PyGeoN
+nitpick_ignore_regex = [("py:class", r"(pp|porepy|sp)\..*")]
 
 # the tutorials, linked from the repository, are rendered without being executed; as
 # in Jupyter, the $$ display math is allowed inside a paragraph
@@ -67,20 +66,26 @@ html_title = "PyGeoN"
 
 def resolve_alias(app, env, node, contnode):
     """
-    Link the types written with the import aliases of the code, as pg.Grid or
-    np.ndarray: pg and pygeon are resolved in the documented objects, through the
-    names exported by the package, np and sps by intersphinx.
+    Link the objects written with the import aliases of the code, as pg.Grid,
+    pygeon.RT0.interpolate or np.ndarray: pg and pygeon are resolved in the documented
+    objects, through the names exported by the package, np and sps by intersphinx.
     """
     prefix, _, name = node["reftarget"].partition(".")
     if prefix in ("np", "sps"):
         # rewritten for the intersphinx handler, called after this one
         node["reftarget"] = {"np": "numpy.", "sps": "scipy.sparse."}[prefix] + name
-    elif prefix in ("pg", "pygeon") and hasattr(sys.modules["pygeon"], name):
-        obj = getattr(sys.modules["pygeon"], name)
-        node["reftarget"] = f"{obj.__module__}.{obj.__qualname__}"
+        return None
+
+    # the first name is the one exported by the package, as a class or a function,
+    # the rest are its attributes, as a method
+    first, _, rest = name.partition(".")
+    obj = getattr(sys.modules["pygeon"], first, None)
+    if prefix in ("pg", "pygeon") and hasattr(obj, "__qualname__"):
+        target = f"{obj.__module__}.{obj.__qualname__}" + (f".{rest}" if rest else "")
         return env.domains.python_domain.resolve_xref(
-            env, node["refdoc"], app.builder, "class", node["reftarget"], node, contnode
+            env, node["refdoc"], app.builder, node["reftype"], target, node, contnode
         )
+    return None
 
 
 def copy_tutorial_figures(app, exception):
