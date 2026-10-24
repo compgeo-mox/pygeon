@@ -106,8 +106,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         """
         if np.any(weight < 0):
             warnings.warn(
-                f"There are {(weight < 0).sum()} extra-cellular \
-                    cell centers."
+                f"There are {(weight < 0).sum()} extra-cellular cell centers."
             )
 
     def compute_harmonic_avg(self, faces: np.ndarray, dists: np.ndarray) -> np.ndarray:

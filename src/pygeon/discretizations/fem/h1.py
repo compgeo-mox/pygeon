@@ -538,8 +538,8 @@ class Lagrange2(Lagrange):
                 # In 2D, the edge coordinate is the face center
                 edge_coords = sd.face_centers
             case 3:
-                # In 3D, the edge coordinate is the midpoint of the two nodes opposite
-                # to the ridge
+                # In 3D, the edge coordinate is the midpoint of the two nodes of the
+                # ridge
                 edge_coords = sd.nodes @ abs(sd.ridge_peaks) / 2
 
         coords = np.hstack((sd.nodes, edge_coords))

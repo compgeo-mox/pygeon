@@ -73,8 +73,8 @@ class FiniteVolumeBC:
 
         if np.any(np.logical_and(self.primary_var, self.dual_var)):
             warnings.warn(
-                "Boundary conditions imposed on both the primary and dual variables may"
-                "lead to unexpected results"
+                "Boundary conditions imposed on both the primary and dual variables "
+                "may lead to unexpected results"
             )
 
 
