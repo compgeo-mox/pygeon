@@ -163,7 +163,8 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         Assembles the lumped elasticity matrix for the given grid. This is an
         approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
         :math:`A` is the elasticity
-        compliance operator from :meth:`assemble_mass_matrix_elasticity`.
+        compliance operator from :meth:`assemble_mass_matrix_elasticity`. An infinite
+        :math:`\lambda` gives the incompressible case, as there.
 
         Args:
             sd (pg.Grid): The grid.
@@ -175,7 +176,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
-        weight_M = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        # The coefficient of the trace contribution, 1 / d / (2 mu) in the cells with
+        # infinite lambda, as in assemble_mass_matrix_elasticity
+        comp = ~np.isinf(lambda_)
+        weight_M = 1 / sd.dim / (2 * mu)
+        weight_M[comp] = (
+            lambda_[comp] / (2 * mu[comp] + sd.dim * lambda_[comp]) / (2 * mu[comp])
+        )
         weight_D = 1 / (2 * mu)
 
         # Assemble the block diagonal mass matrix for the base discretization class
