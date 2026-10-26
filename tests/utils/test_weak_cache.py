@@ -3,6 +3,8 @@
 import gc
 import weakref
 
+import numpy as np
+
 import pygeon as pg
 
 
@@ -37,3 +39,19 @@ def test_subclasses_apart():
 
     assert P_bdm1.shape[1] == pg.VecBDM1().ndof(sd)
     assert P_rt1.shape[1] == pg.VecRT1().ndof(sd)
+
+
+def test_recomputed_with_geometry():
+    sd = grid()
+    discr = pg.RT0()
+    P = discr.proj_to_PwPolynomials(sd)
+    assert discr.proj_to_PwPolynomials(sd) is P
+
+    # move the nodes and recompute the geometry from scratch
+    sd.nodes *= 2
+    sd.history = [h for h in sd.history if h != "Compute geometry"]
+    sd.compute_geometry()
+
+    P_new = discr.proj_to_PwPolynomials(sd)
+    assert P_new is not P
+    assert not np.allclose(P_new.toarray(), P.toarray())
