@@ -154,8 +154,8 @@ class VecPwPolynomials(pg.VecDiscretization):
         Args:
             sd (pg.Grid): The grid.
             c (int): The index of the cell for which the local DOFs are to be computed.
-            ambient_dim (int): The number of vector components. Defaults to -1, the
-                dimension of the grid (``sd.dim``).
+            ambient_dim (int): The number of vector components. Defaults to -1, which
+                stands for the dimension of the grid (``sd.dim``).
 
         Returns:
             np.ndarray: An array containing the local DOFs of the specified cell,
