@@ -16,11 +16,6 @@ class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     def compute_geometry(self) -> None:
         """
         Compute geometric entities and tags for the subdomains and interfaces.
-
-        This method iterates over the subdomains and interfaces of the grid
-        and computes their geometric entities and tags. It calls the
-        ``compute_geometry`` method of each subdomain and interface, passing
-        the necessary parameters. Finally, it tags the leaf nodes of the grid.
         """
         for sd in self.subdomains():
             sd.compute_geometry()

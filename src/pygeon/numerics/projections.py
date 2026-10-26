@@ -14,10 +14,6 @@ def eval_at_cell_centers(
     """
     Create an operator that evaluates a solution in the cell centers.
 
-    This function takes a mixed-dimensional grid ``mdg`` and a discretization ``discr``
-    and returns an operator that can be used to evaluate a solution in
-    the cell centers of the grid.
-
     Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         discr (pg.Discretization): The discretization used for the evaluation.

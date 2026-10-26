@@ -39,12 +39,8 @@ class EinSteinGrid(pg.Grid):
 
     def add_hanging_node(self) -> None:
         """
-        Function to add the hanging nodes for each polygons to fix
-        T-junctions.
-
-        This function adds a hanging node to each polygon in the grid
-        to fix T-junctions. The hanging node is inserted at the midpoint
-        of the third and fourth vertices of each polygon.
+        Add a hanging node to each polygon to fix the T-junctions, at the midpoint of
+        its third and fourth vertices.
         """
         for key, p in self.poly.items():
             self.poly[key] = np.insert(p, 3, 0.5 * (p[:, 2] + p[:, 3]), axis=1)

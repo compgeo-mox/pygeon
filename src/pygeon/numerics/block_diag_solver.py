@@ -9,10 +9,6 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
 
-    This function computes the inverse of a sparse matrix M by dividing it into
-    submatrices corresponding to connected components. Each submatrix is inverted
-    independently, and the results are assembled into the final inverse matrix.
-
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
         rtol (float): Relative tolerance for removing small matrix entries, which are
@@ -88,12 +84,6 @@ def block_diag_solver(
 ) -> sps.csc_array:
     """
     Solves a block diagonal system of linear equations for each connected component.
-
-    This function takes a sparse block diagonal matrix M assumed to be symmetric and
-    positive definite and a right-hand side matrix B, and solves the system MX = B for
-    each connected component of the matrix M.
-
-    The connected components are determined using a graph representation of the matrix.
 
     Args:
         M (sps.csc_array): A symmetric and positive definite sparse matrix in Compressed

@@ -24,9 +24,6 @@ class MatDiscretization(pg.VecDiscretization):
         """
         Generic helper to apply a PwPolynomials method with projection.
 
-        This method projects to PwPolynomials space, calls the specified method,
-        and returns the result with projection applied: P.T @ result @ P
-
         Args:
             sd (pg.Grid): The grid.
             method_name (str): Name of the method to call on PwPolynomials.

@@ -8,7 +8,7 @@ import pygeon as pg
 
 def barycentric_split(sd: pg.Grid) -> pg.Grid:
     """
-    This function constructs a new grid where each original simplicial cell is split
+    Constructs a new grid where each original simplicial cell is split
     into (dim+1) subcells by introducing a new node at the cell center and connecting
     it to the original cell's nodes.
 
