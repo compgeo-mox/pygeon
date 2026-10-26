@@ -31,6 +31,9 @@ def test_all_dofs_essential():
     LS.flag_ess_bc(np.ones(3, dtype=bool), np.array([1.0, 2.0, 3.0]))
 
     def solver(*_):
-        raise AssertionError("the solver is called on an empty system")
+        raise AssertionError(
+            "LinearSystem.solve called the solver on the empty reduced system, "
+            "although all the degrees of freedom are essential"
+        )
 
     assert np.allclose(LS.solve(solver), [1.0, 2.0, 3.0])
