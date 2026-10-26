@@ -117,7 +117,7 @@ class Lagrange1(Lagrange):
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
         accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
-        constant per cell (:class:`~pygeon.VecPwConstants`). If not provided, it
+        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
         defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
         rotated to the plane or the line of the grid, unless the entry "is_tangential"
         of data is True.
@@ -186,11 +186,11 @@ class Lagrange1(Lagrange):
         Assembles the differential matrix based on the dimension of the grid.
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
-        mapping from :class:`~pygeon.Lagrange1` to the appropriate range space:
+        mapping from :class:`pg.Lagrange1` to the appropriate range space:
 
-        - 3D: :class:`~pygeon.NedelecR0`, H(curl)
-        - 2D: :class:`~pygeon.RT0`, H(div)
-        - 1D: :class:`~pygeon.PwConstants`, L2
+        - 3D: :class:`pg.NedelecR0`, H(curl)
+        - 2D: :class:`pg.RT0`, H(div)
+        - 1D: :class:`pg.PwConstants`, L2
 
         Args:
             sd (pg.Grid): The grid.
@@ -255,8 +255,8 @@ class Lagrange1(Lagrange):
         r"""
         Construct the matrix for projecting a Lagrangian function to a piecewise linear
         function. The projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.Lagrange1` and maps it to a piecewise linear function in
-        :class:`~pygeon.PwLinears`.
+        :class:`pg.Lagrange1` and maps it to a piecewise linear function in
+        :class:`pg.PwLinears`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -310,7 +310,7 @@ class Lagrange1(Lagrange):
         r"""
         Assembles the 'natural' boundary condition
         :math:`(v, g)_{\partial\Omega}` with :math:`v` a test function in
-        :class:`~pygeon.Lagrange1` and :math:`g` the prescribed datum, evaluated at the
+        :class:`pg.Lagrange1` and :math:`g` the prescribed datum, evaluated at the
         face centers and distributed equally to the nodes of each face.
 
         Args:
@@ -390,11 +390,11 @@ class Lagrange2(Lagrange):
         Assembles the differential matrix based on the dimension of the grid.
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
-        mapping from :class:`~pygeon.Lagrange2` to the appropriate range space:
+        mapping from :class:`pg.Lagrange2` to the appropriate range space:
 
-        - 3D: :class:`~pygeon.NedelecF1`, H(curl)
-        - 2D: :class:`~pygeon.BDM1`, H(div)
-        - 1D: :class:`~pygeon.PwLinears`, L2
+        - 3D: :class:`pg.NedelecF1`, H(curl)
+        - 2D: :class:`pg.BDM1`, H(div)
+        - 1D: :class:`pg.PwLinears`, L2
 
         Args:
             sd (pg.Grid): The grid.
@@ -470,8 +470,8 @@ class Lagrange2(Lagrange):
         r"""
         Construct the matrix for projecting a quadratic Lagrangian function to a
         piecewise quadratic function. The projection operator :math:`\Pi` takes a
-        function from :class:`~pygeon.Lagrange2` and maps it to a piecewise quadratic
-        function in :class:`~pygeon.PwQuadratics`.
+        function from :class:`pg.Lagrange2` and maps it to a piecewise quadratic
+        function in :class:`pg.PwQuadratics`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -552,7 +552,7 @@ class Lagrange2(Lagrange):
         r"""
         Assembles the 'natural' boundary condition
         :math:`(v, g)_{\partial\Omega}` with :math:`v` a test function in
-        :class:`~pygeon.Lagrange2` and :math:`g` the prescribed datum.
+        :class:`pg.Lagrange2` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid.

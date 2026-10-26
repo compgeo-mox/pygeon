@@ -19,7 +19,7 @@ class NedelecR0(pg.Discretization):
     Each degree of freedom is the tangential integral over a mesh edge in 3D.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
-    corresponds to a rotated :class:`~pygeon.RT0`.
+    corresponds to a rotated :class:`pg.RT0`.
     """
 
     poly_order = 1
@@ -47,8 +47,8 @@ class NedelecR0(pg.Discretization):
         r"""
         Constructs the projection matrix to the VecPwLinears space via NedelecF1. The
         projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.NedelecR0` and maps it to a piecewise linear function in
-        :class:`~pygeon.VecPwLinears`.
+        :class:`pg.NedelecR0` and maps it to a piecewise linear function in
+        :class:`pg.VecPwLinears`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -86,10 +86,10 @@ class NedelecR0(pg.Discretization):
         Assembles the differential matrix for the given grid.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
-        mapping from :class:`~pygeon.NedelecR0` to:
+        mapping from :class:`pg.NedelecR0` to:
 
-        - 3D: :class:`~pygeon.RT0`, H(div)
-        - 2D: :class:`~pygeon.PwConstants`, L2
+        - 3D: :class:`pg.RT0`, H(div)
+        - 2D: :class:`pg.PwConstants`, L2
 
         In the other dimensions the matrix has no rows.
 
@@ -117,7 +117,7 @@ class NedelecR0(pg.Discretization):
 
         The natural boundary condition corresponds to the tangential trace of
         :math:`(v \times n, g)_{\partial\Omega}` with :math:`v` a test function in
-        :class:`~pygeon.NedelecR0` and :math:`g` the prescribed datum.
+        :class:`pg.NedelecR0` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -174,8 +174,8 @@ class NedelecR0(pg.Discretization):
     def proj_to_Ne1(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Project the solution to the Nedelec of the second kind. The projection operator
-        :math:`\Pi` takes a function from :class:`~pygeon.NedelecR0` and maps it
-        to a function in :class:`~pygeon.NedelecF1`.
+        :math:`\Pi` takes a function from :class:`pg.NedelecR0` and maps it
+        to a function in :class:`pg.NedelecF1`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -198,7 +198,7 @@ class NedelecF1(pg.Discretization):
     Each degree of freedom is a tangential evaluation at the edge nodes.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
-    corresponds to a rotated :class:`~pygeon.BDM1`.
+    corresponds to a rotated :class:`pg.BDM1`.
     """
 
     poly_order = 1
@@ -226,8 +226,8 @@ class NedelecF1(pg.Discretization):
         r"""
         Constructs the projection matrix from the current finite element space to the
         VecPwLinears space. The projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.NedelecF1` and maps it to a piecewise linear function in
-        :class:`~pygeon.VecPwLinears`.
+        :class:`pg.NedelecF1` and maps it to a piecewise linear function in
+        :class:`pg.VecPwLinears`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -303,8 +303,8 @@ class NedelecF1(pg.Discretization):
     def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Project the solution to the Nedelec of the first kind. The projection operator
-        :math:`\Pi` takes a function from :class:`~pygeon.NedelecF1` and maps it
-        to a function in :class:`~pygeon.NedelecR0`.
+        :math:`\Pi` takes a function from :class:`pg.NedelecF1` and maps it
+        to a function in :class:`pg.NedelecR0`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -321,9 +321,9 @@ class NedelecF1(pg.Discretization):
         Assembles the differential matrix for the H(curl) finite element space.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
-        mapping from :class:`NedelecF1` (H(curl), two dofs per edge) to the
-        same range as :class:`NedelecR0` (i.e. :class:`~pygeon.RT0` in 3D
-        or :class:`~pygeon.PwConstants` in 2D).
+        mapping from :class:`pg.NedelecF1` (H(curl), two dofs per edge) to the
+        same range as :class:`pg.NedelecR0` (i.e. :class:`pg.RT0` in 3D
+        or :class:`pg.PwConstants` in 2D).
 
         Args:
             sd (pg.Grid): The grid on which the finite element space is defined.
@@ -370,7 +370,7 @@ class NedelecF1(pg.Discretization):
 
         The natural boundary condition corresponds to the tangential trace of
         :math:`(v \times n, g)_{\partial\Omega}` with :math:`v` a test function in
-        :class:`~pygeon.NedelecF1` and :math:`g` the prescribed datum.
+        :class:`pg.NedelecF1` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the natural boundary condition.
@@ -391,6 +391,6 @@ class NedelecF1(pg.Discretization):
 
         Returns:
             Type[pg.Discretization]: The range discretization class, the same as for
-            :class:`~pygeon.NedelecR0`.
+            :class:`pg.NedelecR0`.
         """
         return NedelecR0().get_range_discr_class(dim)

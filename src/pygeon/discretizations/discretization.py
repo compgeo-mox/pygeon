@@ -129,11 +129,11 @@ class Discretization(abc.ABC):
         Assembles the lumped mass matrix using the corresponding piecewise polynomial
         space.
 
-        For a discretization space :math:`V_h`, the lumped matrix approximates the
-        mass matrix :math:`(u, v)_\Omega,\ u, v \in V_h` with the lumped matrix of the
+        For a discretization space :math:`V_h`, the lumped matrix approximates the mass
+        matrix :math:`(u, v)_\Omega,\ u, v \in V_h` with the lumped matrix of the
         piecewise polynomials, obtained with a quadrature rule, transferred to
-        :math:`V_h` through :meth:`proj_to_PwPolynomials`. Both the domain and the
-        range lie in :math:`V_h`.
+        :math:`V_h` through :meth:`pg.Discretization.proj_to_PwPolynomials`. Both the
+        domain and the range lie in :math:`V_h`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -177,7 +177,7 @@ class Discretization(abc.ABC):
 
         The matrix :math:`D` represents the discrete exterior derivative,
         mapping from the current finite element space :math:`V_h` to its range
-        space :math:`W_h` (returned by :meth:`get_range_discr_class`).
+        space :math:`W_h` (returned by :meth:`pg.Discretization.get_range_discr_class`).
 
         Args:
             sd (pg.Grid): The grid.
@@ -368,8 +368,8 @@ class Discretization(abc.ABC):
 
         The broken gradient :math:`\nabla_h` acts element-wise on functions in
         the current finite element space :math:`V_h`, mapping to the piecewise
-        polynomials of :meth:`get_broken_grad_discr`; see
-        :meth:`proj_to_PwPolynomials` for the projection used.
+        polynomials of :meth:`pg.Discretization.get_broken_grad_discr`; see
+        :meth:`pg.Discretization.proj_to_PwPolynomials` for the projection used.
 
         Args:
             sd (pg.Grid): The grid.

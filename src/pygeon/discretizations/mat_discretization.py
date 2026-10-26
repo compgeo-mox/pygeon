@@ -49,7 +49,7 @@ class MatDiscretization(pg.VecDiscretization):
     ) -> sps.csc_array:
         r"""
         Assembles and returns the elasticity inner product matrix for
-        :math:`\sigma \in` :class:`MatDiscretization` (matrix-valued), which is
+        :math:`\sigma \in` :class:`pg.MatDiscretization` (matrix-valued), which is
         given by :math:`(A \sigma, \tau)_\Omega` where
 
         .. math::
@@ -64,7 +64,7 @@ class MatDiscretization(pg.VecDiscretization):
             c = \frac{\lambda}{2\mu + d \lambda}
 
         where :math:`d` is the dimension. Both :math:`\sigma` and :math:`\tau`
-        are in :class:`MatDiscretization`.
+        are in :class:`pg.MatDiscretization`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -81,7 +81,7 @@ class MatDiscretization(pg.VecDiscretization):
     ) -> sps.csc_array:
         r"""
         Assembles and returns the mass matrix for an incompressible material for
-        :math:`\sigma \in` :class:`MatDiscretization`, which is given by
+        :math:`\sigma \in` :class:`pg.MatDiscretization`, which is given by
         :math:`(A \sigma, \tau)_\Omega` where
 
         .. math::
@@ -90,7 +90,7 @@ class MatDiscretization(pg.VecDiscretization):
             - \frac{1}{d} \text{Tr}(\sigma) I \right)
 
         with :math:`\mu` the shear Lamé constant. Both :math:`\sigma` and
-        :math:`\tau` are in :class:`MatDiscretization`.
+        :math:`\tau` are in :class:`pg.MatDiscretization`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -139,9 +139,9 @@ class MatDiscretization(pg.VecDiscretization):
     ) -> sps.csc_array:
         r"""
         Assembles the lumped elasticity matrix for the given grid. This is an
-        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
-        :math:`A` is the elasticity
-        compliance operator from :meth:`assemble_mass_matrix_elasticity`.
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
+        is the elasticity compliance operator from
+        :meth:`pg.MatDiscretization.assemble_mass_matrix_elasticity`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -158,9 +158,9 @@ class MatDiscretization(pg.VecDiscretization):
     ) -> sps.csc_array:
         r"""
         Assembles the lumped Cosserat matrix for the given grid. This is an
-        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
-        :math:`A` is the Cosserat
-        compliance operator from :meth:`assemble_mass_matrix_cosserat`.
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
+        is the Cosserat compliance operator from
+        :meth:`pg.MatDiscretization.assemble_mass_matrix_cosserat`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -180,7 +180,7 @@ class MatDiscretization(pg.VecDiscretization):
         :math:`\sigma_{21} - \sigma_{12}` in 2D and to
         :math:`(\sigma_{32} - \sigma_{23}, \sigma_{13} - \sigma_{31},
         \sigma_{21} - \sigma_{12})` in 3D, see
-        :meth:`~pygeon.MatPwPolynomials.assemble_asym_matrix`.
+        :meth:`pg.MatPwPolynomials.assemble_asym_matrix`.
 
         The operator is obtained by projecting to the matrix piecewise polynomials and
         applying their asymmetry matrix.

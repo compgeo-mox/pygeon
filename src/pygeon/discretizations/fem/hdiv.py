@@ -183,8 +183,8 @@ class RT0(pg.Discretization):
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
-        The divergence operator :math:`\nabla \cdot` maps from :class:`RT0`
-        (H(div), one dof per face) to :class:`~pygeon.PwConstants` (L2, one
+        The divergence operator :math:`\nabla \cdot` maps from :class:`pg.RT0`
+        (H(div), one dof per face) to :class:`pg.PwConstants` (L2, one
         dof per cell).
 
         Args:
@@ -259,8 +259,8 @@ class RT0(pg.Discretization):
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
-        operator :math:`\Pi` takes a function from :class:`~pygeon.RT0` and
-        maps it to a piecewise linear function in :class:`~pygeon.VecPwLinears`.
+        operator :math:`\Pi` takes a function from :class:`pg.RT0` and
+        maps it to a piecewise linear function in :class:`pg.VecPwLinears`.
 
         This function is cached to speed up repetitive calls for the same grid.
 
@@ -308,8 +308,8 @@ class BDM1(pg.Discretization):
         r"""
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
         The projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.BDM1` and maps it to a function in
-        :class:`~pygeon.RT0`.
+        :class:`pg.BDM1` and maps it to a function in
+        :class:`pg.RT0`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -324,8 +324,8 @@ class BDM1(pg.Discretization):
         r"""
         Include the RT0 finite element space in the BDM1 one.
         The projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.RT0` and maps it to a function in
-        :class:`~pygeon.BDM1`.
+        :class:`pg.RT0` and maps it to a function in
+        :class:`pg.BDM1`.
 
         Args:
             sd (pg.Grid): The grid on which the projection is performed.
@@ -339,8 +339,8 @@ class BDM1(pg.Discretization):
         r"""
         Assembles the matrix corresponding to the differential operator.
 
-        The divergence operator :math:`\nabla \cdot` maps from :class:`BDM1`
-        (H(div), :math:`d` dofs per face) to :class:`~pygeon.PwConstants`
+        The divergence operator :math:`\nabla \cdot` maps from :class:`pg.BDM1`
+        (H(div), :math:`d` dofs per face) to :class:`pg.PwConstants`
         (L2, one dof per cell).
 
         Args:
@@ -432,8 +432,8 @@ class BDM1(pg.Discretization):
         r"""
         Constructs the projection matrix from the current finite element space to the
         VecPwLinears space. The projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.BDM1` and maps it to a piecewise linear function in
-        :class:`~pygeon.VecPwLinears`.
+        :class:`pg.BDM1` and maps it to a piecewise linear function in
+        :class:`pg.VecPwLinears`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -674,8 +674,8 @@ class RT1(pg.Discretization):
         Assembles the matrix corresponding to the differential operator, the divergence
         in this case.
 
-        The divergence operator :math:`\nabla \cdot` maps from :class:`RT1`
-        (H(div)) to :class:`~pygeon.PwLinears` (P1 piecewise linears).
+        The divergence operator :math:`\nabla \cdot` maps from :class:`pg.RT1`
+        (H(div)) to :class:`pg.PwLinears` (P1 piecewise linears).
 
         Args:
             sd (pg.Grid): The grid.
@@ -742,7 +742,7 @@ class RT1(pg.Discretization):
         r"""
         Assembles the natural boundary condition term
         :math:`(v \cdot n, g)_{\partial\Omega}` with :math:`v` a test function in
-        :class:`~pygeon.RT1` and :math:`g` the prescribed datum.
+        :class:`pg.RT1` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid.
@@ -839,8 +839,8 @@ class RT1(pg.Discretization):
         r"""
         Constructs the projection matrix from the current finite element space to the
         VecPwQuadratics space. The projection operator :math:`\Pi` takes a function
-        from :class:`~pygeon.RT1` and maps it to a piecewise quadratic
-        function in :class:`~pygeon.VecPwQuadratics`.
+        from :class:`pg.RT1` and maps it to a piecewise quadratic
+        function in :class:`pg.VecPwQuadratics`.
 
         Args:
             sd (pg.Grid): The grid.

@@ -64,7 +64,7 @@ class VecDiscretization(pg.Discretization):
         Assembles the matrix corresponding to the differential operator.
 
         The matrix :math:`D` is the block-diagonal version of the scalar
-        differential operator (from :attr:`base_discr`), applied
+        differential operator (from :attr:`pg.VecDiscretization.base_discr`), applied
         component-wise from :math:`V_h^d` to its range space :math:`W_h^d`.
 
         Args:
@@ -101,9 +101,9 @@ class VecDiscretization(pg.Discretization):
         r"""
         Assembles the lumped mass matrix given by the row sums on the diagonal.
 
-        The lumped matrix is a diagonal approximation of the block-diagonal
-        mass matrix :math:`(u, v)_\Omega,\ u, v \in V_h^d`, computed
-        component-wise from the scalar base discretization (:attr:`base_discr`).
+        The lumped matrix is a diagonal approximation of the block-diagonal mass matrix
+        :math:`(u, v)_\Omega,\ u, v \in V_h^d`, computed component-wise from the scalar
+        base discretization (:attr:`pg.VecDiscretization.base_discr`).
 
         Args:
             sd (pg.Grid): The grid.
@@ -168,13 +168,14 @@ class VecDiscretization(pg.Discretization):
     ) -> np.ndarray:
         r"""
         Assembles the natural boundary condition vector component-wise: the natural
-        condition of the scalar base discretization (:attr:`base_discr`) for each
-        component of the vector datum :math:`\boldsymbol{g}`. This is
+        condition of the scalar base discretization
+        (:attr:`pg.VecDiscretization.base_discr`) for each component of the vector datum
+        :math:`\boldsymbol{g}`. This is
         :math:`(\boldsymbol{v}, \boldsymbol{g})_{\partial\Omega}` for the vector
-        Lagrange spaces and :math:`(\boldsymbol{\tau} \boldsymbol{n},
-        \boldsymbol{g})_{\partial\Omega}` for the vector H(div) spaces, with one row
-        of :math:`\boldsymbol{\tau}` per component. The result is a vector in the
-        dual of :math:`V_h^d`.
+        Lagrange spaces and
+        :math:`(\boldsymbol{\tau} \boldsymbol{n}, \boldsymbol{g})_{\partial\Omega}` for
+        the vector H(div) spaces, with one row of :math:`\boldsymbol{\tau}` per
+        component. The result is a vector in the dual of :math:`V_h^d`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -196,10 +197,10 @@ class VecDiscretization(pg.Discretization):
         Assembles the broken, element-wise divergence operator.
         This operator is only implemented for vector-valued functions.
 
-        The broken divergence :math:`\nabla_h \cdot` acts element-wise on
-        functions in the vector finite element space :math:`V_h^d`, mapping
-        to the scalar piecewise polynomial space. See :attr:`base_discr` for
-        the underlying scalar space.
+        The broken divergence :math:`\nabla_h \cdot` acts element-wise on functions in
+        the vector finite element space :math:`V_h^d`, mapping to the scalar piecewise
+        polynomial space. See :attr:`pg.VecDiscretization.base_discr` for the underlying
+        scalar space.
 
         Args:
             sd (pg.Grid): The grid.
@@ -222,10 +223,10 @@ class VecDiscretization(pg.Discretization):
         Assembles the broken, element-wise curl operator.
         This operator is only implemented for vector-valued functions.
 
-        The broken curl :math:`\nabla_h \times` acts element-wise on functions
-        in the vector finite element space :math:`V_h^d`, as the asymmetry operator
-        of :meth:`~pygeon.MatPwPolynomials.assemble_asym_matrix` applied to the
-        broken gradient: a scalar in 2D and a vector in 3D. See :attr:`base_discr`
+        The broken curl :math:`\nabla_h \times` acts element-wise on functions in the
+        vector finite element space :math:`V_h^d`, as the asymmetry operator of
+        :meth:`pg.MatPwPolynomials.assemble_asym_matrix` applied to the broken gradient:
+        a scalar in 2D and a vector in 3D. See :attr:`pg.VecDiscretization.base_discr`
         for the underlying scalar space.
 
         Args:

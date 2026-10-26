@@ -34,11 +34,11 @@ class MatLagrange1(pg.MatDiscretization):
         Assembles and returns the advection matrix for the matrix-valued Lagrange1
         finite elements, which is given component-wise by
         :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for each component
-        :math:`u, v` in :class:`~pygeon.Lagrange1`.
+        :math:`u, v` in :class:`pg.Lagrange1`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
         accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
-        constant per cell (:class:`~pygeon.VecPwConstants`). If not provided, it
+        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
         defaults to :math:`(0, 0, 0)`.
 
         Args:

@@ -102,7 +102,7 @@ class SymMatPwPolynomials(pg.Discretization):
         r"""
         Returns the projection matrix :math:`\text{sym}(\sigma)
         = \frac{1}{2}(\sigma + \sigma^T)` from the full
-        :class:`~pygeon.MatPwPolynomials` space to the :class:`SymMatPwPolynomials`
+        :class:`pg.MatPwPolynomials` space to the :class:`pg.SymMatPwPolynomials`
         space.
         Off-diagonal entries are averaged: sym_{ij} = (full_{ij} + full_{ji}) / 2.
         This is the left inverse of proj_to_PwPolynomials, meaning that

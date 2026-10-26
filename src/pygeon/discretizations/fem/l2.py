@@ -59,7 +59,7 @@ class PwPolynomials(pg.Discretization):
         r"""
         Computes the mass matrix :math:`(\sigma u, v)_\Omega` for
         :math:`u, v \in \mathbb{P}_k(\Omega)` and :math:`\sigma` a scalar. Both
-        domain and range lie in :class:`PwPolynomials`.
+        domain and range lie in :class:`pg.PwPolynomials`.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -86,7 +86,7 @@ class PwPolynomials(pg.Discretization):
         obtained with a quadrature rule, of the mass matrix
         :math:`(\sigma u, v)_\Omega` for :math:`u, v \in \mathbb{P}_k(\Omega)` and
         :math:`\sigma` a scalar. Both domain and range lie in
-        :class:`PwPolynomials` (L2 space).
+        :class:`pg.PwPolynomials` (L2 space).
 
         Args:
             sd (pg.Grid): The grid.
@@ -316,7 +316,8 @@ class PwConstants(PwPolynomials):
         r"""
         Computes the mass matrix for piecewise constants, representing the bilinear form
         :math:`(\sigma u, v)_\Omega` where :math:`u, v \in \mathbb{P}_0(\Omega)` and
-        :math:`\sigma` is the datum. Both domain and range lie in :class:`PwConstants`.
+        :math:`\sigma` is the datum. Both domain and range lie in
+        :class:`pg.PwConstants`.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -353,7 +354,7 @@ class PwConstants(PwPolynomials):
         Assembles the broken (element-wise) gradient matrix for the given grid,
         which is zero for the piecewise constants.
 
-        The broken gradient :math:`\nabla_h` maps from :class:`~pygeon.PwConstants`
+        The broken gradient :math:`\nabla_h` maps from :class:`pg.PwConstants`
         to :math:`(0, 0, 0)`.
 
         Args:
@@ -386,8 +387,8 @@ class PwConstants(PwPolynomials):
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Projects the P0 discretization to the P1 discretization. The projection
-        operator :math:`\Pi` takes a function from :class:`~pygeon.PwConstants` and
-        maps it to a piecewise linear function in :class:`~pygeon.PwLinears`.
+        operator :math:`\Pi` takes a function from :class:`pg.PwConstants` and
+        maps it to a piecewise linear function in :class:`pg.PwLinears`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -509,8 +510,8 @@ class PwLinears(PwPolynomials):
         r"""
         Construct the matrix for projecting a piecewise linear function to a piecewise
         constant function. The projection operator :math:`\Pi` takes a function from
-        :class:`~pygeon.PwLinears` and maps it to a piecewise polynomial function
-        of lower order in :class:`~pygeon.PwConstants`.
+        :class:`pg.PwLinears` and maps it to a piecewise polynomial function
+        of lower order in :class:`pg.PwConstants`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -526,9 +527,9 @@ class PwLinears(PwPolynomials):
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Projects the discretization to +1 order discretization. The projection operator
-        :math:`\Pi` takes a function from :class:`~pygeon.PwLinears` and maps it
+        :math:`\Pi` takes a function from :class:`pg.PwLinears` and maps it
         to a piecewise polynomial function of higher order in
-        :class:`~pygeon.PwQuadratics`.
+        :class:`pg.PwQuadratics`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -578,7 +579,7 @@ class PwLinears(PwPolynomials):
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
         This operator maps to the vector-valued piecewise constants
-        :class:`~pygeon.VecPwConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
+        :class:`pg.VecPwConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
         and is used for computing :math:`\nabla_h u` element-wise.
 
         Args:
@@ -866,7 +867,7 @@ class PwQuadratics(PwPolynomials):
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Projects the discretization to +1 order discretization. The projection operator
-        :math:`\Pi` would take a function from :class:`~pygeon.PwQuadratics` and map
+        :math:`\Pi` would take a function from :class:`pg.PwQuadratics` and map
         it to a piecewise polynomial function of higher order in
         :math:`\mathbb{P}_3(\Omega)`, which is not implemented.
 
