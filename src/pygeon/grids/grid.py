@@ -18,8 +18,7 @@ Acknowledgments:
 
 class Grid(pp.Grid):
     """
-    Grid class represents a geometric grid object, in addition to the pp.Grid class it
-    implements the following attributes and methods.
+    Grid of PyGeoN, extending ``pp.Grid``.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -43,11 +42,6 @@ class Grid(pp.Grid):
         1: "faces"
         2: "ridges"
         3: "peaks"
-
-        This method computes the geometry of the grid by calling the superclass's
-        compute_geometry method if this has not happened before, computing the rotation
-        matrix, the ridge and peak connectivities, and storing the edge lengths and mesh
-        size.
         """
         # We only invoke the porepy routine if it hasn't already been computed.
         if "Compute geometry" not in self.history:
@@ -97,11 +91,6 @@ class Grid(pp.Grid):
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 0 or 1.
-
-        This method calculates the number of ridges and peaks in a grid of dimension
-        0 or 1.
-        It also initializes the ridge_peaks and face_ridges matrices with the
-        appropriate dimensions.
         """
         self.num_peaks = 0
         self.num_ridges = 0
@@ -112,10 +101,6 @@ class Grid(pp.Grid):
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 2.
-
-        This method computes the number of ridges, number of peaks, and connectivity
-        matrices for a 2-dimensional grid. It also computes the face-ridge orientation
-        based on the rotated normal and the difference vector between the ridges.
         """
         self.num_peaks = 0
         self.num_ridges = self.num_nodes
@@ -142,11 +127,6 @@ class Grid(pp.Grid):
         """
         Assign the number of ridges, number of peaks, and connectivity matrices to a
         grid of dimension 3.
-
-        This method computes the number of ridges, number of peaks, and connectivity
-        matrices for a 3-dimensional grid. It calculates the ridges between each pair of
-        nodes in each face, determines the orientation of each ridge with respect to the
-        face, and generates the ridge-peak and face-ridge connectivity matrices.
         """
         self.num_peaks = self.num_nodes
 
@@ -202,14 +182,7 @@ class Grid(pp.Grid):
         """
         Tag the peaks and ridges of the grid located on fracture tips.
 
-        This method tags the peaks and ridges of the grid that are located on fracture
-        tips. It sets the "tip_peaks" and "tip_ridges" tags in the grid object.
-        For 2D grids, the "tip_ridges" tag is determined based on the "tip_faces" tag
-        and the face ridges.
-        For the other dimensions, the "tip_ridges" tag is initialized as an array of
-        zeros.
-        The "domain_boundary_ridges" tag is also set based on the face ridges and the
-        "domain_boundary_faces" tag.
+        Sets the tags "tip_peaks", "tip_ridges" and "domain_boundary_ridges".
         """
         self.tags["tip_peaks"] = np.zeros(self.num_peaks, dtype=bool)
         fr_bool = self.face_ridges.astype("bool")

@@ -43,7 +43,8 @@ autodoc_default_options = {"member-order": "bysource", "special-members": "__ini
 # the types are written in the Args and Returns sections of the docstrings
 autodoc_typehints = "none"
 
-# the optional dependencies of PorePy are not needed to import PyGeoN
+# mocked so that the documentation builds without them: they are needed to create
+# and export the grids, not to import PyGeoN and read its docstrings
 autodoc_mock_imports = ["gmsh", "meshio", "pygmsh", "pyvista", "vtkmodules"]
 
 intersphinx_mapping = {

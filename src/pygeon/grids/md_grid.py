@@ -10,21 +10,12 @@ import pygeon as pg
 
 class MixedDimensionalGrid(pp.MixedDimensionalGrid):
     """
-    Represents a mixed-dimensional grid.
-
-    This class extends the functionality of the ``pp.MixedDimensionalGrid`` class.
-    It provides methods for initializing the grid, computing geometry, and tagging mesh
-    entities.
+    Mixed-dimensional grid of PyGeoN, extending ``pp.MixedDimensionalGrid``.
     """
 
     def compute_geometry(self) -> None:
         """
         Compute geometric entities and tags for the subdomains and interfaces.
-
-        This method iterates over the subdomains and interfaces of the grid
-        and computes their geometric entities and tags. It calls the
-        ``compute_geometry`` method of each subdomain and interface, passing
-        the necessary parameters. Finally, it tags the leaf nodes of the grid.
         """
         for sd in self.subdomains():
             sd.compute_geometry()

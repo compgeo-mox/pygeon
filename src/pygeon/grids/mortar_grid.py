@@ -1,4 +1,4 @@
-"""This module contains the MortarGrid class."""
+"""Module for the MortarGrid class."""
 
 from typing import Tuple
 
@@ -180,11 +180,6 @@ class MortarGrid(pp.MortarGrid):
         """
         Assign the connectivity between cells of the secondary grid and faces of the
         primary grid.
-
-        This method calculates and assigns the connectivity between the cells of the
-        secondary grid and the faces of the primary grid. It uses the signed mortar
-        values and the secondary-to-mortar interface function to determine the
-        connectivity.
         """
         self.cell_faces = (
             -self.signed_mortar_to_primary @ self.secondary_to_mortar_int()

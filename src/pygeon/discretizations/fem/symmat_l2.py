@@ -102,7 +102,7 @@ class SymMatPwPolynomials(pg.Discretization):
         r"""
         Returns the projection matrix :math:`\text{sym}(\sigma)
         = \frac{1}{2}(\sigma + \sigma^T)` from the full
-        :class:`~pygeon.MatPwPolynomials` space to the :class:`SymMatPwPolynomials`
+        :class:`pg.MatPwPolynomials` space to the :class:`pg.SymMatPwPolynomials`
         space.
         Off-diagonal entries are averaged: sym_{ij} = (full_{ij} + full_{ji}) / 2.
         This is the left inverse of proj_to_PwPolynomials, meaning that
@@ -231,7 +231,7 @@ class SymMatPwPolynomials(pg.Discretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.

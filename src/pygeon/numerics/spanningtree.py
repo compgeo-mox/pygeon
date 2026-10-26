@@ -450,10 +450,8 @@ class SpanningTreeCosserat(SpanningTreeElasticity):
 
 class SpanningWeightedTrees:
     """
-    Class that can perform a spanning weighted trees solve, based on one of
-    the previously introduced classes SpanningTree and SpanningTreeElasticity.
-    It works very similarly to the previous one by considering multiple
-    trees instead.
+    Class that can perform a spanning weighted trees solve, combining several trees
+    of :class:`pg.SpanningTree` or :class:`pg.SpanningTreeElasticity`.
     """
 
     def __init__(

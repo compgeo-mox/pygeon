@@ -1,4 +1,4 @@
-"""This module contains functions for computing the inner-products operators."""
+"""Module for the inner product operators."""
 
 from typing import Callable, cast
 

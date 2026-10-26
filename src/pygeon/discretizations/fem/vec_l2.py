@@ -30,8 +30,8 @@ class VecPwPolynomials(pg.VecDiscretization):
         r"""
         Assembles the mass matrix :math:`(K^{-1} u, v)_\Omega` using the
         scalar and tensor weights in data, where :math:`K^{-1}` is the
-        second-order tensor and :math:`u, v` are in :class:`VecPwPolynomials`
-        (vector L2). Both domain and range lie in :class:`VecPwPolynomials`.
+        second-order tensor and :math:`u, v` are in :class:`pg.VecPwPolynomials`
+        (vector L2). Both domain and range lie in :class:`pg.VecPwPolynomials`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -48,8 +48,8 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles the lumped mass matrix, which is an approximation by a quadrature
-        rule of :math:`(K^{-1} u, v)_\Omega` for :class:`VecPwPolynomials` (vector L2),
+        Assembles the lumped mass matrix, which is an approximation by a quadrature rule
+        of :math:`(K^{-1} u, v)_\Omega` for :class:`pg.VecPwPolynomials` (vector L2),
         using the scalar and tensor weights in data.
 
         Args:
@@ -149,14 +149,13 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
     ) -> np.ndarray:
         """
-        Compute the local degrees of freedom (DOFs) of a cell in a vector-valued
-        finite element discretization.
+        Compute the local degrees of freedom (DOFs) indices for a cell.
 
         Args:
             sd (pg.Grid): The grid.
             c (int): The index of the cell for which the local DOFs are to be computed.
-            ambient_dim (int): The number of vector components. Defaults to -1, the
-                dimension of the grid (``sd.dim``).
+            ambient_dim (int): The number of vector components. Defaults to -1, which
+                stands for the dimension of the grid (``sd.dim``).
 
         Returns:
             np.ndarray: An array containing the local DOFs of the specified cell,
@@ -176,14 +175,13 @@ class VecPwPolynomials(pg.VecDiscretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.
 
         Returns:
-            Type[pg.Discretization]: The discretization class for the range of the
-            differential.
+            Type[pg.Discretization]: The range discretization class.
         """
         return self.base_discr.get_range_discr_class(dim)
 
@@ -258,7 +256,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid,
         computing :math:`\nabla_h u` element-wise for each vector component of
-        :math:`u \in` :class:`VecPwPolynomials`. The result lands in the
+        :math:`u \in` :class:`pg.VecPwPolynomials`. The result lands in the
         corresponding matrix-valued piecewise polynomial space.
 
         Args:

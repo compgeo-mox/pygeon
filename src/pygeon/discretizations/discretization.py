@@ -129,14 +129,14 @@ class Discretization(abc.ABC):
         Assembles the lumped mass matrix using the corresponding piecewise polynomial
         space.
 
-        For a discretization space :math:`V_h`, the lumped matrix approximates the
-        mass matrix :math:`(u, v)_\Omega,\ u, v \in V_h` with the lumped matrix of the
+        For a discretization space :math:`V_h`, the lumped matrix approximates the mass
+        matrix :math:`(u, v)_\Omega,\ u, v \in V_h` with the lumped matrix of the
         piecewise polynomials, obtained with a quadrature rule, transferred to
-        :math:`V_h` through :meth:`proj_to_PwPolynomials`. Both the domain and the
-        range lie in :math:`V_h`.
+        :math:`V_h` through :meth:`pg.Discretization.proj_to_PwPolynomials`. Both the
+        domain and the range lie in :math:`V_h`.
 
         The round-off entries of the product with the projection are removed, see
-        :func:`~pygeon.drop_small_entries`, so that the block structure of the
+        :func:`pg.drop_small_entries`, so that the block structure of the
         lumped matrix is preserved.
 
         Args:
@@ -182,7 +182,7 @@ class Discretization(abc.ABC):
 
         The matrix :math:`D` represents the discrete exterior derivative,
         mapping from the current finite element space :math:`V_h` to its range
-        space :math:`W_h` (returned by :meth:`get_range_discr_class`).
+        space :math:`W_h` (returned by :meth:`pg.Discretization.get_range_discr_class`).
 
         Args:
             sd (pg.Grid): The grid.
@@ -199,14 +199,6 @@ class Discretization(abc.ABC):
         where :math:`B` is the differential matrix (from the current space
         :math:`V_h` to its range space :math:`W_h`) and :math:`A` is the
         mass matrix of the range discretization :math:`W_h`.
-
-        This method takes a grid object ``sd`` and an optional data dictionary
-        ``data`` as input. It first calls the ``assemble_diff_matrix`` method to obtain
-        the differential matrix ``B``.
-        Then, it creates an instance of the range discretization class using the
-        ``dim`` attribute of ``sd``. Next, it calls the ``assemble_mass_matrix`` method
-        of the range discretization class to obtain the mass matrix ``A``.
-        Finally, it returns the product of the transpose of ``B``, ``A``, and ``B``.
 
         Args:
             sd (pg.Grid): The grid.
@@ -287,9 +279,10 @@ class Discretization(abc.ABC):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix for evaluating the discretization at the cell centers,
-        without the round-off entries of the product with the projection, see
-        :func:`~pygeon.drop_small_entries`.
+        Assembles the matrix for evaluating the discretization at the cell centers.
+
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -346,14 +339,13 @@ class Discretization(abc.ABC):
     @abc.abstractmethod
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
+            dim (int): The dimension of the range space.
 
         Returns:
-            Type[pg.Discretization]: The discretization class containing the range of
-            the differential.
+            Type[pg.Discretization]: The range discretization class.
         """
 
     @abc.abstractmethod
@@ -375,8 +367,8 @@ class Discretization(abc.ABC):
 
         The broken gradient :math:`\nabla_h` acts element-wise on functions in
         the current finite element space :math:`V_h`, mapping to the piecewise
-        polynomials of :meth:`get_broken_grad_discr`; see
-        :meth:`proj_to_PwPolynomials` for the projection used.
+        polynomials of :meth:`pg.Discretization.get_broken_grad_discr`; see
+        :meth:`pg.Discretization.proj_to_PwPolynomials` for the projection used.
 
         Args:
             sd (pg.Grid): The grid.

@@ -1,4 +1,4 @@
-"""This module contains functions for creating projection operators."""
+"""Module for the projection operators."""
 
 from typing import cast
 
@@ -13,10 +13,6 @@ def eval_at_cell_centers(
 ) -> sps.csc_array | np.ndarray:
     """
     Create an operator that evaluates a solution in the cell centers.
-
-    This function takes a mixed-dimensional grid ``mdg`` and a discretization ``discr``
-    and returns an operator that can be used to evaluate a solution in
-    the cell centers of the grid.
 
     Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.

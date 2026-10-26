@@ -34,11 +34,8 @@ class LinearSystem:
 
     def reset_bc(self) -> None:
         """
-        Reset the boundary conditions.
-
-        This method sets the degrees of freedom (is_dof) to True for all elements
-        in the b vector, and sets the essential values (ess_vals) to zero for all
-        elements in the b vector.
+        Reset the boundary conditions: all the degrees of freedom are free and the
+        essential values are zero.
         """
         self.is_dof = np.ones(self.b.shape[0], dtype=bool)
         self.ess_vals = np.zeros(self.b.shape[0])

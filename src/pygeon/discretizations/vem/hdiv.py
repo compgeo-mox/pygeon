@@ -64,7 +64,7 @@ class VRT0(pg.RT0):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix for evaluating the solution at the cell centers.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
             sd (pg.Grid): The grid.
@@ -84,13 +84,8 @@ class VRT0(pg.RT0):
 
 class VBDM1(pg.BDM1):
     """
-    Virtual Element Method (VEM) based on the BDM1 (Brezzi-Douglas-Marini)
-    discretization for the H(div) space.
-
-    This class implements the VEM discretization for the H(div) space.
-    It provides methods for assembling the mass matrix, projecting to the VRT0 space
-    and assembling the differential matrix; the interpolation and the natural
-    boundary condition are the ones of BDM1.
+    Virtual element discretization of the H(div) space based on :class:`pg.BDM1`, from
+    which it takes the interpolation and the natural boundary condition.
     """
 
     poly_order = 1
@@ -198,8 +193,9 @@ class VBDM1(pg.BDM1):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the matrix corresponding to the divergence differential operator
-        :math:`\nabla \cdot` for the H(div) space.
+        Assembles the matrix corresponding to the differential operator.
+
+        The divergence operator :math:`\nabla \cdot` of the H(div) space.
 
         Args:
             sd (pg.Grid): The grid.
@@ -215,10 +211,10 @@ class VBDM1(pg.BDM1):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Evaluate the function at the cell centers of the given grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): The grid on which to evaluate the function.
+            sd (pg.Grid): The grid.
 
         Raises:
             NotImplementedError: This method is not implemented and should be

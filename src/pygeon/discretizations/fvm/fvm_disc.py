@@ -49,8 +49,8 @@ class FiniteVolumeDiscretization(abc.ABC):
 
             S_0 \partial_t p + \nabla \cdot (K_{\text{eff}} \cdot)
 
-        where :math:`S_0` is the storativity and :math:`K_{\text{eff}}`
-        is the effective conductivity from :meth:`assemble_dual_var_map`,
+        where :math:`S_0` is the storativity and :math:`K_{\text{eff}}` is the effective
+        conductivity from :meth:`pg.FiniteVolumeDiscretization.assemble_dual_var_map`,
         using the material parameters in the data dictionary.
 
         Args:

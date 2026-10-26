@@ -1,4 +1,4 @@
-"""This module contains functions that compute restriction operators."""
+"""Module for the restriction operators."""
 
 from typing import cast
 
@@ -54,10 +54,6 @@ def zero_tip_dofs(
 def remove_tip_dofs(mdg: pg.MixedDimensionalGrid, n_minus_k: int) -> sps.csc_array:
     """
     Compute the operator that removes the tip degrees of freedom.
-
-    This function computes the operator that removes the tip degrees of freedom from
-    a given mixed-dimensional grid. The operator is represented as a sparse matrix
-    in compressed sparse column (CSC) format.
 
     Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.

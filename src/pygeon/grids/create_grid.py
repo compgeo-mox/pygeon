@@ -82,10 +82,11 @@ def grid_from_boundary_pts(
         pts (np.ndarray): The ordered points representing the boundary.
         mesh_size (float): The desired mesh size.
         as_mdg (bool): Return the grid as a mixed-dimensional grid. Defaults to True.
-        **kwargs: Additional options, passed to grid_from_domain.
+        **kwargs: Additional options, passed to :func:`pg.grid_from_domain`.
 
     Returns:
-        pg.Grid | pg.MixedDimensionalGrid: The grid, as in grid_from_domain.
+        pg.Grid | pg.MixedDimensionalGrid: The mixed-dimensional grid, or its grid of
+        the highest dimension if as_mdg is False.
     """
     # Create the lines representing the boundary of the domain
     idx = np.arange(pts.shape[1])
@@ -125,10 +126,12 @@ def unit_grid(
         **kwargs: Additional options:
 
             - structured (bool): If True, create a structured grid.
-            - the others are passed to grid_from_domain for the unstructured grids.
+            - the others are passed to :func:`pg.grid_from_domain` for the
+              unstructured grids.
 
     Returns:
-        pg.Grid | pg.MixedDimensionalGrid: The grid, as in grid_from_domain.
+        pg.Grid | pg.MixedDimensionalGrid: The mixed-dimensional grid, or its grid of
+        the highest dimension if as_mdg is False.
     """
     if dim <= 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)

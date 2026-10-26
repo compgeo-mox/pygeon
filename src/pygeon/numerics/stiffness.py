@@ -1,4 +1,4 @@
-"""This module contains functions for computing the stiffness operators."""
+"""Module for the stiffness operators."""
 
 import scipy.sparse as sps
 

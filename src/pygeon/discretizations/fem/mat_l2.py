@@ -161,9 +161,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     ) -> sps.csc_array:
         r"""
         Assembles the lumped elasticity matrix for the given grid. This is an
-        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
-        :math:`A` is the elasticity
-        compliance operator from :meth:`assemble_mass_matrix_elasticity`. An infinite
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
+        is the elasticity compliance operator from
+        :meth:`pg.MatPwPolynomials.assemble_mass_matrix_elasticity`. An infinite
         :math:`\lambda` gives the incompressible case, as there.
 
         Args:
@@ -207,9 +207,9 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     ) -> sps.csc_array:
         r"""
         Assembles the lumped Cosserat matrix for the given grid. This is an
-        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where
-        :math:`A` is the Cosserat
-        compliance operator from :meth:`assemble_mass_matrix_cosserat`.
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
+        is the Cosserat compliance operator from
+        :meth:`pg.MatPwPolynomials.assemble_mass_matrix_cosserat`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -245,7 +245,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles and returns the trace matrix :math:`\text{Tr}(\sigma)` for the
-        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
+        :class:`pg.MatPwPolynomials` space, mapping from matrix-valued piecewise
         polynomials to scalar piecewise polynomials by extracting the trace
         of the matrix field.
 
@@ -269,7 +269,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
     def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles and returns the asymmetry matrix for the :class:`MatPwPolynomials`
+        Assembles and returns the asymmetry matrix for the :class:`pg.MatPwPolynomials`
         space, mapping a matrix-valued function :math:`\sigma` to
         :math:`\sigma_{21} - \sigma_{12}`, a scalar, in 2D and to the vector
         :math:`(\sigma_{32} - \sigma_{23}, \sigma_{13} - \sigma_{31},

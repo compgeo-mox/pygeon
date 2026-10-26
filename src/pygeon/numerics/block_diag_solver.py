@@ -13,7 +13,7 @@ def drop_small_entries(M: sps.sparray, rtol: float = 1e-10) -> sps.sparray:
     Products such as :math:`P^T M P` leave round-off entries (about 1e-17 relative)
     where the exact value is zero. They change neither the matrix nor the solution,
     but they couple degrees of freedom that are otherwise independent, which spoils
-    the block structure seen by :func:`assemble_inverse` and the fill-in of the
+    the block structure seen by :func:`pg.assemble_inverse` and the fill-in of the
     sparse direct solvers.
 
     Args:
@@ -36,14 +36,10 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
 
-    This function computes the inverse of a sparse matrix M by dividing it into
-    submatrices corresponding to connected components. Each submatrix is inverted
-    independently, and the results are assembled into the final inverse matrix.
-
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
         rtol (float): Relative tolerance for removing small matrix entries, see
-            :func:`drop_small_entries`. M is not modified. Defaults to 1e-10.
+            :func:`pg.drop_small_entries`. M is not modified. Defaults to 1e-10.
 
     Returns:
         sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
@@ -115,12 +111,6 @@ def block_diag_solver(
     """
     Solves a block diagonal system of linear equations for each connected component.
 
-    This function takes a sparse block diagonal matrix M assumed to be symmetric and
-    positive definite and a right-hand side matrix B, and solves the system MX = B for
-    each connected component of the matrix M.
-
-    The connected components are determined using a graph representation of the matrix.
-
     Args:
         M (sps.csc_array): A symmetric and positive definite sparse matrix in Compressed
             Sparse Column (CSC) format, representing the block diagonal system. It is
@@ -134,10 +124,10 @@ def block_diag_solver(
         sps.csc_array: The solution matrix X.
 
     Notes:
-        - The function identifies connected components of the matrix M using the
-          connected_components function from ``scipy.sparse.csgraph``.
+        - The function identifies connected components of the matrix M using
+          :func:`scipy.sparse.csgraph.connected_components`.
         - For each connected component, the corresponding submatrix is
-          inverted with ``numpy.linalg.inv``, stacking the blocks of equal size.
+          inverted with :func:`numpy.linalg.inv`, stacking the blocks of equal size.
         - The solution is the product of the block-wise inverse with B.
     """
     # The solution is the product with the block-wise inverse, which is zero on the
