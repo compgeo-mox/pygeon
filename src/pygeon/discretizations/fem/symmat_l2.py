@@ -1,12 +1,12 @@
 """Module for the discretizations of the symmetric matrix L2 space."""
 
-from functools import cache
 from typing import Callable, Type, cast
 
 import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
+from pygeon.utils.weak_cache import weak_cache
 
 
 class SymMatPwPolynomials(pg.Discretization):
@@ -62,7 +62,7 @@ class SymMatPwPolynomials(pg.Discretization):
         scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         return ((dim + 1) * dim // 2) * scalar_space.ndof_per_entity(dim)
 
-    @cache
+    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the inclusion matrix of the symmetric matrix-valued piecewise
@@ -97,7 +97,7 @@ class SymMatPwPolynomials(pg.Discretization):
         # Repeat the same component map for all scalar dofs.
         return sps.kron(sym_adj, sps.eye_array(scalar_ndof)).tocsc()
 
-    @cache
+    @weak_cache
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Returns the projection matrix :math:`\text{sym}(\sigma)

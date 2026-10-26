@@ -1,7 +1,6 @@
 """Module for the discretizations of the L2 space."""
 
 import abc
-from functools import cache
 from math import comb, factorial
 from typing import Callable, Type
 
@@ -9,6 +8,7 @@ import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
+from pygeon.utils.weak_cache import weak_cache
 
 
 class PwPolynomials(pg.Discretization):
@@ -221,7 +221,7 @@ class PwPolynomials(pg.Discretization):
             np.ndarray: Local lumped mass matrix for piecewise polynomials.
         """
 
-    @cache
+    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a piecewise function to a piecewise

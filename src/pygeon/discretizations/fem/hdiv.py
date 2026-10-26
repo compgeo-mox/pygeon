@@ -1,6 +1,5 @@
 """Module for the discretizations of the H(div) space."""
 
-from functools import cache
 from typing import Callable, Tuple, Type, cast
 
 import numpy as np
@@ -8,6 +7,7 @@ import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
+from pygeon.utils.weak_cache import weak_cache
 
 
 class RT0(pg.Discretization):
@@ -254,7 +254,7 @@ class RT0(pg.Discretization):
         """
         return pg.PwConstants
 
-    @cache
+    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
@@ -426,7 +426,7 @@ class BDM1(pg.Discretization):
         """
         return pg.PwConstants
 
-    @cache
+    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
@@ -832,7 +832,7 @@ class RT1(pg.Discretization):
 
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
-    @cache
+    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid):
         r"""
         Constructs the projection matrix from the current finite element space to the
