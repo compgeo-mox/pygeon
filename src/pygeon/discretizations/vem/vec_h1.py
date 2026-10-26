@@ -357,10 +357,10 @@ class VecVLagrange1(pg.VecDiscretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
+            dim (int): The dimension of the range space.
 
         Raises:
             NotImplementedError: There is no range discretization for the vector

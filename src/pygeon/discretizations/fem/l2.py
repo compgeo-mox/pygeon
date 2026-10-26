@@ -182,7 +182,7 @@ class PwPolynomials(pg.Discretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         r"""
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.
@@ -400,7 +400,7 @@ class PwConstants(PwPolynomials):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix that evaluates a function at the cell centers of a grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
             sd (pg.Grid): The grid.

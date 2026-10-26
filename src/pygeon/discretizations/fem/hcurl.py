@@ -83,7 +83,7 @@ class NedelecR0(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the differential matrix for the given grid.
+        Assembles the matrix corresponding to the differential operator.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
         mapping from :class:`pg.NedelecR0` to:
@@ -94,10 +94,10 @@ class NedelecR0(pg.Discretization):
         In the other dimensions the matrix has no rows.
 
         Args:
-            sd (pg.Grid): The grid for which the differential matrix is assembled.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The assembled differential matrix.
+            sps.csc_array: The differential matrix.
         """
         match sd.dim:
             case 3:
@@ -318,7 +318,7 @@ class NedelecF1(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the differential matrix for the H(curl) finite element space.
+        Assembles the matrix corresponding to the differential operator.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
         mapping from :class:`pg.NedelecF1` (H(curl), two dofs per edge) to the
@@ -326,10 +326,10 @@ class NedelecF1(pg.Discretization):
         or :class:`pg.PwConstants` in 2D).
 
         Args:
-            sd (pg.Grid): The grid on which the finite element space is defined.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The assembled differential matrix.
+            sps.csc_array: The differential matrix.
         """
         n0 = pg.NedelecR0(self.keyword)
         Ne0_diff = n0.assemble_diff_matrix(sd)
@@ -390,7 +390,6 @@ class NedelecF1(pg.Discretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            Type[pg.Discretization]: The range discretization class, the same as for
-            :class:`pg.NedelecR0`.
+            Type[pg.Discretization]: The range discretization class.
         """
         return NedelecR0().get_range_discr_class(dim)

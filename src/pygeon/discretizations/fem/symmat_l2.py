@@ -231,7 +231,7 @@ class SymMatPwPolynomials(pg.Discretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.

@@ -294,7 +294,7 @@ class VLagrange1(pg.Lagrange1):
         Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
+            dim (int): The dimension of the range space.
 
         Returns:
             Type[pg.Discretization]: The range discretization class.

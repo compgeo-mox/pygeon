@@ -339,14 +339,13 @@ class Discretization(abc.ABC):
     @abc.abstractmethod
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
+            dim (int): The dimension of the range space.
 
         Returns:
-            Type[pg.Discretization]: The discretization class containing the range of
-            the differential.
+            Type[pg.Discretization]: The range discretization class.
         """
 
     @abc.abstractmethod

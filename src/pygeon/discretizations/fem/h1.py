@@ -183,7 +183,7 @@ class Lagrange1(Lagrange):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the differential matrix based on the dimension of the grid.
+        Assembles the matrix corresponding to the differential operator.
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
         mapping from :class:`pg.Lagrange1` to the appropriate range space:
@@ -274,11 +274,10 @@ class Lagrange1(Lagrange):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Construct the matrix for evaluating a Lagrangian function at the
-        cell centers of the given grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The evaluation matrix.
@@ -337,10 +336,10 @@ class Lagrange1(Lagrange):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the appropriate range discretization class based on the dimension.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the problem.
+            dim (int): The dimension of the range space.
 
         Returns:
             Type[pg.Discretization]: The range discretization class.
@@ -387,7 +386,7 @@ class Lagrange2(Lagrange):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the differential matrix based on the dimension of the grid.
+        Assembles the matrix corresponding to the differential operator.
 
         The differential corresponds to the (co-)gradient operator :math:`d`,
         mapping from :class:`pg.Lagrange2` to the appropriate range space:
@@ -631,10 +630,10 @@ class Lagrange2(Lagrange):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the appropriate range discretization class based on the dimension.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the problem.
+            dim (int): The dimension of the range space.
 
         Returns:
             Type[pg.Discretization]: The range discretization class.

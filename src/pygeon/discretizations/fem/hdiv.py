@@ -180,8 +180,7 @@ class RT0(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the matrix corresponding to the differential operator, the divergence
-        in this case.
+        Assembles the matrix corresponding to the differential operator.
 
         The divergence operator :math:`\nabla \cdot` maps from :class:`pg.RT0`
         (H(div), one dof per face) to :class:`pg.PwConstants` (L2, one
@@ -671,8 +670,7 @@ class RT1(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the matrix corresponding to the differential operator, the divergence
-        in this case.
+        Assembles the matrix corresponding to the differential operator.
 
         The divergence operator :math:`\nabla \cdot` maps from :class:`pg.RT1`
         (H(div)) to :class:`pg.PwLinears` (P1 piecewise linears).

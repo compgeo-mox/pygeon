@@ -149,8 +149,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
     ) -> np.ndarray:
         """
-        Compute the local degrees of freedom (DOFs) of a cell in a vector-valued
-        finite element discretization.
+        Compute the local degrees of freedom (DOFs) indices for a cell.
 
         Args:
             sd (pg.Grid): The grid.
@@ -176,14 +175,13 @@ class VecPwPolynomials(pg.VecDiscretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.
 
         Returns:
-            Type[pg.Discretization]: The discretization class for the range of the
-            differential.
+            Type[pg.Discretization]: The range discretization class.
         """
         return self.base_discr.get_range_discr_class(dim)
 
