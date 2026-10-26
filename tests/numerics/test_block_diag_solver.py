@@ -150,3 +150,14 @@ def test_assemble_inverse_keeps_input():
 
     assert M.nnz == 4
 
+
+@pytest.mark.parametrize("method", ["elasticity", "cosserat"])
+def test_lumped_without_roundoff(method):
+    sd = pg.unit_grid(3, 0.5, as_mdg=False)
+    sd.compute_geometry()
+    L = getattr(pg.VecRT1("test"), f"assemble_lumped_matrix_{method}")(sd)
+
+    # The round-off entries would couple all the dofs in one block
+    n_blocks, _ = sps.csgraph.connected_components(L, directed=False)
+    assert np.abs(L.data).min() > 1e-10 * np.abs(L.data).max()
+    assert n_blocks > 1
