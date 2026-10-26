@@ -132,3 +132,21 @@ def test_with_zero_rows(M_sparse, B_sparse):
     sol = pg.block_diag_solver(M_sparse, B)
 
     assert np.allclose((M_sparse @ sol - B).data, 0)
+
+
+def test_drop_small_entries():
+    # The largest entry in absolute value is negative
+    M = sps.csc_array(np.array([[-2.0, 1e-12], [1e-12, -1.0]]))
+    M_clean = pg.drop_small_entries(M)
+
+    assert np.array_equal(M_clean.toarray(), np.diag([-2.0, -1.0]))
+    assert M_clean.nnz == 2
+    assert M.nnz == 4
+
+
+def test_assemble_inverse_keeps_input():
+    M = sps.csc_array(np.array([[2.0, 1e-12], [1e-12, 1.0]]))
+    pg.assemble_inverse(M)
+
+    assert M.nnz == 4
+

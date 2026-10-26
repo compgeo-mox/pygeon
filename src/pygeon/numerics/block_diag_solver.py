@@ -5,6 +5,33 @@ import scipy.sparse as sps
 import scipy.sparse.csgraph as csgraph
 
 
+def drop_small_entries(M: sps.sparray, rtol: float = 1e-10) -> sps.sparray:
+    """
+    Returns a copy of M without the entries whose absolute value is at most rtol
+    times the largest absolute value of M.
+
+    Products such as :math:`P^T M P` leave round-off entries (about 1e-17 relative)
+    where the exact value is zero. They change neither the matrix nor the solution,
+    but they couple degrees of freedom that are otherwise independent, which spoils
+    the block structure seen by :func:`assemble_inverse` and the fill-in of the
+    sparse direct solvers.
+
+    Args:
+        M (sps.sparray): A sparse matrix in a format with explicit entries (CSC, CSR
+            or COO).
+        rtol (float): Relative tolerance for removing small matrix entries.
+            Defaults to 1e-10.
+
+    Returns:
+        sps.sparray: The matrix without the small entries, in the format of M.
+    """
+    M = M.copy()
+    if M.nnz > 0:
+        M.data[np.abs(M.data) <= rtol * np.abs(M.data).max()] = 0
+        M.eliminate_zeros()
+    return M
+
+
 def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
     """
     Assembles the block-wise inverse of a sparse matrix based on connected components.
@@ -15,8 +42,8 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
 
     Args:
         M (sps.csc_array): A sparse matrix in Compressed Sparse Column (CSC) format.
-        rtol (float): Relative tolerance for removing small matrix entries, which are
-            removed from M in place. Defaults to 1e-10.
+        rtol (float): Relative tolerance for removing small matrix entries, see
+            :func:`drop_small_entries`. M is not modified. Defaults to 1e-10.
 
     Returns:
         sps.csc_array: The block-wise inverse of the input matrix M in CSC format.
@@ -32,8 +59,7 @@ def assemble_inverse(M: sps.csc_array, rtol: float = 1e-10) -> sps.csc_array:
           distinct patch sizes), so the cost is linear in the size of M.
     """
     # Remove small entries in the matrix
-    M.data[np.abs(M.data) <= rtol * np.max(M.data)] = 0
-    M.eliminate_zeros()
+    M = drop_small_entries(M, rtol)
 
     # Get connected components
     n_patches, labels = csgraph.connected_components(M, directed=False)
