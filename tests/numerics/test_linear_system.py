@@ -22,3 +22,15 @@ def test_simple_problem():
     sol = LS.solve()
 
     assert np.allclose(sol, np.tile([1, 1, 2, 1], (3, 1)).T)
+
+
+def test_all_dofs_essential():
+    # The reduced system is empty, the solver must not be called
+    A = sps.eye_array(3).tocsc()
+    LS = pg.LinearSystem(A, np.arange(3.0))
+    LS.flag_ess_bc(np.ones(3, dtype=bool), np.array([1.0, 2.0, 3.0]))
+
+    def solver(*_):
+        raise AssertionError("the solver is called on an empty system")
+
+    assert np.allclose(LS.solve(solver), [1.0, 2.0, 3.0])
