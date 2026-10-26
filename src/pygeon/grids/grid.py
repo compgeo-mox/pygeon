@@ -18,8 +18,7 @@ Acknowledgments:
 
 class Grid(pp.Grid):
     """
-    Grid class represents a geometric grid object, in addition to the pp.Grid class it
-    implements the following attributes and methods.
+    Grid of PyGeoN, extending ``pp.Grid``.
     """
 
     def __init__(self, *args, **kwargs) -> None:

@@ -9,8 +9,7 @@ import pygeon as pg
 
 class MatDiscretization(pg.VecDiscretization):
     """
-    Base class for matrix-valued discretizations. This class provides methods for
-    assembling mass matrices, trace matrices, asymmetric matrices, and lumped matrices.
+    Base class for matrix-valued discretizations.
     """
 
     poly_order: int

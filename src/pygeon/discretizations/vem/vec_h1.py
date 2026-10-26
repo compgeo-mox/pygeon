@@ -13,11 +13,6 @@ class VecVLagrange1(pg.VecDiscretization):
     r"""
     Vector Lagrange virtual element discretization for H1 space in 2D.
 
-    This class represents a virtual element discretization for the H1 space using
-    vector virtual Lagrange elements. It provides methods for assembling various
-    matrices and operators, such as the mass matrix, divergence matrix, symmetric
-    gradient matrix, and more.
-
     Convention for the ordering is first all the x then all the y.
 
     The stress tensor and strain tensor are represented as vectors unrolled row-wise.

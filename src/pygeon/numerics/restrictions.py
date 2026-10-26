@@ -1,4 +1,4 @@
-"""This module contains functions that compute restriction operators."""
+"""Module for the restriction operators."""
 
 from typing import cast
 

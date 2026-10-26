@@ -1,4 +1,4 @@
-"""This module contains functions for creating projection operators."""
+"""Module for the projection operators."""
 
 from typing import cast
 

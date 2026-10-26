@@ -1,4 +1,4 @@
-"""This module contains functions for computing the differential operators."""
+"""Module for the differential operators."""
 
 import warnings
 from typing import cast

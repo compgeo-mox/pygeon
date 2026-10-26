@@ -9,11 +9,7 @@ import pygeon as pg
 
 class VecBDM1(pg.MatDiscretization):
     """
-    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite
-    element method. It provides methods for assembling matrices like the mass matrix,
-    the trace matrix, the asymmetric matrix and the differential matrix. It also
-    provides methods for evaluating the solution at cell centers, interpolating a given
-    function onto the grid, assembling the natural boundary condition term, and more.
+    Matrix-valued finite element discretization with each row in :class:`pg.BDM1`.
     """
 
     poly_order = 1
@@ -105,11 +101,7 @@ class VecBDM1(pg.MatDiscretization):
 
 class VecRT0(pg.MatDiscretization):
     """
-    VecRT0 is a tensor-valued discretization class for the Raviart-Thomas RT0 finite
-    element, specialized for handling stress tensors in 2D and 3D.
-    This class provides methods for assembling trace and asymmetric matrices
-    for vector RT0 discretizations, as well as retrieving the appropriate range
-    discretization class.
+    Matrix-valued finite element discretization with each row in :class:`pg.RT0`.
     """
 
     poly_order = 1
@@ -175,10 +167,7 @@ class VecRT0(pg.MatDiscretization):
 
 class VecRT1(pg.MatDiscretization):
     """
-    VecRT1 is a vector Raviart-Thomas finite element discretization class of order 1.
-
-    This class is designed for matrix-valued finite element discretizations in the
-    H(div) space, specifically using the Raviart-Thomas elements of order 1 (RT1).
+    Matrix-valued finite element discretization with each row in :class:`pg.RT1`.
     """
 
     poly_order = 2

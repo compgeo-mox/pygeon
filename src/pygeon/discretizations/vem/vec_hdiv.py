@@ -7,8 +7,7 @@ import pygeon as pg
 
 class VecVRT0(pg.VecDiscretization):
     """
-    VecVRT0 is a tensor-valued discretization class for the virtual Raviart-Thomas RT0
-    element.
+    Matrix-valued virtual element discretization with each row in :class:`pg.VRT0`.
     """
 
     poly_order = 1

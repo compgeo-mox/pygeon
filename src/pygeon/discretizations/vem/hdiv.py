@@ -84,13 +84,8 @@ class VRT0(pg.RT0):
 
 class VBDM1(pg.BDM1):
     """
-    Virtual Element Method (VEM) based on the BDM1 (Brezzi-Douglas-Marini)
-    discretization for the H(div) space.
-
-    This class implements the VEM discretization for the H(div) space.
-    It provides methods for assembling the mass matrix, projecting to the VRT0 space
-    and assembling the differential matrix; the interpolation and the natural
-    boundary condition are the ones of BDM1.
+    Virtual element discretization of the H(div) space based on :class:`pg.BDM1`, from
+    which it takes the interpolation and the natural boundary condition.
     """
 
     poly_order = 1
