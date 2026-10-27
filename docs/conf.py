@@ -105,7 +105,7 @@ def write_papers(app):
     Write papers.rst from papers.bib, the papers grouped by year and the titles linked
     to the DOI, so that adding a paper only takes its BibTeX entry. The published
     version is cited in full, with a link to the arXiv preprint (eprint) for the
-    readers without access to the journal.
+    readers without access to the journal; a preprint has its title linked to arXiv.
     """
     entries = bibtexparser.parse_file(Path(app.confdir) / "papers.bib").entries
     clean = lambda s: " ".join(
@@ -118,6 +118,8 @@ def write_papers(app):
         title = clean(e["title"]).rstrip(".")
         if "doi" in e:
             title = f"`{title} <https://doi.org/{e['doi']}>`__"
+        elif "eprint" in e:
+            title = f"`{title} <https://arxiv.org/abs/{e['eprint']}>`__"
         journal = clean(e["journal"] if "journal" in e else e["booktitle"])
         ref = f"*{journal}*"
         if "volume" in e:
@@ -125,7 +127,7 @@ def write_papers(app):
         if "pages" in e:
             ref += f", {e['pages'].replace('--', '–')}"
         line = f"- {authors} ({e['year']}). {title}. {ref}."
-        if "eprint" in e:
+        if "doi" in e and "eprint" in e:
             line += f" `arXiv <https://arxiv.org/abs/{e['eprint']}>`__."
         if "url" in e:
             line += f" `Code <{e['url']}>`__."
