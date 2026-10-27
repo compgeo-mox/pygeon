@@ -37,3 +37,10 @@ def test_all_dofs_essential():
         )
 
     assert np.allclose(LS.solve(solver), [1.0, 2.0, 3.0])
+
+    # with several right-hand sides, the solution is dense as in the general case
+    LS = pg.LinearSystem(A, np.tile(np.arange(3.0), (2, 1)).T)
+    LS.flag_ess_bc(np.ones(3, dtype=bool), np.array([1.0, 2.0, 3.0]))
+    sol = LS.solve(solver)
+    assert isinstance(sol, np.ndarray)
+    assert np.allclose(sol, np.tile([1.0, 2.0, 3.0], (2, 1)).T)
