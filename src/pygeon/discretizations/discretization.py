@@ -147,7 +147,7 @@ class Discretization(abc.ABC):
             sps.csc_array: The lumped mass matrix.
         """
         lumped = self._assemble_inner_product(sd, data, "assemble_lumped_matrix")
-        return pg.drop_small_entries(lumped, copy=False)
+        return pg.drop_small_entries(lumped)
 
     def _assemble_inner_product(
         self, sd: pg.Grid, data: dict | None, pwp_method: str
@@ -299,9 +299,7 @@ class Discretization(abc.ABC):
             self.keyword
         )
 
-        return pg.drop_small_entries(
-            Poly_space.eval_at_cell_centers(sd) @ Pi, copy=False
-        )
+        return pg.drop_small_entries(Poly_space.eval_at_cell_centers(sd) @ Pi)
 
     def source_term(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

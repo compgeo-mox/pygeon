@@ -137,7 +137,7 @@ def test_with_zero_rows(M_sparse, B_sparse):
 def test_drop_small_entries():
     # The largest entry in absolute value is negative
     M = sps.csc_array(np.array([[-2.0, 1e-12], [1e-12, -1.0]]))
-    M_clean = pg.drop_small_entries(M)
+    M_clean = pg.drop_small_entries(M.copy())
 
     assert np.array_equal(M_clean.toarray(), np.diag([-2.0, -1.0]))
     assert M_clean.nnz == 2
@@ -147,7 +147,7 @@ def test_drop_small_entries():
 def test_drop_small_entries_in_place():
     # an exact zero stored in the matrix is removed too
     M = sps.csc_array((np.array([2.0, 0.0, 1e-12]), (np.arange(3), np.arange(3))))
-    M_clean = pg.drop_small_entries(M, copy=False)
+    M_clean = pg.drop_small_entries(M)
 
     assert M_clean is M
     assert M.nnz == 1

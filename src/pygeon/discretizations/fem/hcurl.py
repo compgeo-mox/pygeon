@@ -300,7 +300,7 @@ class NedelecF1(pg.Discretization):
 
         # The components that vanish, e.g. on Cartesian-like grids, are not stored
         proj = sps.csc_array((data_IJ, (rows_I, cols_J)))
-        return pg.drop_small_entries(proj, copy=False)
+        return pg.drop_small_entries(proj)
 
     def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_array:
         r"""
