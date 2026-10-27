@@ -71,7 +71,8 @@ class LinearSystem:
 
     def solve(self, solver: Callable = sps.linalg.spsolve) -> np.ndarray:
         """
-        Solve the linear system of equations.
+        Solve the linear system of equations. If all the degrees of freedom are
+        essential, the reduced system is empty and the solver is not called.
 
         Args:
             solver (Callable): The solver function to use. Defaults to
@@ -82,8 +83,11 @@ class LinearSystem:
             of the right-hand side.
         """
         A_0, b_0, R_0 = self.reduce_system()
-        sol_0 = solver(A_0.tocsc(), b_0)
-        sol_0 = sol_0.reshape(b_0.shape)
+        if A_0.shape[0] == 0:
+            sol_0 = np.zeros(b_0.shape)
+        else:
+            sol_0 = solver(A_0.tocsc(), b_0)
+            sol_0 = sol_0.reshape(b_0.shape)
         sol = self.repeat_ess_vals() + R_0.T @ sol_0
 
         return sol

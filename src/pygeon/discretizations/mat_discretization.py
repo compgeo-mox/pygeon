@@ -138,6 +138,8 @@ class MatDiscretization(pg.VecDiscretization):
         approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
         is the elasticity compliance operator from
         :meth:`pg.MatDiscretization.assemble_mass_matrix_elasticity`.
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -147,7 +149,8 @@ class MatDiscretization(pg.VecDiscretization):
             sps.csc_array: The assembled lumped elasticity matrix.
         """
         method_name = "assemble_lumped_matrix_elasticity"
-        return self._apply_pwpolynomials_method(sd, method_name, data)
+        lumped = self._apply_pwpolynomials_method(sd, method_name, data)
+        return pg.drop_small_entries(lumped)
 
     def assemble_lumped_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
@@ -157,6 +160,8 @@ class MatDiscretization(pg.VecDiscretization):
         approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
         is the Cosserat compliance operator from
         :meth:`pg.MatDiscretization.assemble_mass_matrix_cosserat`.
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -166,7 +171,8 @@ class MatDiscretization(pg.VecDiscretization):
             sps.csc_array: The assembled lumped Cosserat matrix.
         """
         method_name = "assemble_lumped_matrix_cosserat"
-        return self._apply_pwpolynomials_method(sd, method_name, data)
+        lumped = self._apply_pwpolynomials_method(sd, method_name, data)
+        return pg.drop_small_entries(lumped)
 
     def assemble_asym_matrix(
         self, sd: pg.Grid, as_pwconstant: bool = False

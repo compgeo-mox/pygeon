@@ -135,6 +135,10 @@ class Discretization(abc.ABC):
         :math:`V_h` through :meth:`pg.Discretization.proj_to_PwPolynomials`. Both the
         domain and the range lie in :math:`V_h`.
 
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`, so that the block structure of the
+        lumped matrix is preserved.
+
         Args:
             sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
@@ -142,7 +146,8 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        return self._assemble_inner_product(sd, data, "assemble_lumped_matrix")
+        lumped = self._assemble_inner_product(sd, data, "assemble_lumped_matrix")
+        return pg.drop_small_entries(lumped)
 
     def _assemble_inner_product(
         self, sd: pg.Grid, data: dict | None, pwp_method: str
@@ -276,6 +281,9 @@ class Discretization(abc.ABC):
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
 
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`.
+
         Args:
             sd (pg.Grid): The grid.
 
@@ -291,7 +299,7 @@ class Discretization(abc.ABC):
             self.keyword
         )
 
-        return Poly_space.eval_at_cell_centers(sd) @ Pi
+        return pg.drop_small_entries(Poly_space.eval_at_cell_centers(sd) @ Pi)
 
     def source_term(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]

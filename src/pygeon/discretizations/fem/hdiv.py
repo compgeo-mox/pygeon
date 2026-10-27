@@ -481,7 +481,9 @@ class BDM1(pg.Discretization):
         p1_dofs = p1_lookup[nodes, cells] + p1_lookup.nnz * np.arange(sd.dim)[:, None]
         rows_I = p1_dofs.ravel()
 
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        # The components that vanish, e.g. on Cartesian-like grids, are not stored
+        proj = sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return pg.drop_small_entries(proj)
 
 
 class RT1(pg.Discretization):

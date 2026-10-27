@@ -113,6 +113,7 @@ from pygeon.numerics.block_diag_solver import (
     assemble_inverse,
     block_diag_solver,
     block_diag_solver_dense,
+    drop_small_entries,
 )
 
 import pygeon.utils.bmat as bmat

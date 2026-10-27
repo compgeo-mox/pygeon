@@ -132,3 +132,41 @@ def test_with_zero_rows(M_sparse, B_sparse):
     sol = pg.block_diag_solver(M_sparse, B)
 
     assert np.allclose((M_sparse @ sol - B).data, 0)
+
+
+def test_drop_small_entries():
+    # The largest entry in absolute value is negative
+    M = sps.csc_array(np.array([[-2.0, 1e-12], [1e-12, -1.0]]))
+    M_clean = pg.drop_small_entries(M.copy())
+
+    assert np.array_equal(M_clean.toarray(), np.diag([-2.0, -1.0]))
+    assert M_clean.nnz == 2
+    assert M.nnz == 4
+
+
+def test_drop_small_entries_in_place():
+    # an exact zero stored in the matrix is removed too
+    M = sps.csc_array((np.array([2.0, 0.0, 1e-12]), (np.arange(3), np.arange(3))))
+    M_clean = pg.drop_small_entries(M)
+
+    assert M_clean is M
+    assert M.nnz == 1
+
+
+def test_assemble_inverse_keeps_input():
+    M = sps.csc_array(np.array([[2.0, 1e-12], [1e-12, 1.0]]))
+    pg.assemble_inverse(M)
+
+    assert M.nnz == 4
+
+
+@pytest.mark.parametrize("method", ["elasticity", "cosserat"])
+def test_lumped_without_roundoff(method):
+    sd = pg.unit_grid(3, 0.5, as_mdg=False)
+    sd.compute_geometry()
+    L = getattr(pg.VecRT1("test"), f"assemble_lumped_matrix_{method}")(sd)
+
+    # The round-off entries would couple all the dofs in one block
+    n_blocks, _ = sps.csgraph.connected_components(L, directed=False)
+    assert np.abs(L.data).min() > 1e-10 * np.abs(L.data).max()
+    assert n_blocks > 1
