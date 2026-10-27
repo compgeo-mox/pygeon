@@ -150,7 +150,7 @@ class MatDiscretization(pg.VecDiscretization):
         """
         method_name = "assemble_lumped_matrix_elasticity"
         lumped = self._apply_pwpolynomials_method(sd, method_name, data)
-        return pg.drop_small_entries(lumped)
+        return pg.drop_small_entries(lumped, copy=False)
 
     def assemble_lumped_matrix_cosserat(
         self, sd: pg.Grid, data: dict | None = None
@@ -172,7 +172,7 @@ class MatDiscretization(pg.VecDiscretization):
         """
         method_name = "assemble_lumped_matrix_cosserat"
         lumped = self._apply_pwpolynomials_method(sd, method_name, data)
-        return pg.drop_small_entries(lumped)
+        return pg.drop_small_entries(lumped, copy=False)
 
     def assemble_asym_matrix(
         self, sd: pg.Grid, as_pwconstant: bool = False

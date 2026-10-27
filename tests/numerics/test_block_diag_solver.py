@@ -144,6 +144,15 @@ def test_drop_small_entries():
     assert M.nnz == 4
 
 
+def test_drop_small_entries_in_place():
+    # an exact zero stored in the matrix is removed too
+    M = sps.csc_array((np.array([2.0, 0.0, 1e-12]), (np.arange(3), np.arange(3))))
+    M_clean = pg.drop_small_entries(M, copy=False)
+
+    assert M_clean is M
+    assert M.nnz == 1
+
+
 def test_assemble_inverse_keeps_input():
     M = sps.csc_array(np.array([[2.0, 1e-12], [1e-12, 1.0]]))
     pg.assemble_inverse(M)

@@ -5,10 +5,12 @@ import scipy.sparse as sps
 import scipy.sparse.csgraph as csgraph
 
 
-def drop_small_entries(M: sps.sparray, rtol: float = 1e-10) -> sps.sparray:
+def drop_small_entries(
+    M: sps.sparray, rtol: float = 1e-10, copy: bool = True
+) -> sps.sparray:
     """
-    Returns a copy of M without the entries whose absolute value is at most rtol
-    times the largest absolute value of M.
+    Returns M without the entries whose absolute value is at most rtol times the
+    largest absolute value of M, which include the entries stored as exact zeros.
 
     Products such as :math:`P^T M P` leave round-off entries (about 1e-17 relative)
     where the exact value is zero. They change neither the matrix nor the solution,
@@ -21,11 +23,14 @@ def drop_small_entries(M: sps.sparray, rtol: float = 1e-10) -> sps.sparray:
             or COO).
         rtol (float): Relative tolerance for removing small matrix entries.
             Defaults to 1e-10.
+        copy (bool): Work on a copy of M; if False, M is modified in place, e.g. for
+            a matrix just assembled. Defaults to True.
 
     Returns:
         sps.sparray: The matrix without the small entries, in the format of M.
     """
-    M = M.copy()
+    if copy:
+        M = M.copy()
     if M.nnz > 0:
         M.data[np.abs(M.data) <= rtol * np.abs(M.data).max()] = 0
         M.eliminate_zeros()
