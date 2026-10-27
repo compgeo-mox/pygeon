@@ -13,9 +13,6 @@ def replace_nones_with_zeros(mat: np.ndarray) -> None:
 
     Args:
         mat (np.ndarray): The block matrix to modify.
-
-    Returns:
-        None: This function modifies the input matrix in-place.
     """
     # Do nothing if there are no Nones
     if None not in mat:
@@ -38,8 +35,8 @@ def find_row_col_lengths(mat: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         mat (np.ndarray): The input matrix.
 
     Returns:
-        tuple: A tuple containing two numpy arrays - rows and cols,
-        representing the lengths of rows and columns respectively.
+        tuple[np.ndarray, np.ndarray]: The numbers of rows of the blocks in each block
+        row and of columns of the blocks in each block column.
     """
     rows = np.zeros(mat.shape[0], int)
     cols = np.zeros(mat.shape[1], int)
@@ -77,7 +74,7 @@ def transpose(mat: np.ndarray) -> np.ndarray:
 def multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     """
     Compute the multiplication of two block matrices.
-    The @-symbol does not always work because numpy misunderstands the dimensions
+    The @-symbol does not always work because numpy misunderstands the dimensions.
 
     Args:
         A (np.ndarray): The first block matrix in the product.

@@ -1,6 +1,5 @@
 """Module for the discretizations of the symmetric matrix L2 space."""
 
-from functools import cache
 from typing import Callable, Type, cast
 
 import numpy as np
@@ -27,7 +26,7 @@ class SymMatPwPolynomials(pg.Discretization):
 
         Args:
             keyword (str): The keyword for the symmetric matrix discretization class.
-                Default is pg.UNITARY_DATA.
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(keyword)
@@ -39,7 +38,7 @@ class SymMatPwPolynomials(pg.Discretization):
         so their number is the number of cells times the dofs per element.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             int: The number of degrees of freedom.
@@ -62,11 +61,10 @@ class SymMatPwPolynomials(pg.Discretization):
         scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         return ((dim + 1) * dim // 2) * scalar_space.ndof_per_entity(dim)
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Returns the projection matrix from the symmetric matrix-valued piecewise
-        polynomial space to the full matrix-valued piecewise polynomial space.
+        Returns the inclusion matrix of the symmetric matrix-valued piecewise
+        polynomial space in the full matrix-valued piecewise polynomial space.
 
         Args:
             sd (pg.Grid): The grid.
@@ -97,12 +95,12 @@ class SymMatPwPolynomials(pg.Discretization):
         # Repeat the same component map for all scalar dofs.
         return sps.kron(sym_adj, sps.eye_array(scalar_ndof)).tocsc()
 
-    @cache
     def assemble_symmetrizing_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Returns the projection matrix :math:`\text{sym}(\sigma)
-        = \frac{1}{2}(\sigma + \sigma^T)` from the full :class:`MatPwPolynomials`
-        space to the :class:`SymMatPwPolynomials` space.
+        = \frac{1}{2}(\sigma + \sigma^T)` from the full
+        :class:`pg.MatPwPolynomials` space to the :class:`pg.SymMatPwPolynomials`
+        space.
         Off-diagonal entries are averaged: sym_{ij} = (full_{ij} + full_{ji}) / 2.
         This is the left inverse of proj_to_PwPolynomials, meaning that
         assemble_symmetrizing_matrix @ proj_to_PwPolynomials = I
@@ -112,6 +110,9 @@ class SymMatPwPolynomials(pg.Discretization):
 
         Returns:
             sps.csc_array: The projection matrix.
+
+        Raises:
+            ValueError: If the grid is zero-dimensional.
         """
         if sd.dim == 0:
             raise ValueError(f"Invalid grid dimension, sd.dim is {sd.dim}.")
@@ -143,7 +144,7 @@ class SymMatPwPolynomials(pg.Discretization):
         valued piecewise polynomials, without symmetrization.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix.
@@ -159,7 +160,7 @@ class SymMatPwPolynomials(pg.Discretization):
 
         Args:
             sd (pg.Grid): The grid.
-            func (callable): The function to interpolate.
+            func (Callable): The function to interpolate.
 
         Returns:
             np.ndarray: The interpolated function, with shape (ndof,).
@@ -171,11 +172,12 @@ class SymMatPwPolynomials(pg.Discretization):
         """
         Assembles the matrix corresponding to the differential operator.
 
-        For symmetric matrix-valued piecewise polynomials, the differential is the
-        zero matrix since these are discontinuous functions with no global differential.
+        For symmetric matrix-valued piecewise polynomials, the differential maps to the
+        zero space, so the matrix has no rows, since these are discontinuous functions
+        with no global differential.
 
         Args:
-            sd (pg.Grid): The grid object or its subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -192,7 +194,7 @@ class SymMatPwPolynomials(pg.Discretization):
         the zero matrix since the differential operator is trivial.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Additional data for the assembly process.
 
         Returns:
@@ -214,10 +216,10 @@ class SymMatPwPolynomials(pg.Discretization):
         trace.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The function defining the
                  natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.
@@ -226,7 +228,7 @@ class SymMatPwPolynomials(pg.Discretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.

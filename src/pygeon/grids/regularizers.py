@@ -12,12 +12,11 @@ def lloyd_regularization(sd: pg.VoronoiGrid, num_iter: int) -> pg.VoronoiGrid:
     preserved.
 
     Args:
-        sd (pg.VoronoiGrid): The Voronoi grid to relax. num_iter (int): The number of
-            iterations to perform.
+        sd (pg.VoronoiGrid): The Voronoi grid to relax.
         num_iter (int): The number of regularization iterations.
 
     Returns:
-        The regularized Voronoi grid.
+        pg.VoronoiGrid: The regularized Voronoi grid.
     """
     # Perform Lloyd's algorithm
     for _ in np.arange(num_iter):
@@ -33,10 +32,14 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
 
     Args:
         sd (pg.Grid): The grid to regularize.
-        sliding (bool): Whether the boundary is sliding, defaults to True.
+        sliding (bool): If True, the boundary nodes slide along the sides of the
+            bounding box, otherwise they are fixed. Defaults to True.
 
     Returns:
-        The Laplace regularized grid.
+        pg.Grid: The Laplace regularized grid.
+
+    Raises:
+        ValueError: If the dimension is not 1, 2 or 3.
     """
     # Construct the Laplacian matrix
     match sd.dim:
@@ -72,10 +75,11 @@ def graph_laplace_dual_regularization(
 
     Args:
         sd (pg.Grid): The grid to regularize.
-        sliding (bool): Whether the boundary is sliding, defaults to True.
+        sliding (bool): If True, the boundary nodes slide along the sides of the
+            bounding box, otherwise they are fixed. Defaults to True.
 
     Returns:
-        The regularized Voronoi grid.
+        pg.VoronoiGrid: The regularized Voronoi grid.
     """
     # ghost cells at the boundary
     bd_faces = sd.tags["domain_boundary_faces"]
@@ -123,12 +127,13 @@ def elasticity_regularization(
 
     Args:
         sd (pg.Grid): The grid to regularize.
-        spring_const (float): The spring constant, defaults to 1.
-        key (str): The key for the discretization, defaults to "reg".
-        sliding (bool): Whether the boundary is sliding, defaults to True.
+        spring_const (float): The spring constant, Defaults to 1.
+        key (str): The key for the discretization, Defaults to "reg".
+        sliding (bool): If True, the boundary nodes slide along the sides of the
+            bounding box, otherwise they are fixed. Defaults to True.
 
     Returns:
-        The regularized grid.
+        pg.Grid: The regularized grid.
     """
     discr = pg.VecVLagrange1(key)
     A = discr.assemble_stiff_matrix(sd)
@@ -162,10 +167,12 @@ def compute_displacement(
         A (sps.csc_matrix): The system matrix.
         b (np.ndarray): The right-hand side.
         coords (np.ndarray): The coordinates of the nodes in the graph.
-        ess (np.ndarray): The sliding degrees of freedom.
+        ess (np.ndarray | None): The fixed degrees of freedom. Defaults to None, the
+            components normal to the sides of the bounding box of coords, so that the
+            boundary nodes slide along them.
 
     Returns:
-        The displacement field.
+        np.ndarray: The displacement field, of shape (dim, num_nodes).
     """
     # Set the essential dofs for the sliding boundary
     if ess is None:
@@ -196,7 +203,7 @@ def create_displaced_grid(sd: pg.Grid, u: np.ndarray) -> pg.Grid:
         u (np.ndarray): The displacement field.
 
     Returns:
-        The displaced grid.
+        pg.Grid: The displaced grid.
     """
     nodes = sd.nodes.copy()
     nodes[: sd.dim, :] += u

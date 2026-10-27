@@ -1,11 +1,11 @@
 Reports
 =======
 
-This section collects research notes, reports, and generated documents.
+Notes on the finite element spaces and on their implementation in PyGeoN.
 
 .. toctree::
    :maxdepth: 1
 
-   ../reports_src/RT1
-   ../reports_src/dofs
-   ../reports_src/matrix_assembly
+   dofs
+   matrix_assembly
+   RT1

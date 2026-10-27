@@ -11,7 +11,8 @@ import pygeon as pg
 
 def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     """
-    Remeshes a polygonal grid such that it conforms to a level-set function
+    Remeshes a two-dimensional polygonal grid such that it conforms to a level-set
+    function: the faces and the cells crossed by its zero level set are split.
 
     Args:
         sd (pg.Grid): The grid to remesh.
@@ -19,6 +20,10 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
 
     Returns:
         pg.Grid: A new grid conforming to the level set.
+
+    Raises:
+        NotImplementedError: If the level set passes exactly through a node, or cuts
+            a cell more than once.
     """
     # Mark the cut faces and cells
     cut_faces, new_nodes = intersect_faces(sd, levelset)
@@ -102,7 +107,7 @@ def create_new_entity_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_
 
     Args:
         cut_entities (np.ndarray): Boolean array indicating which entities are cut.
-        offset (int, optional): Offset value for the mapping matrix. Defaults to 0.
+        offset (int): Offset value for the mapping matrix. Defaults to 0.
 
     Returns:
         sps.csc_array: Mapping matrix of size n_new x n_old
@@ -125,8 +130,8 @@ def create_splitting_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_a
 
     Args:
         cut_entities (np.ndarray): Boolean array indicating which entities are cut.
-        offset (int, optional): Offset value for the rows of the mapping matrix.
-        Defaults to 0.
+        offset (int): Offset value for the rows of the mapping matrix.
+            Defaults to 0.
 
     Returns:
         sps.csc_array: Mapping matrix of size n_new x n_old
@@ -146,17 +151,20 @@ def intersect_faces(
     sd: pg.Grid, levelset: Callable, root_finder=brentq
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Marks the cells and faces cut by the level set and
-    finds the new nodes at the intersection points.
+    Marks the faces cut by the level set and finds the new nodes at the
+    intersection points.
 
     Args:
-        sd (pg.Grid): The grid object.
+        sd (pg.Grid): The grid.
         levelset (Callable): The level set function.
-        root_finder (brentq): The root finder function. Default is brentq.
+        root_finder (Callable): The root finder function. Defaults to brentq.
 
     Returns:
-        Tuple[np.ndarray[Any, bool], np.ndarray]: A tuple containing the cut_faces array
+        tuple[np.ndarray[Any, bool], np.ndarray]: A tuple containing the cut_faces array
         and the new_nodes array.
+
+    Raises:
+        NotImplementedError: If the level set passes exactly through a node.
     """
     new_nodes = []
     cut_faces = np.zeros(sd.num_faces, dtype=bool)
@@ -190,11 +198,14 @@ def intersect_cells(sd: pg.Grid, cut_faces: np.ndarray) -> np.ndarray:
     Marks the cells that are cut and checks if each cut cell is only cut once.
 
     Args:
-        sd (pg.Grid): The grid object representing the spatial domain.
+        sd (pg.Grid): The grid.
         cut_faces (np.ndarray[Any, bool]): An array indicating which faces are cut.
 
     Returns:
         np.ndarray[Any, bool]: An array indicating which cells are cut.
+
+    Raises:
+        NotImplementedError: If a cell has more than two cut faces.
     """
     cell_finder = cut_faces @ abs(sd.cell_faces)
 
@@ -215,7 +226,7 @@ def create_new_face_nodes(
     and generates the corresponding face-node connectivity matrix.
 
     Args:
-        sd (pg.Grid): The grid object.
+        sd (pg.Grid): The grid.
         cut_cells (np.ndarray[Any, bool]): Boolean array indicating the cut cells.
         cut_faces (np.ndarray[Any, bool]): Boolean array indicating the cut faces.
         entity_maps (Dict): Dictionary containing entity maps.
@@ -266,7 +277,7 @@ def create_new_cell_faces(
     and generates the corresponding cell-face connectivity matrix.
 
     Args:
-        sd (pg.Grid): The grid object.
+        sd (pg.Grid): The grid.
         cut_cells (np.ndarray[Any, bool]): Boolean array indicating which cells are cut.
         cut_faces (np.ndarray[Any, bool]): Boolean array indicating which faces are cut.
         entity_maps (Dict): Dictionary containing entity maps.

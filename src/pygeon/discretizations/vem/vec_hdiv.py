@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H(div) space."""
+"""Module for the virtual element discretizations of the matrix-valued H(div) space."""
 
 from typing import Type
 
@@ -7,8 +7,7 @@ import pygeon as pg
 
 class VecVRT0(pg.VecDiscretization):
     """
-    VecVRT0 is a tensor-valued discretization class for the virtual Raviart-Thomas RT0
-    element.
+    Matrix-valued virtual element discretization with each row in :class:`pg.VRT0`.
     """
 
     poly_order = 1
@@ -57,10 +56,7 @@ class VecVRT0(pg.VecDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.VRT0 = pg.VRT0(keyword)
@@ -73,6 +69,6 @@ class VecVRT0(pg.VecDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwConstants

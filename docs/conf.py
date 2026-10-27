@@ -1,168 +1,159 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Sphinx configuration of the PyGeoN documentation."""
 
-import os
+import shutil
 import sys
-from unittest.mock import MagicMock
+from collections import defaultdict
+from pathlib import Path
 
-# -- Path setup --------------------------------------------------------------
-sys.path.insert(0, os.path.abspath("../src"))
-
-
-# Mock modules that are not available on ReadTheDocs or require system libraries
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
-
-
-MOCK_MODULES = [
-    "vtkmodules",
-    "vtkmodules.vtkCommonCore",
-    "vtkmodules.vtkCommonDataModel",
-    "vtkmodules.vtkIOXML",
-    "vtkmodules.vtkIOLegacy",
-    "vtkmodules.util",
-    "vtkmodules.util.numpy_support",
-    "meshio",
-    "pygmsh",
-    "gmsh",
-]
-
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+import bibtexparser
 
 project = "PyGeoN"
-copyright = "2025, Wietse M. Boon, Alessio Fumagalli"
 author = "Wietse M. Boon, Alessio Fumagalli"
-
-# -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+copyright = f"2025, {author}"
 
 extensions = [
+    "sphinx.ext.apidoc",
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",
-    "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
-    "sphinx.ext.todo",
-    "sphinx.ext.coverage",
-    "myst_parser",
+    "sphinx.ext.viewcode",
+    "myst_nb",
 ]
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
+# the API pages are generated at each build from the package, one page per module
+apidoc_modules = [
+    {
+        "path": "../src/pygeon",
+        "destination": "api",
+        "separate_modules": True,
+        "module_first": True,
+    }
+]
+# the table of contents of apidoc and the README of the tutorials are replaced by the
+# toctrees in index.rst
 exclude_patterns = [
     "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "README.md",
-    "api/pygeon.rst",
-    "api/pygeon.discretizations.rst",
-    "api/pygeon.filters.rst",
-    "api/pygeon.grids.rst",
-    "api/pygeon.numerics.rst",
-    "api/pygeon.utils.rst",
-    "api/pygeon.viz.rst",
+    "api/modules.rst",
+    "tutorials/README.md",
+    "**/.ipynb_checkpoints",
 ]
+# the arguments of the constructors are documented in the __init__ docstrings
+autodoc_default_options = {"member-order": "bysource", "special-members": "__init__"}
+# the types are written in the Args and Returns sections of the docstrings
+autodoc_typehints = "none"
 
-# The suffix(es) of source filenames.
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
+# mocked so that the documentation builds without them: they are needed to create
+# and export the grids, not to import PyGeoN and read its docstrings
+autodoc_mock_imports = ["gmsh", "meshio", "pygmsh", "pyvista", "vtkmodules"]
 
-# Suppress warnings for unresolved type hints in autodoc
-suppress_warnings = [
-    "ref.class",  # Suppress unresolved class reference warnings
-    "ref.exc",  # Suppress unresolved exception reference warnings
-    "misc.highlighting_failure",  # Suppress invalid Pygments lexer warnings
-]
-
-# Autodoc settings
-autodoc_mock_imports = [
-    "pyvista",
-    "vtkmodules",
-    "vtkmodules.vtkCommonCore",
-    "vtkmodules.vtkCommonDataModel",
-    "vtkmodules.vtkIOXML",
-    "vtkmodules.vtkIOLegacy",
-    "vtkmodules.vtkImagingSources",
-    "vtkmodules.util",
-    "vtkmodules.util.numpy_support",
-]
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
-
-# Theme options
-html_theme_options = {
-    "navigation_depth": 4,
-    "collapse_navigation": False,
-    "sticky_navigation": True,
-    "includehidden": True,
-    "titles_only": False,
-}
-
-# -- Extension configuration -------------------------------------------------
-
-# Napoleon settings for Google/NumPy style docstrings
-napoleon_google_docstring = True
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = True
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
-napoleon_preprocess_types = False
-napoleon_type_aliases = None
-napoleon_attr_annotations = True
-
-# Intersphinx mapping
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy", None),
 }
+# PorePy and SymPy do not publish an inventory with the objects used by PyGeoN
+nitpick_ignore_regex = [("py:class", r"(pp|porepy|sp)\..*")]
 
-# autodoc settings
-autodoc_default_options = {
-    "members": True,
-    "member-order": "bysource",
-    "special-members": "__init__",
-    "undoc-members": True,
-    "exclude-members": "__weakref__",
-}
+# the tutorials, linked from the repository, are rendered without being executed; as
+# in Jupyter, the $$ display math is allowed inside a paragraph
+nb_execution_mode = "off"
+myst_enable_extensions = ["dollarmath", "amsmath"]
+myst_dmath_double_inline = True
 
-autodoc_typehints = "none"
-autodoc_typehints_description_target = "documented"
+html_theme = "furo"
+html_title = "PyGeoN"
 
-# autosummary settings
-autosummary_generate = True
-autosummary_imported_members = False
 
-# Todo extension
-todo_include_todos = True
+def resolve_alias(app, env, node, contnode):
+    """
+    Link the objects written with the import aliases of the code, as pg.Grid,
+    pygeon.RT0.interpolate or np.ndarray: pg and pygeon are resolved in the documented
+    objects, through the names exported by the package, np and sps by intersphinx.
+    """
+    prefix, _, name = node["reftarget"].partition(".")
+    if prefix in ("np", "sps"):
+        # rewritten for the intersphinx handler, called after this one
+        node["reftarget"] = {"np": "numpy.", "sps": "scipy.sparse."}[prefix] + name
+        return None
 
-# MyST parser settings
-myst_enable_extensions = [
-    "dollarmath",
-    "amsmath",
-    "deflist",
-    "colon_fence",
-]
+    # the first name is the one exported by the package, as a class or a function,
+    # the rest are its attributes, as a method
+    first, _, rest = name.partition(".")
+    obj = getattr(sys.modules["pygeon"], first, None)
+    if prefix in ("pg", "pygeon") and hasattr(obj, "__qualname__"):
+        target = f"{obj.__module__}.{obj.__qualname__}" + (f".{rest}" if rest else "")
+        return env.domains.python_domain.resolve_xref(
+            env, node["refdoc"], app.builder, node["reftype"], target, node, contnode
+        )
+    return None
+
+
+def copy_tutorial_figures(app, exception):
+    """
+    Copy the figures of the tutorials next to their pages, since the notebooks show
+    them through raw html with paths relative to the notebook, as ../fig/darcy.png.
+    """
+    if exception is None and app.builder.format == "html":
+        src, dst = app.srcdir / "tutorials/fig", app.outdir / "tutorials/fig"
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        print(f"Copied the figures of the tutorials from {src} to {dst}")
+
+
+def write_papers(app):
+    """
+    Write papers.rst from papers.bib, the papers grouped by year and the titles linked
+    to the DOI, so that adding a paper only takes its BibTeX entry. The published
+    version is cited in full, with a link to the arXiv preprint (eprint) for the
+    readers without access to the journal; a preprint has its title linked to arXiv.
+    """
+    entries = bibtexparser.parse_file(Path(app.confdir) / "papers.bib").entries
+    clean = lambda s: " ".join(
+        s.replace("{", "").replace("}", "").replace("\\&", "&").split()
+    )
+
+    by_year = defaultdict(list)
+    for e in entries:
+        authors = "; ".join(a.strip() for a in clean(e["author"]).split(" and "))
+        title = clean(e["title"]).rstrip(".")
+        if "doi" in e:
+            title = f"`{title} <https://doi.org/{e['doi']}>`__"
+        elif "eprint" in e:
+            title = f"`{title} <https://arxiv.org/abs/{e['eprint']}>`__"
+        journal = clean(e["journal"] if "journal" in e else e["booktitle"])
+        ref = f"*{journal}*"
+        if "volume" in e:
+            ref += f", {e['volume']}" + (f"({e['number']})" if "number" in e else "")
+        if "pages" in e:
+            ref += f", {e['pages'].replace('--', '–')}"
+        line = f"- {authors} ({e['year']}). {title}. {ref}."
+        if "doi" in e and "eprint" in e:
+            line += f" `arXiv <https://arxiv.org/abs/{e['eprint']}>`__."
+        if "url" in e:
+            line += f" `Code <{e['url']}>`__."
+        by_year[e["year"]].append(line)
+
+    years = sorted(by_year, reverse=True)
+    out = Path(app.confdir) / "papers.rst"
+    out.write_text(
+        PAPERS_HEADER
+        + "\n\n".join(f"{y}\n{'-' * len(y)}\n\n" + "\n".join(by_year[y]) for y in years)
+        + "\n"
+    )
+    print(f"Written {len(entries)} papers in the years {years} to {out}")
+
+
+PAPERS_HEADER = """Papers using PyGeoN
+===================
+
+If you use PyGeoN in your research, please cite it through its
+`DOI <https://zenodo.org/badge/latestdoi/455087135>`_. To add your paper to this list,
+open a pull request with its entry in ``docs/papers.bib``.
+
+"""
+
+
+def setup(app):
+    app.connect("builder-inited", write_papers)
+    app.connect("missing-reference", resolve_alias, priority=400)
+    app.connect("build-finished", copy_tutorial_figures)

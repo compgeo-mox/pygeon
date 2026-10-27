@@ -46,7 +46,7 @@ Docs website: https://pygeon-docs.readthedocs.io/
 See the [tutorials](https://github.com/compgeo-mox/pygeon/tree/main/tutorials).
 
 ## Papers
-For a list of papers that use PyGeoN see [papers](docs/papers.rst).
+For a list of papers that use PyGeoN see [papers](https://pygeon-docs.readthedocs.io/en/latest/papers.html).
 
 ## License
 See [license](./LICENSE.md).

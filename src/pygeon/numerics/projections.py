@@ -1,4 +1,4 @@
-"""This module contains functions for creating projection operators."""
+"""Module for the projection operators."""
 
 from typing import cast
 
@@ -14,23 +14,18 @@ def eval_at_cell_centers(
     """
     Create an operator that evaluates a solution in the cell centers.
 
-    This function takes a mixed-dimensional grid `mdg` and a discretization `discr`
-    (optional) and returns an operator that can be used to evaluate a solution in
-    the cell centers of the grid.
-
     Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         discr (pg.Discretization): The discretization used for the evaluation.
-        kwargs (dict): Optional parameters:
+        **kwargs: Optional parameters:
 
             - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default is False.
+              sub-blocks. Defaults to False.
 
     Returns:
-        sps.csc_array or sps.block_array: The operator that evaluates the solution in
-        the cell centers. If `as_bmat` is True, the operator is returned as sparse
-        sub-blocks in `sps.csc_array` format. Otherwise, the operator is returned as a
-        block matrix in `sps.block_array` format.
+        sps.csc_array | np.ndarray: The operator that evaluates the solution in the
+        cell centers. If ``as_bmat`` is True, the operator is returned as an array of
+        sparse sub-blocks, otherwise as a single sparse matrix.
 
     """
     as_bmat = kwargs.get("as_bmat", False)

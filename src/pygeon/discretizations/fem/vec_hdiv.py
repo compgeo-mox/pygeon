@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H(div) space."""
+"""Module for the discretizations of the matrix-valued H(div) space."""
 
 from typing import Type
 
@@ -9,11 +9,7 @@ import pygeon as pg
 
 class VecBDM1(pg.MatDiscretization):
     """
-    VecBDM1 is a class that represents the vector BDM1 (Brezzi-Douglas-Marini) finite
-    element method. It provides methods for assembling matrices like the mass matrix,
-    the trace matrix, the asymmetric matrix and the differential matrix. It also
-    provides methods for evaluating the solution at cell centers, interpolating a given
-    function onto the grid, assembling the natural boundary condition term, and more.
+    Matrix-valued finite element discretization with each row in :class:`pg.BDM1`.
     """
 
     poly_order = 1
@@ -59,10 +55,7 @@ class VecBDM1(pg.MatDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.BDM1 = pg.BDM1(keyword)
@@ -72,7 +65,7 @@ class VecBDM1(pg.MatDiscretization):
         Project the function space to the lowest order Raviart-Thomas (RT0) space.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix to the RT0 space.
@@ -82,7 +75,7 @@ class VecBDM1(pg.MatDiscretization):
 
     def proj_from_RT0(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Project the RT0 finite element space onto the faces of the given grid.
+        Include the vector RT0 finite element space in the vector BDM1 one.
 
         Args:
             sd (pg.Grid): The grid on which the projection is performed.
@@ -95,25 +88,20 @@ class VecBDM1(pg.MatDiscretization):
 
     def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
+            dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The discretization class containing the range of the
-            differential
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwConstants
 
 
 class VecRT0(pg.MatDiscretization):
     """
-    VecRT0 is a tensor-valued discretization class for the Raviart-Thomas RT0 finite
-    element, specialized for handling stress tensors in 2D and 3D.
-    This class provides methods for assembling trace and asymmetric matrices
-    for vector RT0 discretizations, as well as retrieving the appropriate range
-    discretization class.
+    Matrix-valued finite element discretization with each row in :class:`pg.RT0`.
     """
 
     poly_order = 1
@@ -159,10 +147,7 @@ class VecRT0(pg.MatDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.RT0 = pg.RT0(keyword)
@@ -175,17 +160,14 @@ class VecRT0(pg.MatDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwConstants
 
 
 class VecRT1(pg.MatDiscretization):
     """
-    VecRT1 is a vector Raviart-Thomas finite element discretization class of order 1.
-
-    This class is designed for matrix-valued finite element discretizations in the
-    H(div) space, specifically using the Raviart-Thomas elements of order 1 (RT1).
+    Matrix-valued finite element discretization with each row in :class:`pg.RT1`.
     """
 
     poly_order = 2
@@ -198,10 +180,7 @@ class VecRT1(pg.MatDiscretization):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.RT1 = pg.RT1(keyword)
@@ -214,6 +193,6 @@ class VecRT1(pg.MatDiscretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return pg.VecPwLinears

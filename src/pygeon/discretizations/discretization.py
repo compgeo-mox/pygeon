@@ -29,10 +29,7 @@ class Discretization(abc.ABC):
 
         Args:
             keyword (str): The keyword used to identify the discretization method.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         self.keyword = keyword
 
@@ -60,10 +57,10 @@ class Discretization(abc.ABC):
         discontinuous ones, override this method.
 
         Args:
-            sd: Grid, or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-            ndof: the number of degrees of freedom.
+            int: The number of degrees of freedom.
         """
         return int(self.ndof_per_entity(sd.dim) @ sd.num_entities())
 
@@ -78,10 +75,10 @@ class Discretization(abc.ABC):
         implementations assume a simplicial element.
 
         Args:
-            dim: The dimension of the grid.
+            dim (int): The dimension of the grid.
 
         Returns:
-            np.ndarray: the number of degrees of freedom per entity, of size 4.
+            np.ndarray: The number of degrees of freedom per entity, of size 4.
         """
 
     def ndof_per_element(self, dim: int) -> int:
@@ -117,7 +114,7 @@ class Discretization(abc.ABC):
         and the range of this operator lie in :math:`V_h`.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
@@ -132,19 +129,25 @@ class Discretization(abc.ABC):
         Assembles the lumped mass matrix using the corresponding piecewise polynomial
         space.
 
-        For a discretization space :math:`V_h`, the lumped matrix is a diagonal
-        approximation of the mass matrix :math:`(u, v)_\Omega,\ u, v \in V_h`,
-        obtained by replacing each row with its sum placed on the diagonal.
-        Both the domain and the range lie in :math:`V_h`.
+        For a discretization space :math:`V_h`, the lumped matrix approximates the mass
+        matrix :math:`(u, v)_\Omega,\ u, v \in V_h` with the lumped matrix of the
+        piecewise polynomials, obtained with a quadrature rule, transferred to
+        :math:`V_h` through :meth:`pg.Discretization.proj_to_PwPolynomials`. Both the
+        domain and the range lie in :math:`V_h`.
+
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`, so that the block structure of the
+        lumped matrix is preserved.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
             sps.csc_array: The lumped mass matrix.
         """
-        return self._assemble_inner_product(sd, data, "assemble_lumped_matrix")
+        lumped = self._assemble_inner_product(sd, data, "assemble_lumped_matrix")
+        return pg.drop_small_entries(lumped)
 
     def _assemble_inner_product(
         self, sd: pg.Grid, data: dict | None, pwp_method: str
@@ -154,12 +157,12 @@ class Discretization(abc.ABC):
         polynomial space.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
-            pwp_method (str): Assembly method of the PiecewisePolynomial space.
+            pwp_method (str): Assembly method of the piecewise polynomial space.
 
         Returns:
-            sps.csc_array: The lumped mass matrix.
+            sps.csc_array: The inner product matrix.
         """
         # If there are no degrees of freedom, we return an empty matrix.
         if self.ndof(sd) == 0:
@@ -179,10 +182,10 @@ class Discretization(abc.ABC):
 
         The matrix :math:`D` represents the discrete exterior derivative,
         mapping from the current finite element space :math:`V_h` to its range
-        space :math:`W_h` (returned by :meth:`get_range_discr_class`).
+        space :math:`W_h` (returned by :meth:`pg.Discretization.get_range_discr_class`).
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -197,16 +200,8 @@ class Discretization(abc.ABC):
         :math:`V_h` to its range space :math:`W_h`) and :math:`A` is the
         mass matrix of the range discretization :math:`W_h`.
 
-        This method takes a grid object `sd` and an optional data dictionary `data` as
-        input. It first calls the `assemble_diff_matrix` method to obtain the
-        differential matrix `B`.
-        Then, it creates an instance of the range discretization class using the `dim`
-        attribute of `sd`. Next, it calls the `assemble_mass_matrix` method of the range
-        discretization class to obtain the mass matrix `A`.
-        Finally, it returns the product of the transpose of `B`, `A`, and `B`.
-
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data dictionary. Defaults to None.
 
         Returns:
@@ -224,29 +219,34 @@ class Discretization(abc.ABC):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space
+        Interpolates a function onto the finite element space.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: The values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
 
     def eval_func_at_coords(
         self, func: Callable[[np.ndarray], np.ndarray], coords: np.ndarray
     ) -> np.ndarray:
         """
-        Interpolates a function at given coordinates. We assume that func(x) rapidly
-        evaluates the given function for all coordinates in the columns of x.
+        Evaluates a function at given coordinates. We assume that func(x) evaluates
+        the given function for all coordinates in the columns of x at once; constant
+        scalar and vector functions are broadcast to all the coordinates.
 
         Args:
             func (Callable): A function that returns the function values at coordinates.
             coords (np.ndarray): A coordinate array with shape (3, n).
 
         Returns:
-            np.ndarray: The values of the degrees of freedom
+            np.ndarray: The values of the function, with the points along the last
+            axis.
+
+        Raises:
+            RuntimeError: If the function is neither vectorized nor constant.
         """
         # We first simply evaluate the function at the coordinates.
         interp = np.asarray(func(coords))
@@ -281,11 +281,14 @@ class Discretization(abc.ABC):
         """
         Assembles the matrix for evaluating the discretization at the cell centers.
 
+        The round-off entries of the product with the projection are removed, see
+        :func:`pg.drop_small_entries`.
+
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-             sps.csc_array: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
         # If there are no degrees of freedom, we return an empty matrix.
         if self.ndof(sd) == 0:
@@ -296,21 +299,21 @@ class Discretization(abc.ABC):
             self.keyword
         )
 
-        return Poly_space.eval_at_cell_centers(sd) @ Pi
+        return pg.drop_small_entries(Poly_space.eval_at_cell_centers(sd) @ Pi)
 
     def source_term(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
         Assembles the source term by interpolating the given function
-        and multiplying by the mass matrix
+        and multiplying by the mass matrix.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: The evaluation matrix.
+            np.ndarray: The source term.
         """
         return self.assemble_mass_matrix(sd) @ self.interpolate(sd, func)
 
@@ -325,9 +328,9 @@ class Discretization(abc.ABC):
         onto :math:`\partial\Omega`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             func (Callable): The function representing the natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled natural boundary condition term.
@@ -336,14 +339,13 @@ class Discretization(abc.ABC):
     @abc.abstractmethod
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
+            dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The discretization class containing the range of the
-            differential
+            Type[pg.Discretization]: The range discretization class.
         """
 
     @abc.abstractmethod
@@ -365,11 +367,11 @@ class Discretization(abc.ABC):
 
         The broken gradient :math:`\nabla_h` acts element-wise on functions in
         the current finite element space :math:`V_h`, mapping to the piecewise
-        polynomials of :meth:`get_broken_grad_discr`; see
-        :meth:`proj_to_PwPolynomials` for the projection used.
+        polynomials of :meth:`pg.Discretization.get_broken_grad_discr`; see
+        :meth:`pg.Discretization.proj_to_PwPolynomials` for the projection used.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
@@ -412,14 +414,16 @@ class Discretization(abc.ABC):
         computed using interpolation, which may result in unexpected superconvergence.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             num_sol (np.ndarray): Vector of the numerical solution.
             ana_sol (Callable): Function that represents the analytical solution.
-            relative (bool, optional): Compute the relative error or not. Defaults to
-                True.
-            poly_order (int, optional): If poly_order is specified as an integer,
-                the error is evaluated in a piecewise polynomial space of that order. If
-                it is None, we use interpolation.
+            relative (bool): Compute the relative error or not. Defaults to True.
+            poly_order (int | None): If poly_order is specified as an integer, the
+                error is evaluated in a piecewise polynomial space of that order. If it
+                is None, we use interpolation. Defaults to -1, the piecewise polynomials
+                of the order of the discretization, at least 1.
+            data (dict | None): The data of the mass matrix in which the error is
+                measured. Defaults to None.
 
         Returns:
             float: The computed error.

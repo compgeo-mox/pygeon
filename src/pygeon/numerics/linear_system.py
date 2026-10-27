@@ -21,11 +21,8 @@ class LinearSystem:
 
         Args:
             A (sps.csc_array): The coefficient matrix of the linear system.
-            b (np.ndarray, optional): The right-hand side vector of the linear system.
+            b (np.ndarray | None): The right-hand side vector of the linear system.
                 Defaults to None.
-
-        Returns:
-            None
         """
         self.A = A
 
@@ -37,11 +34,8 @@ class LinearSystem:
 
     def reset_bc(self) -> None:
         """
-        Reset the boundary conditions.
-
-        This method sets the degrees of freedom (is_dof) to True for all elements
-        in the b vector, and sets the essential values (ess_vals) to zero for all
-        elements in the b vector.
+        Reset the boundary conditions: all the degrees of freedom are free and the
+        essential values are zero.
         """
         self.is_dof = np.ones(self.b.shape[0], dtype=bool)
         self.ess_vals = np.zeros(self.b.shape[0])
@@ -49,16 +43,13 @@ class LinearSystem:
     def flag_ess_bc(self, is_ess_dof: np.ndarray, ess_vals: np.ndarray) -> None:
         """
         Flags the essential boundary conditions for the degrees of freedom specified
-        by `is_ess_dof`.
+        by ``is_ess_dof``.
 
         Args:
             is_ess_dof (np.ndarray): Boolean array indicating the degrees of freedom
                 to flag as essential.
             ess_vals (np.ndarray): Array of essential values corresponding to the
-                flagged degrees of freedom.
-
-        Returns:
-            None
+                flagged degrees of freedom, added to the values flagged before.
         """
         self.is_dof[is_ess_dof] = False
         self.ess_vals[is_ess_dof] += ess_vals[is_ess_dof]
@@ -69,8 +60,8 @@ class LinearSystem:
         the reduced system.
 
         Returns:
-            A tuple containing the reduced matrix A, the reduced vector b, and the
-            restriction operator R.
+            tuple[sps.csc_array, np.ndarray, sps.csc_array]: The reduced matrix A, the
+            reduced right-hand side b, and the restriction operator R.
         """
         R_0 = pg.create_restriction(self.is_dof)
         A_0 = R_0 @ self.A @ R_0.T
@@ -80,18 +71,23 @@ class LinearSystem:
 
     def solve(self, solver: Callable = sps.linalg.spsolve) -> np.ndarray:
         """
-        Solve the linear system of equations.
+        Solve the linear system of equations. If all the degrees of freedom are
+        essential, the reduced system is empty and the solver is not called.
 
         Args:
             solver (Callable): The solver function to use. Defaults to
                 sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The solution to the linear system of equations.
+            np.ndarray: The solution to the linear system of equations, with the shape
+            of the right-hand side.
         """
         A_0, b_0, R_0 = self.reduce_system()
-        sol_0 = solver(A_0.tocsc(), b_0)
-        sol_0 = sol_0.reshape(b_0.shape)
+        if A_0.shape[0] == 0:
+            sol_0 = np.zeros(b_0.shape)
+        else:
+            sol_0 = solver(A_0.tocsc(), b_0)
+            sol_0 = sol_0.reshape(b_0.shape)
         sol = self.repeat_ess_vals() + R_0.T @ sol_0
 
         return sol
@@ -100,11 +96,12 @@ class LinearSystem:
         """
         Repeat the essential values of the linear system.
 
-        If the input vector `b` has dimension 1, the method returns the essential values
-        as is. Otherwise, it repeats the essential values for each column of `b`.
+        If the input vector ``b`` has dimension 1, the method returns the essential
+        values as is. Otherwise, it repeats the essential values for each column of
+        ``b``.
 
         Returns:
-            numpy.ndarray or scipy.sparse.csc_array: The repeated essential values.
+            np.ndarray | sps.csc_array: The repeated essential values.
         """
         if self.b.ndim == 1:
             return self.ess_vals

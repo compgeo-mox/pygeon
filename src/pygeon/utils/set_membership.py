@@ -10,11 +10,11 @@ def match_coordinates(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     NOTE: This code is not optimized so only use this for "small" matrices.
 
     Args:
-        a (np.array, m x n): The first matrix to compare.
-        b (np.array, m x n): The second matrix to compare.
+        a (np.ndarray): The first matrix to compare, of shape (m, n).
+        b (np.ndarray): The second matrix to compare, of shape (m, n).
 
     Returns:
-        np.array, (n, ): The indices ind such that b[:, ind] = a.
+        np.ndarray: The indices ind, of shape (n,), such that b[:, ind] = a.
     """
     n = a.shape[1]
     ind = np.empty((n,), dtype=int)

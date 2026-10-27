@@ -31,13 +31,13 @@ def grid_from_domain(
     Args:
         domain (pp.Domain): The domain of the grid.
         mesh_size (float): The desired mesh size for the grid.
-        as_mdg (bool): Return the grid as a mixed-dimensional grid. Default True.
-        **kwargs: Additional options for creating the grid:
-
-            - mesh_size_min (float): The minimum mesh size. Default is mesh_size / 10.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid. Defaults to True.
+        **kwargs: Additional options for creating the grid: the ones of
+            pp.create_fracture_network are passed to it, the others to pp.create_mdg.
 
     Returns:
-        Either a pg.MixedDimensionalGrid or a pg.Grid, depending on the value of as_mdg.
+        pg.Grid | pg.MixedDimensionalGrid: The mixed-dimensional grid, or its grid of
+        the highest dimension if as_mdg is False.
     """
     mesh_kwargs = {"cell_size": mesh_size}
 
@@ -81,13 +81,12 @@ def grid_from_boundary_pts(
     Args:
         pts (np.ndarray): The ordered points representing the boundary.
         mesh_size (float): The desired mesh size.
-        as_mdg (bool): Return the grid as a mixed-dimensional grid. Default True.
-        **kwargs: Additional options:
-
-            - mesh_size_min (float): The minimum mesh size. Default is mesh_size.
+        as_mdg (bool): Return the grid as a mixed-dimensional grid. Defaults to True.
+        **kwargs: Additional options, passed to :func:`pg.grid_from_domain`.
 
     Returns:
-        Either a pg.MixedDimensionalGrid or a pg.Grid.
+        pg.Grid | pg.MixedDimensionalGrid: The mixed-dimensional grid, or its grid of
+        the highest dimension if as_mdg is False.
     """
     # Create the lines representing the boundary of the domain
     idx = np.arange(pts.shape[1])
@@ -116,20 +115,23 @@ def unit_grid(
     dim: int, mesh_size: float, as_mdg: bool = True, **kwargs
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
-    Create a unit square or cube grid with a given mesh size.
+    Create a unit square or cube grid with a given mesh size. In dimension 0 and 1,
+    and when structured is True, the grid is structured, with 1 / mesh_size cells
+    per direction; otherwise it is an unstructured simplicial grid.
 
     Args:
         dim (int): The dimension of the grid.
         mesh_size (float): The desired mesh size.
-        as_mdg (bool): Return the grid as a mixed-dimensional grid. Default True.
-        kwargs: Additional options:
+        as_mdg (bool): Return the grid as a mixed-dimensional grid. Defaults to True.
+        **kwargs: Additional options:
 
-            - mesh_size_min (float): The minimum mesh size. Default is the same as
-              mesh_size.
             - structured (bool): If True, create a structured grid.
+            - the others are passed to :func:`pg.grid_from_domain` for the
+              unstructured grids.
 
     Returns:
-        Either a pg.MixedDimensionalGrid or a pg.Grid.
+        pg.Grid | pg.MixedDimensionalGrid: The mixed-dimensional grid, or its grid of
+        the highest dimension if as_mdg is False.
     """
     if dim <= 1 or kwargs.get("structured", False):
         num = np.array([1 / mesh_size] * dim, dtype=int)
@@ -165,6 +167,9 @@ def reference_element(dim: int) -> pg.Grid:
 
     Returns:
         pg.Grid: The reference element.
+
+    Raises:
+        ValueError: If the dimension is not 1, 2 or 3.
     """
     match dim:
         case 1:

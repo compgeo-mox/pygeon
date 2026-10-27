@@ -11,24 +11,21 @@ import pygeon as pg
 
 
 class VoronoiGrid(pg.Grid):
-    """Voronoi grid implementation."""
+    """A Voronoi grid of the unit square, generated from internal seed points."""
 
     def __init__(self, num_pts=None, vrt=None, **kwargs) -> None:
         """
         Initialize a VoronoiGrid object.
 
         Args:
-            num_pts (int, optional): The number of internal seed points. Defaults to
-                None.
-            pts (ndarray, optional): The internal seed points, to be in the unit square.
-                Defaults to None.
-            **kwargs: Additional keyword arguments, like the seed for the random number
-                and a parameter to fit the grid to a bounding box in case the standard
-                value does not work as expected. The former with key "seed" and the
-                latter with key "factor".
-
-        Returns:
-            None
+            num_pts (int | None): The number of internal seed points, generated at
+                random when vrt is None. Defaults to None.
+            vrt (np.ndarray | None): The internal seed points, to be in the unit
+                square. Defaults to None.
+            **kwargs: Additional keyword arguments: "seed" for the random number
+                generator, "factor" to extend the infinite edges of the Voronoi diagram
+                in case the standard value does not work as expected, "tol" for the
+                check that vrt is in the unit square, and "name" of the grid.
         """
         tol = kwargs.get("tol", 1e-8)
         # Generate the internal seed points for the Voronoi grid
@@ -127,15 +124,15 @@ class VoronoiGrid(pg.Grid):
 
     def generate_internal_pts(self, num_pts: int, **kwargs) -> np.ndarray:
         """
-        Generate internal points within the Voronoi grid.
+        Generate random internal points in the unit square.
 
         Args:
             num_pts (int): The number of points to generate.
-            **kwargs: Additional keyword arguments.
-                seed (int, optional): The seed for the random number generator.
+            **kwargs: Additional keyword arguments, "seed" for the random number
+                generator.
 
         Returns:
-            np.ndarray: An array of generated internal points.
+            np.ndarray: The generated internal points, of shape (2, num_pts).
         """
         seed = kwargs.get("seed", None)
         if seed is not None:
@@ -154,7 +151,7 @@ class VoronoiGrid(pg.Grid):
             nodes (np.ndarray): The array of node coordinates.
 
         Returns:
-            Tuple[sps.csc_array, sps.csc_array]: A tuple containing the face-node
+            tuple[sps.csc_array, sps.csc_array]: A tuple containing the face-node
             connectivity matrix and the cell-face connectivity matrix.
         """
         # Derive face-node connectivity
