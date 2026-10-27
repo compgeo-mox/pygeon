@@ -21,11 +21,8 @@ class MatLagrange1(pg.MatDiscretization):
         The base discretization class is pg.VecLagrange1.
 
         Args:
-            keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+            keyword (str): The keyword for the matrix discretization class.
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.VecLagrange1 = pg.VecLagrange1(keyword)
@@ -34,20 +31,20 @@ class MatLagrange1(pg.MatDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles and returns the advection matrix for Lagrange1 finite
-        elements, which is given by
-        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
-        :math:`u,v \in \mathbb{L}_1(\Omega)`.
+        Assembles and returns the advection matrix for the matrix-valued Lagrange1
+        finite elements, which is given component-wise by
+        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for each component
+        :math:`u, v` in :class:`pg.Lagrange1`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR-FIELD. It is a given as a vector field, assumed
-        constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
+        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
+        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
         defaults to :math:`(0, 0, 0)`.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data for scaling, in particular
-            pg.VECTOR-FIELD (advection velocity field).
+                pg.VECTOR_FIELD (advection velocity field).
 
         Returns:
             sps.csc_array: The assembled advection matrix.
@@ -62,7 +59,8 @@ class MatLagrange1(pg.MatDiscretization):
         Args:
             dim (int): The dimension of the range space.
 
-        Returns:
-            pg.Discretization: The range discretization class.
+        Raises:
+            NotImplementedError: There is no range discretization for the matrix
+                Lagrange1 in PyGeoN.
         """
         raise NotImplementedError

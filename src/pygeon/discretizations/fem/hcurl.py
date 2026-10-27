@@ -14,12 +14,12 @@ class NedelecR0(pg.Discretization):
     Class implementing the finite element discretization of reduced Nedelec elements (of
     the first kind) of lowest order
     :math:`\mathbb{N}_0(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
-    :math:`\Omega \in \mathbb{R}^d`.
+    :math:`\Omega \subset \mathbb{R}^d`.
 
     Each degree of freedom is the tangential integral over a mesh edge in 3D.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
-    corresponds to a rotated :math:`\mathbb{RT}_0(\Omega)`.
+    corresponds to a rotated :class:`pg.RT0`.
     """
 
     poly_order = 1
@@ -47,11 +47,11 @@ class NedelecR0(pg.Discretization):
         r"""
         Constructs the projection matrix to the VecPwLinears space via NedelecF1. The
         projection operator :math:`\Pi` takes a function from
-        :math:`\mathbb{N}_0(\Omega)` and maps it to a piecewise linear function in
-        :math:`[\mathbb{P}_1(\Omega)]^d`.
+        :class:`pg.NedelecR0` and maps it to a piecewise linear function in
+        :class:`pg.VecPwLinears`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: A sparse array in CSC format representing the projection from
@@ -72,7 +72,7 @@ class NedelecR0(pg.Discretization):
         :math:`(u, v)_\Omega` for :math:`u, v \in \mathbb{N}_0(\Omega)`.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
@@ -83,19 +83,21 @@ class NedelecR0(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the differential matrix for the given grid.
+        Assembles the matrix corresponding to the differential operator.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
-        mapping from :math:`\mathbb{N}_0(\Omega)` to:
+        mapping from :class:`pg.NedelecR0` to:
 
-        - 3D: :math:`\mathbb{RT}_0(\Omega)` :class:`~pygeon.RT0` H(div)
-        - 2D: :math:`\mathbb{P}_0(\Omega)` :class:`~pygeon.PwConstants` L2
+        - 3D: :class:`pg.RT0`, H(div)
+        - 2D: :class:`pg.PwConstants`, L2
+
+        In the other dimensions the matrix has no rows.
 
         Args:
-            sd (pg.Grid): The grid for which the differential matrix is assembled.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The assembled differential matrix.
+            sps.csc_array: The differential matrix.
         """
         match sd.dim:
             case 3:
@@ -115,15 +117,15 @@ class NedelecR0(pg.Discretization):
 
         The natural boundary condition corresponds to the tangential trace of
         :math:`(v \times n, g)_{\partial\Omega}` with :math:`v` a test function in
-        :math:`\mathbb{N}_0(\Omega)` and :math:`g` the prescribed datum.
+        :class:`pg.NedelecR0` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
             func (Callable): The function defining the natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces.
 
-        Returns:
-            np.ndarray: The assembled natural boundary condition matrix.
+        Raises:
+            NotImplementedError: The natural boundary condition is not implemented.
         """
         raise NotImplementedError
 
@@ -135,7 +137,10 @@ class NedelecR0(pg.Discretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class for the given grid.
+            Type[pg.Discretization]: The range discretization class.
+
+        Raises:
+            NotImplementedError: If the dimension is neither 2 nor 3.
         """
         match dim:
             case 2:
@@ -149,14 +154,16 @@ class NedelecR0(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a given function onto the grid using the hcurl discretization.
+        Interpolates a given function onto the finite element space: each degree of
+        freedom is the tangential component at the edge midpoint times the edge
+        length.
 
         Args:
             sd (pg.Grid): The grid on which to interpolate the function.
             func (Callable): The function to be interpolated.
 
         Returns:
-            np.ndarray: The interpolated values on the grid.
+            np.ndarray: The values of the degrees of freedom.
         """
         midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
         func_vals = self.eval_func_at_coords(func, midpoints)
@@ -167,11 +174,11 @@ class NedelecR0(pg.Discretization):
     def proj_to_Ne1(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Project the solution to the Nedelec of the second kind. The projection operator
-        :math:`\Pi` takes a function from :math:`\mathbb{N}_0(\Omega)` and maps it
-        to a function in :math:`\mathbb{N}_1(\Omega)`.
+        :math:`\Pi` takes a function from :class:`pg.NedelecR0` and maps it
+        to a function in :class:`pg.NedelecF1`.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix to the Nedelec of the second kind.
@@ -186,12 +193,12 @@ class NedelecF1(pg.Discretization):
     Class implementing the finite element discretization of full Nedelec elements (of
     the second kind) of lowest order
     :math:`\mathbb{N}_1(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
-    :math:`\Omega \in \mathbb{R}^d`.
+    :math:`\Omega \subset \mathbb{R}^d`.
 
     Each degree of freedom is a tangential evaluation at the edge nodes.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
-    corresponds to a rotated :math:`\mathbb{BDM}_1(\Omega)`.
+    corresponds to a rotated :class:`pg.BDM1`.
     """
 
     poly_order = 1
@@ -219,11 +226,11 @@ class NedelecF1(pg.Discretization):
         r"""
         Constructs the projection matrix from the current finite element space to the
         VecPwLinears space. The projection operator :math:`\Pi` takes a function from
-        :math:`\mathbb{N}_1(\Omega)` and maps it to a piecewise linear function in
-        :math:`[\mathbb{P}_1(\Omega)]^d`.
+        :class:`pg.NedelecF1` and maps it to a piecewise linear function in
+        :class:`pg.VecPwLinears`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: A sparse array in CSC format representing the projection from
@@ -296,11 +303,11 @@ class NedelecF1(pg.Discretization):
     def proj_to_Ne0(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Project the solution to the Nedelec of the first kind. The projection operator
-        :math:`\Pi` takes a function from :math:`\mathbb{N}_1(\Omega)` and maps it
-        to a function in :math:`\mathbb{N}_0(\Omega)`.
+        :math:`\Pi` takes a function from :class:`pg.NedelecF1` and maps it
+        to a function in :class:`pg.NedelecR0`.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix to the Nedelec of the first kind.
@@ -311,18 +318,18 @@ class NedelecF1(pg.Discretization):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the differential matrix for the H(curl) finite element space.
+        Assembles the matrix corresponding to the differential operator.
 
         The differential corresponds to the curl operator :math:`\nabla \times`,
-        mapping from :class:`NedelecF1` (H(curl), two dofs per edge) to the
-        same range as :class:`NedelecR0` (i.e. :class:`~pygeon.RT0` in 3D
-        or :class:`~pygeon.PwConstants` in 2D).
+        mapping from :class:`pg.NedelecF1` (H(curl), two dofs per edge) to the
+        same range as :class:`pg.NedelecR0` (i.e. :class:`pg.RT0` in 3D
+        or :class:`pg.PwConstants` in 2D).
 
         Args:
-            sd (pg.Grid): The grid on which the finite element space is defined.
+            sd (pg.Grid): The grid.
 
         Returns:
-            sps.csc_array: The assembled differential matrix.
+            sps.csc_array: The differential matrix.
         """
         n0 = pg.NedelecR0(self.keyword)
         Ne0_diff = n0.assemble_diff_matrix(sd)
@@ -334,14 +341,16 @@ class NedelecF1(pg.Discretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates the given function `func` over the specified grid `sd`.
+        Interpolates the given function onto the finite element space: the degrees of
+        freedom of each edge are the tangential components at its two nodes times the
+        edge length.
 
         Args:
             sd (pg.Grid): The grid over which to interpolate the function.
             func (Callable): The function to be interpolated.
 
         Returns:
-            np.ndarray: The interpolated values.
+            np.ndarray: The values of the degrees of freedom.
         """
         edge_nodes = np.reshape(sd.ridge_peaks.indices, (-1, 2))
         coords = sd.nodes[:, edge_nodes.ravel(order="F")]
@@ -361,15 +370,15 @@ class NedelecF1(pg.Discretization):
 
         The natural boundary condition corresponds to the tangential trace of
         :math:`(v \times n, g)_{\partial\Omega}` with :math:`v` a test function in
-        :math:`\mathbb{N}_1(\Omega)` and :math:`g` the prescribed datum.
+        :class:`pg.NedelecF1` and :math:`g` the prescribed datum.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the natural boundary condition.
             func (Callable): The function defining the natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces.
 
-        Returns:
-            np.ndarray: The assembled natural boundary condition.
+        Raises:
+            NotImplementedError: The natural boundary condition is not implemented.
         """
         raise NotImplementedError
 
@@ -381,6 +390,6 @@ class NedelecF1(pg.Discretization):
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The range discretization class.
+            Type[pg.Discretization]: The range discretization class.
         """
         return NedelecR0().get_range_discr_class(dim)

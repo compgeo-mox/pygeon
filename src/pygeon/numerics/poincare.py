@@ -41,6 +41,7 @@ class Poincare:
         Flags the mesh entities used to build the Poincaré operators.
 
         These are split into three boolean subspaces:
+
         - bar_spaces: domain subspace on which the differential is injective
         - zer_spaces: range subspace on which the differential is surjective
         - hom_spaces: subspace with the same dimension as the cohomology
@@ -78,6 +79,10 @@ class Poincare:
         Flags the edges of the grid that form a spanning tree of the nodes.
 
         This function is only used in 3D.
+
+        Args:
+            keep_node (np.ndarray | None): The nodes to include in the tree, as a mask.
+                Defaults to None, all the nodes.
 
         Returns:
             np.ndarray: Boolean array with flagged edges.
@@ -276,7 +281,7 @@ class Poincare:
 
         Returns:
             np.ndarray: Boolean mask of the remaining rows, i.e. the selected
-                closed-surface faces.
+            closed-surface faces.
         """
         incidence = incidence.astype(bool)
         for _ in np.arange(incidence.shape[0]):
@@ -310,7 +315,7 @@ class Poincare:
 
         Returns:
             np.ndarray: Array whose rows contain boundary contributions for each
-                connected component of the domain split by the surface.
+            connected component of the domain split by the surface.
         """
         # The surface divides the domain into subdomains
         div_ = div * np.logical_not(surface)
@@ -397,8 +402,8 @@ class Poincare:
             curl (sps.csc_array): The boundary curl operator.
 
         Returns:
-            List[np.ndarray]: A list of node cycles, one for each independent
-                boundary cycle.
+            list[np.ndarray]: A list of node cycles, one for each independent
+            boundary cycle.
         """
         # Compute the number of connected components of the boundary
         incidence = div @ div.T
@@ -498,7 +503,7 @@ class Poincare:
 
         Returns:
             np.ndarray: Coordinates of the polygon in 3D, with alternating node and
-                cell-center points.
+            cell-center points.
         """
         # Preallocation
         U = np.zeros((3, 1 + 2 * len(node_cycle)))
@@ -587,9 +592,27 @@ class Poincare:
         Computes the linking number of two closed polygons U and P.
 
         The linking number is the double contour integral
-            1/(4*pi) * \int_P \int_U  Z \cdot (x - y) / |x - y|^3
-        where x(alpha) traces P, y(beta) traces U, and Z is the cross product of
-        the two segment tangents.
+
+        .. math::
+
+            \frac{1}{4 \pi} \int_P \int_U \frac{Z \cdot (x - y)}{|x - y|^3}
+
+        where :math:`x(\alpha)` traces P, :math:`y(\beta)` traces U, and :math:`Z` is
+        the cross product of the two segment tangents. The result is rounded to the
+        closest integer when it is within 0.25 from it; otherwise the number of
+        quadrature points is doubled, up to 16.
+
+        Args:
+            U (np.ndarray): The vertices of the first polygon, of shape (3, n).
+            P (np.ndarray): The vertices of the second polygon, of shape (3, m).
+            n_points (int): The number of quadrature points on each segment of U.
+
+        Returns:
+            float: The linking number.
+
+        Raises:
+            RuntimeError: If the integral is not close to an integer with 16 quadrature
+                points.
         """
         integral = 0.0
 
@@ -604,7 +627,7 @@ class Poincare:
                 tau_sqrd = tau @ tau
 
                 def inner(beta: np.ndarray) -> np.ndarray:
-                    """Closed-form alpha-integral"""
+                    """Closed-form alpha-integral."""
                     # y-values, given beta
                     y = np.outer(U[:, i], 1 - beta) + np.outer(U[:, i + 1], beta)
 
@@ -664,7 +687,7 @@ class Poincare:
 
         Returns:
             np.ndarray: Coefficient matrix defining the linear combinations that
-                span the relevant homology classes.
+            span the relevant homology classes.
         """
         n_cycles = len(U_list)
         G = np.empty((n_cycles,) * 2)
@@ -768,7 +791,7 @@ class Poincare:
         self, k: int, f: np.ndarray, solver: Callable = sps.linalg.spsolve
     ) -> np.ndarray:
         """
-        Apply the Poincare operator
+        Apply the Poincaré operator.
 
         Args:
             k (int): Order of the differential k-form that is input.
@@ -778,7 +801,7 @@ class Poincare:
                 Defaults to sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The image of f under the Poincaré operator, i.e. p(f)
+            np.ndarray: The image of f under the Poincaré operator, i.e. p(f).
         """
         if k == 0:
             return np.zeros(0)
@@ -808,8 +831,8 @@ class Poincare:
             f (np.ndarray): The function to be decomposed.
 
         Returns:
-            Tuple[np.ndarray]: The decomposition of f as :math:`(dp(f), pd(f),
-                q(f))`.
+            tuple[np.ndarray, np.ndarray, np.ndarray]: The decomposition of f as
+            :math:`(pd(f), dp(f), q(f))`.
         """
 
         pdf, dpf = self._decompose_without_cohomology(k, f)
@@ -830,8 +853,8 @@ class Poincare:
             f (np.ndarray): The k-form to decompose.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: The components corresponding to p d(f)
-                and d p(f).
+            tuple[np.ndarray, np.ndarray]: The components corresponding to p d(f)
+            and d p(f).
         """
 
         n_minus_k = self.dim - k
@@ -872,7 +895,7 @@ class Poincare:
                 sps.linalg.spsolve.
 
         Returns:
-            np.ndarray: The solution.
+            np.ndarray: The solution, zero outside the bar space of the k-forms.
         """
         LS = pg.LinearSystem(A, b)
         LS.flag_ess_bc(~self.bar_spaces[k], np.zeros_like(self.bar_spaces[k]))
@@ -893,17 +916,18 @@ class Poincare:
         self, k: int, Mass: sps.csc_array | None = None
     ) -> np.ndarray:
         """
-        Computes a harmonic basis for the cohomology space of degree k.
+        Computes a harmonic basis for the cohomology space of degree k: the
+        cohomology basis is made Mass-orthogonal to the range of the differential, and
+        each column is normalized in the Mass-norm.
 
         Args:
             k (int): Degree of the cohomology space.
-            Mass (sps.csc_array | None, optional): Mass matrix used for the
+            Mass (sps.csc_array | None): Mass matrix used for the
                 orthogonalization. If not provided, a default mass matrix is
                 constructed.
 
         Returns:
-            np.ndarray: Orthonormalized harmonic basis functions for the cohomology
-                space.
+            np.ndarray: The harmonic basis functions for the cohomology space.
         """
         if k == 0:
             return self.hom_basis[k]
@@ -920,6 +944,6 @@ class Poincare:
 
         orth = self.hom_basis[k] - D @ proj
 
-        norms = np.array([v.T @ Mass @ v for v in orth.T])
+        norms = np.sqrt([v.T @ Mass @ v for v in orth.T])
 
         return orth / norms

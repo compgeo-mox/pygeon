@@ -36,11 +36,12 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
             c = \frac{\lambda}{2\mu + d \lambda}
 
-        where :math:`d` is the dimension.
+        where :math:`d` is the dimension. An infinite :math:`\lambda` gives the
+        incompressible case, :math:`c = 1/d`.
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            data (dict | None): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -89,7 +90,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            data (dict | None): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -115,7 +116,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             + \frac{1}{2\mu_c} \text{skw}(\sigma)
 
         with :math:`\mu` and :math:`\lambda` the Lamé constants,
-        :math:`\mu_c` the coupling Lamé modulus, and
+        :math:`\mu_c` the Cosserat couple modulus, and
 
         .. math::
 
@@ -125,7 +126,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         Args:
             sd (pg.Grid): The grid.
-            data (dict): Data for the assembly.
+            data (dict | None): Data for the assembly.
 
         Returns:
             sps.csc_array: The mass matrix obtained from the discretization.
@@ -159,12 +160,14 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles the lumped elasticity matrix for the given grid. This is a diagonal
-        approximation of :math:`(A \sigma, \tau)` where :math:`A` is the elasticity
-        compliance operator from :meth:`assemble_mass_matrix_elasticity`.
+        Assembles the lumped elasticity matrix for the given grid. This is an
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
+        is the elasticity compliance operator from
+        :meth:`pg.MatPwPolynomials.assemble_mass_matrix_elasticity`. An infinite
+        :math:`\lambda` gives the incompressible case, as there.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data dictionary.
 
         Returns:
@@ -173,7 +176,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
 
-        weight_M = lambda_ / (2 * mu + sd.dim * lambda_) / (2 * mu)
+        # The coefficient of the trace contribution, 1 / d / (2 mu) in the cells with
+        # infinite lambda, as in assemble_mass_matrix_elasticity
+        comp = ~np.isinf(lambda_)
+        weight_M = 1 / sd.dim / (2 * mu)
+        weight_M[comp] = (
+            lambda_[comp] / (2 * mu[comp] + sd.dim * lambda_[comp]) / (2 * mu[comp])
+        )
         weight_D = 1 / (2 * mu)
 
         # Assemble the block diagonal mass matrix for the base discretization class
@@ -197,12 +206,13 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles the lumped Cosserat matrix for the given grid. This is a diagonal
-        approximation of :math:`(A \sigma, \tau)` where :math:`A` is the Cosserat
-        compliance operator from :meth:`assemble_mass_matrix_cosserat`.
+        Assembles the lumped Cosserat matrix for the given grid. This is an
+        approximation by a quadrature rule of :math:`(A \sigma, \tau)` where :math:`A`
+        is the Cosserat compliance operator from
+        :meth:`pg.MatPwPolynomials.assemble_mass_matrix_cosserat`.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data dictionary.
 
         Returns:
@@ -235,7 +245,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
     def assemble_trace_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles and returns the trace matrix :math:`\text{Tr}(\sigma)` for the
-        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
+        :class:`pg.MatPwPolynomials` space, mapping from matrix-valued piecewise
         polynomials to scalar piecewise polynomials by extracting the trace
         of the matrix field.
 
@@ -259,16 +269,22 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
     def assemble_asym_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles and returns the skew-symmetry (asymmetry) matrix
-        :math:`\text{skw}(\sigma) = \frac{1}{2}(\sigma - \sigma^T)` for the
-        :class:`MatPwPolynomials` space, mapping from matrix-valued piecewise
-        polynomials to the skew-symmetric part.
+        Assembles and returns the asymmetry matrix for the :class:`pg.MatPwPolynomials`
+        space, mapping a matrix-valued function :math:`\sigma` to
+        :math:`\sigma_{21} - \sigma_{12}`, a scalar, in 2D and to the vector
+        :math:`(\sigma_{32} - \sigma_{23}, \sigma_{13} - \sigma_{31},
+        \sigma_{21} - \sigma_{12})` in 3D, so twice the skew-symmetric part
+        :math:`\text{skw}(\sigma) = \frac{1}{2}(\sigma - \sigma^T)` written as a scalar
+        or a vector.
 
         Args:
             sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The asymmetry matrix.
+
+        Raises:
+            ValueError: If the grid is neither two nor three-dimensional.
         """
         # Extract the number of degrees of freedom for the underlying scalar space.
         scalar_ndof = self.ndof(sd) // (sd.dim**2)
@@ -299,17 +315,17 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         left_mult: bool | None = None,
     ) -> sps.csc_array:
         """
-        Assembles and returns the matrix that multiplies with an elementwise
-        matrix-valued function.
+        Assembles and returns the matrix that multiplies a matrix-valued function A
+        in this space with a given elementwise matrix-valued function X.
 
         Args:
             sd (pg.Grid): The grid.
-            mult_mat (np.ndarray): The matrix to multiply with. It is assumed to be
+            mult_mat (np.ndarray): The matrix X to multiply with. It is assumed to be
                 a piecewise constant matrix and can be provided with shape
                 (d, d, n_cells), (d, d, n_dof), or their flattened equivalents.
-            right_mult (bool, optional): If True, performs right multiplication (A @ X).
+            right_mult (bool | None): If True, performs right multiplication (A @ X).
                 Exactly one of 'right_mult' or 'left_mult' must be True.
-            left_mult (bool, optional): If True, performs left multiplication (X @ A).
+            left_mult (bool | None): If True, performs left multiplication (X @ A).
                 Exactly one of 'right_mult' or 'left_mult' must be True.
 
         Returns:
@@ -425,7 +441,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         Returns:
             sps.csc_array: The upper convected distortion matrix obtained from the
-                discretization.
+            discretization.
         """
         # Transform from dof to actual values
         grad_v_val = grad_v.reshape((sd.dim**2, -1)) / sd.cell_volumes
@@ -456,14 +472,11 @@ class MatPwConstants(MatPwPolynomials):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the matrix discretization class.
-        The base discretization class is pg.PwConstants.
+        The base discretization class is pg.VecPwConstants.
 
         Args:
             keyword (str): The keyword for the matrix discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.VecPwConstants(keyword)
@@ -501,14 +514,11 @@ class MatPwLinears(MatPwPolynomials):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the matrix discretization class.
-        The base discretization class is pg.PwLinears.
+        The base discretization class is pg.VecPwLinears.
 
         Args:
             keyword (str): The keyword for the matrix discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.VecPwLinears(keyword)
@@ -518,16 +528,19 @@ class MatPwLinears(MatPwPolynomials):
     ) -> sps.csc_array:
         """
         Assembles and returns the corotational correction matrix for the matrix-valued
-        piecewise linears. We assume rotation to be a piecewise constant function in P0.
+        piecewise linears. We assume rotation to be a piecewise constant function.
 
         Args:
             sd (pg.Grid): The grid.
-            rotation (np.ndarray): The rotation in P0, either a scalar field in 2D or
-                a vector field in 3D.
+            rotation (np.ndarray): The rotation, piecewise constant, either a scalar
+                field in 2D or a vector field in 3D.
 
         Returns:
             sps.csc_array: The corotational correction matrix obtained from the
-                discretization.
+            discretization.
+
+        Raises:
+            ValueError: If the grid is neither two nor three-dimensional.
         """
         # Retrieve the discretization for the rotation, it depends on the dimension
         disc_rot: pg.Discretization
@@ -569,14 +582,11 @@ class MatPwQuadratics(MatPwPolynomials):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the matrix discretization class.
-        The base discretization class is pg.PwQuadratics.
+        The base discretization class is pg.VecPwQuadratics.
 
         Args:
             keyword (str): The keyword for the matrix discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.VecPwQuadratics(keyword)

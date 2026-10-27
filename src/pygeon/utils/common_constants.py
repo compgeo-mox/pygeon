@@ -29,7 +29,7 @@ LAME_MU: Final[str] = "lame_mu"
 """Lamé's second parameter (mu)"""
 
 LAME_MU_COSSERAT: Final[str] = "lame_mu_cosserat"
-"""Lamé's second parameter (mu_c) for Cosserat media"""
+"""The Cosserat couple modulus (mu_c)"""
 
 SECOND_ORDER_TENSOR: Final[str] = "second_order_tensor"
 """Keyword used to identify second-order tensor data in discretizations, e.g. for

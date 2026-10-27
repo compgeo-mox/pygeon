@@ -31,8 +31,8 @@ def convert_from_pp(
             converted. Can be a pp.Grid, pp.MortarGrid, or pp.MixedDimensionalGrid.
 
     Returns:
-        The converted PyGeoN object (pg.Grid, pg.MortarGrid, or
-        pg.MixedDimensionalGrid).
+        pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid: The converted PyGeoN
+        object, the same object with its class changed in place.
 
     Raises:
         TypeError: If the input object is not one of the supported types.

@@ -1,4 +1,4 @@
-"""This module contains functions that compute restriction operators."""
+"""Module for the restriction operators."""
 
 from typing import cast
 
@@ -18,14 +18,14 @@ def zero_tip_dofs(
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
             differential form.
-        kwargs: Optional parameters:
+        **kwargs: Optional parameters:
 
             - as_bmat (bool): In case of mixed-dimensional, return the matrix as sparse
-              sub-blocks. Default False.
+              sub-blocks. Defaults to False.
 
     Returns:
-        sps.csc_array or np.ndarray: The operator that maps the tip degrees of freedom
-        to zero.
+        sps.csc_array | np.ndarray: The operator that maps the tip degrees of freedom
+        to zero, or its sparse sub-blocks.
     """
     as_bmat = kwargs.get("as_bmat", False)
 
@@ -55,10 +55,6 @@ def remove_tip_dofs(mdg: pg.MixedDimensionalGrid, n_minus_k: int) -> sps.csc_arr
     """
     Compute the operator that removes the tip degrees of freedom.
 
-    This function computes the operator that removes the tip degrees of freedom from
-    a given mixed-dimensional grid. The operator is represented as a sparse matrix
-    in compressed sparse column (CSC) format.
-
     Args:
         mdg (pg.MixedDimensionalGrid): The mixed-dimensional grid.
         n_minus_k (int): The difference between the dimension and the order of the
@@ -74,20 +70,20 @@ def remove_tip_dofs(mdg: pg.MixedDimensionalGrid, n_minus_k: int) -> sps.csc_arr
 
 def get_codim_str(n_minus_k: int) -> str:
     """
-    Helper function that returns the name of the mesh entity
+    Helper function that returns the name of the mesh entity.
 
     Args:
         n_minus_k (int): The codimension of the mesh entity.
 
     Returns:
-        str: The name of the mesh entity
+        str: The name of the mesh entity.
     """
     return ["cells", "faces", "ridges", "peaks"][n_minus_k]
 
 
 def create_restriction(keep_dof: np.ndarray) -> sps.csc_array:
     """
-    Helper function to create the restriction mapping
+    Helper function to create the restriction mapping.
 
     Args:
         keep_dof (np.ndarray): Boolean array indicating which degrees of freedom (dofs)
@@ -114,7 +110,7 @@ def restrict_csc_array(
 
     Returns:
         sps.csc_array: The submatrix obtained by restricting to the specified rows and
-            columns.
+        columns.
     """
     R_row = create_restriction(rows)
     R_col = create_restriction(cols)

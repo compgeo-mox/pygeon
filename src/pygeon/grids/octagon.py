@@ -22,9 +22,10 @@ class OctagonGrid(pg.Grid):
         Constructor for the 2D octagonal grid.
 
         Args:
-            nx (np.ndarray): Number of cells in the x and y directions.
-            physdims (np.ndarray or dict): The physical dimensions, either
+            nx (np.ndarray): The number of octagons in the x and y directions.
+            physdims (dict | np.ndarray | None): The physical dimensions, either
                 as a numpy array or a dict with keys "xmin", "xmax", "ymin", and "ymax".
+                Defaults to None, the unit square.
             name (str): Name of grid.
         """
         if physdims is None:
@@ -46,8 +47,8 @@ class OctagonGrid(pg.Grid):
         Compute the nodes of an octagon grid.
 
         Args:
-            nx (np.ndarray): Number of grid points in each dimension.
-            physdims (dict| np.ndarray): Physical dimensions of the grid.
+            nx (np.ndarray): The number of octagons in the x and y directions.
+            physdims (dict | np.ndarray): Physical dimensions of the grid.
 
         Returns:
             np.ndarray: Array of node coordinates.
@@ -96,8 +97,8 @@ class OctagonGrid(pg.Grid):
 
         Args:
             nodes (np.ndarray): The array of nodes to be rescaled.
-            nx (np.ndarray): The grid size in each dimension.
-            physdims (dict| np.ndarray): The physical dimensions of the grid.
+            nx (np.ndarray): The number of octagons in the x and y directions.
+            physdims (dict | np.ndarray): The physical dimensions of the grid.
 
         Returns:
             np.ndarray: The rescaled nodes.
@@ -127,8 +128,7 @@ class OctagonGrid(pg.Grid):
         Compute the face-node connectivity matrix for an octagon grid.
 
         Args:
-            nx (np.ndarray): Array containing the number of nodes in the x and y
-                directions.
+            nx (np.ndarray): The number of octagons in the x and y directions.
 
         Returns:
             sps.csc_array: The face-node connectivity matrix.
@@ -245,8 +245,7 @@ class OctagonGrid(pg.Grid):
         Compute the faces of each cell in the octagon grid.
 
         Args:
-            nx (np.ndarray): Array containing the number of cells in the x
-            and y directions.
+            nx (np.ndarray): The number of octagons in the x and y directions.
 
         Returns:
             sps.csc_array: Sparse matrix representing the cell faces.

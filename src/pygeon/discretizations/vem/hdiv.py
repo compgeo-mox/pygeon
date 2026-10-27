@@ -1,4 +1,4 @@
-"""Module for the discretizations of the H(div) space."""
+"""Module for the virtual element discretizations of the H(div) space."""
 
 import numpy as np
 import porepy as pp
@@ -22,14 +22,12 @@ class VRT0(pg.RT0):
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
-        Initialize the MVEM class.
+        Initialize the VRT0 class, based on the mixed virtual element method (MVEM)
+        of PorePy.
 
         Args:
             keyword (str): The keyword for the discretization.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         pg.RT0.__init__(self, keyword)
         # Set the reference configuration from PorePy from which we take some
@@ -44,7 +42,7 @@ class VRT0(pg.RT0):
         mixed virtual element method.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional dictionary with physical parameters for
                 scaling.
 
@@ -66,10 +64,10 @@ class VRT0(pg.RT0):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix for evaluating the solution at the cell centers.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The evaluation matrix.
@@ -86,13 +84,8 @@ class VRT0(pg.RT0):
 
 class VBDM1(pg.BDM1):
     """
-    Virtual Element Method (VEM) based on the BDM1 (Brezzi-Douglas-Marini)
-    discretization for the H(div) space.
-
-    This class implements the VEM discretization for the H(div) space.
-    It provides methods for assembling the mass matrix, projecting to VRT0 space,
-    assembling the differential matrix, evaluating at cell centers, interpolating
-    a function, assembling the natural boundary condition term, and more.
+    Virtual element discretization of the H(div) space based on :class:`pg.BDM1`, from
+    which it takes the interpolation and the natural boundary condition.
     """
 
     poly_order = 1
@@ -109,7 +102,7 @@ class VBDM1(pg.BDM1):
         Method (VEM) in the H(div) space.
 
         Args:
-            sd (pg.Grid): The grid object representing the computational domain.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data dictionary.
 
         Returns:
@@ -192,9 +185,6 @@ class VBDM1(pg.BDM1):
         Args:
             sd (pg.Grid): The grid on which the projection is performed.
 
-        Returns:
-            sps.csc_array: The projection matrix.
-
         Raises:
             NotImplementedError: This method is not implemented and should be
                 overridden in a subclass.
@@ -203,11 +193,12 @@ class VBDM1(pg.BDM1):
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the matrix corresponding to the divergence differential operator
-        :math:`\nabla \cdot` for the H(div) space.
+        Assembles the matrix corresponding to the differential operator.
+
+        The divergence operator :math:`\nabla \cdot` of the H(div) space.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The differential matrix.
@@ -220,13 +211,10 @@ class VBDM1(pg.BDM1):
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Evaluate the function at the cell centers of the given grid.
+        Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): The grid on which to evaluate the function.
-
-        Returns:
-            sps.csc_array: The evaluated function values at the cell centers.
+            sd (pg.Grid): The grid.
 
         Raises:
             NotImplementedError: This method is not implemented and should be
@@ -262,9 +250,6 @@ class VBDM1(pg.BDM1):
         Args:
             sd (pg.Grid): The grid for which the lumped matrix is assembled.
             data (dict | None): Optional data required for the assembly.
-
-        Returns:
-            sps.csc_array: The assembled lumped matrix.
 
         Raises:
             NotImplementedError: This method is not implemented and should be

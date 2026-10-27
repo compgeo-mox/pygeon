@@ -69,7 +69,7 @@ class VecLagrange(pg.VecDiscretization):
         scalar piecewise polynomials of degree k - 1.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The div matrix obtained from the discretization.
@@ -83,7 +83,7 @@ class VecLagrange(pg.VecDiscretization):
         matrix piecewise polynomials of degree k - 1.
 
         Args:
-            sd (pg.Grid): The grid object representing the domain.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The sparse symmetric gradient matrix operator.
@@ -111,7 +111,8 @@ class VecLagrange(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid on which the finite element method is defined.
-            data (dict | None): Additional data required for the assembly process.
+            data (dict | None): The data with the Lamé parameters, accessed with the
+                keys pg.LAME_MU and pg.LAME_LAMBDA.
 
         Returns:
             sps.csc_array: The assembled global elasticity matrix.
@@ -153,14 +154,14 @@ class VecLagrange(pg.VecDiscretization):
         a (3, 3, num_cells) tensor.
 
         Args:
-            sd (pg.Grid): The spatial discretization object.
-            u (ndarray): The displacement field.
-            data (dict): Data for the computation including the Lame parameters accessed
+            sd (pg.Grid): The grid.
+            u (np.ndarray): The displacement field.
+            data (dict): Data for the computation including the Lamé parameters accessed
                 with the keys pg.LAME_LAMBDA and pg.LAME_MU.
                 Both float and np.ndarray are accepted.
 
         Returns:
-            ndarray: The stress tensor.
+            np.ndarray: The stress tensor.
         """
         # Construct the differentials
         symgrad = self.assemble_symgrad_matrix(sd)
@@ -188,18 +189,14 @@ class VecLagrange(pg.VecDiscretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class that contains the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
-            dim (int): The dimension of the range.
-
-        Returns:
-            Discretization: The discretization class that contains the range of the
-            differential.
+            dim (int): The dimension of the range space.
 
         Raises:
-            NotImplementedError: If there is no range discretization for the vector
-            Lagrangian in PyGeoN.
+            NotImplementedError: There is no range discretization for the vector
+                Lagrangian in PyGeoN.
         """
         raise NotImplementedError(
             f"There's no range discr for the vector Lagrangian {self.poly_order} in "
@@ -228,10 +225,7 @@ class VecLagrange1(VecLagrange):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.Lagrange1(keyword)
@@ -241,10 +235,10 @@ class VecLagrange1(VecLagrange):
         Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-             sps.csc_array: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
         # Avoid division by zero for 0D grids (and handle the no-dof case consistently).
         if sd.dim == 0 or self.ndof(sd) == 0:
@@ -261,20 +255,20 @@ class VecLagrange1(VecLagrange):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles and returns the advection matrix for Lagrange1 finite
-        elements, which is given by
-        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
-        :math:`u,v \in \mathbb{L}_1(\Omega)`.
+        Assembles and returns the advection matrix for the vector Lagrange1 finite
+        elements, which is given component-wise by
+        :math:`(\boldsymbol{\beta} \cdot \nabla \boldsymbol{u}, \boldsymbol{v})_\Omega`,
+        for :math:`\boldsymbol{u}, \boldsymbol{v} \in [\mathbb{L}_1(\Omega)]^d`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR-FIELD. It is a given as a vector field, assumed
+        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
         constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
         defaults to :math:`(0, 0, 0)`.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization.
+            sd (pg.Grid): The grid.
             data (dict | None): Optional data for scaling, in particular
-            pg.VECTOR-FIELD (advection velocity field).
+                pg.VECTOR_FIELD (advection velocity field).
 
         Returns:
             sps.csc_array: The assembled advection matrix.
@@ -302,10 +296,7 @@ class VecLagrange2(VecLagrange):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr: pg.Lagrange2 = pg.Lagrange2(keyword)

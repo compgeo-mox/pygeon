@@ -72,18 +72,19 @@ def get_cell_data(
 
     Args:
         sd (pg.Grid | pg.MortarGrid): The grid object containing cell information.
-        data (dict): Dictionary containing parameter data. If None, default values from
-            data_default dictionary is used.
+        data (dict | None): Dictionary containing parameter data. If None, the default
+            values of the data_default dictionary are used.
         keyword (str): The key to access the parameter dictionary within
             data[pp.PARAMETERS].
         param (str): The parameter name to retrieve from the data dictionary.
-        tensor_order (int): The tensor order of the data. Default is pg.SCALAR.
-            If pg.MATRIX, the result is wrapped in a pp.SecondOrderTensor.
+        tensor_order (int): The tensor order of the data. Defaults to pg.SCALAR.
+            If pg.MATRIX, a scalar value is wrapped in a pp.SecondOrderTensor; if
+            pg.VECTOR, a single vector is repeated for all the cells.
 
     Returns:
-        np.ndarray | pp.SecondOrderTensor: The parameter values for all cells.
-        Returns a numpy array for scalar data, or a SecondOrderTensor for
-        vector discretization.
+        np.ndarray | pp.SecondOrderTensor: The parameter values for all cells: a numpy
+        array for scalar and vector data, of shape (3, num_cells) for the latter, or a
+        SecondOrderTensor for matrix data.
 
     Notes:
         If the parameter is not found in the data dictionary, it falls back to

@@ -30,11 +30,11 @@ class VecPwPolynomials(pg.VecDiscretization):
         r"""
         Assembles the mass matrix :math:`(K^{-1} u, v)_\Omega` using the
         scalar and tensor weights in data, where :math:`K^{-1}` is the
-        second-order tensor and :math:`u, v` are in :class:`VecPwPolynomials`
-        (vector L2). Both domain and range lie in :class:`VecPwPolynomials`.
+        second-order tensor and :math:`u, v` are in :class:`pg.VecPwPolynomials`
+        (vector L2). Both domain and range lie in :class:`pg.VecPwPolynomials`.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
@@ -48,16 +48,16 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         r"""
-        Assembles the lumped mass matrix, which is a diagonal approximation of
-        :math:`(K^{-1} u, v)_\Omega` for :class:`VecPwPolynomials` (vector L2),
+        Assembles the lumped mass matrix, which is an approximation by a quadrature rule
+        of :math:`(K^{-1} u, v)_\Omega` for :class:`pg.VecPwPolynomials` (vector L2),
         using the scalar and tensor weights in data.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
-            sps.csc_array: The mass matrix.
+            sps.csc_array: The lumped mass matrix.
         """
         return self._assemble_tensor_weighted_inner_product(
             sd, data, "assemble_lumped_matrix"
@@ -70,10 +70,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         Assemble an inner product weighted by a tensor, given in data.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             data (dict | None): Dictionary with physical parameters for scaling.
             inner_product_method (str): Assembly method of parent class for the inner
-            product.
+                product.
 
         Returns:
             sps.csc_array: The inner product matrix.
@@ -101,9 +101,9 @@ class VecPwPolynomials(pg.VecDiscretization):
         Assembles the weighting matrix :math:`K^{-1}` based on a second-order tensor.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
             sot (pp.SecondOrderTensor): The physical scaling parameter. Usually the
-            inverse of the permeability
+                inverse of the permeability.
 
         Returns:
             sps.csc_array: The weighting matrix.
@@ -129,14 +129,16 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a vector-valued function onto the finite element space
+        Interpolates a vector-valued function onto the finite element space. The
+        values of the function are rotated to the reference plane or line of the grid,
+        as the degrees of freedom.
 
         Args:
-            sd (pg.Grid): Grid, or a subclass.
+            sd (pg.Grid): The grid.
             func (Callable): A function that returns the function values at coordinates.
 
         Returns:
-            np.ndarray: The values of the degrees of freedom
+            np.ndarray: The values of the degrees of freedom.
         """
         # If the mesh is tilted, then the 3-vector from func needs to be rotated.
         rotated_func = lambda x: np.einsum("ij,j...->i...", sd.rotation_matrix, func(x))
@@ -147,14 +149,13 @@ class VecPwPolynomials(pg.VecDiscretization):
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
     ) -> np.ndarray:
         """
-        Compute the local degrees of freedom (DOFs) of a cell in a vector-valued
-        finite element discretization.
+        Compute the local degrees of freedom (DOFs) indices for a cell.
 
         Args:
-            sd (pg.Grid): The grid object representing the discretization domain.
+            sd (pg.Grid): The grid.
             c (int): The index of the cell for which the local DOFs are to be computed.
-                ambient_dim (int, optional): The ambient dimension of the space. If not
-                provided, it defaults to the dimension of the grid (`sd.dim`).
+            ambient_dim (int): The number of vector components. Defaults to -1, which
+                stands for the dimension of the grid (``sd.dim``).
 
         Returns:
             np.ndarray: An array containing the local DOFs of the specified cell,
@@ -174,14 +175,13 @@ class VecPwPolynomials(pg.VecDiscretization):
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
-        Returns the discretization class for the range of the differential.
+        Returns the range discretization class for the given dimension.
 
         Args:
             dim (int): The dimension of the range space.
 
         Returns:
-            pg.Discretization: The discretization class for the range of the
-            differential.
+            Type[pg.Discretization]: The range discretization class.
         """
         return self.base_discr.get_range_discr_class(dim)
 
@@ -199,10 +199,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         trace.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The function defining the
                  natural boundary condition.
-            b_faces (np.ndarray): The array of boundary faces.
+            b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.
@@ -214,7 +214,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Projects the discretization to +1 order discretization.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix.
@@ -227,7 +227,7 @@ class VecPwPolynomials(pg.VecDiscretization):
         Projects the discretization to -1 order discretization.
 
         Args:
-            sd (pg.Grid): The grid object.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix.
@@ -240,10 +240,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         Assembles the matrix for evaluating the discretization at the cell centers.
 
         Args:
-            sd (pg.Grid): Grid object or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
-             sps.csc_array: The evaluation matrix.
+            sps.csc_array: The evaluation matrix.
         """
         Pi = super().eval_at_cell_centers(sd)
 
@@ -256,11 +256,11 @@ class VecPwPolynomials(pg.VecDiscretization):
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid,
         computing :math:`\nabla_h u` element-wise for each vector component of
-        :math:`u \in` :class:`VecPwPolynomials`. The result lands in the
+        :math:`u \in` :class:`pg.VecPwPolynomials`. The result lands in the
         corresponding matrix-valued piecewise polynomial space.
 
         Args:
-            sd (pg.Grid): The grid or a subclass.
+            sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
@@ -284,10 +284,7 @@ class VecPwConstants(VecPwPolynomials):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.PwConstants(keyword)
@@ -308,10 +305,7 @@ class VecPwLinears(VecPwPolynomials):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.PwLinears(keyword)
@@ -332,10 +326,7 @@ class VecPwQuadratics(VecPwPolynomials):
 
         Args:
             keyword (str): The keyword for the vector discretization class.
-                Default is pg.UNITARY_DATA.
-
-        Returns:
-            None
+                Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
         self.base_discr = pg.PwQuadratics(keyword)
