@@ -103,10 +103,14 @@ def copy_tutorial_figures(app, exception):
 def write_papers(app):
     """
     Write papers.rst from papers.bib, the papers grouped by year and the titles linked
-    to the DOI, so that adding a paper only takes its BibTeX entry.
+    to the DOI, so that adding a paper only takes its BibTeX entry. The published
+    version is cited in full, with a link to the arXiv preprint (eprint) for the
+    readers without access to the journal.
     """
     entries = bibtexparser.parse_file(Path(app.confdir) / "papers.bib").entries
-    clean = lambda s: " ".join(s.replace("{", "").replace("}", "").split())
+    clean = lambda s: " ".join(
+        s.replace("{", "").replace("}", "").replace("\\&", "&").split()
+    )
 
     by_year = defaultdict(list)
     for e in entries:
@@ -114,8 +118,15 @@ def write_papers(app):
         title = clean(e["title"]).rstrip(".")
         if "doi" in e:
             title = f"`{title} <https://doi.org/{e['doi']}>`__"
-        journal = e["journal"] if "journal" in e else e["booktitle"]
-        line = f"- {authors} ({e['year']}). {title}. *{journal}*."
+        journal = clean(e["journal"] if "journal" in e else e["booktitle"])
+        ref = f"*{journal}*"
+        if "volume" in e:
+            ref += f", {e['volume']}" + (f"({e['number']})" if "number" in e else "")
+        if "pages" in e:
+            ref += f", {e['pages'].replace('--', '–')}"
+        line = f"- {authors} ({e['year']}). {title}. {ref}."
+        if "eprint" in e:
+            line += f" `arXiv <https://arxiv.org/abs/{e['eprint']}>`__."
         if "url" in e:
             line += f" `Code <{e['url']}>`__."
         by_year[e["year"]].append(line)
