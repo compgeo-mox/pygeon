@@ -106,6 +106,10 @@ def test_harmonic_form_computation():
     assert np.allclose(pg.curl(poin.mdg) @ basis_1, 0)
     assert np.allclose(pg.grad(poin.mdg).T @ pg.ridge_mass(poin.mdg) @ basis_1, 0)
 
+    # each column has unit norm in the default mass matrix
+    mass = pg.ridge_mass(poin.mdg)
+    assert np.allclose(np.diag(basis_1.T @ mass @ basis_1), 1)
+
 
 def test_linking_number_failure():
     poin = poin_from_geo("two_holes_2D.geo", 2)

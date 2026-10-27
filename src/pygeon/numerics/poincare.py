@@ -918,7 +918,7 @@ class Poincare:
         """
         Computes a harmonic basis for the cohomology space of degree k: the
         cohomology basis is made Mass-orthogonal to the range of the differential, and
-        each column is divided by its squared Mass-norm.
+        each column is normalized in the Mass-norm.
 
         Args:
             k (int): Degree of the cohomology space.
@@ -944,6 +944,6 @@ class Poincare:
 
         orth = self.hom_basis[k] - D @ proj
 
-        norms = np.array([v.T @ Mass @ v for v in orth.T])
+        norms = np.sqrt([v.T @ Mass @ v for v in orth.T])
 
         return orth / norms
