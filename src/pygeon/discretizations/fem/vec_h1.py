@@ -187,6 +187,64 @@ class VecLagrange(pg.VecDiscretization):
         # Reshape and return
         return (proj @ sigma).reshape((pg.AMBIENT_DIM, pg.AMBIENT_DIM, -1))
 
+    def compute_rotation(
+        self,
+        sd: pg.Grid,
+        u: np.ndarray,
+        data: dict,
+    ) -> np.ndarray:
+        r"""
+        Compute the rotation :math:`r = -\mu \nabla \times u` of a given displacement
+        field, as in :class:`pg.TPSA`: a scalar in 2D and a vector in 3D.
+
+        Args:
+            sd (pg.Grid): The grid.
+            u (np.ndarray): The displacement field.
+            data (dict): Data for the computation including the Lamé parameter
+                accessed with the key pg.LAME_MU. Both float and np.ndarray are
+                accepted.
+
+        Returns:
+            np.ndarray: The rotation, as degrees of freedom of the piecewise
+            polynomials of one degree less than the displacement.
+        """
+        curl = self.assemble_broken_curl_matrix(sd)
+
+        # The Lamé parameter, repeated for each dof of the piecewise polynomials
+        mu = pg.get_cell_data(sd, data, self.keyword, pg.LAME_MU)
+        mu = np.tile(mu, curl.shape[0] // sd.num_cells)
+
+        return -mu * (curl @ u)
+
+    def compute_solid_pressure(
+        self,
+        sd: pg.Grid,
+        u: np.ndarray,
+        data: dict,
+    ) -> np.ndarray:
+        r"""
+        Compute the solid pressure :math:`p = \lambda \nabla \cdot u` of a given
+        displacement field, as in :class:`pg.TPSA`.
+
+        Args:
+            sd (pg.Grid): The grid.
+            u (np.ndarray): The displacement field.
+            data (dict): Data for the computation including the Lamé parameter
+                accessed with the key pg.LAME_LAMBDA. Both float and np.ndarray are
+                accepted.
+
+        Returns:
+            np.ndarray: The solid pressure, as degrees of freedom of the piecewise
+            polynomials of one degree less than the displacement.
+        """
+        div = self.assemble_div_matrix(sd)
+
+        # The Lamé parameter, repeated for each dof of the piecewise polynomials
+        lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
+        lambda_ = np.tile(lambda_, div.shape[0] // sd.num_cells)
+
+        return lambda_ * (div @ u)
+
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """
         Returns the range discretization class for the given dimension.
