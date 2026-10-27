@@ -8,7 +8,6 @@ import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
-from pygeon.utils.weak_cache import weak_cache
 
 
 class PwPolynomials(pg.Discretization):
@@ -221,7 +220,6 @@ class PwPolynomials(pg.Discretization):
             np.ndarray: Local lumped mass matrix for piecewise polynomials.
         """
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a piecewise function to a piecewise

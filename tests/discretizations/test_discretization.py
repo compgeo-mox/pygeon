@@ -50,13 +50,6 @@ def test_eval_at_cc(discr, unit_sd):
     assert np.allclose((Pi_child - Pi_super).data, 0)
 
 
-def test_proj_to_pw_polynomials_methods_are_cached(discr, unit_sd):
-    P = discr.proj_to_PwPolynomials(unit_sd)
-    assert discr.proj_to_PwPolynomials(unit_sd) is P, (
-        f"{discr}.proj_to_PwPolynomials should be cached"
-    )
-
-
 # Coverage test
 def test_unvectorized_interpolation(unit_sd_2d):
     discr = pg.Lagrange1()

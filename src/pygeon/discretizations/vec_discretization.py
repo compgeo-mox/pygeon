@@ -6,7 +6,6 @@ import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
-from pygeon.utils.weak_cache import weak_cache
 
 
 class VecDiscretization(pg.Discretization):
@@ -115,7 +114,6 @@ class VecDiscretization(pg.Discretization):
         lumped_mass = self.base_discr.assemble_lumped_matrix(sd, data)
         return self.vectorize(sd.dim, lumped_mass)
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Construct the matrix for projecting a vector function to a piecewise

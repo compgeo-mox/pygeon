@@ -254,14 +254,11 @@ class RT0(pg.Discretization):
         """
         return pg.PwConstants
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
         operator :math:`\Pi` takes a function from :class:`pg.RT0` and
         maps it to a piecewise linear function in :class:`pg.VecPwLinears`.
-
-        This function is cached to speed up repetitive calls for the same grid.
 
         Args:
             sd (pg.Grid): The grid.
@@ -426,7 +423,6 @@ class BDM1(pg.Discretization):
         """
         return pg.PwConstants
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
@@ -839,6 +835,9 @@ class RT1(pg.Discretization):
         VecPwQuadratics space. The projection operator :math:`\Pi` takes a function
         from :class:`pg.RT1` and maps it to a piecewise quadratic
         function in :class:`pg.VecPwQuadratics`.
+
+        The matrix is cached for each grid, since it is assembled with a loop over the
+        cells.
 
         Args:
             sd (pg.Grid): The grid.

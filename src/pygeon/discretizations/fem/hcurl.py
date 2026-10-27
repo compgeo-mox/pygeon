@@ -6,7 +6,6 @@ import numpy as np
 import scipy.sparse as sps
 
 import pygeon as pg
-from pygeon.utils.weak_cache import weak_cache
 
 
 class NedelecR0(pg.Discretization):
@@ -42,7 +41,6 @@ class NedelecR0(pg.Discretization):
         """
         return np.array([0, 1, 0, 0])  # edges
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space via NedelecF1. The
@@ -221,7 +219,6 @@ class NedelecF1(pg.Discretization):
         """
         return np.array([0, 2, 0, 0])  # edges
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the

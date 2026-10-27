@@ -26,24 +26,14 @@ def test_grid_released():
 
 def test_shared_by_instances():
     sd = grid()
-    assert pg.RT0("a").proj_to_PwPolynomials(sd) is pg.RT0("b").proj_to_PwPolynomials(
+    assert pg.RT1("a").proj_to_PwPolynomials(sd) is pg.RT1("b").proj_to_PwPolynomials(
         sd
     )
 
 
-def test_subclasses_apart():
-    # both inherit VecDiscretization.proj_to_PwPolynomials
-    sd = grid()
-    P_bdm1 = pg.VecBDM1().proj_to_PwPolynomials(sd)
-    P_rt1 = pg.VecRT1().proj_to_PwPolynomials(sd)
-
-    assert P_bdm1.shape[1] == pg.VecBDM1().ndof(sd)
-    assert P_rt1.shape[1] == pg.VecRT1().ndof(sd)
-
-
 def test_recomputed_with_geometry():
     sd = grid()
-    discr = pg.RT0()
+    discr = pg.RT1()
     P = discr.proj_to_PwPolynomials(sd)
     assert discr.proj_to_PwPolynomials(sd) is P
 

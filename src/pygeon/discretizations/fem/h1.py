@@ -7,7 +7,6 @@ import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
-from pygeon.utils.weak_cache import weak_cache
 
 
 class Lagrange(pg.Discretization):
@@ -250,7 +249,6 @@ class Lagrange1(Lagrange):
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a Lagrangian function to a piecewise linear
@@ -464,7 +462,6 @@ class Lagrange2(Lagrange):
         # Combine
         return sps.vstack((diff_0, diff_1)).tocsc()
 
-    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a quadratic Lagrangian function to a
