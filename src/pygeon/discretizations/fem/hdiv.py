@@ -1,6 +1,5 @@
 """Module for the discretizations of the H(div) space."""
 
-from functools import cache
 from typing import Callable, Tuple, Type, cast
 
 import numpy as np
@@ -8,6 +7,7 @@ import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
+from pygeon.utils.weak_cache import weak_cache
 
 
 class RT0(pg.Discretization):
@@ -254,14 +254,11 @@ class RT0(pg.Discretization):
         """
         return pg.PwConstants
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
         operator :math:`\Pi` takes a function from :class:`pg.RT0` and
         maps it to a piecewise linear function in :class:`pg.VecPwLinears`.
-
-        This function is cached to speed up repetitive calls for the same grid.
 
         Args:
             sd (pg.Grid): The grid.
@@ -426,7 +423,6 @@ class BDM1(pg.Discretization):
         """
         return pg.PwConstants
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
@@ -832,13 +828,16 @@ class RT1(pg.Discretization):
 
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
-    @cache
+    @weak_cache
     def proj_to_PwPolynomials(self, sd: pg.Grid):
         r"""
         Constructs the projection matrix from the current finite element space to the
         VecPwQuadratics space. The projection operator :math:`\Pi` takes a function
         from :class:`pg.RT1` and maps it to a piecewise quadratic
         function in :class:`pg.VecPwQuadratics`.
+
+        The matrix is cached for each grid, since it is assembled with a loop over the
+        cells.
 
         Args:
             sd (pg.Grid): The grid.

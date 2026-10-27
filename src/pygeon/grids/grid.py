@@ -8,6 +8,7 @@ import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
+from pygeon.utils.weak_cache import clear_weak_cache
 
 """
 Acknowledgments:
@@ -42,7 +43,12 @@ class Grid(pp.Grid):
         1: "faces"
         2: "ridges"
         3: "peaks"
+
+        The results cached for this grid by the discretizations are dropped, so that
+        they are recomputed on the new geometry.
         """
+        clear_weak_cache(self)
+
         # We only invoke the porepy routine if it hasn't already been computed.
         if "Compute geometry" not in self.history:
             super().compute_geometry()

@@ -1,6 +1,5 @@
 """Module for the discretizations of the H1 space."""
 
-from functools import cache
 from typing import Callable, Type
 
 import numpy as np
@@ -250,7 +249,6 @@ class Lagrange1(Lagrange):
         invQ = np.linalg.inv(Q)
         return invQ[1:, :]
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a Lagrangian function to a piecewise linear
@@ -464,7 +462,6 @@ class Lagrange2(Lagrange):
         # Combine
         return sps.vstack((diff_0, diff_1)).tocsc()
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Construct the matrix for projecting a quadratic Lagrangian function to a

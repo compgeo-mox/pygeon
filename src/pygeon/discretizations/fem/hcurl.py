@@ -1,6 +1,5 @@
 """Module for the discretizations of the H(curl) space."""
 
-from functools import cache
 from typing import Callable, Type
 
 import numpy as np
@@ -42,7 +41,6 @@ class NedelecR0(pg.Discretization):
         """
         return np.array([0, 1, 0, 0])  # edges
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space via NedelecF1. The
@@ -221,7 +219,6 @@ class NedelecF1(pg.Discretization):
         """
         return np.array([0, 2, 0, 0])  # edges
 
-    @cache
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
