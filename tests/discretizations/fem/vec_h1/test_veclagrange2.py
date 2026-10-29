@@ -54,6 +54,35 @@ def test_compute_stress(discr, unit_sd):
     assert np.allclose(sigma, 0)
 
 
+def test_compute_rotation(discr, unit_sd):
+    if unit_sd.dim == 1:
+        pytest.skip("No rotation in 1D")
+
+    # a linear field, whose curl (2, 0, 2) is exact in the space, 2 in 2D
+    u_fun = lambda x: np.array([0.5 + 2 * x[0] - x[1], 0.5 + x[0] - x[2], x[1] + x[2]])
+    u = discr.interpolate(unit_sd, u_fun)
+    data = pp.initialize_data({}, discr.keyword, {pg.LAME_LAMBDA: 1, pg.LAME_MU: 0.5})
+
+    r_space = pg.get_PwPolynomials(discr.poly_order - 1, unit_sd.dim - 2)()
+    curl = np.array([2, 0, 2]) if unit_sd.dim == 3 else 2
+    r_known = r_space.interpolate(unit_sd, lambda _: -0.5 * curl)
+
+    assert np.allclose(discr.compute_rotation(unit_sd, u, data), r_known)
+
+
+def test_compute_solid_pressure(discr, unit_sd):
+    # a linear field, whose divergence 3 is exact in the space, 2 in 1D and 2D
+    u_fun = lambda x: np.array([0.5 + 2 * x[0] - x[1], 0.5 + x[0] - x[2], x[1] + x[2]])
+    u = discr.interpolate(unit_sd, u_fun)
+    data = pp.initialize_data({}, discr.keyword, {pg.LAME_LAMBDA: 2, pg.LAME_MU: 0.5})
+
+    p_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.SCALAR)()
+    div = 3 if unit_sd.dim == 3 else 2
+    p_known = p_space.interpolate(unit_sd, lambda _: 2 * div)
+
+    assert np.allclose(discr.compute_solid_pressure(unit_sd, u, data), p_known)
+
+
 def test_div_and_symgrad_for_rotations(discr, unit_sd):
     fun = lambda x: np.array([x[2] - x[1], x[0] - x[2], x[1] - x[0]])
     fun_interp = discr.interpolate(unit_sd, fun)
