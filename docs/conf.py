@@ -51,6 +51,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
+    "porepy": ("https://pmgbergen.github.io/porepy/html", None),
 }
 # PorePy and SymPy do not publish an inventory with the objects used by PyGeoN
 nitpick_ignore_regex = [("py:class", r"(pp|porepy|sp)\..*")]
