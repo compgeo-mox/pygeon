@@ -30,6 +30,7 @@ def test_assemble_mass_matrix(discr, ref_sd):
 def test_broken_grad(discr, unit_sd):
     grad = discr.assemble_broken_grad_matrix(unit_sd)
     assert grad.nnz == 0
+    assert grad.shape == (unit_sd.dim * unit_sd.num_cells, unit_sd.num_cells)
 
 
 def test_interpolate(discr, unit_sd_2d):
