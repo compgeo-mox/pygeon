@@ -51,9 +51,8 @@ def test_assemble_nat_bc(discr, unit_sd_2d):
 
 
 def test_proj_to_higherPwPolynomials(discr, unit_sd):
-    if discr.poly_order > 1:
-        with pytest.raises(NotImplementedError):
-            discr.proj_to_higher_PwPolynomials(unit_sd)
+    if discr.poly_order == 2:
+        # there is no class of order 3, see test_pwpolynomials_order_k.py
         return
 
     proj = discr.proj_to_higher_PwPolynomials(unit_sd)
