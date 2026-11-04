@@ -44,10 +44,12 @@ class Grid(pp.Grid):
         2: "ridges"
         3: "peaks"
 
-        The results cached for this grid by the discretizations are dropped, so that
-        they are recomputed on the new geometry.
+        The results cached for this grid by the discretizations, and the gradients of
+        the barycentric coordinates, are dropped, so that they are recomputed on the new
+        geometry.
         """
         clear_weak_cache(self)
+        self.__dict__.pop("barycentric_gradients", None)
 
         # We only invoke the porepy routine if it hasn't already been computed.
         if "Compute geometry" not in self.history:
