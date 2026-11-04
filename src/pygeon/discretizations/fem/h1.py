@@ -117,8 +117,21 @@ class Lagrange1(Lagrange):
         accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
         constant per cell (:class:`pg.VecPwConstants`). If not provided, it
         defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
-        rotated to the plane or the line of the grid, unless the entry "is_tangential"
-        of data is True.
+        rotated to the plane or the line of the grid with ``sd.rotation_matrix``,
+        unless the entry "is_tangential" of data is True: then its first dim
+        components are taken as the ones in those coordinates.
+
+        Since :math:`\boldsymbol{\beta} \cdot \nabla u` is constant on each cell, the
+        matrix is the composition
+
+        .. math::
+
+            A = P^\top M_1 I_{0 \to 1} B G P,
+
+        with P the projection to :class:`pg.PwLinears`, G their broken gradient to
+        :class:`pg.VecPwConstants`, B the product with the field to
+        :class:`pg.PwConstants`, :math:`I_{0 \to 1}` their inclusion in
+        :class:`pg.PwLinears`, and :math:`M_1` the mass matrix of the latter.
 
         Args:
             sd (pg.Grid): The grid.
