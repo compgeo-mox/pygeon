@@ -46,6 +46,69 @@ class Lagrange(pg.Discretization):
 
         return (grad.T @ M @ grad).tocsc()
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the advection matrix for the Lagrange finite elements,
+        which is given by :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
+        :math:`u,v \in \mathbb{L}_k(\Omega)`.
+
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
+        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
+        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
+        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
+        rotated to the plane or the line of the grid with ``sd.rotation_matrix``,
+        unless the entry "is_tangential" of data is True: then its first dim
+        components are taken as the ones in those coordinates.
+
+        Since the field is constant on each cell,
+        :math:`\boldsymbol{\beta} \cdot \nabla u` is a piecewise polynomial of order
+        k - 1, and the matrix is the composition
+
+        .. math::
+
+            A = P^\top M_k I_{k-1 \to k} B G P,
+
+        with P the projection to the piecewise polynomials of order k, G their broken
+        gradient to the vector piecewise polynomials of order k - 1, B the product with
+        the field to the piecewise polynomials of order k - 1, :math:`I_{k-1 \to k}`
+        their inclusion in the order k, and :math:`M_k` the mass matrix of the latter.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Optional data for scaling, in particular
+                pg.VECTOR_FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The assembled advection matrix.
+        """
+        # Retrieve the vector field, in the coordinates of the plane of the grid
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        if data and data.get("is_tangential", False):
+            V = V[: sd.dim]
+        else:
+            V = sd.rotation_matrix @ V
+
+        # The gradient of u, in the vector piecewise polynomials of order k - 1, and
+        # its product with the field, constant on each cell and then repeated on all
+        # its degrees of freedom of order k - 1
+        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        grad = self.assemble_broken_grad_matrix(sd)
+        num_low = low.ndof(sd) // sd.num_cells
+        V_dot = sps.hstack([sps.diags_array(np.tile(V_a, num_low)) for V_a in V])
+
+        # The mass matrix between the piecewise polynomials of order k (rows) and k - 1
+        # (columns), through the inclusion of the latter in the former, for the test
+        # with v
+        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        incl = low.proj_to_higher_PwPolynomials(sd)
+        mass = high.assemble_mass_matrix(sd) @ incl
+        proj = self.proj_to_PwPolynomials(sd)
+        adv = proj.T @ mass @ V_dot @ grad
+
+        return pg.drop_small_entries(sps.csc_array(adv))
+
     def postprocess_darcy_flux(
         self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
     ) -> np.ndarray:
@@ -103,65 +166,6 @@ class Lagrange1(Lagrange):
             np.ndarray: The number of degrees of freedom per entity.
         """
         return np.array([int(dim > 0), 0, 0, 0])  # nodes
-
-    def assemble_adv_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles and returns the advection matrix for Lagrange1 finite
-        elements, which is given by
-        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
-        :math:`u,v \in \mathbb{L}_1(\Omega)`.
-
-        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
-        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
-        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
-        rotated to the plane or the line of the grid with ``sd.rotation_matrix``,
-        unless the entry "is_tangential" of data is True: then its first dim
-        components are taken as the ones in those coordinates.
-
-        Since :math:`\boldsymbol{\beta} \cdot \nabla u` is constant on each cell, the
-        matrix is the composition
-
-        .. math::
-
-            A = P^\top M_1 I_{0 \to 1} B G P,
-
-        with P the projection to :class:`pg.PwLinears`, G their broken gradient to
-        :class:`pg.VecPwConstants`, B the product with the field to
-        :class:`pg.PwConstants`, :math:`I_{0 \to 1}` their inclusion in
-        :class:`pg.PwLinears`, and :math:`M_1` the mass matrix of the latter.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for scaling, in particular
-                pg.VECTOR_FIELD (advection velocity field).
-
-        Returns:
-            sps.csc_array: The assembled advection matrix.
-        """
-        # Retrieve the vector field, in the coordinates of the plane of the grid
-        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        if data and data.get("is_tangential", False):
-            V = V[: sd.dim]
-        else:
-            V = sd.rotation_matrix @ V
-
-        # The gradient of u, in pg.VecPwConstants, and its product with the field, in
-        # pg.PwConstants
-        p1 = pg.PwLinears()
-        proj = self.proj_to_PwPolynomials(sd)
-        grad = p1.assemble_broken_grad_matrix(sd) @ proj
-        V_dot = sps.hstack([sps.diags_array(V_a) for V_a in V])
-
-        # The mass matrix between pg.PwLinears (rows) and pg.PwConstants (columns),
-        # through the inclusion of the latter in the former, for the test with v
-        incl = pg.PwConstants().proj_to_higher_PwPolynomials(sd)
-        mass = p1.assemble_mass_matrix(sd) @ incl
-        adv = proj.T @ mass @ V_dot @ grad
-
-        return pg.drop_small_entries(sps.csc_array(adv))
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""

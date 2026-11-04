@@ -3,6 +3,7 @@
 import numpy as np
 import porepy as pp
 import pytest
+import sympy as sp
 
 import pygeon as pg
 
@@ -134,3 +135,38 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
     q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
 
     assert np.allclose(q, q_space.interpolate(sd, lambda _: -K_rot @ slope))
+
+
+def test_assemble_adv_matrix_is_exact(discr, unit_sd, rotation):
+    # With u and v polynomials of the order of the space and a constant field, the
+    # matrix gives the exact integral of (beta . grad u) v, also on a tilted grid
+    sd = unit_sd.copy(keep_history=False)
+    sd.nodes = rotation @ sd.nodes
+    sd.compute_geometry()
+
+    k, dim = discr.poly_order, sd.dim
+    coords = pg.exact.coordinates()
+    x, y, z = coords
+    u = (1 + x + 2 * y) ** k + z
+    v = (1 + x - y) ** k
+    beta = np.array([1.0, 2.0, 3.0])
+
+    # the integral on the unit grid, with the components and the coordinates in its
+    # plane, i.e. the first dim ones
+    grad_u = pg.exact.gradient(u)
+    integrand = sum(beta[a] * grad_u[a] for a in range(dim)) * v
+    integrand = integrand.subs({c: 0 for c in coords[dim:]})
+    known = sp.integrate(integrand, *[(c, 0, 1) for c in coords[:dim]])
+
+    # the functions and the field on the tilted grid, in the ambient coordinates
+    def tilted(fun):
+        fun = pg.exact.to_callable(fun)
+        return lambda pts: fun(rotation.T @ pts)
+
+    u_h = discr.interpolate(sd, tilted(u))
+    v_h = discr.interpolate(sd, tilted(v))
+    field = np.tile((rotation @ beta).reshape((-1, 1)), sd.num_cells)
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: field})
+
+    A = discr.assemble_adv_matrix(sd, data)
+    assert np.isclose(v_h @ A @ u_h, float(known))
