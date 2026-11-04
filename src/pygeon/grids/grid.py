@@ -299,7 +299,7 @@ class Grid(pp.Grid):
 
         Returns:
             np.ndarray: The gradients, of shape (3, dim + 1, num_cells), with the
-            vertices of each cell in the order of :meth:`cell_nodes`.
+            vertices of each cell in the order of ``cell_nodes()``.
 
         Raises:
             NotImplementedError: If the grid is not simplicial.
