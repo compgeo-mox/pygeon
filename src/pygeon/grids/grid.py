@@ -324,6 +324,35 @@ class Grid(pp.Grid):
 
         return self.barycentric_gradients
 
+    def barycentric_to_coords(self, points: np.ndarray) -> np.ndarray:
+        r"""
+        Maps points given in barycentric coordinates to each cell K,
+
+        .. math::
+
+            x_K(\lambda) = \sum_{i = 0}^d \lambda_i x_{K, i},
+
+        with :math:`x_{K, i}` the vertices of K in the order of ``cell_nodes()``.
+
+        Args:
+            points (np.ndarray): The barycentric coordinates of the points, one per
+                row, (num_points, dim + 1).
+
+        Returns:
+            np.ndarray: The coordinates of the points in each cell, of shape
+            (3, num_points, num_cells).
+
+        Raises:
+            NotImplementedError: If the grid is not simplicial.
+        """
+        if not self.is_simplicial():
+            raise NotImplementedError(
+                "Grid is not simplicial; cannot map barycentric coordinates."
+            )
+
+        nodes = self.cell_nodes().indices.reshape((self.num_cells, self.dim + 1))
+        return np.einsum("pi,xci->xpc", points, self.nodes[:, nodes])
+
     def compute_edge_properties(self) -> None:
         """
         Computes and stores the tangent vectors and lengths

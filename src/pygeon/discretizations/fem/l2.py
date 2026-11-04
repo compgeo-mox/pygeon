@@ -1,7 +1,7 @@
 """Module for the discretizations of the L2 space."""
 
-import abc
-from math import comb, factorial
+from itertools import combinations
+from math import comb
 from typing import Callable, Type
 
 import numpy as np
@@ -12,9 +12,50 @@ import pygeon as pg
 
 class PwPolynomials(pg.Discretization):
     r"""
-    Abstract class implementing the finite element discretization for piecewise
-    polynomials of order k :math:`\mathbb{P}_k(\Omega) \subset L^2(\Omega)`,
-    for a generic domain :math:`\Omega \subset \mathbb{R}^d`.
+    Class implementing the finite element discretization for piecewise polynomials
+    of order k :math:`\mathbb{P}_k(\Omega) \subset L^2(\Omega)`, for a generic
+    domain :math:`\Omega \subset \mathbb{R}^d`.
+
+    **Degrees of freedom.** On each cell, the degrees of freedom are the values at
+    the nodes of the Lagrange basis, :math:`\lambda = \alpha / k` in barycentric
+    coordinates, see :meth:`pg.BernsteinBasis.lagrange_nodes`, in the order of
+    :meth:`pg.BernsteinBasis.compute_multi_indices`. For instance, for the order 2 on
+    a triangle, the basis functions are :math:`\lambda_i (2 \lambda_i - 1)` at the
+    vertices and :math:`4 \lambda_i \lambda_j` at the midpoints of the edges, each
+    equal to one at its node and zero at the other ones. The piecewise constants are
+    the exception: their degree of freedom is the integral on the cell, see
+    :meth:`dof_scaling`.
+
+    **Numbering.** The degree of freedom of the local basis function i on the cell c
+    is i * num_cells + c. Hence an operator given by the same local matrix L on every
+    cell, up to a factor :math:`w_K` per cell, is assembled as
+
+    .. math::
+
+        L \otimes \operatorname{diag}(w_K),
+
+    which is how all the generic methods are built.
+
+    **Bernstein basis.** The local matrices are computed in the Bernstein basis of
+    :class:`pg.BernsteinBasis`, where the mass matrix, the derivatives, and the
+    evaluation have a closed form, on the reference simplex: since the map to each
+    cell is affine, the barycentric coordinates are the same on all the cells, and
+    only the factors :math:`w_K` depend on the geometry. A local matrix :math:`L^B`
+    from the Bernstein basis of order n to the one of order m is changed to the
+    Lagrange bases of the degrees of freedom as
+
+    .. math::
+
+        L = V_m L^B V_n^{-1},
+
+    with :math:`V_n` the Bernstein--Vandermonde matrix of
+    :meth:`pg.BernsteinBasis.to_lagrange`, from the Bernstein to the Lagrange
+    coefficients, and :math:`V_n^{-1}` the one of
+    :meth:`pg.BernsteinBasis.to_bernstein`.
+
+    The generic methods hold for any order, so that a class of a higher order only
+    needs to set :attr:`poly_order`. The classes of the orders 0, 1, and 2 override
+    some of them, with the same basis.
     """
 
     poly_order: int
@@ -22,6 +63,24 @@ class PwPolynomials(pg.Discretization):
 
     tensor_order = pg.SCALAR
     """Scalar-valued discretization"""
+
+    @staticmethod
+    def dof_scaling(sd: pg.Grid, order: int) -> np.ndarray:
+        """
+        The factor between the degrees of freedom and the values at the nodes in each
+        cell: the cell volumes for the piecewise constants, whose degrees of freedom
+        are the integrals on the cells, and one for the other orders. The local
+        matrices act on the values, so that the operators divide by it on the side of
+        the domain and multiply by it on the side of the range.
+
+        Args:
+            sd (pg.Grid): The grid.
+            order (int): The polynomial order.
+
+        Returns:
+            np.ndarray: The factor of each cell.
+        """
+        return sd.cell_volumes if order == 0 else np.ones(sd.num_cells)
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -57,8 +116,18 @@ class PwPolynomials(pg.Discretization):
     ) -> sps.csc_array:
         r"""
         Computes the mass matrix :math:`(\sigma u, v)_\Omega` for
-        :math:`u, v \in \mathbb{P}_k(\Omega)` and :math:`\sigma` a scalar. Both
-        domain and range lie in :class:`pg.PwPolynomials`.
+        :math:`u, v \in \mathbb{P}_k(\Omega)` and :math:`\sigma` a scalar, constant on
+        each cell. Both domain and range lie in :class:`pg.PwPolynomials`.
+
+        The integral on a cell K is the one on the reference simplex S, of measure
+        one, times :math:`|K|`, so that, with the local mass matrix M of
+        :meth:`assemble_local_mass`,
+
+        .. math::
+
+            M_\Omega = M \otimes \operatorname{diag}(\sigma_K |K|),
+
+        divided by the square of :meth:`dof_scaling` for the piecewise constants.
 
         Args:
             sd (pg.Grid): The grid on which to assemble the matrix.
@@ -67,15 +136,7 @@ class PwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The mass matrix, of shape (ndof, ndof).
         """
-        local_mass = self.assemble_local_mass(sd.dim)
-
-        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
-        diag_weight = sps.diags_array(sd.cell_volumes * weight)
-
-        M = sps.kron(local_mass, diag_weight)
-        M.eliminate_zeros()
-
-        return M.tocsc()
+        return self.assemble_from_local_mass(sd, self.assemble_local_mass(sd.dim), data)
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -85,7 +146,9 @@ class PwPolynomials(pg.Discretization):
         obtained with a quadrature rule, of the mass matrix
         :math:`(\sigma u, v)_\Omega` for :math:`u, v \in \mathbb{P}_k(\Omega)` and
         :math:`\sigma` a scalar. Both domain and range lie in
-        :class:`pg.PwPolynomials` (L2 space).
+        :class:`pg.PwPolynomials` (L2 space). It is assembled as the mass matrix, see
+        :meth:`assemble_mass_matrix`, from the local lumped mass matrix of
+        :meth:`assemble_local_lumped_mass`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -94,14 +157,32 @@ class PwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The assembled lumped matrix.
         """
-        local_mass = self.assemble_local_lumped_mass(sd.dim)
+        return self.assemble_from_local_mass(
+            sd, self.assemble_local_lumped_mass(sd.dim), data
+        )
 
+    def assemble_from_local_mass(
+        self, sd: pg.Grid, local_mass: np.ndarray, data: dict | None
+    ) -> sps.csc_array:
+        r"""
+        Assembles a mass matrix from its local matrix on the reference simplex, of
+        measure one, as :math:`M \otimes \operatorname{diag}(\sigma_K |K|)`, divided by
+        the square of :meth:`dof_scaling` for the piecewise constants.
+
+        Args:
+            sd (pg.Grid): The grid.
+            local_mass (np.ndarray): The local mass matrix.
+            data (dict | None): Optional data dictionary, with the weight sigma.
+
+        Returns:
+            sps.csc_array: The mass matrix.
+        """
         weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
-        diag_weight = sps.diags_array(sd.cell_volumes * weight)
+        scaling = self.dof_scaling(sd, self.poly_order)
+        diag_weight = sps.diags_array(sd.cell_volumes * weight / scaling**2)
 
-        M = sps.kron(local_mass, diag_weight).tocsc()
+        M = sps.csc_array(sps.kron(local_mass, diag_weight))
         M.eliminate_zeros()
-
         return M
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
@@ -120,14 +201,64 @@ class PwPolynomials(pg.Discretization):
         """
         return sps.csc_array((0, self.ndof(sd)))
 
-    @abc.abstractmethod
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Assembles the broken (element-wise) gradient matrix for the given grid.
-        This method should be implemented in the child class.
+        Assembles the broken (element-wise) gradient matrix for the given grid, from
+        :math:`\mathbb{P}_k(\Omega)` to :math:`[\mathbb{P}_{k-1}(\Omega)]^d`.
 
-        The broken gradient :math:`\nabla_h` maps from
-        :math:`\mathbb{P}_k(\Omega)` (L2) to :math:`[\mathbb{P}_{k-1}(\Omega)]^d`.
+        On each cell K, a polynomial u is a polynomial in the barycentric coordinates
+        :math:`\lambda_0, \dots, \lambda_d` of K, so that its gradient follows from the
+        chain rule,
+
+        .. math::
+
+            \nabla u = \sum_{i = 0}^d \frac{\partial u}{\partial \lambda_i} \,
+            \nabla \lambda_i.
+
+        The two factors are assembled separately:
+
+        1. The derivatives :math:`\partial u / \partial \lambda_i` do not depend on
+           the cell: they map a polynomial of order k to one of order k - 1 in the
+           same barycentric coordinates. In the Bernstein basis they are the sparse
+           matrices :math:`D^B_i` of :meth:`pg.BernsteinBasis.derivatives`, and in
+           the Lagrange bases of the degrees of freedom they are
+           :math:`V_{k-1} D^B_i V_k^{-1}`, with the Bernstein--Vandermonde matrices
+           :math:`V_k` of :meth:`pg.BernsteinBasis.to_lagrange`. Since the degrees of
+           freedom are numbered (basis function) * num_cells + (cell), the same
+           local matrix on all the cells is its Kronecker product with the identity,
+           and the d + 1 derivatives stacked give the gradient in the barycentric
+           coordinates, from :math:`\mathbb{P}_k(\Omega)` to
+           :math:`[\mathbb{P}_{k-1}(\Omega)]^{d + 1}`,
+
+           .. math::
+
+               \partial = \begin{bmatrix} V_{k-1} D^B_0 V_k^{-1} \\ \vdots \\
+               V_{k-1} D^B_d V_k^{-1} \end{bmatrix} \otimes I.
+
+        2. The gradients :math:`\nabla \lambda_i` carry the geometry: they are
+           constant on each cell, from :meth:`pg.Grid.compute_barycentric_gradients`
+           in the plane of the grid. The component a of the chain rule multiplies the
+           derivative i by :math:`(\nabla \lambda_i)_a` on each cell, i.e. by the
+           block matrix :math:`\Lambda`, from
+           :math:`[\mathbb{P}_{k-1}(\Omega)]^{d + 1}` to
+           :math:`[\mathbb{P}_{k-1}(\Omega)]^d`, with the diagonal blocks
+
+           .. math::
+
+               \Lambda_{ai} = \operatorname{diag}((\nabla \lambda_i)_a),
+
+           whose values are repeated on all the degrees of freedom of each cell.
+
+        The broken gradient is then
+
+        .. math::
+
+            \nabla_h = \Lambda \partial,
+
+        with the components in blocks of rows, as in :class:`pg.VecPwPolynomials`.
+        For k = 1 the gradient is in :class:`pg.PwConstants`, whose degrees of
+        freedom are the integrals on the cells, so that :math:`\Lambda` is also
+        multiplied by the cell volumes.
 
         Args:
             sd (pg.Grid): The grid.
@@ -135,6 +266,36 @@ class PwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
         """
+        dim, k = sd.dim, self.poly_order
+        basis, low = pg.BernsteinBasis(dim, k), pg.BernsteinBasis(dim, k - 1)
+
+        # the gradient in the barycentric coordinates, the same on every cell, from the
+        # Lagrange coefficients of order k to the ones of order k - 1 through the
+        # Bernstein basis, one block of rows per barycentric coordinate
+        local = [
+            low.to_lagrange() @ D_i @ basis.to_bernstein()
+            for D_i in basis.derivatives()
+        ]
+        partial = sps.kron(np.vstack(local), sps.eye_array(sd.num_cells))
+
+        # the gradients of the barycentric coordinates in the plane of the grid,
+        # (dim, dim + 1, nc), scaled to the degrees of freedom of the order k - 1
+        grad_lambda = np.einsum(
+            "ak,kic->aic", sd.rotation_matrix, sd.compute_barycentric_gradients()
+        )
+        grad_lambda *= self.dof_scaling(sd, k - 1)
+
+        # the block matrix Lambda, with the blocks diag((grad lambda_i)_a): the values
+        # are constant on each cell, so repeated on all its degrees of freedom
+        num_low = low.multi_indices.shape[0]
+        Lambda = sps.block_array(
+            [
+                [sps.diags_array(np.tile(g, num_low)) for g in grad_a]
+                for grad_a in grad_lambda
+            ]
+        )
+
+        return pg.drop_small_entries(sps.csc_array(Lambda @ partial))
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
@@ -191,12 +352,18 @@ class PwPolynomials(pg.Discretization):
         """
         raise NotImplementedError("There's no zero discretization in PyGeoN (yet)")
 
-    @abc.abstractmethod
     def assemble_local_mass(self, dim: int) -> np.ndarray:
         r"""
         Computes the local mass matrix :math:`(\varphi_i, \varphi_j)_S` for
         :math:`\varphi_i, \varphi_j` being the local basis functions of the
-        piecewise polynomials on a d-simplex :math:`S`.
+        piecewise polynomials on a d-simplex :math:`S` with measure 1, exactly. The
+        mass matrix :math:`M^B` of the Bernstein basis, see
+        :meth:`pg.BernsteinBasis.mass`, is a bilinear form, so that it changes to the
+        Lagrange basis on both sides,
+
+        .. math::
+
+            M = V_k^{-\top} M^B V_k^{-1}.
 
         Args:
             dim (int): The dimension of the grid.
@@ -204,8 +371,9 @@ class PwPolynomials(pg.Discretization):
         Returns:
             np.ndarray: Local mass matrix for piecewise polynomials.
         """
+        basis = pg.BernsteinBasis(dim, self.poly_order)
+        return basis.to_bernstein().T @ basis.mass(basis) @ basis.to_bernstein()
 
-    @abc.abstractmethod
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         r"""
         Computes the local lumped mass matrix for piecewise polynomials, an
@@ -218,7 +386,14 @@ class PwPolynomials(pg.Discretization):
 
         Returns:
             np.ndarray: Local lumped mass matrix for piecewise polynomials.
+
+        Raises:
+            NotImplementedError: The lumped mass is provided only for the orders 0,
+                1, and 2, by their classes.
         """
+        raise NotImplementedError(
+            f"No lumped mass for the piecewise polynomials of order {self.poly_order}"
+        )
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -240,7 +415,18 @@ class PwPolynomials(pg.Discretization):
         Projects the discretization to -1 order discretization. The projection operator
         :math:`\Pi` takes a function from :math:`\mathbb{P}_k(\Omega)` and maps it
         to a piecewise polynomial function of lower order in
-        :math:`\mathbb{P}_{k-1}(\Omega)`.
+        :math:`\mathbb{P}_{k-1}(\Omega)`, as the L2 projection on each cell.
+
+        In the Bernstein bases, the projection :math:`p = \Pi u` of order k - 1 is
+        the solution of :math:`(p, q)_K = (u, q)_K` for all q of order k - 1, i.e. of
+        :math:`M^B_{k-1,k-1} c_p = M^B_{k-1,k} c_u`, with :math:`M^B_{m,n}` the mass
+        matrix between the Bernstein bases of the orders m and n, see
+        :meth:`pg.BernsteinBasis.mass`. The factor :math:`|K|` cancels out, so that
+        the local matrix is the same on every cell and, in the Lagrange bases,
+
+        .. math::
+
+            \Pi = V_{k-1} \left( M^B_{k-1,k-1} \right)^{-1} M^B_{k-1,k} V_k^{-1}.
 
         Args:
             sd (pg.Grid): The grid.
@@ -249,17 +435,41 @@ class PwPolynomials(pg.Discretization):
             sps.csc_array: The projection matrix.
 
         Raises:
-            NotImplementedError: If the method is not implemented in a subclass.
+            NotImplementedError: For the piecewise constants, of the lowest order.
         """
-        raise NotImplementedError
+        k, dim = self.poly_order, sd.dim
+        if k == 0:
+            raise NotImplementedError("No order below the piecewise constants")
 
-    @abc.abstractmethod
+        # on the reference simplex, the same on every cell: from the Lagrange to the
+        # Bernstein coefficients of order k, the L2 projection onto the Bernstein
+        # basis of order k - 1, and back to the Lagrange coefficients of order k - 1
+        basis, low = pg.BernsteinBasis(dim, k), pg.BernsteinBasis(dim, k - 1)
+        l2_projection = np.linalg.solve(low.mass(low), low.mass(basis))
+        local = low.to_lagrange() @ l2_projection @ basis.to_bernstein()
+
+        # from the degrees of freedom of the order k to the ones of the order k - 1
+        scaling = self.dof_scaling(sd, k - 1) / self.dof_scaling(sd, k)
+        proj = sps.kron(local, sps.diags_array(scaling))
+        return pg.drop_small_entries(sps.csc_array(proj))
+
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Projects the discretization to +1 order discretization. The projection operator
         :math:`\Pi` takes a function from :math:`\mathbb{P}_k(\Omega)` and maps it
         to a piecewise polynomial function of higher order in
-        :math:`\mathbb{P}_{k+1}(\Omega)`.
+        :math:`\mathbb{P}_{k+1}(\Omega)`, exactly, i.e. it is the inclusion.
+
+        A polynomial of order k is also one of order k + 1, whose degrees of freedom
+        are its values at the nodes :math:`\lambda_\beta` of order k + 1. From the
+        degrees of freedom of order k, the Bernstein coefficients are
+        :math:`V_k^{-1} u`, and the values follow from the Bernstein polynomials
+        :math:`B_k` at those nodes, see :meth:`pg.BernsteinBasis.eval`, the same on
+        every cell,
+
+        .. math::
+
+            \Pi = B_k(\lambda_\beta) V_k^{-1}.
 
         Args:
             sd (pg.Grid): The grid.
@@ -267,6 +477,104 @@ class PwPolynomials(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix.
         """
+        k, dim = self.poly_order, sd.dim
+        basis, high = pg.BernsteinBasis(dim, k), pg.BernsteinBasis(dim, k + 1)
+        local = basis.eval(high.lagrange_nodes()) @ basis.to_bernstein()
+
+        # from the degrees of freedom of the order k to the ones of the order k + 1
+        scaling = self.dof_scaling(sd, k + 1) / self.dof_scaling(sd, k)
+        proj = sps.kron(local, sps.diags_array(scaling))
+        return pg.drop_small_entries(sps.csc_array(proj))
+
+    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
+        r"""
+        Assembles the matrix for evaluating the discretization at the cell centers.
+        The cell center of a simplex is its barycenter, the same point
+        :math:`\lambda_c = (1, \dots, 1) / (d + 1)` in barycentric coordinates on
+        every cell. As in :meth:`proj_to_higher_PwPolynomials`, the values there
+        follow from the Bernstein coefficients :math:`V_k^{-1} u` and the Bernstein
+        polynomials at :math:`\lambda_c`, the same on every cell,
+
+        .. math::
+
+            B_k(\lambda_c) V_k^{-1}.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The evaluation matrix.
+        """
+        k, dim = self.poly_order, sd.dim
+        basis = pg.BernsteinBasis(dim, k)
+        barycenter = np.full((1, dim + 1), 1 / (dim + 1))
+        local = basis.eval(barycenter) @ basis.to_bernstein()
+
+        evaluation = sps.kron(local, sps.eye_array(sd.num_cells))
+        return pg.drop_small_entries(sps.csc_array(evaluation))
+
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        r"""
+        Interpolates a function onto the finite element space through its values at
+        points inside each cell K, so that a function discontinuous across the cells
+        is sampled on a single side, in three steps:
+
+        1. The points are the nodes of the Lagrange basis shrunk toward the
+           barycenter :math:`\lambda_c = (1, \dots, 1) / (d + 1)`, in barycentric
+           coordinates,
+
+           .. math::
+
+               \mu_\alpha = \lambda_c + s \left( \frac{\alpha}{k} - \lambda_c
+               \right), \qquad s = \frac{1}{\sqrt{d + 2}}.
+
+           They are unisolvent for :math:`\mathbb{P}_k` as the nodes, being their
+           image by a homothety, and, for k = 1, they are the Gauss points of a
+           quadrature rule of order 2.
+
+        2. The function is evaluated at the points of each cell,
+           :math:`x_K(\mu) = \sum_i \mu_i x_{K, i}`, see
+           :meth:`pg.Grid.barycentric_to_coords`.
+
+        3. The interpolant is the polynomial with these values: its Bernstein
+           coefficients c solve :math:`B_k(\mu) c = f(x_K(\mu))`, see
+           :meth:`pg.BernsteinBasis.eval`, so that its degrees of freedom are
+
+           .. math::
+
+               u_K = V_k B_k(\mu)^{-1} f(x_K(\mu)),
+
+           with the same local matrix on every cell.
+
+        It is exact for the polynomials of order k.
+
+        Args:
+            sd (pg.Grid): The grid.
+            func (Callable): A function that returns the function values at
+                coordinates.
+
+        Returns:
+            np.ndarray: The values of the degrees of freedom.
+        """
+        k, dim = self.poly_order, sd.dim
+        basis = pg.BernsteinBasis(dim, k)
+
+        # the points inside the simplex, in barycentric coordinates
+        center = 1 / (dim + 1)
+        points = center + (basis.lagrange_nodes() - center) / np.sqrt(dim + 2)
+
+        # their coordinates in each cell, ordered as the dofs, with the cells running
+        # faster, and the values of f there, (num points, num_cells)
+        coords = sd.barycentric_to_coords(points)
+        values = self.eval_func_at_coords(func, coords.reshape((3, -1)))
+        values = values.reshape((-1, sd.num_cells))
+
+        # from the values at the points to the ones at the nodes, through the
+        # Bernstein coefficients
+        local = basis.to_lagrange() @ np.linalg.inv(basis.eval(points))
+        return (local @ values).ravel()
 
 
 class PwConstants(PwPolynomials):
@@ -281,20 +589,6 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    def assemble_local_mass(self, _dim: int) -> np.ndarray:
-        r"""
-        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
-        :math:`\varphi_i, \varphi_j \in \mathbb{P}_0(\Omega)`, which is the scalar
-        :math:`[[1]]`.
-
-        Args:
-            dim (int): The dimension of the grid.
-
-        Returns:
-            np.ndarray: Local mass matrix for piecewise constants.
-        """
-        return np.array([[1]])
-
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
         Computes the local lumped mass matrix for piecewise constants,
@@ -308,52 +602,14 @@ class PwConstants(PwPolynomials):
         """
         return self.assemble_local_mass(dim)
 
-    def assemble_mass_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Computes the mass matrix for piecewise constants, representing the bilinear form
-        :math:`(\sigma u, v)_\Omega` where :math:`u, v \in \mathbb{P}_0(\Omega)` and
-        :math:`\sigma` is the datum. Both domain and range lie in
-        :class:`pg.PwConstants`.
-
-        Args:
-            sd (pg.Grid): The grid on which to assemble the matrix.
-            data (dict | None): Dictionary with possible scaling.
-
-        Returns:
-            sps.csc_array: Sparse csc matrix of shape (sd.num_cells, sd.num_cells).
-        """
-        M = super().assemble_mass_matrix(sd, data)
-        M /= np.square(sd.cell_volumes)
-
-        return M.tocsc()
-
-    def assemble_lumped_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        """
-        Computes the lumped mass matrix, which coincides with the mass matrix for P0.
-
-        Args:
-            sd (pg.Grid): The grid on which to assemble the matrix.
-            data (dict | None): Additional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The assembled lumped mass matrix.
-        """
-        M = super().assemble_lumped_matrix(sd, data)
-        M /= np.square(sd.cell_volumes)
-
-        return M.tocsc()
-
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid,
         which is zero for the piecewise constants.
 
-        The broken gradient :math:`\nabla_h` maps from :class:`pg.PwConstants`
-        to :math:`(0, 0, 0)`.
+        The broken gradient :math:`\nabla_h` maps from :class:`pg.PwConstants` to
+        zero, with the shape of a map to the dim components of
+        :class:`pg.VecPwConstants`, as for the other orders.
 
         Args:
             sd (pg.Grid): The grid.
@@ -362,43 +618,13 @@ class PwConstants(PwPolynomials):
             sps.csc_array: The assembled broken gradient matrix.
         """
         ndof = self.ndof(sd)
-        return sps.csc_array((pg.AMBIENT_DIM * ndof, ndof))
-
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a function onto the finite element space, evaluating it at the
-        cell centers and multiplying by the cell volumes.
-
-        Args:
-            sd (pg.Grid): The grid.
-            func (Callable[[np.ndarray], np.ndarray]): A function that returns the
-                function values at coordinates.
-
-        Returns:
-            np.ndarray: The values of the degrees of freedom.
-        """
-        vals = self.eval_func_at_coords(func, sd.cell_centers)
-        return vals * sd.cell_volumes
-
-    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Projects the P0 discretization to the P1 discretization. The projection
-        operator :math:`\Pi` takes a function from :class:`pg.PwConstants` and
-        maps it to a piecewise linear function in :class:`pg.PwLinears`.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The projection matrix.
-        """
-        return sps.vstack([self.eval_at_cell_centers(sd)] * (sd.dim + 1)).tocsc()
+        return sps.csc_array((sd.dim * ndof, ndof))
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix for evaluating the discretization at the cell centers.
+        Assembles the matrix for evaluating the discretization at the cell centers:
+        the value of each cell, i.e. its degree of freedom, the integral on the cell,
+        divided by the cell volume. It holds on any grid, also not simplicial.
 
         Args:
             sd (pg.Grid): The grid.
@@ -406,7 +632,25 @@ class PwConstants(PwPolynomials):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        return sps.diags_array(1 / sd.cell_volumes).tocsc()
+        return sps.csc_array(sps.diags_array(1 / sd.cell_volumes))
+
+    def interpolate(
+        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
+    ) -> np.ndarray:
+        r"""
+        Interpolates a function onto the finite element space, through its value at
+        the cell center times the cell volume, :math:`u_K = f(x_K) |K|`. It holds on
+        any grid, also not simplicial.
+
+        Args:
+            sd (pg.Grid): The grid.
+            func (Callable): A function that returns the function values at
+                coordinates.
+
+        Returns:
+            np.ndarray: The values of the degrees of freedom.
+        """
+        return self.eval_func_at_coords(func, sd.cell_centers) * sd.cell_volumes
 
 
 class PwLinears(PwPolynomials):
@@ -419,25 +663,11 @@ class PwLinears(PwPolynomials):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
-        r"""
-        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)` for
-        :math:`\varphi_i, \varphi_j \in \mathbb{P}_1(\Omega)`, where
-        :math:`\varphi_i` are the local basis functions.
-
-        Args:
-            dim (int): The dimension of the grid.
-
-        Returns:
-            np.ndarray: Local mass matrix for piecewise linears.
-        """
-        M = np.ones((dim + 1, dim + 1)) + np.identity(dim + 1)
-        return M / ((dim + 1) * (dim + 2))
-
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         """
         Computes the local lumped mass matrix for piecewise linears, which is a
-        diagonal approximation of the local mass matrix.
+        diagonal approximation of the local mass matrix, by the quadrature rule at the
+        vertices with the weight 1 / (dim + 1) each.
 
         Args:
             dim (int): The dimension of the grid.
@@ -446,116 +676,6 @@ class PwLinears(PwPolynomials):
             np.ndarray: Local lumped mass matrix for piecewise linears.
         """
         return np.eye(dim + 1) / (dim + 1)
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix for evaluating the discretization at the cell centers.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The evaluation matrix.
-        """
-        matr = sps.hstack([sps.eye_array(sd.num_cells)] * (sd.dim + 1)) / (sd.dim + 1)
-        return matr.tocsc()
-
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a function onto the finite element space by evaluating the function
-        at the (sd.dim + 1) Gauss points of each cell.
-
-        Args:
-            sd (pg.Grid): The grid.
-            func (Callable): A function that returns the function values at coordinates.
-
-        Returns:
-            np.ndarray: The values of the degrees of freedom.
-        """
-        lookup = self.get_dof_lookup_array(sd).tocoo()
-        dofs = lookup.data
-
-        # Retrieve the (cell, node) pair for each degree of freedom
-        cells = np.empty_like(lookup.col)
-        nodes = np.empty_like(lookup.row)
-        cells[dofs] = lookup.col
-        nodes[dofs] = lookup.row
-
-        # Compute the Gauss points as a weighted average of the node and cell center
-        # coordinates.
-        alpha = 1 / np.sqrt(sd.dim + 2)
-        gauss_pts = alpha * sd.nodes[:, nodes] + (1 - alpha) * sd.cell_centers[:, cells]
-
-        # Evaluate the function at the Gauss points.
-        func_at_gauss = self.eval_func_at_coords(func, gauss_pts)
-
-        # To retrieve the values at the nodes, we first compute the value of the
-        # interpolated function at the cell center. Since the Gauss points are
-        # equidistant from the cell center, we can use eval_at_cc as the averaging
-        # operator.
-        interp_at_cc = self.eval_at_cell_centers(sd) @ func_at_gauss
-
-        # Expand from cell-indices to dof-indices
-        interp_at_cc = interp_at_cc[cells]
-
-        # Extrapolate the linear function from the cell center, through the
-        # Gauss point, to the node.
-        return interp_at_cc + 1 / alpha * (func_at_gauss - interp_at_cc)
-
-    def proj_to_lower_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Construct the matrix for projecting a piecewise linear function to a piecewise
-        constant function. The projection operator :math:`\Pi` takes a function from
-        :class:`pg.PwLinears` and maps it to a piecewise polynomial function
-        of lower order in :class:`pg.PwConstants`.
-
-        Args:
-            sd (pg.Grid): The grid on which to construct the matrix.
-
-        Returns:
-            sps.csc_array: The matrix representing the projection.
-        """
-        matr = sps.hstack([sps.diags_array(sd.cell_volumes)] * (sd.dim + 1)) / (
-            sd.dim + 1
-        )
-        return matr.tocsc()
-
-    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Projects the discretization to +1 order discretization. The projection operator
-        :math:`\Pi` takes a function from :class:`pg.PwLinears` and maps it
-        to a piecewise polynomial function of higher order in
-        :class:`pg.PwQuadratics`.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The projection matrix.
-        """
-        p1 = pg.PwLinears()
-        p2 = pg.PwQuadratics()
-
-        # Local dof mapping
-        num_cell_edges = p2.num_edges_per_cell(sd.dim)
-        edge_nodes = p2.get_local_edge_nodes(sd.dim).ravel()
-        vals = np.concatenate((np.ones(sd.dim + 1), 0.5 * np.ones(num_cell_edges * 2)))
-
-        # The local dofs of all the cells at once, one row per cell: the dofs of the
-        # cell c are c + num_cells * k, with k running over its local dofs
-        cells = np.arange(sd.num_cells)[:, None]
-        dofs_p1 = sd.num_cells * np.arange(p1.ndof_per_element(sd.dim)) + cells
-        dofs_p2 = sd.num_cells * np.arange(p2.ndof_per_element(sd.dim)) + cells
-
-        rows_I = np.hstack(
-            (dofs_p2[:, : sd.dim + 1], np.repeat(dofs_p2[:, sd.dim + 1 :], 2, axis=1))
-        )
-        cols_J = np.hstack((dofs_p1, dofs_p1[:, edge_nodes]))
-        data_IJ = np.tile(vals, (sd.num_cells, 1))
-
-        return sps.csc_array((data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())))
 
     def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -572,37 +692,6 @@ class PwLinears(PwPolynomials):
         dof_array.data = np.reshape(np.arange(ndof), (sd.num_cells, -1), "F").ravel()
 
         return dof_array
-
-    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Assembles the broken (element-wise) gradient matrix for the given grid.
-        This operator maps to the vector-valued piecewise constants
-        :class:`pg.VecPwConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
-        and is used for computing :math:`\nabla_h u` element-wise.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The assembled broken gradient matrix.
-        """
-        opposite_nodes = sd.compute_opposite_nodes().tocoo()
-        faces = opposite_nodes.row
-        cells = opposite_nodes.col
-        orien = sd.cell_faces[faces, cells]
-        nodes = opposite_nodes.data
-
-        vecp0_dofs = np.arange(sd.dim * sd.num_cells).reshape((sd.dim, -1))
-        rows_I = vecp0_dofs[:, cells].ravel()
-
-        dof_lookup = self.get_dof_lookup_array(sd)
-        cols_J = np.tile(dof_lookup[nodes, cells], sd.dim)
-
-        normals = sd.rotation_matrix @ sd.face_normals
-        grads = -normals[:, faces] * orien / sd.dim
-        data_IJ = grads.ravel()
-
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
 
 
 class PwQuadratics(PwPolynomials):
@@ -629,7 +718,9 @@ class PwQuadratics(PwPolynomials):
 
     def get_local_edge_nodes(self, dim: int) -> np.ndarray:
         """
-        Lists the local edge-node connectivity in the cell.
+        Lists the local edge-node connectivity in the cell: the pairs of local nodes,
+        in lexicographic order, as the edges of the Bernstein basis, see
+        :meth:`pg.BernsteinBasis.compute_multi_indices`.
 
         Args:
             dim (int): Dimension.
@@ -638,105 +729,17 @@ class PwQuadratics(PwPolynomials):
             np.ndarray: Row i contains the local indices of the nodes connected to the
             edge with local index i.
         """
-        n_nodes = dim + 1
-        n_edges = self.num_edges_per_cell(dim)
-        e_nodes = np.empty((n_edges, 2), int)
-
-        ind = 0
-        for first_node in np.arange(n_nodes):
-            for second_node in np.arange(first_node + 1, n_nodes):
-                e_nodes[ind] = [first_node, second_node]
-                ind += 1
-
-        return e_nodes
-
-    def assemble_local_mass(self, dim: int) -> np.ndarray:
-        r"""
-        Computes the local mass matrix :math:`(\varphi_i, \varphi_j)_S` of the
-        basis functions on a d-simplex :math:`S` with measure 1.
-
-        Args:
-            dim (int): The dimension of the simplex.
-
-        Returns:
-            np.ndarray: The local mass matrix.
-        """
-        # Helper constants
-        n_edges = self.num_edges_per_cell(dim)
-        eye = np.eye(dim + 1)
-        zero = np.zeros((n_edges, dim + 1))
-
-        # List the barycentric functions up to degree 2,
-        # by exponents, consisting of
-        # - the linears lambda_i
-        # - the cross-quadratics lambda_i lambda_j
-        # - the quadratics lambda_i^2
-        quads = np.zeros((dim + 1, n_edges))
-        e_nodes = self.get_local_edge_nodes(dim)
-        for ind, nodes in enumerate(e_nodes):
-            quads[nodes, ind] = 1
-        exponents = np.hstack((eye, quads, 2 * eye))
-
-        # Compute the local mass matrix of the barycentric functions
-        barycentric_mass = self.assemble_barycentric_mass(exponents)
-
-        # Our basis functions are given by
-        # - nodes: lambda_i (2 lambda_i - 1)
-        # - edges: 4 lambda_i lambda_j
-        # We list the coefficients in the array "basis"
-        basis_nodes = np.vstack((-eye, zero, 2 * eye))
-        basis_edges = np.zeros((2 * (dim + 1) + n_edges, n_edges))
-        basis_edges[dim + 1 : dim + n_edges + 1, :] = 4 * np.eye(n_edges)
-        basis = np.hstack((basis_nodes, basis_edges))
-
-        return basis.T @ barycentric_mass @ basis
-
-    def assemble_barycentric_mass(self, expnts: np.ndarray) -> np.ndarray:
-        r"""
-        Compute the inner products :math:`(m_i, m_j)_S` of all monomials up to degree 2,
-        where :math:`m_i = \prod_k \lambda_k^{\alpha_{ik}}`, :math:`\lambda_k` are
-        barycentric coordinates and :math:`S` is a d-simplex with measure 1.
-
-        Args:
-            expnts (np.ndarray): Each column is an array of exponents
-                :math:`\alpha_i` of the monomial expressed as
-                :math:`\prod_i \lambda_i^{\alpha_i}`.
-
-        Returns:
-            np.ndarray: The inner products of the monomials on a simplex with measure 1.
-        """
-        n_monomials = expnts.shape[1]
-        mass = np.empty((n_monomials, n_monomials))
-
-        for i in np.arange(n_monomials):
-            for j in np.arange(n_monomials):
-                mass[i, j] = self.integrate_monomial(expnts[:, i] + expnts[:, j])
-
-        return mass
-
-    def integrate_monomial(self, alphas: np.ndarray) -> float:
-        r"""
-        Exact integration of products of monomials based on Vermolen and Segal (2018).
-
-        Args:
-            alphas (np.ndarray): Array of exponents :math:`\alpha_i` of the monomial
-                expressed as :math:`\prod_i \lambda_i^{\alpha_i}`.
-
-        Returns:
-            float: The integral of the monomial on a simplex with measure 1.
-        """
-        alphas = alphas.astype(int)
-        dim = len(alphas) - 1
-        fac_alph = [factorial(a_i) for a_i in alphas]
-
-        return float(
-            factorial(dim) * np.prod(fac_alph) / factorial(dim + np.sum(alphas))
-        )
+        edges = list(combinations(range(dim + 1), 2))
+        return np.array(edges, dtype=int).reshape((-1, 2))
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
-        """
+        r"""
         Computes the local lumped mass matrix for piecewise quadratics, which is
-        an approximation of the local mass matrix.
+        an approximation of the local mass matrix by the quadrature rule, on the
+        simplex of measure one, with the weight :math:`(d + 1) / (d + 2)` at the
+        barycenter and :math:`1 / ((d + 1)(d + 2))` at each vertex. At the vertices,
+        only the basis function of the vertex is not zero, so that their part is
+        diagonal.
 
         Args:
             dim (int): The dimension of the grid.
@@ -744,7 +747,7 @@ class PwQuadratics(PwPolynomials):
         Returns:
             np.ndarray: Local lumped mass matrix for piecewise quadratics.
         """
-        num_edges = (dim * (dim + 1)) // 2
+        num_edges = self.num_edges_per_cell(dim)
 
         # Evaluate the basis function at the cell center
         node_bf_at_cc = np.full(dim + 1, 1 - dim)
@@ -762,117 +765,3 @@ class PwQuadratics(PwPolynomials):
         L += node_weight * np.diag(vals_at_nodes)
 
         return L
-
-    def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the broken (element-wise) gradient matrix for the given grid.
-        This operator maps to the vector-valued piecewise linears.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The assembled broken gradient matrix.
-        """
-        # the gradient of our basis functions are given by
-        # - nodes: (grad lambda_i) ( 4 lambda_i - 1 )
-        # - edges: 4 lambda_i (grad lambda_j) + 4 lambda_j (grad lambda_i)
-
-        # We first extract the gradients of the piecewise linears
-        P1 = pg.PwLinears()
-        grad_lambda = P1.assemble_broken_grad_matrix(sd)
-        grad_lambda = pg.VecPwConstants().proj_to_higher_PwPolynomials(sd) @ grad_lambda
-
-        # The term (grad lambda_i) lambda_i is created by zeroing out entries of
-        # the computed gradients
-        ii_term = grad_lambda.tocoo()
-        ii_term.data *= np.where(ii_term.row % P1.ndof(sd) == ii_term.col, 1, 0)
-
-        node_grads = 4 * ii_term - grad_lambda
-
-        # A similar approach gives us the gradients of the edge-based basis functions
-        loc_nodes = np.reshape(np.arange(P1.ndof(sd)), (sd.dim + 1, -1))
-        loc_en = self.get_local_edge_nodes(sd.dim)
-
-        # Extract left and right node of each edge
-        node_0 = loc_nodes[loc_en[:, 0]].ravel()
-        node_1 = loc_nodes[loc_en[:, 1]].ravel()
-
-        # Column slicing in CSC format
-        ij_term = grad_lambda.tocsc()[:, node_0].tocoo()
-        ji_term = grad_lambda.tocsc()[:, node_1].tocoo()
-
-        ij_term.data *= np.where(ij_term.row % P1.ndof(sd) == node_1[ij_term.col], 1, 0)
-        ji_term.data *= np.where(ji_term.row % P1.ndof(sd) == node_0[ji_term.col], 1, 0)
-
-        edge_grads = 4 * (ij_term + ji_term)
-
-        return sps.hstack((node_grads, edge_grads), format="csc")
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix for evaluating the discretization at the cell centers.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The evaluation matrix.
-        """
-        val_at_cc = 1 / (sd.dim + 1)
-        eval_nodes = val_at_cc * (2 * val_at_cc - 1) * sps.eye_array(sd.num_cells)
-        eval_nodes_stacked = sps.hstack([eval_nodes] * (sd.dim + 1))
-
-        num_edges_per_cells = sd.dim * (sd.dim + 1) // 2
-        eval_edges = 4 * val_at_cc * val_at_cc * sps.eye_array(sd.num_cells)
-        eval_edges_stacked = sps.hstack([eval_edges] * num_edges_per_cells)
-
-        return sps.hstack((eval_nodes_stacked, eval_edges_stacked)).tocsc()
-
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a function onto the finite element space, evaluating it at the
-        nodes and at the midpoints of the edges of each cell.
-
-        Args:
-            sd (pg.Grid): The grid.
-            func (Callable): A function that returns the function values at
-                coordinates.
-
-        Returns:
-            np.ndarray: The values of the degrees of freedom.
-        """
-        edge_nodes = self.get_local_edge_nodes(sd.dim)
-
-        cell_nodes = sd.cell_nodes()
-        nodes_per_cell = np.reshape(cell_nodes.indices, (sd.num_cells, -1))
-
-        coord_list = [sd.nodes[:, nodes_per_cell.ravel(order="F")]]
-
-        for edge in edge_nodes:
-            edge_coord = (
-                sd.nodes[:, nodes_per_cell[:, edge[0]]]
-                + sd.nodes[:, nodes_per_cell[:, edge[1]]]
-            ) / 2
-            coord_list.append(edge_coord)
-
-        coords = np.hstack(coord_list)
-
-        return self.eval_func_at_coords(func, coords)
-
-    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Projects the discretization to +1 order discretization. The projection operator
-        :math:`\Pi` would take a function from :class:`pg.PwQuadratics` and map
-        it to a piecewise polynomial function of higher order in
-        :math:`\mathbb{P}_3(\Omega)`, which is not implemented.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Raises:
-            NotImplementedError: The piecewise cubics are not available in PyGeoN.
-        """
-        raise NotImplementedError
