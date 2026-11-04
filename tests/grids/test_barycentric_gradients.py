@@ -31,6 +31,15 @@ def test_stored(unit_sd):
     assert unit_sd.compute_barycentric_gradients(recompute=True) is not grads
 
 
+def test_recomputed_with_geometry(unit_sd):
+    # a copy with moved nodes gets the gradients of the new geometry
+    grads = unit_sd.compute_barycentric_gradients()
+    sd = unit_sd.copy(keep_history=False)
+    sd.nodes = 2 * sd.nodes
+    sd.compute_geometry()
+    assert np.allclose(sd.compute_barycentric_gradients(), grads / 2)
+
+
 def test_non_simplicial_grid(ref_square):
     with pytest.raises(NotImplementedError):
         ref_square.compute_barycentric_gradients()
