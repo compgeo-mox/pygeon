@@ -3,7 +3,6 @@
 from typing import Callable, Type
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -129,56 +128,27 @@ class Lagrange1(Lagrange):
         Returns:
             sps.csc_array: The assembled advection matrix.
         """
-        # Retrieve the vector field
+        # Retrieve the vector field, in the coordinates of the plane of the grid
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        if data and data.get("is_tangential", False):
+            V = V[: sd.dim]
+        else:
+            V = sd.rotation_matrix @ V
 
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1D and 2D)
-        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
+        # The gradient of u, in pg.VecPwConstants, and its product with the field, in
+        # pg.PwConstants
+        p1 = pg.PwLinears()
+        proj = self.proj_to_PwPolynomials(sd)
+        grad = p1.assemble_broken_grad_matrix(sd) @ proj
+        V_dot = sps.hstack([sps.diags_array(V_a) for V_a in V])
 
-        if not data or not data.get("is_tangential", False):
-            # Rotate the vector field and delete last dimension
-            if sd.dim < 3:
-                V = V.copy()
-                V = R @ V
-                remove_dim = np.where(np.logical_not(dim))[0]
-                V = np.delete(V, remove_dim, axis=0)
+        # The mass matrix between pg.PwLinears (rows) and pg.PwConstants (columns),
+        # through the inclusion of the latter in the former, for the test with v
+        incl = pg.PwConstants().proj_to_higher_PwPolynomials(sd)
+        mass = p1.assemble_mass_matrix(sd) @ incl
+        adv = proj.T @ mass @ V_dot @ grad
 
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(sd.dim + 1, 2) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the adv-H1 local matrix
-            A = self.local_adv(
-                V[0 : sd.dim, c],
-                sd.cell_volumes[c],
-                coord_loc,
-                sd.dim,
-            )
-
-            # Save values for adv-H1 local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return pg.drop_small_entries(sps.csc_array(adv))
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -208,46 +178,6 @@ class Lagrange1(Lagrange):
                 return sps.csc_array((0, 0))
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
-
-    def local_adv(
-        self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
-    ) -> np.ndarray:
-        """
-        Compute the local advection matrix for linear elements.
-
-        Args:
-            V (np.ndarray): The vector field in the cell, of shape (dim,).
-            c_volume (np.ndarray): The cell volume.
-            coord (np.ndarray): The coordinates of the cell vertices, of shape
-                (dim, dim + 1).
-            dim (int): The dimension of the problem.
-
-        Returns:
-            np.ndarray: The local advection matrix, of shape (dim + 1, dim + 1).
-        """
-        phi = np.full((dim + 1,), (1 / (dim + 1)))
-
-        dphi = self.local_grads(coord, dim)
-
-        return c_volume * np.outer(phi, V @ dphi)
-
-    @staticmethod
-    def local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
-        """
-        Calculate the local gradients of the linear finite element basis functions.
-
-        Args:
-            coord (np.ndarray): The coordinates of the nodes in the element, of shape
-                (dim, dim + 1).
-            dim (int): The dimension of the element.
-
-        Returns:
-            np.ndarray: The gradients of the basis functions in the columns, of shape
-            (dim, dim + 1).
-        """
-        Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
-        invQ = np.linalg.inv(Q)
-        return invQ[1:, :]
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
