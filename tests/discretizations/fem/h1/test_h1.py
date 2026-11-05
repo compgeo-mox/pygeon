@@ -26,6 +26,15 @@ def rotation(request: pytest.FixtureRequest) -> np.ndarray:
     return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
 
 
+@pytest.fixture
+def tilted_sd(unit_sd: pg.Grid, rotation: np.ndarray) -> pg.Grid:
+    """The unit grid tilted by the rotation, with its geometry recomputed."""
+    sd = unit_sd.copy(keep_history=False)
+    sd.nodes = rotation @ sd.nodes
+    sd.compute_geometry()
+    return sd
+
+
 def test_interpolate_and_evaluate(discr, unit_sd):
     func = lambda x: x[0] ** discr.poly_order
     known_vals = func(unit_sd.cell_centers)
@@ -106,12 +115,10 @@ def test_point_grid(discr, ref_sd_0d):
         discr.assemble_diff_matrix(sd_copy)
 
 
-def test_postprocess_darcy_flux(discr, unit_sd, rotation):
-    # The rotation tilts the grid, the tensor is given in the local coordinates of the
-    # grid and mapped to the ambient space with the rotation matrix of the grid
-    sd = unit_sd.copy(keep_history=False)
-    sd.nodes = rotation @ sd.nodes
-    sd.compute_geometry()
+def test_postprocess_darcy_flux(discr, tilted_sd, rotation):
+    # The tensor is given in the local coordinates of the tilted grid and mapped to
+    # the ambient space with the rotation matrix of the grid
+    sd = tilted_sd
     R = sd.rotation_matrix
 
     K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
@@ -137,12 +144,10 @@ def test_postprocess_darcy_flux(discr, unit_sd, rotation):
     assert np.allclose(q, q_space.interpolate(sd, lambda _: -K_rot @ slope))
 
 
-def test_assemble_adv_matrix_is_exact(discr, unit_sd, rotation):
+def test_assemble_adv_matrix_is_exact(discr, tilted_sd, rotation):
     # With u and v polynomials of the order of the space and a constant field, the
     # matrix gives the exact integral of (beta . grad u) v, also on a tilted grid
-    sd = unit_sd.copy(keep_history=False)
-    sd.nodes = rotation @ sd.nodes
-    sd.compute_geometry()
+    sd = tilted_sd
 
     k, dim = discr.poly_order, sd.dim
     coords = pg.exact.coordinates()
