@@ -178,6 +178,19 @@ def test_assemble_adv_matrix(
     assert matrix_equals(M.todense(), M_known)
 
 
+def test_assemble_adv_matrix_tangential(
+    discr: pg.Lagrange1, ref_sd: pg.Grid, vector_field: np.ndarray
+):
+    # the reference elements lie on the first dim axes, so a tangential field is the
+    # same as the field in the ambient coordinates
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: vector_field})
+    M = discr.assemble_adv_matrix(ref_sd, data=data)
+    data["is_tangential"] = True
+    M_tangential = discr.assemble_adv_matrix(ref_sd, data=data)
+
+    assert matrix_equals(M_tangential.todense(), M.todense())
+
+
 def test_assemble_adv_matrix_default(discr: pg.Lagrange1, ref_sd: pg.Grid):
     M = discr.assemble_adv_matrix(ref_sd)
 
