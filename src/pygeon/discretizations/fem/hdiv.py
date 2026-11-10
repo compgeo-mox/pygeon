@@ -3,7 +3,6 @@
 from typing import Callable, Tuple, Type, cast
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -56,7 +55,23 @@ class RT0(pg.Discretization):
         second-order tensor. If not provided, :math:`\boldsymbol{\beta}` defaults to
         :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor. On grids
         of dimension lower than 3, both are rotated to the plane or the line of the
-        grid, unless the entry "is_tangential" of data is True.
+        grid with ``sd.rotation_matrix``, unless the entry "is_tangential" of data is
+        True: then their first dim components are taken as the ones in those
+        coordinates.
+
+        Since the weight :math:`D^{-1} \boldsymbol{\beta}` is constant on each cell,
+        :math:`D^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
+        polynomial of order 1, and the matrix is the composition
+
+        .. math::
+
+            A = I_{0 \to 1}^\top M_1 W \Pi,
+
+        with :math:`\Pi` the projection to the vector piecewise polynomials of order 1,
+        W the product with the weight to the piecewise polynomials of order 1,
+        :math:`M_1` the mass matrix of the latter, and :math:`I_{0 \to 1}` the
+        inclusion of the piecewise polynomials of order 0 in the order 1, for the test
+        with v.
 
         Args:
             sd (pg.Grid): The grid.
@@ -67,79 +82,38 @@ class RT0(pg.Discretization):
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
         """
-        # Retrieve the second order tensor
+        # Retrieve the tensor and the vector field, in the coordinates of the plane of
+        # the grid, and their product, the weight D^{-1} beta
         D_inv = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
-        )
-        # Retrieve the vector field
+        ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        if data and data.get("is_tangential", False):
+            D_inv = D_inv[: sd.dim, : sd.dim]
+            V = V[: sd.dim]
+        else:
+            R = sd.rotation_matrix
+            D_inv = np.einsum("ai,ijc,bj->abc", R, D_inv, R)
+            V = R @ V
+        W = np.einsum("abc,bc->ac", D_inv, V)
 
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1D and 2D)
-        c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
-        nodes = nodes[: sd.dim, :]
+        # The field u, in the vector piecewise polynomials of order 1, and its product
+        # with the weight, constant on each cell and then repeated on all its degrees
+        # of freedom of order 1
+        high = pg.PwLinears()
+        proj = self.proj_to_PwPolynomials(sd)
+        num_high = high.ndof_per_element(sd.dim)
+        W_dot = sps.hstack([sps.diags_array(np.tile(W_a, num_high)) for W_a in W])
 
-        if not data or not data.get("is_tangential", False):
-            # Rotate the inverse of the permeability tensor and vector field,
-            # and delete last dimension
-            if sd.dim < 3:
-                D_inv = D_inv.copy()
-                D_inv.rotate(R)
-                remove_dim = np.where(np.logical_not(dim))[0]
-                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=0)
-                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=1)
+        # The mass matrix between the piecewise polynomials of order 0 (rows) and 1
+        # (columns), through the inclusion of the former in the latter, for the test
+        # with v
+        low = pg.PwConstants()
+        incl = low.proj_to_higher_PwPolynomials(sd)
+        mass = incl.T @ high.assemble_mass_matrix(sd)
+        adv = mass @ W_dot @ proj
 
-                V = V.copy()
-                V = R @ V
-                remove_dim = np.where(np.logical_not(dim))[0]
-                V = np.delete(V, remove_dim, axis=0)
-
-        # Allocate the data to store matrix A entries
-        size = (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        # Compute the opposite nodes for each face
-        opposite_nodes = sd.compute_opposite_nodes()
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its faces
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
-            opposites_loc = opposite_nodes.data[loc]
-
-            # get the opposite node id for each face
-            coord_loc = nodes[:, opposites_loc]
-
-            # Compute the flux reconstruction matrix
-            psi_cell = pp.RT0.faces_to_cell(
-                c_centers[:, c],
-                coord_loc,
-                f_centers[:, faces_loc],
-                f_normals[:, faces_loc],
-                dim,
-                R,
-            )[: sd.dim, :]
-
-            # Compute the local weight for the local advection matrix
-            weight = D_inv.values[..., c] @ V[:, c]
-
-            # Compute the H_div-advection local matrix
-            A = weight @ psi_cell
-
-            # Save values for local matrix in the global structure
-            cols = faces_loc
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = c
-            cols_J[loc_idx] = faces_loc
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        shape = (sd.num_cells, self.ndof(sd))
-        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
+        return pg.drop_small_entries(sps.csc_array(adv))
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None

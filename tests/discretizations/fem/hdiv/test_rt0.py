@@ -72,7 +72,7 @@ def test_assemble_adv_matrix(discr, ref_sd, vector_field):
             M_known = (
                 np.array(
                     [
-                        [-1, -1],
+                        [1, 1],
                     ]
                 )
                 / 2
@@ -97,6 +97,42 @@ def test_assemble_adv_matrix(discr, ref_sd, vector_field):
             )
 
     assert matrix_equals(M.todense(), M_known)
+
+
+def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
+    # With u = a + b x in RT0, and the tensor and the field constant, all in the
+    # ambient coordinates, D^{-1} beta . u on the grid is f = (P D^{-1} P beta) . u,
+    # with P the projection on the plane of the grid: a linear function, whose mean on
+    # each cell is tested by the piecewise constants, so that A u = M f
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+
+    D_inv = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
+    beta = np.array([1.0, 2.0, 3.0])
+    a, b = np.array([0.5, -1.0, 2.0]), 1.5
+    w = P @ D_inv @ P @ beta
+
+    ones = np.ones(sd.num_cells)
+    perm = pp.SecondOrderTensor(
+        kxx=D_inv[0, 0] * ones,
+        kyy=D_inv[1, 1] * ones,
+        kzz=D_inv[2, 2] * ones,
+        kxy=D_inv[0, 1] * ones,
+        kxz=D_inv[0, 2] * ones,
+        kyz=D_inv[1, 2] * ones,
+    )
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+    data = pp.initialize_data(
+        {}, "test", {pg.SECOND_ORDER_TENSOR: perm, pg.VECTOR_FIELD: field}
+    )
+
+    p0 = pg.PwConstants("test")
+    u_h = discr.interpolate(sd, lambda x: a.reshape((-1, 1)) + b * x)
+    f_h = p0.interpolate(sd, lambda x: w @ (a.reshape((-1, 1)) + b * x))
+
+    A = discr.assemble_adv_matrix(sd, data)
+    M = p0.assemble_mass_matrix(sd)
+    assert np.allclose(A @ u_h, M @ f_h)
 
 
 def test_assemble_adv_matrix_default(discr, ref_sd):
