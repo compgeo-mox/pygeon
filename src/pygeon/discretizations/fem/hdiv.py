@@ -34,6 +34,81 @@ class HDiv(pg.Discretization):
         """
         return pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the advection matrix for the H(div)-conforming finite
+        elements, which is given by
+        :math:`(D^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)_\Omega`, for
+        :math:`\boldsymbol{u}` in the space and :math:`v` in the piecewise
+        polynomials of order k - 1, the range of the divergence.
+
+        :math:`\boldsymbol{\beta} \in [\mathbb{P}_0(\Omega)]^d` is a given vector
+        field and :math:`D^{-1} \in [\mathbb{P}_0(\Omega)]^{d \times d}` is a given
+        second-order tensor. If not provided, :math:`\boldsymbol{\beta}` defaults to
+        :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor. On grids
+        of dimension lower than 3, both are rotated to the plane or the line of the
+        grid with ``sd.rotation_matrix``, unless the entry "is_tangential" of data is
+        True: then their first dim components are taken as the ones in those
+        coordinates.
+
+        Since the weight :math:`D^{-1} \boldsymbol{\beta}` is constant on each cell,
+        :math:`D^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
+        polynomial of order k, and the matrix is the composition
+
+        .. math::
+
+            A = I_{k-1 \to k}^\top M_k W \Pi,
+
+        with :math:`\Pi` the projection to the vector piecewise polynomials of order k,
+        W the product with the weight to the piecewise polynomials of order k,
+        :math:`M_k` the mass matrix of the latter, and :math:`I_{k-1 \to k}` the
+        inclusion of the piecewise polynomials of order k - 1 in the order k, for the
+        test with v.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Optional data for scaling, in particular
+                pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
+                tensor) and pg.VECTOR_FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The advection matrix obtained from the discretization.
+        """
+        # Retrieve the tensor and the vector field, in the coordinates of the plane of
+        # the grid, and their product, the weight D^{-1} beta
+        D_inv = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
+        ).values
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        if data and data.get("is_tangential", False):
+            D_inv = D_inv[: sd.dim, : sd.dim]
+            V = V[: sd.dim]
+        else:
+            R = sd.rotation_matrix
+            D_inv = np.einsum("ai,ijc,bj->abc", R, D_inv, R)
+            V = R @ V
+        W = np.einsum("abc,bc->ac", D_inv, V)
+
+        # The field u, in the vector piecewise polynomials of order k, and its product
+        # with the weight, constant on each cell and then repeated on all its degrees
+        # of freedom of order k
+        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        proj = self.proj_to_PwPolynomials(sd)
+        num_high = high.ndof_per_element(sd.dim)
+        W_dot = sps.hstack([sps.diags_array(np.tile(W_a, num_high)) for W_a in W])
+
+        # The mass matrix between the piecewise polynomials of order k - 1 (rows) and k
+        # (columns), through the inclusion of the former in the latter, for the test
+        # with v
+        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        incl = low.proj_to_higher_PwPolynomials(sd)
+        mass = incl.T @ high.assemble_mass_matrix(sd)
+        adv = mass @ W_dot @ proj
+
+        return pg.drop_small_entries(sps.csc_array(adv))
+
 
 class RT0(HDiv):
     r"""
@@ -62,81 +137,6 @@ class RT0(HDiv):
             np.ndarray: The number of degrees of freedom per entity.
         """
         return np.roll([1, 0, 0, 0], dim - 1)  # faces
-
-    def assemble_adv_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles and returns the advection matrix for mixed finite elements
-        (RT0-P0), which is given by
-        :math:`(D^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)`.
-
-        The trial function is :math:`\boldsymbol{u} \in \mathbb{RT}_0(\Omega)` and
-        test functions :math:`v \in \mathbb{P}_0(\Omega)`.
-        :math:`\boldsymbol{\beta} \in [\mathbb{P}_0(\Omega)]^d` is a given vector
-        field and :math:`D^{-1} \in [\mathbb{P}_0(\Omega)]^{d \times d}` is a given
-        second-order tensor. If not provided, :math:`\boldsymbol{\beta}` defaults to
-        :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor. On grids
-        of dimension lower than 3, both are rotated to the plane or the line of the
-        grid with ``sd.rotation_matrix``, unless the entry "is_tangential" of data is
-        True: then their first dim components are taken as the ones in those
-        coordinates.
-
-        Since the weight :math:`D^{-1} \boldsymbol{\beta}` is constant on each cell,
-        :math:`D^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
-        polynomial of order 1, and the matrix is the composition
-
-        .. math::
-
-            A = I_{0 \to 1}^\top M_1 W \Pi,
-
-        with :math:`\Pi` the projection to the vector piecewise polynomials of order 1,
-        W the product with the weight to the piecewise polynomials of order 1,
-        :math:`M_1` the mass matrix of the latter, and :math:`I_{0 \to 1}` the
-        inclusion of the piecewise polynomials of order 0 in the order 1, for the test
-        with v.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for scaling, in particular
-                pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
-                tensor) and pg.VECTOR_FIELD (advection velocity field).
-
-        Returns:
-            sps.csc_array: The advection matrix obtained from the discretization.
-        """
-        # Retrieve the tensor and the vector field, in the coordinates of the plane of
-        # the grid, and their product, the weight D^{-1} beta
-        D_inv = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
-        ).values
-        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        if data and data.get("is_tangential", False):
-            D_inv = D_inv[: sd.dim, : sd.dim]
-            V = V[: sd.dim]
-        else:
-            R = sd.rotation_matrix
-            D_inv = np.einsum("ai,ijc,bj->abc", R, D_inv, R)
-            V = R @ V
-        W = np.einsum("abc,bc->ac", D_inv, V)
-
-        # The field u, in the vector piecewise polynomials of order 1, and its product
-        # with the weight, constant on each cell and then repeated on all its degrees
-        # of freedom of order 1
-        high = pg.PwLinears()
-        proj = self.proj_to_PwPolynomials(sd)
-        num_high = high.ndof_per_element(sd.dim)
-        W_dot = sps.hstack([sps.diags_array(np.tile(W_a, num_high)) for W_a in W])
-
-        # The mass matrix between the piecewise polynomials of order 0 (rows) and 1
-        # (columns), through the inclusion of the former in the latter, for the test
-        # with v
-        low = pg.PwConstants()
-        incl = low.proj_to_higher_PwPolynomials(sd)
-        mass = incl.T @ high.assemble_mass_matrix(sd)
-        adv = mass @ W_dot @ proj
-
-        return pg.drop_small_entries(sps.csc_array(adv))
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
