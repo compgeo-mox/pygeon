@@ -9,7 +9,33 @@ import pygeon as pg
 from pygeon.utils.weak_cache import weak_cache
 
 
-class RT0(pg.Discretization):
+class HDiv(pg.Discretization):
+    r"""
+    Abstract class collecting the features shared by the H(div)-conforming finite
+    element discretizations :math:`V_h \subset H(\mathrm{div}, \Omega)`, for a
+    generic domain :math:`\Omega \subset \mathbb{R}^d`: their functions are
+    vector piecewise polynomials of order k, given by ``poly_order``, and their
+    divergence is a piecewise polynomial of order k - 1.
+    """
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the range discretization class of the divergence, the piecewise
+        polynomials of order k - 1.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            Type[pg.Discretization]: The range discretization class.
+        """
+        return pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
+
+
+class RT0(HDiv):
     r"""
     Class implementing the finite element discretization for Raviart-Thomas (RT)
     elements of lowest order :math:`\mathbb{RT}_0(\Omega) \subset H_{div}(\Omega)`,
@@ -22,9 +48,6 @@ class RT0(pg.Discretization):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -216,18 +239,6 @@ class RT0(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-        """
-        return pg.PwConstants
-
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
@@ -247,7 +258,7 @@ class RT0(pg.Discretization):
         return proj_to_poly @ proj_to_bdm1
 
 
-class BDM1(pg.Discretization):
+class BDM1(HDiv):
     r"""
     Class implementing the finite element discretization for Brezzi-Douglas-Marini (BDM)
     elements of lowest order :math:`\mathbb{BDM}_1(\Omega) \subset H_{div}(\Omega)`,
@@ -256,9 +267,6 @@ class BDM1(pg.Discretization):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -385,18 +393,6 @@ class BDM1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-        """
-        return pg.PwConstants
-
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
@@ -460,7 +456,7 @@ class BDM1(pg.Discretization):
         return pg.drop_small_entries(proj)
 
 
-class RT1(pg.Discretization):
+class RT1(HDiv):
     r"""
     Class implementing the finite element discretization for Raviart-Thomas (RT)
     elements of order 1 :math:`\mathbb{RT}_1(\Omega) \subset H_{div}(\Omega)`,
@@ -469,9 +465,6 @@ class RT1(pg.Discretization):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -728,18 +721,6 @@ class RT1(pg.Discretization):
         vals[: bdm1.ndof(sd)] = bdm1.assemble_nat_bc(sd, func, b_faces)
 
         return vals
-
-    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-        """
-        return pg.PwLinears
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
