@@ -95,7 +95,7 @@ class Lagrange(pg.Discretization):
         # its degrees of freedom of order k - 1
         low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
         grad = self.assemble_broken_grad_matrix(sd)
-        num_low = low.ndof(sd) // sd.num_cells
+        num_low = low.ndof_per_element(sd.dim)
         V_dot = sps.hstack([sps.diags_array(np.tile(V_a, num_low)) for V_a in V])
 
         # The mass matrix between the piecewise polynomials of order k (rows) and k - 1

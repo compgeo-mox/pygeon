@@ -3,7 +3,6 @@
 import numpy as np
 import porepy as pp
 import pytest
-import sympy as sp
 
 import pygeon as pg
 
@@ -16,23 +15,6 @@ import pygeon as pg
 )
 def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
-
-
-@pytest.fixture(params=[0.0, np.pi / 4])
-def rotation(request: pytest.FixtureRequest) -> np.ndarray:
-    """Rotation of the given angle around the y axis, which tilts the 1D grid along x
-    and the 2D grid in the xy-plane out of their coordinate planes."""
-    c, s = np.cos(request.param), np.sin(request.param)
-    return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
-
-
-@pytest.fixture
-def tilted_sd(unit_sd: pg.Grid, rotation: np.ndarray) -> pg.Grid:
-    """The unit grid tilted by the rotation, with its geometry recomputed."""
-    sd = unit_sd.copy(keep_history=False)
-    sd.nodes = rotation @ sd.nodes
-    sd.compute_geometry()
-    return sd
 
 
 def test_interpolate_and_evaluate(discr, unit_sd):
@@ -115,63 +97,53 @@ def test_point_grid(discr, ref_sd_0d):
         discr.assemble_diff_matrix(sd_copy)
 
 
-def test_postprocess_darcy_flux(discr, tilted_sd, rotation):
-    # The tensor is given in the local coordinates of the tilted grid and mapped to
-    # the ambient space with the rotation matrix of the grid
+def test_postprocess_darcy_flux(discr, tilted_sd):
+    # The tensor and the slope are given in the ambient coordinates: on the grid only
+    # their tangential parts act, through the projection P on the plane of the grid
     sd = tilted_sd
-    R = sd.rotation_matrix
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
 
     K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    K_rot = R.T @ K[: sd.dim, : sd.dim] @ R
     ones = np.ones(sd.num_cells)
     perm = pp.SecondOrderTensor(
-        kxx=K_rot[0, 0] * ones,
-        kyy=K_rot[1, 1] * ones,
-        kzz=K_rot[2, 2] * ones,
-        kxy=K_rot[0, 1] * ones,
-        kxz=K_rot[0, 2] * ones,
-        kyz=K_rot[1, 2] * ones,
+        kxx=K[0, 0] * ones,
+        kyy=K[1, 1] * ones,
+        kzz=K[2, 2] * ones,
+        kxy=K[0, 1] * ones,
+        kxz=K[0, 2] * ones,
+        kyz=K[1, 2] * ones,
     )
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
-    # The flux of a linear function is constant, equal to -K grad p
-    slope = rotation @ np.array([1.0, 2.0, 3.0])
+    # The flux of a linear function is constant, equal to -P K P grad p
+    slope = np.array([1.0, 2.0, 3.0])
     p = discr.interpolate(sd, lambda x: slope @ x)
     q = discr.postprocess_darcy_flux(p, sd, data)
 
     q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
 
-    assert np.allclose(q, q_space.interpolate(sd, lambda _: -K_rot @ slope))
+    assert np.allclose(q, q_space.interpolate(sd, lambda _: -P @ K @ P @ slope))
 
 
-def test_assemble_adv_matrix_is_exact(discr, tilted_sd, rotation):
-    # With u and v polynomials of the order of the space and a constant field, the
-    # matrix gives the exact integral of (beta . grad u) v, also on a tilted grid
+def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
+    # With u a polynomial of the order of the space and a constant field, both in the
+    # ambient coordinates, beta . grad u on the grid is w = (P beta) . grad u, with P
+    # the projection on the plane of the grid: a polynomial of order k - 1, which the
+    # space interpolates exactly, so that A u = M w
     sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
 
-    k, dim = discr.poly_order, sd.dim
-    coords = pg.exact.coordinates()
-    x, y, z = coords
-    u = (1 + x + 2 * y) ** k + z
-    v = (1 + x - y) ** k
+    x, y, z = pg.exact.coordinates()
+    u = (1 + x + 2 * y + z) ** discr.poly_order
     beta = np.array([1.0, 2.0, 3.0])
-
-    # the integral on the unit grid, with the components and the coordinates in its
-    # plane, i.e. the first dim ones
     grad_u = pg.exact.gradient(u)
-    integrand = sum(beta[a] * grad_u[a] for a in range(dim)) * v
-    integrand = integrand.subs({c: 0 for c in coords[dim:]})
-    known = sp.integrate(integrand, *[(c, 0, 1) for c in coords[:dim]])
+    w = sum(b * g for b, g in zip(P @ beta, grad_u))
 
-    # the functions and the field on the tilted grid, in the ambient coordinates
-    def tilted(fun):
-        fun = pg.exact.to_callable(fun)
-        return lambda pts: fun(rotation.T @ pts)
-
-    u_h = discr.interpolate(sd, tilted(u))
-    v_h = discr.interpolate(sd, tilted(v))
-    field = np.tile((rotation @ beta).reshape((-1, 1)), sd.num_cells)
+    u_h = discr.interpolate(sd, pg.exact.to_callable(u))
+    w_h = discr.interpolate(sd, pg.exact.to_callable(w))
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
     data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: field})
 
     A = discr.assemble_adv_matrix(sd, data)
-    assert np.isclose(v_h @ A @ u_h, float(known))
+    M = discr.assemble_mass_matrix(sd)
+    assert np.allclose(A @ u_h, M @ w_h)

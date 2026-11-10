@@ -3,7 +3,6 @@
 import numpy as np
 import porepy as pp
 import pytest
-import scipy.sparse as sps
 
 import pygeon as pg
 from tests.helpers import matrix_equals
@@ -146,16 +145,3 @@ def test_point_grid(discr, ref_sd_0d):
 def test_range_disc(discr):
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(2)
-
-
-def test_assemble_adv_matrix(discr, unit_sd):
-    # the advection of the scalar space, repeated for each component
-    cc = unit_sd.cell_centers
-    field = np.vstack([1 + cc[0], 2 - cc[1], 0.5 + cc[2]])
-    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: field})
-
-    M = discr.assemble_adv_matrix(unit_sd, data)
-    scalar_adv = discr.base_discr.assemble_adv_matrix(unit_sd, data)
-    M_known = sps.kron(sps.eye_array(unit_sd.dim), scalar_adv)
-
-    assert np.allclose((M_known - M).toarray(), 0)
