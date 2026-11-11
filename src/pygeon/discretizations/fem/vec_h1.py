@@ -63,6 +63,34 @@ class VecLagrange(pg.VecDiscretization):
 
     base_discr: pg.Lagrange  # To please mypy
 
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the advection matrix for the vector Lagrange finite
+        elements, which is given component-wise by
+        :math:`(\boldsymbol{\beta} \cdot \nabla \boldsymbol{u}, \boldsymbol{v})_\Omega`,
+        for :math:`\boldsymbol{u}, \boldsymbol{v} \in [\mathbb{L}_k(\Omega)]^d`: the
+        advection matrix of :meth:`pg.Lagrange.assemble_adv_matrix` repeated for each
+        component.
+
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
+        accessible via pg.VECTOR_FIELD, constant per cell (:class:`pg.VecPwConstants`)
+        and rotated to the plane of the grid as in
+        :meth:`pg.Lagrange.assemble_adv_matrix`. If not provided, it defaults to
+        :math:`(0, 0, 0)`.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Optional data for scaling, in particular
+                pg.VECTOR_FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The assembled advection matrix.
+        """
+        adv_matrix = self.base_discr.assemble_adv_matrix(sd, data)
+        return self.vectorize(sd.dim, adv_matrix)
+
     def assemble_div_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Returns the divergence matrix operator :math:`\nabla \cdot u`, mapping to the
@@ -308,31 +336,6 @@ class VecLagrange1(VecLagrange):
         R = sps.kron(sd.rotation_matrix.T, sps.eye_array(Pi.shape[0] // sd.dim), "csc")
 
         return (R @ Pi).tocsc()
-
-    def assemble_adv_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles and returns the advection matrix for the vector Lagrange1 finite
-        elements, which is given component-wise by
-        :math:`(\boldsymbol{\beta} \cdot \nabla \boldsymbol{u}, \boldsymbol{v})_\Omega`,
-        for :math:`\boldsymbol{u}, \boldsymbol{v} \in [\mathbb{L}_1(\Omega)]^d`.
-
-        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
-        constant per cell :math:`\in [\mathbb{P}_0(\Omega)]^d`. If not provided, it
-        defaults to :math:`(0, 0, 0)`.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for scaling, in particular
-                pg.VECTOR_FIELD (advection velocity field).
-
-        Returns:
-            sps.csc_array: The assembled advection matrix.
-        """
-        adv_matrix = self.base_discr.assemble_adv_matrix(sd, data)
-        return self.vectorize(sd.dim, adv_matrix)
 
 
 class VecLagrange2(VecLagrange):

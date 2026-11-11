@@ -3,7 +3,6 @@
 from typing import Callable, Type
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -46,6 +45,69 @@ class Lagrange(pg.Discretization):
         grad = self.assemble_broken_grad_matrix(sd)
 
         return (grad.T @ M @ grad).tocsc()
+
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the advection matrix for the Lagrange finite elements,
+        which is given by :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
+        :math:`u,v \in \mathbb{L}_k(\Omega)`.
+
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
+        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
+        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
+        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
+        rotated to the plane or the line of the grid with ``sd.rotation_matrix``,
+        unless the entry "is_tangential" of data is True: then its first dim
+        components are taken as the ones in those coordinates.
+
+        Since the field is constant on each cell,
+        :math:`\boldsymbol{\beta} \cdot \nabla u` is a piecewise polynomial of order
+        k - 1, and the matrix is the composition
+
+        .. math::
+
+            A = P^\top M_k I_{k-1 \to k} B G P,
+
+        with P the projection to the piecewise polynomials of order k, G their broken
+        gradient to the vector piecewise polynomials of order k - 1, B the product with
+        the field to the piecewise polynomials of order k - 1, :math:`I_{k-1 \to k}`
+        their inclusion in the order k, and :math:`M_k` the mass matrix of the latter.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Optional data for scaling, in particular
+                pg.VECTOR_FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The assembled advection matrix.
+        """
+        # Retrieve the vector field, in the coordinates of the plane of the grid
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        if data and data.get("is_tangential", False):
+            V = V[: sd.dim]
+        else:
+            V = sd.rotation_matrix @ V
+
+        # The gradient of u, in the vector piecewise polynomials of order k - 1, and
+        # its product with the field, constant on each cell and then repeated on all
+        # its degrees of freedom of order k - 1
+        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        grad = self.assemble_broken_grad_matrix(sd)
+        num_low = low.ndof_per_element(sd.dim)
+        V_dot = sps.hstack([sps.diags_array(np.tile(V_a, num_low)) for V_a in V])
+
+        # The mass matrix between the piecewise polynomials of order k (rows) and k - 1
+        # (columns), through the inclusion of the latter in the former, for the test
+        # with v
+        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        incl = low.proj_to_higher_PwPolynomials(sd)
+        mass = high.assemble_mass_matrix(sd) @ incl
+        proj = self.proj_to_PwPolynomials(sd)
+        adv = proj.T @ mass @ V_dot @ grad
+
+        return pg.drop_small_entries(sps.csc_array(adv))
 
     def postprocess_darcy_flux(
         self, primary_var: np.ndarray, sd: pg.Grid, data: dict | None
@@ -105,81 +167,6 @@ class Lagrange1(Lagrange):
         """
         return np.array([int(dim > 0), 0, 0, 0])  # nodes
 
-    def assemble_adv_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles and returns the advection matrix for Lagrange1 finite
-        elements, which is given by
-        :math:`(\boldsymbol{\beta} \cdot \nabla u, v)_\Omega`, for
-        :math:`u,v \in \mathbb{L}_1(\Omega)`.
-
-        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
-        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
-        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
-        rotated to the plane or the line of the grid, unless the entry "is_tangential"
-        of data is True.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for scaling, in particular
-                pg.VECTOR_FIELD (advection velocity field).
-
-        Returns:
-            sps.csc_array: The assembled advection matrix.
-        """
-        # Retrieve the vector field
-        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1D and 2D)
-        _, _, _, R, dim, node_coords = pp.map_geometry.map_grid(sd)
-
-        if not data or not data.get("is_tangential", False):
-            # Rotate the vector field and delete last dimension
-            if sd.dim < 3:
-                V = V.copy()
-                V = R @ V
-                remove_dim = np.where(np.logical_not(dim))[0]
-                V = np.delete(V, remove_dim, axis=0)
-
-        # Allocate the data to store matrix entries, that's the most efficient
-        # way to create a sparse matrix.
-        size = np.power(sd.dim + 1, 2) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        cell_nodes = sd.cell_nodes()
-
-        for c in np.arange(sd.num_cells):
-            # For the current cell retrieve its nodes
-            loc = slice(cell_nodes.indptr[c], cell_nodes.indptr[c + 1])
-
-            nodes_loc = cell_nodes.indices[loc]
-            coord_loc = node_coords[:, nodes_loc]
-
-            # Compute the adv-H1 local matrix
-            A = self.local_adv(
-                V[0 : sd.dim, c],
-                sd.cell_volumes[c],
-                coord_loc,
-                sd.dim,
-            )
-
-            # Save values for adv-H1 local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
-
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the matrix corresponding to the differential operator.
@@ -208,46 +195,6 @@ class Lagrange1(Lagrange):
                 return sps.csc_array((0, 0))
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
-
-    def local_adv(
-        self, V: np.ndarray, c_volume: np.ndarray, coord: np.ndarray, dim: int
-    ) -> np.ndarray:
-        """
-        Compute the local advection matrix for linear elements.
-
-        Args:
-            V (np.ndarray): The vector field in the cell, of shape (dim,).
-            c_volume (np.ndarray): The cell volume.
-            coord (np.ndarray): The coordinates of the cell vertices, of shape
-                (dim, dim + 1).
-            dim (int): The dimension of the problem.
-
-        Returns:
-            np.ndarray: The local advection matrix, of shape (dim + 1, dim + 1).
-        """
-        phi = np.full((dim + 1,), (1 / (dim + 1)))
-
-        dphi = self.local_grads(coord, dim)
-
-        return c_volume * np.outer(phi, V @ dphi)
-
-    @staticmethod
-    def local_grads(coord: np.ndarray, dim: int) -> np.ndarray:
-        """
-        Calculate the local gradients of the linear finite element basis functions.
-
-        Args:
-            coord (np.ndarray): The coordinates of the nodes in the element, of shape
-                (dim, dim + 1).
-            dim (int): The dimension of the element.
-
-        Returns:
-            np.ndarray: The gradients of the basis functions in the columns, of shape
-            (dim, dim + 1).
-        """
-        Q = np.hstack((np.ones((dim + 1, 1)), coord.T))
-        invQ = np.linalg.inv(Q)
-        return invQ[1:, :]
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""

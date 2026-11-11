@@ -37,9 +37,10 @@ class MatLagrange1(pg.MatDiscretization):
         :math:`u, v` in :class:`pg.Lagrange1`.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
-        accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
-        constant per cell (:class:`pg.VecPwConstants`). If not provided, it
-        defaults to :math:`(0, 0, 0)`.
+        accessible via pg.VECTOR_FIELD, constant per cell (:class:`pg.VecPwConstants`)
+        and rotated to the plane of the grid as in
+        :meth:`pg.Lagrange.assemble_adv_matrix`. If not provided, it defaults to
+        :math:`(0, 0, 0)`.
 
         Args:
             sd (pg.Grid): The grid.

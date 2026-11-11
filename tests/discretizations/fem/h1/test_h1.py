@@ -17,14 +17,6 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 
-@pytest.fixture(params=[0.0, np.pi / 4])
-def rotation(request: pytest.FixtureRequest) -> np.ndarray:
-    """Rotation of the given angle around the y axis, which tilts the 1D grid along x
-    and the 2D grid in the xy-plane out of their coordinate planes."""
-    c, s = np.cos(request.param), np.sin(request.param)
-    return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
-
-
 def test_interpolate_and_evaluate(discr, unit_sd):
     func = lambda x: x[0] ** discr.poly_order
     known_vals = func(unit_sd.cell_centers)
@@ -105,32 +97,53 @@ def test_point_grid(discr, ref_sd_0d):
         discr.assemble_diff_matrix(sd_copy)
 
 
-def test_postprocess_darcy_flux(discr, unit_sd, rotation):
-    # The rotation tilts the grid, the tensor is given in the local coordinates of the
-    # grid and mapped to the ambient space with the rotation matrix of the grid
-    sd = unit_sd.copy(keep_history=False)
-    sd.nodes = rotation @ sd.nodes
-    sd.compute_geometry()
-    R = sd.rotation_matrix
+def test_postprocess_darcy_flux(discr, tilted_sd):
+    # The tensor and the slope are given in the ambient coordinates: on the grid only
+    # their tangential parts act, through the projection P on the plane of the grid
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
 
     K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    K_rot = R.T @ K[: sd.dim, : sd.dim] @ R
     ones = np.ones(sd.num_cells)
     perm = pp.SecondOrderTensor(
-        kxx=K_rot[0, 0] * ones,
-        kyy=K_rot[1, 1] * ones,
-        kzz=K_rot[2, 2] * ones,
-        kxy=K_rot[0, 1] * ones,
-        kxz=K_rot[0, 2] * ones,
-        kyz=K_rot[1, 2] * ones,
+        kxx=K[0, 0] * ones,
+        kyy=K[1, 1] * ones,
+        kzz=K[2, 2] * ones,
+        kxy=K[0, 1] * ones,
+        kxz=K[0, 2] * ones,
+        kyz=K[1, 2] * ones,
     )
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
-    # The flux of a linear function is constant, equal to -K grad p
-    slope = rotation @ np.array([1.0, 2.0, 3.0])
+    # The flux of a linear function is constant, equal to -P K P grad p
+    slope = np.array([1.0, 2.0, 3.0])
     p = discr.interpolate(sd, lambda x: slope @ x)
     q = discr.postprocess_darcy_flux(p, sd, data)
 
     q_space = pg.get_PwPolynomials(discr.poly_order - 1, pg.VECTOR)("test")
 
-    assert np.allclose(q, q_space.interpolate(sd, lambda _: -K_rot @ slope))
+    assert np.allclose(q, q_space.interpolate(sd, lambda _: -P @ K @ P @ slope))
+
+
+def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
+    # With u a polynomial of the order of the space and a constant field, both in the
+    # ambient coordinates, beta . grad u on the grid is w = (P beta) . grad u, with P
+    # the projection on the plane of the grid: a polynomial of order k - 1, which the
+    # space interpolates exactly, so that A u = M w
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+
+    x, y, z = pg.exact.coordinates()
+    u = (1 + x + 2 * y + z) ** discr.poly_order
+    beta = np.array([1.0, 2.0, 3.0])
+    grad_u = pg.exact.gradient(u)
+    w = sum(b * g for b, g in zip(P @ beta, grad_u))
+
+    u_h = discr.interpolate(sd, pg.exact.to_callable(u))
+    w_h = discr.interpolate(sd, pg.exact.to_callable(w))
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: field})
+
+    A = discr.assemble_adv_matrix(sd, data)
+    M = discr.assemble_mass_matrix(sd)
+    assert np.allclose(A @ u_h, M @ w_h)
