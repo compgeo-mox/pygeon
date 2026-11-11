@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import sympy as sp
 
 import pygeon as pg
 
@@ -213,4 +214,29 @@ def test_broken_directional_derivative(discr_class, tilted_sd):
     field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
 
     dir_der = discr.assemble_broken_directional_derivative(sd, field)
+    assert np.allclose(dir_der @ u_h, f_h)
+
+
+@pytest.mark.parametrize("discr_class", [pg.VecPwLinears, pg.VecPwQuadratics])
+def test_broken_directional_derivative_vector(discr_class, tilted_sd):
+    # With u a vector polynomial of the order of the space and beta constant, both in
+    # the ambient coordinates, (grad u) beta on the grid is (grad u) P beta, with P
+    # the projection on the plane of the grid, for the components of u in the plane: a
+    # vector polynomial of one order less, interpolated exactly
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+    discr = discr_class("test")
+    k = discr.poly_order
+
+    x, y, z = pg.exact.coordinates()
+    u = [(1 + x + 2 * y + z) ** k, (2 - x + y - z) ** k, (x - y + 2 * z) ** k]
+    beta = np.array([1.0, 2.0, 3.0])
+    f = [sum(b * g for b, g in zip(P @ beta, pg.exact.gradient(u_i))) for u_i in u]
+
+    low = pg.get_PwPolynomials(k - 1, pg.VECTOR)("test")
+    u_h = discr.interpolate(sd, pg.exact.to_callable(sp.Matrix(u)))
+    f_h = low.interpolate(sd, pg.exact.to_callable(sp.Matrix(f)))
+    vector_field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+
+    dir_der = discr.assemble_broken_directional_derivative(sd, vector_field)
     assert np.allclose(dir_der @ u_h, f_h)

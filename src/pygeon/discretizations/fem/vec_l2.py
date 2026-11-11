@@ -259,7 +259,8 @@ class VecPwPolynomials(pg.VecDiscretization):
         Assembles the dot product :math:`\boldsymbol{u} \mapsto \boldsymbol{w} \cdot
         \boldsymbol{u}` with a vector field :math:`\boldsymbol{w}` constant on each
         cell, from the vector piecewise polynomials to the scalar ones of the same
-        order. This operator is only implemented for vector-valued functions.
+        order. For the matrix-valued functions, see
+        :meth:`pg.MatPwPolynomials.assemble_dot_product`.
 
         The field is given in the ambient coordinates and rotated to the plane of the
         grid with ``sd.rotation_matrix``, as the components of the vector piecewise
@@ -282,11 +283,6 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The dot product matrix.
         """
-        assert self.tensor_order == pg.VECTOR, (
-            f"The dot product is only implemented for vector-valued discretizations, "
-            f"while {type(self).__name__} has tensor order {self.tensor_order}."
-        )
-
         # The field in the plane of the grid, with its value on each cell repeated on
         # the degrees of freedom of the cell, numbered (local dof) * num_cells + cell
         w = sd.rotation_matrix @ vector_field
