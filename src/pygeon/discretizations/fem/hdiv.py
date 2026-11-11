@@ -87,6 +87,7 @@ class HDiv(pg.Discretization):
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
         R = sd.rotation_matrix
+        # TODO: remove is_tangential, see #340
         if data and data.get("is_tangential", False):
             W_plane = np.einsum("abc,bc->ac", inv_K[: sd.dim, : sd.dim], V[: sd.dim])
             W = R.T @ W_plane

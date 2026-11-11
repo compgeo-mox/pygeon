@@ -86,6 +86,7 @@ class Lagrange(pg.Discretization):
         """
         # Retrieve the vector field, in the ambient coordinates
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        # TODO: remove is_tangential, see #340
         if data and data.get("is_tangential", False):
             V = sd.rotation_matrix.T @ V[: sd.dim]
 

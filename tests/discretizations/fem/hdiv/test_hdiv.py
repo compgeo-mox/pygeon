@@ -88,7 +88,8 @@ def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     sd = tilted_sd
     if isinstance(discr, pg.RT1) and sd.dim < 3:
         # TODO: RT1 evaluates its basis and interpolates the cell dofs with the
-        # ambient components, so that it fails on grids out of the coordinate planes
+        # ambient components, so that it fails on grids out of the coordinate planes,
+        # see #341
         pytest.xfail("RT1 is not yet supported on tilted grids")
     P = sd.rotation_matrix.T @ sd.rotation_matrix
 
