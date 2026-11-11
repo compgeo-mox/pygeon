@@ -5,6 +5,7 @@ import porepy as pp
 import pytest
 
 import pygeon as pg
+from tests.helpers import constant_tensor
 
 
 @pytest.fixture(
@@ -81,9 +82,10 @@ def test_broken_div(discr, unit_sd):
 
 def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     # With u = a + b x, in all the spaces, and the tensor and the field constant, all
-    # in the ambient coordinates, D^{-1} beta . u on the grid is f = (P D^{-1} P beta)
-    # . u, with P the projection on the plane of the grid: a linear function, which
-    # the range of the divergence tests exactly, so that A u = M f
+    # in the ambient coordinates, D^{-1} beta . u on the grid is
+    # f = (P D^{-1} P beta) . u, with P the projection on the plane of the grid: a
+    # linear function, which the range of the divergence tests exactly, so that
+    # A u = M f
     sd = tilted_sd
     if isinstance(discr, pg.RT1) and sd.dim < 3:
         # TODO: RT1 evaluates its basis and interpolates the cell dofs with the
@@ -96,15 +98,7 @@ def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     a, b = np.array([0.5, -1.0, 2.0]), 1.5
     w = P @ D_inv @ P @ beta
 
-    ones = np.ones(sd.num_cells)
-    perm = pp.SecondOrderTensor(
-        kxx=D_inv[0, 0] * ones,
-        kyy=D_inv[1, 1] * ones,
-        kzz=D_inv[2, 2] * ones,
-        kxy=D_inv[0, 1] * ones,
-        kxz=D_inv[0, 2] * ones,
-        kyz=D_inv[1, 2] * ones,
-    )
+    perm = constant_tensor(sd, D_inv)
     field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
     data = pp.initialize_data(
         {}, "test", {pg.SECOND_ORDER_TENSOR: perm, pg.VECTOR_FIELD: field}

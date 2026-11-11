@@ -99,10 +99,10 @@ class HDiv(pg.Discretization):
         num_high = high.ndof_per_element(sd.dim)
         W_dot = sps.hstack([sps.diags_array(np.tile(W_a, num_high)) for W_a in W])
 
-        # The mass matrix between the piecewise polynomials of order k - 1 (rows) and k
-        # (columns), through the inclusion of the former in the latter, for the test
-        # with v
-        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        # The mass matrix between the range of the divergence, the piecewise polynomials
+        # of order k - 1 (rows), and the piecewise polynomials of order k (columns),
+        # through the inclusion of the former in the latter, for the test with v
+        low = cast(pg.PwPolynomials, self.get_range_discr_class(sd.dim)())
         incl = low.proj_to_higher_PwPolynomials(sd)
         mass = incl.T @ high.assemble_mass_matrix(sd)
         adv = mass @ W_dot @ proj
