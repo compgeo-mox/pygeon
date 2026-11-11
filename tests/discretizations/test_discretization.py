@@ -187,3 +187,30 @@ def test_num_entities_of_point_grid(ref_sd_0d):
 )
 def test_get_broken_grad_discr(discr_class, known):
     assert discr_class("test").get_broken_grad_discr() is known
+
+
+@pytest.mark.parametrize(
+    "discr_class", [pg.Lagrange1, pg.Lagrange2, pg.PwLinears, pg.PwQuadratics]
+)
+def test_broken_directional_derivative(discr_class, tilted_sd):
+    # With u a polynomial of the order of the space and beta constant, both in the
+    # ambient coordinates, beta . grad u on the grid is (P beta) . grad u, with P the
+    # projection on the plane of the grid: a polynomial of one order less, interpolated
+    # exactly by the piecewise polynomials of that order
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+    discr = discr_class("test")
+    k = discr.poly_order
+
+    x, y, z = pg.exact.coordinates()
+    u = (1 + x + 2 * y + z) ** k
+    beta = np.array([1.0, 2.0, 3.0])
+    f = sum(b * g for b, g in zip(P @ beta, pg.exact.gradient(u)))
+
+    low = pg.get_PwPolynomials(k - 1, pg.SCALAR)("test")
+    u_h = discr.interpolate(sd, pg.exact.to_callable(u))
+    f_h = low.interpolate(sd, pg.exact.to_callable(f))
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+
+    dir_der = discr.assemble_broken_directional_derivative(sd, field)
+    assert np.allclose(dir_der @ u_h, f_h)
