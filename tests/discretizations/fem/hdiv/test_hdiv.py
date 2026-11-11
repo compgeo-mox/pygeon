@@ -5,7 +5,6 @@ import porepy as pp
 import pytest
 
 import pygeon as pg
-from tests.helpers import constant_tensor
 
 
 @pytest.fixture(
@@ -98,7 +97,7 @@ def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     a, b = np.array([0.5, -1.0, 2.0]), 1.5
     w = P @ inv_K @ P @ beta
 
-    perm = constant_tensor(sd, inv_K)
+    perm = pg.constant_tensor(sd.num_cells, inv_K)
     field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
     data = pp.initialize_data(
         {}, "test", {pg.SECOND_ORDER_TENSOR: perm, pg.VECTOR_FIELD: field}

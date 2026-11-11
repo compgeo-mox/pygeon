@@ -5,7 +5,6 @@ import porepy as pp
 import pytest
 
 import pygeon as pg
-from tests.helpers import constant_tensor
 
 
 @pytest.fixture(
@@ -105,7 +104,7 @@ def test_postprocess_darcy_flux(discr, tilted_sd):
     P = sd.rotation_matrix.T @ sd.rotation_matrix
 
     K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    perm = constant_tensor(sd, K)
+    perm = pg.constant_tensor(sd.num_cells, K)
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
     # The flux of a linear function is constant, equal to -P K P grad p
