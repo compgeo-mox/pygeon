@@ -383,7 +383,7 @@ class Discretization(abc.ABC):
         return grad @ proj
 
     def assemble_broken_directional_derivative(
-        self, sd: pg.Grid, field: np.ndarray
+        self, sd: pg.Grid, vector_field: np.ndarray
     ) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) directional derivative
@@ -399,7 +399,7 @@ class Discretization(abc.ABC):
 
         Args:
             sd (pg.Grid): The grid.
-            field (np.ndarray): The field, of shape (3, num_cells).
+            vector_field (np.ndarray): The vector field, of shape (3, num_cells).
 
         Returns:
             sps.csc_array: The directional derivative matrix.
@@ -411,7 +411,7 @@ class Discretization(abc.ABC):
         )
 
         grad_space = self.get_broken_grad_discr()(self.keyword)
-        dot = grad_space.assemble_dot_product(sd, field)
+        dot = grad_space.assemble_dot_product(sd, vector_field)
 
         return sps.csc_array(dot @ self.assemble_broken_grad_matrix(sd))
 

@@ -252,7 +252,9 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         return (R @ Pi).tocsc()
 
-    def assemble_dot_product(self, sd: pg.Grid, field: np.ndarray) -> sps.csc_array:
+    def assemble_dot_product(
+        self, sd: pg.Grid, vector_field: np.ndarray
+    ) -> sps.csc_array:
         r"""
         Assembles the dot product :math:`\boldsymbol{u} \mapsto \boldsymbol{w} \cdot
         \boldsymbol{u}` with a vector field :math:`\boldsymbol{w}` constant on each
@@ -275,7 +277,7 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         Args:
             sd (pg.Grid): The grid.
-            field (np.ndarray): The field, of shape (3, num_cells).
+            vector_field (np.ndarray): The vector field, of shape (3, num_cells).
 
         Returns:
             sps.csc_array: The dot product matrix.
@@ -287,7 +289,7 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         # The field in the plane of the grid, with its value on each cell repeated on
         # the degrees of freedom of the cell, numbered (local dof) * num_cells + cell
-        w = sd.rotation_matrix @ field
+        w = sd.rotation_matrix @ vector_field
         num_dofs = self.base_discr.ndof_per_element(sd.dim)
         dot = [sps.diags_array(np.tile(w_a, num_dofs)) for w_a in w]
 

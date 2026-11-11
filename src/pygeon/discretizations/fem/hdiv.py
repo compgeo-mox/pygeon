@@ -40,23 +40,23 @@ class HDiv(pg.Discretization):
         r"""
         Assembles and returns the advection matrix for the H(div)-conforming finite
         elements, which is given by
-        :math:`(D^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)_\Omega`, for
+        :math:`(K^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)_\Omega`, for
         :math:`\boldsymbol{u}` in the space and :math:`v` in the piecewise
         polynomials of order k - 1, the range of the divergence.
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`,
-        accessible via pg.VECTOR_FIELD, and the second-order tensor :math:`D^{-1}`,
+        accessible via pg.VECTOR_FIELD, and the second-order tensor :math:`K^{-1}`,
         accessible via pg.SECOND_ORDER_TENSOR, both constant per cell and given in the
         ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
-        :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor. On grids
+        :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
         of dimension lower than 3 only their components in the plane or the line of
-        the grid act, through the weight :math:`P D^{-1} P \boldsymbol{\beta}`, with
+        the grid act, through the weight :math:`P K^{-1} P \boldsymbol{\beta}`, with
         :math:`P` the projection on it, unless the entry "is_tangential" of data is
         True: then their first dim components are taken as the ones in the coordinates
         of ``sd.rotation_matrix``.
 
-        Since the weight :math:`D^{-1} \boldsymbol{\beta}` is constant on each cell,
-        :math:`D^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
+        Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
+        :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
         polynomial of order k, and the matrix is the composition
 
         .. math::
@@ -80,19 +80,19 @@ class HDiv(pg.Discretization):
             sps.csc_array: The advection matrix obtained from the discretization.
         """
         # Retrieve the tensor and the vector field, in the ambient coordinates, and the
-        # weight D^{-1} beta, in the plane of the grid: P D^{-1} P beta, with P the
+        # weight K^{-1} beta, in the plane of the grid: P K^{-1} P beta, with P the
         # projection on the plane
-        D_inv = pg.get_cell_data(
+        inv_K = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
         R = sd.rotation_matrix
         if data and data.get("is_tangential", False):
-            W_plane = np.einsum("abc,bc->ac", D_inv[: sd.dim, : sd.dim], V[: sd.dim])
+            W_plane = np.einsum("abc,bc->ac", inv_K[: sd.dim, : sd.dim], V[: sd.dim])
             W = R.T @ W_plane
         else:
             P = R.T @ R
-            W = P @ np.einsum("ijc,jc->ic", D_inv, P @ V)
+            W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k
