@@ -44,14 +44,16 @@ class HDiv(pg.Discretization):
         :math:`\boldsymbol{u}` in the space and :math:`v` in the piecewise
         polynomials of order k - 1, the range of the divergence.
 
-        :math:`\boldsymbol{\beta} \in [\mathbb{P}_0(\Omega)]^d` is a given vector
-        field and :math:`D^{-1} \in [\mathbb{P}_0(\Omega)]^{d \times d}` is a given
-        second-order tensor. If not provided, :math:`\boldsymbol{\beta}` defaults to
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`,
+        accessible via pg.VECTOR_FIELD, and the second-order tensor :math:`D^{-1}`,
+        accessible via pg.SECOND_ORDER_TENSOR, both constant per cell and given in the
+        ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
         :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor. On grids
-        of dimension lower than 3, both are rotated to the plane or the line of the
-        grid with ``sd.rotation_matrix``, unless the entry "is_tangential" of data is
-        True: then their first dim components are taken as the ones in those
-        coordinates.
+        of dimension lower than 3 only their components in the plane or the line of
+        the grid act, through the weight :math:`P D^{-1} P \boldsymbol{\beta}`, with
+        :math:`P` the projection on it, unless the entry "is_tangential" of data is
+        True: then their first dim components are taken as the ones in the coordinates
+        of ``sd.rotation_matrix``.
 
         Since the weight :math:`D^{-1} \boldsymbol{\beta}` is constant on each cell,
         :math:`D^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
@@ -62,10 +64,11 @@ class HDiv(pg.Discretization):
             A = I_{k-1 \to k}^\top M_k W \Pi,
 
         with :math:`\Pi` the projection to the vector piecewise polynomials of order k,
-        W the product with the weight to the piecewise polynomials of order k,
-        :math:`M_k` the mass matrix of the latter, and :math:`I_{k-1 \to k}` the
-        inclusion of the piecewise polynomials of order k - 1 in the order k, for the
-        test with v.
+        W the dot product with the weight of
+        :meth:`pg.VecPwPolynomials.assemble_dot_product`, to the piecewise polynomials
+        of order k, :math:`M_k` the mass matrix of the latter, and
+        :math:`I_{k-1 \to k}` the inclusion of the piecewise polynomials of order
+        k - 1 in the order k, for the test with v.
 
         Args:
             sd (pg.Grid): The grid.
@@ -76,36 +79,34 @@ class HDiv(pg.Discretization):
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
         """
-        # Retrieve the tensor and the vector field, in the coordinates of the plane of
-        # the grid, and their product, the weight D^{-1} beta
+        # Retrieve the tensor and the vector field, in the ambient coordinates, and the
+        # weight D^{-1} beta, in the plane of the grid: P D^{-1} P beta, with P the
+        # projection on the plane
         D_inv = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        R = sd.rotation_matrix
         if data and data.get("is_tangential", False):
-            D_inv = D_inv[: sd.dim, : sd.dim]
-            V = V[: sd.dim]
+            W_plane = np.einsum("abc,bc->ac", D_inv[: sd.dim, : sd.dim], V[: sd.dim])
+            W = R.T @ W_plane
         else:
-            R = sd.rotation_matrix
-            D_inv = np.einsum("ai,ijc,bj->abc", R, D_inv, R)
-            V = R @ V
-        W = np.einsum("abc,bc->ac", D_inv, V)
+            P = R.T @ R
+            W = P @ np.einsum("ijc,jc->ic", D_inv, P @ V)
 
-        # The field u, in the vector piecewise polynomials of order k, and its product
-        # with the weight, constant on each cell and then repeated on all its degrees
-        # of freedom of order k
-        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        # The dot product of u, in the vector piecewise polynomials of order k, with
+        # the weight, in the piecewise polynomials of order k
+        vec_high = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        dot = cast(pg.VecPwPolynomials, vec_high).assemble_dot_product(sd, W)
         proj = self.proj_to_PwPolynomials(sd)
-        num_high = high.ndof_per_element(sd.dim)
-        W_dot = sps.hstack([sps.diags_array(np.tile(W_a, num_high)) for W_a in W])
 
-        # The mass matrix between the range of the divergence, the piecewise polynomials
-        # of order k - 1 (rows), and the piecewise polynomials of order k (columns),
-        # through the inclusion of the former in the latter, for the test with v
+        # Tested with v in the range of the divergence, the piecewise polynomials of
+        # order k - 1, through their inclusion in the order k and its mass matrix
         low = cast(pg.PwPolynomials, self.get_range_discr_class(sd.dim)())
+        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
-        mass = incl.T @ high.assemble_mass_matrix(sd)
-        adv = mass @ W_dot @ proj
+        mass = high.assemble_mass_matrix(sd)
+        adv = incl.T @ mass @ dot @ proj
 
         return pg.drop_small_entries(sps.csc_array(adv))
 
