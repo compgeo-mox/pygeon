@@ -404,7 +404,11 @@ class Discretization(abc.ABC):
         Returns:
             sps.csc_array: The directional derivative matrix.
         """
-        assert self.tensor_order == pg.SCALAR
+        assert self.tensor_order == pg.SCALAR, (
+            f"The broken directional derivative is only implemented for scalar-valued "
+            f"discretizations, while {type(self).__name__} has tensor order "
+            f"{self.tensor_order}."
+        )
 
         grad_space = self.get_broken_grad_discr()(self.keyword)
         dot = grad_space.assemble_dot_product(sd, field)

@@ -280,7 +280,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The dot product matrix.
         """
-        assert self.tensor_order == pg.VECTOR
+        assert self.tensor_order == pg.VECTOR, (
+            f"The dot product is only implemented for vector-valued discretizations, "
+            f"while {type(self).__name__} has tensor order {self.tensor_order}."
+        )
 
         # The field in the plane of the grid, with its value on each cell repeated on
         # the degrees of freedom of the cell, numbered (local dof) * num_cells + cell
