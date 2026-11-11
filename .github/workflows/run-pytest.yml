@@ -60,7 +60,7 @@ jobs:
       run: |
         # Various packages that must be installed
         sudo apt-get update
-        sudo apt-get install libglu1-mesa libgeos-dev libffi-dev
+        sudo apt-get install --fix-missing libglu1-mesa libgeos-dev libffi-dev
         export LD_LIBRARY_PATH=/usr/local/lib64/:$LD_LIBRARY_PATH
 
     # Make sure pip is up to date.
@@ -112,7 +112,7 @@ jobs:
       run: |
         # Various packages that must be installed
         sudo apt-get update
-        sudo apt-get install libglu1-mesa libgeos-dev libffi-dev
+        sudo apt-get install --fix-missing libglu1-mesa libgeos-dev libffi-dev
         export LD_LIBRARY_PATH=/usr/local/lib64/:$LD_LIBRARY_PATH
 
 
