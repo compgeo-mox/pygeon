@@ -184,8 +184,8 @@ class Poincare:
 
         dim_diff = self.get_subspace_dim_differences()
         assert np.all(dim_diff == 0), (
-            f"The bar and zero spaces still differ in dimension after the cohomology, "
-            f"by {dim_diff} for the form orders."
+            f"The bar and zero spaces still differ in dimension after taking care of "
+            f"cohomology, by {dim_diff} for the form orders."
         )
 
         for k in range(self.dim + 1):
