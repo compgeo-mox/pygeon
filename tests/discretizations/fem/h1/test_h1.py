@@ -103,8 +103,11 @@ def test_postprocess_darcy_flux(discr, tilted_sd):
     sd = tilted_sd
     P = sd.rotation_matrix.T @ sd.rotation_matrix
 
-    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    perm = pg.constant_tensor(sd.num_cells, K)
+    # The tensor is not symmetric, and PorePy builds only symmetric tensors, so the
+    # values are set directly
+    K = np.array([[3.0, 1.0, 0.5], [-0.4, 2.0, 0.3], [0.2, -1.0, 1.0]])
+    perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+    perm.values = np.tile(K.reshape((3, 3, 1)), sd.num_cells)
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
     # The flux of a linear function is constant, equal to -P K P grad p

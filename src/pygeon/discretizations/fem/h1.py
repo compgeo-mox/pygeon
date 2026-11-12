@@ -124,8 +124,10 @@ class Lagrange(pg.Discretization):
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+        # Rotate the tensor, of shape (3, 3, num_cells), to the plane or the line of
+        # the grid: R K R^T on each cell, of shape (dim, dim, num_cells)
         R = sd.rotation_matrix
-        K = np.tensordot(R.T, np.tensordot(R, tensor.values, (1, 0)), (0, 1))
+        K = np.einsum("ai,ijc,bj->abc", R, tensor.values, R)
         K *= weight
 
         # The local dofs of each polynomial component are ordered as (local, cell)
