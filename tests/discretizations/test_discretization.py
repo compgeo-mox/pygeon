@@ -199,21 +199,25 @@ def test_get_broken_grad_discr(discr_class, known):
         pg.PwQuadratics,
         pg.VecPwLinears,
         pg.VecPwQuadratics,
+        pg.RT0,
+        pg.BDM1,
     ],
 )
 def test_broken_directional_derivative(discr_class, tilted_sd):
-    # With u a polynomial of the order of the space and beta constant, both in the
-    # ambient coordinates, beta . grad u on the grid is (P beta) . grad u, with P the
-    # projection on the plane of the grid, for each component of u in the plane: a
-    # polynomial of one order less, interpolated exactly by the piecewise polynomials
-    # of that order
+    # With u in the space and beta constant, both in the ambient coordinates,
+    # beta . grad u on the grid is (P beta) . grad u, with P the projection on the
+    # plane of the grid, for each component of u in the plane: a polynomial of one
+    # order less, interpolated exactly by the piecewise polynomials of that order
     sd = tilted_sd
     P = sd.rotation_matrix.T @ sd.rotation_matrix
     discr = discr_class("test")
     k = discr.poly_order
 
     x, y, z = pg.exact.coordinates()
-    u = [(1 + x + 2 * y + z) ** k, (2 - x + y - z) ** k, (x - y + 2 * z) ** k]
+    if discr_class is pg.RT0:
+        u = [0.3 + 1.5 * x, -0.7 + 1.5 * y, 1.1 + 1.5 * z]
+    else:
+        u = [(1 + x + 2 * y + z) ** k, (2 - x + y - z) ** k, (x - y + 2 * z) ** k]
     beta = np.array([1.0, 2.0, 3.0])
     f = [sum(b * g for b, g in zip(P @ beta, pg.exact.gradient(u_i))) for u_i in u]
     if discr.tensor_order == pg.SCALAR:
