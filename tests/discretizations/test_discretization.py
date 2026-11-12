@@ -201,6 +201,8 @@ def test_get_broken_grad_discr(discr_class, known):
         pg.VecPwQuadratics,
         pg.RT0,
         pg.BDM1,
+        pg.VecLagrange1,
+        pg.VecLagrange2,
     ],
 )
 def test_broken_directional_derivative(discr_class, tilted_sd):
@@ -232,3 +234,52 @@ def test_broken_directional_derivative(discr_class, tilted_sd):
 
     dir_der = discr.assemble_broken_directional_derivative(sd, vector_field)
     assert np.allclose(dir_der @ u_h, f_h)
+
+
+@pytest.mark.parametrize(
+    "discr_class",
+    [
+        pg.RT0,
+        pg.BDM1,
+        pg.VecLagrange1,
+        pg.VecLagrange2,
+        pg.VecPwConstants,
+        pg.VecPwLinears,
+        pg.VecPwQuadratics,
+        pg.VecVLagrange1,
+        pg.MatLagrange1,
+        pg.MatPwConstants,
+        pg.MatPwLinears,
+        pg.MatPwQuadratics,
+        pg.VecRT0,
+        pg.VecBDM1,
+    ],
+)
+def test_interpolate_and_eval_are_physical(discr_class, tilted_sd):
+    # The functions are given in the ambient coordinates, and their evaluation at the
+    # cell centers is in the ambient coordinates as well, projected on the plane of
+    # the grid: P f for a vector and P F P for a matrix. The fields are linear, and of
+    # the form a + b x for each vector of RT0, so that every space reproduces them
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+    discr = discr_class("test")
+
+    x = sp.Matrix(pg.exact.coordinates())
+    a = sp.Matrix([0.3, -0.7, 1.1])
+    if discr_class in (pg.RT0, pg.VecRT0):
+        vector = a + 1.5 * x
+        matrix = a * sp.ones(1, 3) + sp.Matrix([1.0, -0.5, 2.0]) * x.T
+    else:
+        A = sp.Matrix([[1.0, 2.0, -1.0], [0.5, -1.0, 2.0], [3.0, 1.0, 1.0]])
+        vector = a + A * x
+        matrix = A + (x[0] + 2 * x[1] + 3 * x[2]) * A.T
+
+    if discr.tensor_order == pg.VECTOR:
+        func = pg.exact.to_callable(vector)
+        known = P @ func(sd.cell_centers)
+    else:
+        func = pg.exact.to_callable(matrix)
+        known = np.einsum("ij,jkc,kl->ilc", P, func(sd.cell_centers), P)
+
+    eval_h = discr.eval_at_cell_centers(sd) @ discr.interpolate(sd, func)
+    assert np.allclose(eval_h, known.reshape((-1, sd.num_cells)).ravel())

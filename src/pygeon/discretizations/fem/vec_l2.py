@@ -109,7 +109,8 @@ class VecPwPolynomials(pg.VecDiscretization):
             sps.csc_array: The weighting matrix.
         """
         # Retrieve the underlying numpy array of shape (3, 3, n_cells) and rotate it to
-        # the reference plane or line. Code taken from pp.SecondOrderTensor.rotate().
+        # the plane or the line of the grid. Code taken from
+        # pp.SecondOrderTensor.rotate().
         R = sd.rotation_matrix
         rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
 
@@ -124,26 +125,6 @@ class VecPwPolynomials(pg.VecDiscretization):
         ]
 
         return sps.block_array(bmat).tocsc()
-
-    def interpolate(
-        self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
-    ) -> np.ndarray:
-        """
-        Interpolates a vector-valued function onto the finite element space. The
-        values of the function are rotated to the reference plane or line of the grid,
-        as the degrees of freedom.
-
-        Args:
-            sd (pg.Grid): The grid.
-            func (Callable): A function that returns the function values at coordinates.
-
-        Returns:
-            np.ndarray: The values of the degrees of freedom.
-        """
-        # If the mesh is tilted, then the 3-vector from func needs to be rotated.
-        rotated_func = lambda x: np.einsum("ij,j...->i...", sd.rotation_matrix, func(x))
-
-        return super().interpolate(sd, rotated_func)
 
     def local_dofs_of_cell(
         self, sd: pg.Grid, c: int, ambient_dim: int = -1
@@ -234,23 +215,6 @@ class VecPwPolynomials(pg.VecDiscretization):
         """
         proj = self.base_discr.proj_to_lower_PwPolynomials(sd)
         return self.vectorize(sd.dim, proj)
-
-    def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles the matrix for evaluating the discretization at the cell centers.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The evaluation matrix.
-        """
-        Pi = super().eval_at_cell_centers(sd)
-
-        # We need to map back from reference to physical coordinates
-        R = sps.kron(sd.rotation_matrix.T, sps.eye_array(Pi.shape[0] // sd.dim), "csc")
-
-        return (R @ Pi).tocsc()
 
     def assemble_dot_product(
         self, sd: pg.Grid, vector_field: np.ndarray

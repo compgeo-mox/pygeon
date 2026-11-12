@@ -128,7 +128,7 @@ def test_interp_and_eval(discr, ref_octagon):
     interp_func = discr.interpolate(ref_octagon, func)
     eval_interp = discr.eval_at_cell_centers(ref_octagon) @ interp_func
 
-    known_vals = np.vstack([func(c)[:2] for c in ref_octagon.cell_centers.T]).T.ravel()
+    known_vals = np.vstack([func(c) for c in ref_octagon.cell_centers.T]).T.ravel()
 
     assert np.allclose(eval_interp, known_vals)
 

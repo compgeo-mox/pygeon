@@ -138,6 +138,17 @@ $$N_\text{dof} = d \cdot N_\text{dof}^{\text{scalar}}$$
 All vector spaces use a **component-block** ordering: first all DOFs of the
 $x$-component, then all DOFs of the $y$-component, and so on.  
 
+### Coordinates on grids of lower dimension
+
+The functions and the data (vector fields, tensors, boundary conditions) are always
+given in the ambient coordinates, with 3 components, also on grids of dimension 1 and 2
+that are tilted in space. The $d$ components of the DOFs are instead in the plane or the
+line of the grid, in the coordinates given by the rows of `sd.rotation_matrix` $R$:
+`interpolate` and `assemble_nat_bc` take the components $R f$ of the function, and
+`eval_at_cell_centers` returns $R^\top$ times the components, in the ambient
+coordinates. For a matrix-valued space the rows are rotated in the same way, and the
+columns by the underlying space.
+
 
 
 ## Matrix-valued spaces
