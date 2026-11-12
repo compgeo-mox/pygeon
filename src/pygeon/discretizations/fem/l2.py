@@ -586,23 +586,19 @@ class PwLinears(PwPolynomials):
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
         """
-        opposite_nodes = sd.compute_opposite_nodes().tocoo()
-        faces = opposite_nodes.row
-        cells = opposite_nodes.col
-        orien = sd.cell_faces[faces, cells]
-        nodes = opposite_nodes.data
+        # The gradients of the barycentric coordinates in the plane of the grid, times
+        # the cell volumes, of shape (dim, dim + 1, num_cells)
+        grads = sd.compute_barycentric_gradients()
+        grads = np.einsum("ak,kjc->ajc", sd.rotation_matrix, grads) * sd.cell_volumes
 
-        vecp0_dofs = np.arange(sd.dim * sd.num_cells).reshape((sd.dim, -1))
-        rows_I = vecp0_dofs[:, cells].ravel()
+        # The dofs of both spaces are numbered (local index) * num_cells + cell, with
+        # the nodes of the cell in the order of cell_nodes()
+        cells = np.arange(sd.num_cells)
+        rows_I = np.arange(sd.dim).reshape((-1, 1, 1)) * sd.num_cells + cells
+        cols_J = np.arange(sd.dim + 1).reshape((1, -1, 1)) * sd.num_cells + cells
+        rows_I, cols_J = np.broadcast_arrays(rows_I, cols_J)
 
-        dof_lookup = self.get_dof_lookup_array(sd)
-        cols_J = np.tile(dof_lookup[nodes, cells], sd.dim)
-
-        normals = sd.rotation_matrix @ sd.face_normals
-        grads = -normals[:, faces] * orien / sd.dim
-        data_IJ = grads.ravel()
-
-        return sps.csc_array((data_IJ, (rows_I, cols_J)))
+        return sps.csc_array((grads.ravel(), (rows_I.ravel(), cols_J.ravel())))
 
 
 class PwQuadratics(PwPolynomials):
