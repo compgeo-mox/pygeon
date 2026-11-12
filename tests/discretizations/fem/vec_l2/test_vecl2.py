@@ -1,6 +1,7 @@
 """Module contains general tests for Vector L2 discretizations."""
 
 import numpy as np
+import porepy as pp
 import pytest
 import sympy as sp
 
@@ -48,3 +49,28 @@ def test_dot_product(discr, tilted_sd):
 
     dot = discr.assemble_dot_product(sd, vector_field)
     assert np.allclose(dot @ u_h, f_h)
+
+
+@pytest.mark.parametrize("method", ["assemble_mass_matrix", "assemble_lumped_matrix"])
+def test_tensor_weighted_inner_product(discr, method, tilted_sd):
+    # With u and v constant and K a constant tensor, not symmetric, all in the ambient
+    # coordinates, (K u, v) on the grid is |Omega| (P v) . K (P u), with P the
+    # projection on the plane of the grid
+    sd = tilted_sd
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+
+    u = np.array([1.0, -2.0, 0.5])
+    v = np.array([0.3, 1.5, -1.0])
+    K = np.array([[2.0, 1.0, 0.0], [-0.5, 3.0, 0.7], [0.2, -1.0, 1.5]])
+
+    # PorePy builds only symmetric tensors, so the values are set directly
+    sot = pp.SecondOrderTensor(np.ones(sd.num_cells))
+    sot.values = np.tile(K.reshape((3, 3, 1)), sd.num_cells)
+    data = {pp.PARAMETERS: {"test": {pg.SECOND_ORDER_TENSOR: sot}}}
+
+    u_h = discr.interpolate(sd, lambda _: u)
+    v_h = discr.interpolate(sd, lambda _: v)
+    M = getattr(discr, method)(sd, data)
+
+    known = sd.cell_volumes.sum() * (P @ v) @ K @ (P @ u)
+    assert np.isclose(v_h @ M @ u_h, known)

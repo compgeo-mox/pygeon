@@ -108,11 +108,10 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The weighting matrix.
         """
-        # Retrieve the underlying numpy array of shape (3, 3, n_cells) and rotate it to
-        # the plane or the line of the grid. Code taken from
-        # pp.SecondOrderTensor.rotate().
+        # Rotate the tensor, of shape (3, 3, num_cells), to the plane or the line of
+        # the grid: R K R^T on each cell, of shape (dim, dim, num_cells)
         R = sd.rotation_matrix
-        rotated_sot = np.tensordot(R.T, np.tensordot(R, sot.values, (1, 0)), (0, 1))
+        rotated_sot = np.einsum("ai,ijc,bj->abc", R, sot.values, R)
 
         # Due to our dof numbering convention, we loop through the grid
         # once for each dof of a cell.
