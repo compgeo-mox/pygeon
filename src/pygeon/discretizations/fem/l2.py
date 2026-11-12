@@ -416,20 +416,45 @@ class PwPolynomials(pg.Discretization):
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         r"""
-        Computes the local lumped mass matrix for piecewise polynomials, an
-        approximation by a quadrature rule of the form
-        :math:`(\varphi_i, \varphi_j)_S`, with :math:`\varphi_i, \varphi_j` being
-        the local basis functions of the piecewise polynomials on a d-simplex :math:`S`.
+        Computes the local lumped mass matrix for piecewise polynomials, the
+        approximation of the form :math:`(\varphi_i, \varphi_j)_S` by the quadrature
+        rule of :meth:`get_lumped_quadrature`, with :math:`\varphi_i, \varphi_j` the
+        local basis functions on a d-simplex :math:`S` with measure 1,
+
+        .. math::
+
+            L_{ij} = \sum_q w_q \varphi_i(\mu_q) \varphi_j(\mu_q),
+
+        with the values of the basis functions at the points :math:`\mu_q` given by
+        the Bernstein polynomials there, :math:`B_k(\mu) V_k^{-1}`.
 
         Args:
             dim (int): The dimension of the grid.
 
         Returns:
             np.ndarray: Local lumped mass matrix for piecewise polynomials.
+        """
+        points, weights = self.get_lumped_quadrature(dim)
+        basis = pg.BernsteinBasis(dim, self.poly_order)
+        values = basis.eval(points) @ basis.to_bernstein()
+
+        return values.T @ (weights.reshape((-1, 1)) * values)
+
+    def get_lumped_quadrature(self, dim: int) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Returns the quadrature rule of the lumped mass matrix on a d-simplex with
+        measure 1.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: The points in barycentric coordinates, one
+            per row, and their weights.
 
         Raises:
-            NotImplementedError: The lumped mass is provided only for the orders 0,
-                1, and 2, by their classes.
+            NotImplementedError: The rule is provided only for the orders 0, 1, and 2,
+                by their classes.
         """
         raise NotImplementedError(
             f"No lumped mass for the piecewise polynomials of order {self.poly_order}"
@@ -629,18 +654,20 @@ class PwConstants(PwPolynomials):
     poly_order = 0
     """Polynomial degree of the basis functions"""
 
-    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+    def get_lumped_quadrature(self, dim: int) -> tuple[np.ndarray, np.ndarray]:
         """
-        Computes the local lumped mass matrix for piecewise constants,
-        which coincides with the local mass matrix since P0 has one dof per cell.
+        Returns the quadrature rule of the lumped mass matrix: the barycenter with
+        the weight 1, so that the lumped mass matrix coincides with the mass matrix,
+        since P0 has one dof per cell.
 
         Args:
             dim (int): The dimension of the grid.
 
         Returns:
-            np.ndarray: Local lumped mass matrix for piecewise constants.
+            tuple[np.ndarray, np.ndarray]: The points in barycentric coordinates, one
+            per row, and their weights.
         """
-        return self.assemble_local_mass(dim)
+        return np.full((1, dim + 1), 1 / (dim + 1)), np.ones(1)
 
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -703,19 +730,19 @@ class PwLinears(PwPolynomials):
     poly_order = 1
     """Polynomial degree of the basis functions"""
 
-    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+    def get_lumped_quadrature(self, dim: int) -> tuple[np.ndarray, np.ndarray]:
         """
-        Computes the local lumped mass matrix for piecewise linears, which is a
-        diagonal approximation of the local mass matrix, by the quadrature rule at the
-        vertices with the weight 1 / (dim + 1) each.
+        Returns the quadrature rule of the lumped mass matrix: the vertices with the
+        weight 1 / (dim + 1) each, so that the lumped mass matrix is diagonal.
 
         Args:
             dim (int): The dimension of the grid.
 
         Returns:
-            np.ndarray: Local lumped mass matrix for piecewise linears.
+            tuple[np.ndarray, np.ndarray]: The points in barycentric coordinates, one
+            per row, and their weights.
         """
-        return np.eye(dim + 1) / (dim + 1)
+        return np.eye(dim + 1), np.full(dim + 1, 1 / (dim + 1))
 
     def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
         """
@@ -775,36 +802,22 @@ class PwQuadratics(PwPolynomials):
         edge_alphas = self.get_local_dof_multi_indices(dim)[dim + 1 :]
         return np.nonzero(edge_alphas)[1].reshape((-1, 2))
 
-    def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
+    def get_lumped_quadrature(self, dim: int) -> tuple[np.ndarray, np.ndarray]:
         r"""
-        Computes the local lumped mass matrix for piecewise quadratics, which is
-        an approximation of the local mass matrix by the quadrature rule, on the
-        simplex of measure one, with the weight :math:`(d + 1) / (d + 2)` at the
-        barycenter and :math:`1 / ((d + 1)(d + 2))` at each vertex. At the vertices,
-        only the basis function of the vertex is not zero, so that their part is
-        diagonal.
+        Returns the quadrature rule of the lumped mass matrix: the vertices with the
+        weight :math:`1 / ((d + 1)(d + 2))` each and the barycenter with the weight
+        :math:`(d + 1) / (d + 2)`. At the vertices only the basis function of the
+        vertex is not zero, so that their part of the lumped mass matrix is diagonal.
 
         Args:
             dim (int): The dimension of the grid.
 
         Returns:
-            np.ndarray: Local lumped mass matrix for piecewise quadratics.
+            tuple[np.ndarray, np.ndarray]: The points in barycentric coordinates, one
+            per row, and their weights.
         """
-        num_edges = self.num_edges_per_cell(dim)
-
-        # Evaluate the basis function at the cell center
-        node_bf_at_cc = np.full(dim + 1, 1 - dim)
-        edge_bf_at_cc = np.full(num_edges, 4)
-        vals_at_center = np.concatenate((node_bf_at_cc, edge_bf_at_cc)) / (dim + 1) ** 2
-        center_weight = (dim + 1) / (dim + 2)
-
-        L = center_weight * np.outer(vals_at_center, vals_at_center)
-
-        # Evaluate the basis functions at the nodes
-        vals_at_nodes = np.zeros(dim + 1 + num_edges)
-        vals_at_nodes[: dim + 1] = 1
-        node_weight = 1 / ((dim + 1) * (dim + 2))
-
-        L += node_weight * np.diag(vals_at_nodes)
-
-        return L
+        barycenter = np.full((1, dim + 1), 1 / (dim + 1))
+        points = np.vstack((np.eye(dim + 1), barycenter))
+        vertex_weight = 1 / ((dim + 1) * (dim + 2))
+        weights = np.append(np.full(dim + 1, vertex_weight), (dim + 1) / (dim + 2))
+        return points, weights
