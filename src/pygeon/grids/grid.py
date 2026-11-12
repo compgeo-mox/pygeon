@@ -44,10 +44,12 @@ class Grid(pp.Grid):
         2: "ridges"
         3: "peaks"
 
-        The results cached for this grid by the discretizations are dropped, so that
-        they are recomputed on the new geometry.
+        The results cached for this grid by the discretizations, and the gradients of
+        the barycentric coordinates, are dropped, so that they are recomputed on the new
+        geometry.
         """
         clear_weak_cache(self)
+        self.__dict__.pop("barycentric_gradients", None)
 
         # We only invoke the porepy routine if it hasn't already been computed.
         if "Compute geometry" not in self.history:
@@ -235,6 +237,18 @@ class Grid(pp.Grid):
         else:
             return subv
 
+    def is_simplicial(self) -> bool:
+        """
+        Whether all the cells are simplices, i.e. have dim + 1 faces, since a
+        polytope of dimension d with d + 1 facets is a simplex. A 0d grid, whose cell
+        has no faces, is not counted as simplicial.
+
+        Returns:
+            bool: True if the grid is simplicial.
+        """
+        faces_per_cell = np.diff(self.cell_faces.indptr)
+        return bool(np.all(faces_per_cell == self.dim + 1))
+
     def compute_opposite_nodes(self, recompute=False) -> sps.csc_array:
         """
         Computes a matrix containing the index of the opposite node
@@ -252,16 +266,16 @@ class Grid(pp.Grid):
             NotImplementedError: If the grid is not simplicial.
         """
         if recompute or not hasattr(self, "opposite_nodes"):
-            cell_nodes = self.cell_nodes()
-
             if self.dim == 0:
                 self.opposite_nodes = sps.csc_array((0, 1), dtype=int)
                 return self.opposite_nodes
 
-            if not np.all(cell_nodes.sum(axis=0) == self.dim + 1):
+            if not self.is_simplicial():
                 raise NotImplementedError(
                     "Grid is not simplicial; cannot compute opposite node."
                 )
+
+            cell_nodes = self.cell_nodes()
 
             faces, cells, _ = sps.find(self.cell_faces)
 
@@ -270,6 +284,51 @@ class Grid(pp.Grid):
             self.opposite_nodes = sps.csc_array((opposites.indices, (faces, cells)))
 
         return self.opposite_nodes
+
+    def compute_barycentric_gradients(self, recompute: bool = False) -> np.ndarray:
+        r"""
+        Computes the gradients of the barycentric coordinates of each cell, constant on
+        the cell, in the ambient coordinates. Sets them as an attribute for later use.
+
+        The barycentric coordinate :math:`\lambda_i` of the vertex i vanishes on the
+        opposite face f, so that its gradient is
+        :math:`\nabla \lambda_i = -\frac{|f|}{d |c|} \boldsymbol{n}_f`, with
+        :math:`\boldsymbol{n}_f` the unit normal of f pointing out of the cell c,
+        tangent to the cell when the grid is embedded in a higher dimension.
+
+        Args:
+            recompute (bool): Whether to recompute the gradients. Defaults to False.
+
+        Returns:
+            np.ndarray: The gradients, of shape (3, dim + 1, num_cells), with the
+            vertices of each cell in the order of ``cell_nodes()``.
+
+        Raises:
+            NotImplementedError: If the grid is not simplicial.
+        """
+        if recompute or not hasattr(self, "barycentric_gradients"):
+            if not self.is_simplicial():
+                raise NotImplementedError(
+                    "Grid is not simplicial; cannot compute barycentric gradients."
+                )
+
+            # The face opposite to each vertex of each cell, (num_cells, dim + 1), with
+            # the vertices sorted as in cell_nodes(), and its orientation in the cell
+            opposite = self.compute_opposite_nodes()
+            shape = (self.num_cells, self.dim + 1)
+            nodes = opposite.data.reshape(shape)
+            faces = opposite.indices.reshape(shape)
+            faces = np.take_along_axis(faces, np.argsort(nodes, axis=1), axis=1)
+            cells = np.repeat(np.arange(self.num_cells), self.dim + 1)
+            orien = self.cell_faces[faces.ravel(), cells].reshape(shape)
+
+            # The scaled outward normals, (3, num_cells, dim + 1), to the gradients of
+            # shape (3, dim + 1, num_cells)
+            scaling = -orien / (self.dim * self.cell_volumes.reshape((-1, 1)))
+            grads = self.face_normals[:, faces] * scaling
+            self.barycentric_gradients = np.transpose(grads, (0, 2, 1))
+
+        return self.barycentric_gradients
 
     def compute_edge_properties(self) -> None:
         """
@@ -338,6 +397,7 @@ class Grid(pp.Grid):
             "ridge_peaks",
             "face_ridges",
             "opposite_nodes",
+            "barycentric_gradients",
             "num_edges",
             "edge_tangents",
             "edge_lengths",
