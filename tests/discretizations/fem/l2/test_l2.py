@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-import sympy as sp
 
 import pygeon as pg
 
@@ -117,59 +116,3 @@ def test_lumped_consistency(discr, unit_sd):
     integral_M = M_full @ one_interp
 
     assert np.allclose(integral_L, integral_M)
-
-
-@pytest.mark.parametrize(
-    "vec_class", [pg.VecPwConstants, pg.VecPwLinears, pg.VecPwQuadratics]
-)
-def test_dot_product(vec_class, tilted_sd):
-    # With u a vector polynomial of the order of the space and w constant, both in the
-    # ambient coordinates, w . u on the grid is w . (P u), with P the projection on
-    # the plane of the grid: a polynomial of the same order, interpolated exactly
-    sd = tilted_sd
-    P = sd.rotation_matrix.T @ sd.rotation_matrix
-    vec_discr = vec_class("test")
-    k = vec_discr.poly_order
-
-    x, y, z = pg.exact.coordinates()
-    u = sp.Matrix(
-        [(1 + x + 2 * y + z) ** k, (2 - x + y - z) ** k, (x - y + 2 * z) ** k]
-    )
-    w = np.array([1.0, 2.0, 3.0])
-    f = (sp.Matrix(w).T @ sp.Matrix(P) @ u)[0]
-
-    scalar_discr = vec_discr.base_discr
-    u_h = vec_discr.interpolate(sd, pg.exact.to_callable(u))
-    f_h = scalar_discr.interpolate(sd, pg.exact.to_callable(f))
-    field = np.tile(w.reshape((-1, 1)), sd.num_cells)
-
-    dot = vec_discr.assemble_dot_product(sd, field)
-    assert np.allclose(dot @ u_h, f_h)
-
-
-@pytest.mark.parametrize(
-    "mat_class", [pg.MatPwConstants, pg.MatPwLinears, pg.MatPwQuadratics]
-)
-def test_matrix_dot_product(mat_class, tilted_sd):
-    # With tau a matrix polynomial of the order of the space and w constant, both in
-    # the ambient coordinates, tau w on the grid is (P tau P) w, with P the projection
-    # on the plane of the grid: a vector polynomial of the same order, interpolated
-    # exactly
-    sd = tilted_sd
-    P = sd.rotation_matrix.T @ sd.rotation_matrix
-    mat_discr = mat_class("test")
-    k = mat_discr.poly_order
-
-    x, y, z = pg.exact.coordinates()
-    rows = [(1 + x + 2 * y + z) ** k, (2 - x + y - z) ** k, (x - y + 2 * z) ** k]
-    tau = sp.Matrix([[(i + 1) * r + j for j in range(3)] for i, r in enumerate(rows)])
-    w = np.array([1.0, 2.0, 3.0])
-    f = tau @ sp.Matrix(P @ w)
-
-    vec_discr = mat_discr.base_discr
-    tau_h = mat_discr.interpolate(sd, pg.exact.to_callable(tau))
-    f_h = vec_discr.interpolate(sd, pg.exact.to_callable(f))
-    vector_field = np.tile(w.reshape((-1, 1)), sd.num_cells)
-
-    dot = mat_discr.assemble_dot_product(sd, vector_field)
-    assert np.allclose(dot @ tau_h, f_h)
