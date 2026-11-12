@@ -772,18 +772,6 @@ class PwQuadratics(PwPolynomials):
     poly_order = 2
     """Polynomial degree of the basis functions"""
 
-    def num_edges_per_cell(self, dim: int) -> int:
-        """
-        Compute the number of edges of a simplex of a given dimension.
-
-        Args:
-            dim (int): Dimension.
-
-        Returns:
-            int: The number of edges.
-        """
-        return dim * (dim + 1) // 2
-
     def get_local_edge_nodes(self, dim: int) -> np.ndarray:
         """
         Lists the local edge-node connectivity in the cell: the pairs of local nodes,
