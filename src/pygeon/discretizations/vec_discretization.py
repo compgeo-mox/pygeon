@@ -206,7 +206,11 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The divergence matrix.
         """
-        assert self.tensor_order == pg.VECTOR
+        assert self.tensor_order == pg.VECTOR, (
+            f"The broken divergence is only implemented for vector-valued "
+            f"discretizations, while {type(self).__name__} has tensor order "
+            f"{self.tensor_order}."
+        )
 
         grad = self.assemble_broken_grad_matrix(sd)
         grad_space = cast(
@@ -233,7 +237,10 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The curl matrix.
         """
-        assert self.tensor_order == pg.VECTOR
+        assert self.tensor_order == pg.VECTOR, (
+            f"The broken curl is only implemented for vector-valued discretizations, "
+            f"while {type(self).__name__} has tensor order {self.tensor_order}."
+        )
 
         grad = self.assemble_broken_grad_matrix(sd)
         grad_space = cast(
