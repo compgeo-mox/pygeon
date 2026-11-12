@@ -51,9 +51,7 @@ class HDiv(pg.Discretization):
         :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
         of dimension lower than 3 only their components in the plane or the line of
         the grid act, through the weight :math:`P K^{-1} P \boldsymbol{\beta}`, with
-        :math:`P` the projection on it, unless the entry "is_tangential" of data is
-        True: then their first dim components are taken as the ones in the coordinates
-        of ``sd.rotation_matrix``.
+        :math:`P` the projection on it.
 
         Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
         :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
@@ -86,14 +84,8 @@ class HDiv(pg.Discretization):
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        R = sd.rotation_matrix
-        # TODO: remove is_tangential, see #340
-        if data and data.get("is_tangential", False):
-            W_plane = np.einsum("abc,bc->ac", inv_K[: sd.dim, : sd.dim], V[: sd.dim])
-            W = R.T @ W_plane
-        else:
-            P = R.T @ R
-            W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
+        P = sd.rotation_matrix.T @ sd.rotation_matrix
+        W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k

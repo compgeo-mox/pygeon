@@ -76,7 +76,7 @@ class VecLagrange(pg.VecDiscretization):
 
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
         accessible via pg.VECTOR_FIELD, constant per cell (:class:`pg.VecPwConstants`)
-        and rotated to the plane of the grid as in
+        and given in the ambient coordinates as in
         :meth:`pg.Lagrange.assemble_adv_matrix`. If not provided, it defaults to
         :math:`(0, 0, 0)`.
 
