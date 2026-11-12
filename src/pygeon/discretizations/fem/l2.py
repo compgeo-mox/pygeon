@@ -719,7 +719,8 @@ class PwLinears(PwPolynomials):
 
     def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles a lookup matrix L with the property L[cell, node] = dof_index.
+        Assembles a lookup matrix L with the property L[node, cell] = dof_index, with
+        the sparsity of ``sd.cell_nodes()``.
 
         Args:
             sd (pg.Grid): The grid.
