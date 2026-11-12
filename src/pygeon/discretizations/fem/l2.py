@@ -237,8 +237,10 @@ class PwPolynomials(pg.Discretization):
 
         2. The gradients :math:`\nabla \lambda_i` carry the geometry: they are
            constant on each cell, from :meth:`pg.Grid.compute_barycentric_gradients`
-           in the plane of the grid. The component a of the chain rule multiplies the
-           derivative i by :math:`(\nabla \lambda_i)_a` on each cell, i.e. by the
+           in the ambient coordinates, and rotated to the plane or the line of the
+           grid with ``sd.rotation_matrix``, as the components of
+           :class:`pg.VecPwPolynomials`. The component a of the chain rule multiplies
+           the derivative i by :math:`(\nabla \lambda_i)_a` on each cell, i.e. by the
            block matrix :math:`\Lambda`, from
            :math:`[\mathbb{P}_{k-1}(\Omega)]^{d + 1}` to
            :math:`[\mathbb{P}_{k-1}(\Omega)]^d`, with the diagonal blocks
@@ -269,7 +271,7 @@ class PwPolynomials(pg.Discretization):
         dim, k = sd.dim, self.poly_order
         basis, low = pg.BernsteinBasis(dim, k), pg.BernsteinBasis(dim, k - 1)
 
-        # the gradient in the barycentric coordinates, the same on every cell, from the
+        # The gradient in the barycentric coordinates, the same on every cell, from the
         # Lagrange coefficients of order k to the ones of order k - 1 through the
         # Bernstein basis, one block of rows per barycentric coordinate
         local = [
@@ -278,14 +280,14 @@ class PwPolynomials(pg.Discretization):
         ]
         partial = sps.kron(np.vstack(local), sps.eye_array(sd.num_cells))
 
-        # the gradients of the barycentric coordinates in the plane of the grid,
+        # The gradients of the barycentric coordinates in the plane of the grid,
         # (dim, dim + 1, nc), scaled to the degrees of freedom of the order k - 1
         grad_lambda = np.einsum(
             "ak,kic->aic", sd.rotation_matrix, sd.compute_barycentric_gradients()
         )
         grad_lambda *= self.dof_scaling(sd, k - 1)
 
-        # the block matrix Lambda, with the blocks diag((grad lambda_i)_a): the values
+        # The block matrix Lambda, with the blocks diag((grad lambda_i)_a): the values
         # are constant on each cell, so repeated on all its degrees of freedom
         num_low = low.multi_indices.shape[0]
         Lambda = sps.block_array(
@@ -441,14 +443,14 @@ class PwPolynomials(pg.Discretization):
         if k == 0:
             raise NotImplementedError("No order below the piecewise constants")
 
-        # on the reference simplex, the same on every cell: from the Lagrange to the
+        # On the reference simplex, the same on every cell: from the Lagrange to the
         # Bernstein coefficients of order k, the L2 projection onto the Bernstein
         # basis of order k - 1, and back to the Lagrange coefficients of order k - 1
         basis, low = pg.BernsteinBasis(dim, k), pg.BernsteinBasis(dim, k - 1)
         l2_projection = np.linalg.solve(low.mass(low), low.mass(basis))
         local = low.to_lagrange() @ l2_projection @ basis.to_bernstein()
 
-        # from the degrees of freedom of the order k to the ones of the order k - 1
+        # From the degrees of freedom of the order k to the ones of the order k - 1
         scaling = self.dof_scaling(sd, k - 1) / self.dof_scaling(sd, k)
         proj = sps.kron(local, sps.diags_array(scaling))
         return sps.csc_array(proj)
@@ -481,7 +483,7 @@ class PwPolynomials(pg.Discretization):
         basis, high = pg.BernsteinBasis(dim, k), pg.BernsteinBasis(dim, k + 1)
         local = basis.eval(high.lagrange_nodes()) @ basis.to_bernstein()
 
-        # from the degrees of freedom of the order k to the ones of the order k + 1
+        # From the degrees of freedom of the order k to the ones of the order k + 1
         scaling = self.dof_scaling(sd, k + 1) / self.dof_scaling(sd, k)
         proj = sps.kron(local, sps.diags_array(scaling))
         return sps.csc_array(proj)
@@ -561,17 +563,17 @@ class PwPolynomials(pg.Discretization):
         k, dim = self.poly_order, sd.dim
         basis = pg.BernsteinBasis(dim, k)
 
-        # the points inside the simplex, in barycentric coordinates
+        # The points inside the simplex, in barycentric coordinates
         center = 1 / (dim + 1)
         points = center + (basis.lagrange_nodes() - center) / np.sqrt(dim + 2)
 
-        # their coordinates in each cell, ordered as the dofs, with the cells running
+        # Their coordinates in each cell, ordered as the dofs, with the cells running
         # faster, and the values of f there, (num points, num_cells)
         coords = sd.barycentric_to_coords(points)
         values = self.eval_func_at_coords(func, coords.reshape((3, -1)))
         values = values.reshape((-1, sd.num_cells))
 
-        # from the values at the points to the ones at the nodes, through the
+        # From the values at the points to the ones at the nodes, through the
         # Bernstein coefficients
         local = basis.to_lagrange() @ np.linalg.inv(basis.eval(points))
         return (local @ values).ravel()

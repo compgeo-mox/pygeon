@@ -5,7 +5,7 @@ from math import factorial
 
 import numpy as np
 
-# the factorials of an array of integers, as floats
+# The factorials of an array of integers, as floats
 factorials = np.vectorize(factorial, otypes=[float])
 
 
@@ -81,14 +81,14 @@ class BernsteinBasis:
                        [1, 0, 1],
                        [0, 1, 1]])
         """
-        # each choice, with repetition, of k vertices gives the multi-index that
+        # Each choice, with repetition, of k vertices gives the multi-index that
         # counts how many times each vertex is chosen
         alphas = [
             np.bincount(np.array(choice, dtype=int), minlength=dim + 1)
             for choice in combinations_with_replacement(range(dim + 1), order)
         ]
 
-        # sorted by the dimension of the subsimplex (vertices, edges, faces,
+        # Sorted by the dimension of the subsimplex (vertices, edges, faces,
         # interior), then by the subsimplex, in the order of the combinations of its
         # vertices, and then decreasingly within the subsimplex
         def subsimplex_order(alpha: np.ndarray) -> tuple:
@@ -132,7 +132,7 @@ class BernsteinBasis:
             np.ndarray: The values, one row per point and one column per polynomial.
         """
         alphas = self.multi_indices
-        # the powers lambda_i^alpha_i of each point (rows) for each multi-index
+        # The powers lambda_i^alpha_i of each point (rows) for each multi-index
         # (columns), multiplied over the barycentric coordinates
         powers = points.reshape((-1, 1, self.dim + 1)) ** alphas
         return multinomial(alphas) * np.prod(powers, axis=2)
@@ -189,7 +189,7 @@ class BernsteinBasis:
         """
         alphas, betas = self.multi_indices, other.multi_indices
 
-        # the exponents alpha + beta of all the pairs, (rows, columns, d + 1), and the
+        # The exponents alpha + beta of all the pairs, (rows, columns, d + 1), and the
         # integrals of the monomials with them
         sums = alphas.reshape((-1, 1, self.dim + 1)) + betas
         integrals = np.prod(factorials(sums), axis=2) * factorial(self.dim)
@@ -222,7 +222,7 @@ class BernsteinBasis:
         """
         low = BernsteinBasis(self.dim, self.order - 1)
 
-        # the differences alpha - beta of all the pairs, (rows beta, columns alpha,
+        # The differences alpha - beta of all the pairs, (rows beta, columns alpha,
         # d + 1): the derivative in lambda_i is k where the difference is e_i
         diffs = self.multi_indices - low.multi_indices.reshape((-1, 1, self.dim + 1))
         units = np.eye(self.dim + 1, dtype=int)
