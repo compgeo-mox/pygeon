@@ -295,7 +295,7 @@ class PwPolynomials(pg.Discretization):
             ]
         )
 
-        return pg.drop_small_entries(sps.csc_array(Lambda @ partial))
+        return sps.csc_array(Lambda @ partial)
 
     def assemble_stiff_matrix(
         self, sd: pg.Grid, _data: dict | None = None
@@ -451,7 +451,7 @@ class PwPolynomials(pg.Discretization):
         # from the degrees of freedom of the order k to the ones of the order k - 1
         scaling = self.dof_scaling(sd, k - 1) / self.dof_scaling(sd, k)
         proj = sps.kron(local, sps.diags_array(scaling))
-        return pg.drop_small_entries(sps.csc_array(proj))
+        return sps.csc_array(proj)
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -484,7 +484,7 @@ class PwPolynomials(pg.Discretization):
         # from the degrees of freedom of the order k to the ones of the order k + 1
         scaling = self.dof_scaling(sd, k + 1) / self.dof_scaling(sd, k)
         proj = sps.kron(local, sps.diags_array(scaling))
-        return pg.drop_small_entries(sps.csc_array(proj))
+        return sps.csc_array(proj)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -511,7 +511,7 @@ class PwPolynomials(pg.Discretization):
         local = basis.eval(barycenter) @ basis.to_bernstein()
 
         evaluation = sps.kron(local, sps.eye_array(sd.num_cells))
-        return pg.drop_small_entries(sps.csc_array(evaluation))
+        return sps.csc_array(evaluation)
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
