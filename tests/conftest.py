@@ -69,13 +69,21 @@ def unit_sd_3d(_unit_grids_dict: dict) -> pg.Grid:
 
 
 @pytest.fixture(scope="session")
-def tilted_sd(unit_sd: pg.Grid) -> pg.Grid:
+def tilt() -> np.ndarray:
     """
-    The unit grid tilted out of its coordinate planes by a fixed rotation, of an angle
-    pi / 4 around the y axis, with its geometry recomputed: a generic embedding of the
-    grids of dimension 1 and 2 in the ambient space.
+    The rotation of the tilted grid, of an angle pi / 4 around the y axis.
     """
-    R = pp.map_geometry.rotation_matrix(np.pi / 4, np.array([0.0, 1.0, 0.0]))
+    return pp.map_geometry.rotation_matrix(np.pi / 4, np.array([0.0, 1.0, 0.0]))
+
+
+@pytest.fixture(scope="session")
+def tilted_sd(unit_sd: pg.Grid, tilt: np.ndarray) -> pg.Grid:
+    """
+    The unit grid tilted out of its coordinate planes by the rotation tilt, with its
+    geometry recomputed: a generic embedding of the grids of dimension 1 and 2 in the
+    ambient space.
+    """
+    R = tilt
     sd = unit_sd.copy(keep_history=False)
     sd.nodes = R @ sd.nodes
     sd.compute_geometry()
