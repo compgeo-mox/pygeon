@@ -252,6 +252,43 @@ class VecPwPolynomials(pg.VecDiscretization):
 
         return (R @ Pi).tocsc()
 
+    def assemble_dot_product(
+        self, sd: pg.Grid, vector_field: np.ndarray
+    ) -> sps.csc_array:
+        r"""
+        Assembles the dot product :math:`\boldsymbol{u} \mapsto \boldsymbol{w} \cdot
+        \boldsymbol{u}` with a vector field :math:`\boldsymbol{w}` constant on each
+        cell, from the vector piecewise polynomials to the scalar ones of the same
+        order. For the matrix-valued functions, see
+        :meth:`pg.MatPwPolynomials.assemble_dot_product`.
+
+        The field is given in the ambient coordinates and rotated to the plane of the
+        grid with ``sd.rotation_matrix``, as the components of the vector piecewise
+        polynomials. On each cell, its value multiplies all the degrees of freedom of
+        each component, so that the matrix is
+
+        .. math::
+
+            \begin{bmatrix}
+                \operatorname{diag}(w_1) & \cdots & \operatorname{diag}(w_d)
+            \end{bmatrix},
+
+        with the values of each component repeated on the degrees of freedom of each
+        cell.
+
+        Args:
+            sd (pg.Grid): The grid.
+            vector_field (np.ndarray): The vector field, of shape (3, num_cells).
+
+        Returns:
+            sps.csc_array: The dot product matrix.
+        """
+        w = sd.rotation_matrix @ vector_field
+        num_dofs = self.base_discr.ndof_per_element(sd.dim)
+        dot = [sps.diags_array(np.tile(w_a, num_dofs)) for w_a in w]
+
+        return sps.csc_array(sps.hstack(dot))
+
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid,

@@ -68,12 +68,13 @@ class Lagrange(pg.Discretization):
 
         .. math::
 
-            A = P^\top M_k I_{k-1 \to k} B G P,
+            A = P^\top M_k I_{k-1 \to k} D_{\boldsymbol{\beta}},
 
-        with P the projection to the piecewise polynomials of order k, G their broken
-        gradient to the vector piecewise polynomials of order k - 1, B the product with
-        the field to the piecewise polynomials of order k - 1, :math:`I_{k-1 \to k}`
-        their inclusion in the order k, and :math:`M_k` the mass matrix of the latter.
+        with :math:`D_{\boldsymbol{\beta}}` the directional derivative of
+        :meth:`pg.Discretization.assemble_broken_directional_derivative`, to the
+        piecewise polynomials of order k - 1, :math:`I_{k-1 \to k}` their inclusion in
+        the order k, :math:`M_k` the mass matrix of the latter, and P the projection of
+        :math:`\mathbb{L}_k(\Omega)` to the piecewise polynomials of order k.
 
         Args:
             sd (pg.Grid): The grid.
@@ -83,29 +84,24 @@ class Lagrange(pg.Discretization):
         Returns:
             sps.csc_array: The assembled advection matrix.
         """
-        # Retrieve the vector field, in the coordinates of the plane of the grid
+        # Retrieve the vector field, in the ambient coordinates
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        # TODO: remove is_tangential, see #340
         if data and data.get("is_tangential", False):
-            V = V[: sd.dim]
-        else:
-            V = sd.rotation_matrix @ V
+            V = sd.rotation_matrix.T @ V[: sd.dim]
 
-        # The gradient of u, in the vector piecewise polynomials of order k - 1, and
-        # its product with the field, constant on each cell and then repeated on all
-        # its degrees of freedom of order k - 1
+        # The directional derivative of u along the field, in the piecewise
+        # polynomials of order k - 1
+        dir_der = self.assemble_broken_directional_derivative(sd, V)
+
+        # Its inclusion in the piecewise polynomials of order k, where it is tested
+        # with v through their mass matrix
         low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
-        grad = self.assemble_broken_grad_matrix(sd)
-        num_low = low.ndof_per_element(sd.dim)
-        V_dot = sps.hstack([sps.diags_array(np.tile(V_a, num_low)) for V_a in V])
-
-        # The mass matrix between the piecewise polynomials of order k (rows) and k - 1
-        # (columns), through the inclusion of the latter in the former, for the test
-        # with v
         high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
-        mass = high.assemble_mass_matrix(sd) @ incl
+        mass = high.assemble_mass_matrix(sd)
         proj = self.proj_to_PwPolynomials(sd)
-        adv = proj.T @ mass @ V_dot @ grad
+        adv = proj.T @ mass @ incl @ dir_der
 
         return pg.drop_small_entries(sps.csc_array(adv))
 

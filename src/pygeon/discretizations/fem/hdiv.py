@@ -3,14 +3,116 @@
 from typing import Callable, Tuple, Type, cast
 
 import numpy as np
-import porepy as pp
 import scipy.sparse as sps
 
 import pygeon as pg
 from pygeon.utils.weak_cache import weak_cache
 
 
-class RT0(pg.Discretization):
+class HDiv(pg.Discretization):
+    r"""
+    Abstract class collecting the features shared by the H(div)-conforming finite
+    element discretizations :math:`V_h \subset H(\mathrm{div}, \Omega)`, for a
+    generic domain :math:`\Omega \subset \mathbb{R}^d`: their functions are
+    vector piecewise polynomials of order k, given by ``poly_order``, and their
+    divergence is a piecewise polynomial of order k - 1.
+    """
+
+    tensor_order = pg.VECTOR
+    """Vector-valued discretization"""
+
+    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the range discretization class of the divergence, the piecewise
+        polynomials of order k - 1.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            Type[pg.Discretization]: The range discretization class.
+        """
+        return pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
+
+    def assemble_adv_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the advection matrix for the H(div)-conforming finite
+        elements, which is given by
+        :math:`(K^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)_\Omega`, for
+        :math:`\boldsymbol{u}` in the space and :math:`v` in the piecewise
+        polynomials of order k - 1, the range of the divergence.
+
+        The data dictionary contains the vector field :math:`\boldsymbol{\beta}`,
+        accessible via pg.VECTOR_FIELD, and the second-order tensor :math:`K^{-1}`,
+        accessible via pg.SECOND_ORDER_TENSOR, both constant per cell and given in the
+        ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
+        :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
+        of dimension lower than 3 only their components in the plane or the line of
+        the grid act, through the weight :math:`P K^{-1} P \boldsymbol{\beta}`, with
+        :math:`P` the projection on it, unless the entry "is_tangential" of data is
+        True: then their first dim components are taken as the ones in the coordinates
+        of ``sd.rotation_matrix``.
+
+        Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
+        :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
+        polynomial of order k, and the matrix is the composition
+
+        .. math::
+
+            A = I_{k-1 \to k}^\top M_k W \Pi,
+
+        with :math:`\Pi` the projection to the vector piecewise polynomials of order k,
+        W the dot product with the weight of
+        :meth:`pg.VecPwPolynomials.assemble_dot_product`, to the piecewise polynomials
+        of order k, :math:`M_k` the mass matrix of the latter, and
+        :math:`I_{k-1 \to k}` the inclusion of the piecewise polynomials of order
+        k - 1 in the order k, for the test with v.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Optional data for scaling, in particular
+                pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
+                tensor) and pg.VECTOR_FIELD (advection velocity field).
+
+        Returns:
+            sps.csc_array: The advection matrix obtained from the discretization.
+        """
+        # Retrieve the tensor and the vector field, in the ambient coordinates, and the
+        # weight K^{-1} beta, in the plane of the grid: P K^{-1} P beta, with P the
+        # projection on the plane
+        inv_K = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
+        ).values
+        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+        R = sd.rotation_matrix
+        # TODO: remove is_tangential, see #340
+        if data and data.get("is_tangential", False):
+            W_plane = np.einsum("abc,bc->ac", inv_K[: sd.dim, : sd.dim], V[: sd.dim])
+            W = R.T @ W_plane
+        else:
+            P = R.T @ R
+            W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
+
+        # The dot product of u, in the vector piecewise polynomials of order k, with
+        # the weight, in the piecewise polynomials of order k
+        vec_high = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        dot = cast(pg.VecPwPolynomials, vec_high).assemble_dot_product(sd, W)
+        proj = self.proj_to_PwPolynomials(sd)
+
+        # Tested with v in the range of the divergence, the piecewise polynomials of
+        # order k - 1, through their inclusion in the order k and its mass matrix
+        low = cast(pg.PwPolynomials, self.get_range_discr_class(sd.dim)())
+        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        incl = low.proj_to_higher_PwPolynomials(sd)
+        mass = high.assemble_mass_matrix(sd)
+        adv = incl.T @ mass @ dot @ proj
+
+        return pg.drop_small_entries(sps.csc_array(adv))
+
+
+class RT0(HDiv):
     r"""
     Class implementing the finite element discretization for Raviart-Thomas (RT)
     elements of lowest order :math:`\mathbb{RT}_0(\Omega) \subset H_{div}(\Omega)`,
@@ -23,9 +125,6 @@ class RT0(pg.Discretization):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -40,106 +139,6 @@ class RT0(pg.Discretization):
             np.ndarray: The number of degrees of freedom per entity.
         """
         return np.roll([1, 0, 0, 0], dim - 1)  # faces
-
-    def assemble_adv_matrix(
-        self, sd: pg.Grid, data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles and returns the advection matrix for mixed finite elements
-        (RT0-P0), which is given by
-        :math:`(D^{-1}\boldsymbol{\beta} \cdot \boldsymbol{u}, v)`.
-
-        The trial function is :math:`\boldsymbol{u} \in \mathbb{RT}_0(\Omega)` and
-        test functions :math:`v \in \mathbb{P}_0(\Omega)`.
-        :math:`\boldsymbol{\beta} \in [\mathbb{P}_0(\Omega)]^d` is a given vector
-        field and :math:`D^{-1} \in [\mathbb{P}_0(\Omega)]^{d \times d}` is a given
-        second-order tensor. If not provided, :math:`\boldsymbol{\beta}` defaults to
-        :math:`(0, 0, 0)`, and :math:`D^{-1}` defaults to the identity tensor. On grids
-        of dimension lower than 3, both are rotated to the plane or the line of the
-        grid, unless the entry "is_tangential" of data is True.
-
-        Args:
-            sd (pg.Grid): The grid.
-            data (dict | None): Optional data for scaling, in particular
-                pg.SECOND_ORDER_TENSOR (inverse diffusion or permeability
-                tensor) and pg.VECTOR_FIELD (advection velocity field).
-
-        Returns:
-            sps.csc_array: The advection matrix obtained from the discretization.
-        """
-        # Retrieve the second order tensor
-        D_inv = pg.get_cell_data(
-            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
-        )
-        # Retrieve the vector field
-        V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-
-        # Map the domain to a reference geometry (i.e. equivalent to compute
-        # surface coordinates in 1D and 2D)
-        c_centers, f_normals, f_centers, R, dim, nodes = pp.map_geometry.map_grid(sd)
-        nodes = nodes[: sd.dim, :]
-
-        if not data or not data.get("is_tangential", False):
-            # Rotate the inverse of the permeability tensor and vector field,
-            # and delete last dimension
-            if sd.dim < 3:
-                D_inv = D_inv.copy()
-                D_inv.rotate(R)
-                remove_dim = np.where(np.logical_not(dim))[0]
-                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=0)
-                D_inv.values = np.delete(D_inv.values, (remove_dim), axis=1)
-
-                V = V.copy()
-                V = R @ V
-                remove_dim = np.where(np.logical_not(dim))[0]
-                V = np.delete(V, remove_dim, axis=0)
-
-        # Allocate the data to store matrix A entries
-        size = (sd.dim + 1) * sd.num_cells
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_IJ = np.empty(size)
-        idx = 0
-
-        # Compute the opposite nodes for each face
-        opposite_nodes = sd.compute_opposite_nodes()
-
-        for c in range(sd.num_cells):
-            # For the current cell retrieve its faces
-            loc = slice(sd.cell_faces.indptr[c], sd.cell_faces.indptr[c + 1])
-            faces_loc = sd.cell_faces.indices[loc]
-            opposites_loc = opposite_nodes.data[loc]
-
-            # get the opposite node id for each face
-            coord_loc = nodes[:, opposites_loc]
-
-            # Compute the flux reconstruction matrix
-            psi_cell = pp.RT0.faces_to_cell(
-                c_centers[:, c],
-                coord_loc,
-                f_centers[:, faces_loc],
-                f_normals[:, faces_loc],
-                dim,
-                R,
-            )[: sd.dim, :]
-
-            # Compute the local weight for the local advection matrix
-            weight = D_inv.values[..., c] @ V[:, c]
-
-            # Compute the H_div-advection local matrix
-            A = weight @ psi_cell
-
-            # Save values for local matrix in the global structure
-            cols = faces_loc
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = c
-            cols_J[loc_idx] = faces_loc
-            data_IJ[loc_idx] = A.ravel()
-            idx += cols.size
-
-        # Construct the global matrices
-        shape = (sd.num_cells, self.ndof(sd))
-        return sps.csc_array((data_IJ, (rows_I, cols_J)), shape=shape)
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -242,18 +241,6 @@ class RT0(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-        """
-        return pg.PwConstants
-
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix to the VecPwLinears space. The projection
@@ -273,7 +260,7 @@ class RT0(pg.Discretization):
         return proj_to_poly @ proj_to_bdm1
 
 
-class BDM1(pg.Discretization):
+class BDM1(HDiv):
     r"""
     Class implementing the finite element discretization for Brezzi-Douglas-Marini (BDM)
     elements of lowest order :math:`\mathbb{BDM}_1(\Omega) \subset H_{div}(\Omega)`,
@@ -282,9 +269,6 @@ class BDM1(pg.Discretization):
 
     poly_order = 1
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -411,18 +395,6 @@ class BDM1(pg.Discretization):
 
         return vals
 
-    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-        """
-        return pg.PwConstants
-
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
@@ -486,7 +458,7 @@ class BDM1(pg.Discretization):
         return pg.drop_small_entries(proj)
 
 
-class RT1(pg.Discretization):
+class RT1(HDiv):
     r"""
     Class implementing the finite element discretization for Raviart-Thomas (RT)
     elements of order 1 :math:`\mathbb{RT}_1(\Omega) \subset H_{div}(\Omega)`,
@@ -495,9 +467,6 @@ class RT1(pg.Discretization):
 
     poly_order = 2
     """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.VECTOR
-    """Vector-valued discretization"""
 
     def ndof_per_entity(self, dim: int) -> np.ndarray:
         """
@@ -754,18 +723,6 @@ class RT1(pg.Discretization):
         vals[: bdm1.ndof(sd)] = bdm1.assemble_nat_bc(sd, func, b_faces)
 
         return vals
-
-    def get_range_discr_class(self, _dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-        """
-        return pg.PwLinears
 
     def assemble_lumped_matrix(
         self, sd: pg.Grid, data: dict | None = None

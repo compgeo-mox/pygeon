@@ -104,15 +104,7 @@ def test_postprocess_darcy_flux(discr, tilted_sd):
     P = sd.rotation_matrix.T @ sd.rotation_matrix
 
     K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    ones = np.ones(sd.num_cells)
-    perm = pp.SecondOrderTensor(
-        kxx=K[0, 0] * ones,
-        kyy=K[1, 1] * ones,
-        kzz=K[2, 2] * ones,
-        kxy=K[0, 1] * ones,
-        kxz=K[0, 2] * ones,
-        kyz=K[1, 2] * ones,
-    )
+    perm = pg.constant_tensor(sd.num_cells, K)
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
     # The flux of a linear function is constant, equal to -P K P grad p

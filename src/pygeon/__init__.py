@@ -26,7 +26,7 @@ from pygeon.grids.regularizers import (
     elasticity_regularization,
 )
 
-from pygeon.params.data import get_cell_data
+from pygeon.params.data import constant_tensor, get_cell_data
 
 from pygeon.discretizations.discretization import Discretization
 from pygeon.discretizations.vec_discretization import VecDiscretization

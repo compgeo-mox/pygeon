@@ -382,6 +382,42 @@ class Discretization(abc.ABC):
 
         return grad @ proj
 
+    def assemble_broken_directional_derivative(
+        self, sd: pg.Grid, vector_field: np.ndarray
+    ) -> sps.csc_array:
+        r"""
+        Assembles the broken (element-wise) directional derivative
+        :math:`u \mapsto \boldsymbol{\beta} \cdot \nabla_h u` along a vector field
+        :math:`\boldsymbol{\beta}` constant on each cell, mapping to the piecewise
+        polynomials of one degree less than the discretization and of the same tensor
+        order. This operator is only implemented for scalar- and vector-valued
+        functions: for the latter, it is :math:`(\nabla_h \boldsymbol{u})
+        \boldsymbol{\beta}`, the directional derivative of each component.
+
+        It is the dot product with the field, see
+        :meth:`pg.VecPwPolynomials.assemble_dot_product` and
+        :meth:`pg.MatPwPolynomials.assemble_dot_product`, of the broken gradient, see
+        :meth:`pg.Discretization.assemble_broken_grad_matrix`. The field is given in
+        the ambient coordinates, and only its component in the plane of the grid acts.
+
+        Args:
+            sd (pg.Grid): The grid.
+            vector_field (np.ndarray): The vector field, of shape (3, num_cells).
+
+        Returns:
+            sps.csc_array: The directional derivative matrix.
+        """
+        assert self.tensor_order < pg.MATRIX, (
+            f"The broken directional derivative is only implemented for scalar- and "
+            f"vector-valued discretizations, while {type(self).__name__} has tensor "
+            f"order {self.tensor_order}."
+        )
+
+        grad_space = self.get_broken_grad_discr()(self.keyword)
+        dot = grad_space.assemble_dot_product(sd, vector_field)
+
+        return sps.csc_array(dot @ self.assemble_broken_grad_matrix(sd))
+
     def get_broken_grad_discr(self) -> Type[pg.VecPwPolynomials]:
         """
         Returns the discretization class of the range of the broken gradient, the
