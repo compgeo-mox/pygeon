@@ -51,7 +51,10 @@ class BernsteinBasis:
         r"""
         The multi-indices :math:`\alpha \in \mathbb{N}^{d + 1}` with
         :math:`|\alpha| = k`, ordered by the subsimplex that contains the node
-        :math:`\alpha / k`.
+        :math:`\alpha / k`, i.e. the vertices with :math:`\alpha_i > 0`: first by its
+        dimension (vertices, edges, faces, interior), then by its vertices in
+        lexicographic order, and within the subsimplex by :math:`\alpha` in decreasing
+        lexicographic order, from the node closest to its vertex of lowest index.
 
         Args:
             dim (int): The dimension of the simplex.

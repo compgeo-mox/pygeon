@@ -1,6 +1,5 @@
 """Module for the discretizations of the L2 space."""
 
-from itertools import combinations
 from math import comb
 from typing import Callable, Type
 
@@ -18,17 +17,39 @@ class PwPolynomials(pg.Discretization):
 
     **Degrees of freedom.** On each cell, the degrees of freedom are the values at
     the nodes of the Lagrange basis, :math:`\lambda = \alpha / k` in barycentric
-    coordinates, see :meth:`pg.BernsteinBasis.lagrange_nodes`, in the order of
-    :meth:`pg.BernsteinBasis.compute_multi_indices`. For instance, for the order 2 on
-    a triangle, the basis functions are :math:`\lambda_i (2 \lambda_i - 1)` at the
-    vertices and :math:`4 \lambda_i \lambda_j` at the midpoints of the edges, each
-    equal to one at its node and zero at the other ones. The piecewise constants are
-    the exception: their degree of freedom is the integral on the cell, see
-    :meth:`dof_scaling`.
+    coordinates, see :meth:`pg.BernsteinBasis.lagrange_nodes`. The barycentric
+    coordinate :math:`\lambda_i` is the one of the vertex :math:`x_i` of the cell,
+    with the vertices in the order of ``sd.cell_nodes()``, i.e. of increasing global
+    index. The nodes are in the order of
+    :meth:`pg.BernsteinBasis.compute_multi_indices`: first the vertices, then the
+    edges, the faces, and the interior, each subsimplex in the lexicographic order of
+    its vertices, and within a subsimplex the multi-indices in decreasing
+    lexicographic order. For instance, for the order 3 on a triangle the local
+    degrees of freedom are
+
+    ===== ============== ===================
+    i     :math:`\alpha` node
+    ===== ============== ===================
+    0-2   (3, 0, 0), ... the vertices
+    3, 4  (2, 1, 0),     the edge x0 x1
+          (1, 2, 0)
+    5, 6  (2, 0, 1),     the edge x0 x2
+          (1, 0, 2)
+    7, 8  (0, 2, 1),     the edge x1 x2
+          (0, 1, 2)
+    9     (1, 1, 1)      the barycenter
+    ===== ============== ===================
+
+    For the order 2 on a triangle, the basis functions are
+    :math:`\lambda_i (2 \lambda_i - 1)` at the vertices and
+    :math:`4 \lambda_i \lambda_j` at the midpoints of the edges, each equal to one at
+    its node and zero at the other ones. The piecewise constants are the exception:
+    their degree of freedom is the integral on the cell, see :meth:`dof_scaling`.
 
     **Numbering.** The degree of freedom of the local basis function i on the cell c
-    is i * num_cells + c. Hence an operator given by the same local matrix L on every
-    cell, up to a factor :math:`w_K` per cell, is assembled as
+    is i * num_cells + c, see :meth:`local_dofs_of_cell`. Hence an operator given by
+    the same local matrix L on every cell, up to a factor :math:`w_K` per cell, is
+    assembled as
 
     .. math::
 
@@ -110,6 +131,23 @@ class PwPolynomials(pg.Discretization):
             np.ndarray: Array of local DOF indices associated with the cell.
         """
         return sd.num_cells * np.arange(self.ndof_per_element(sd.dim)) + c
+
+    def get_local_dof_multi_indices(self, dim: int) -> np.ndarray:
+        r"""
+        Returns the multi-indices of the local degrees of freedom: the row i is the
+        multi-index :math:`\alpha` of the local degree of freedom i, the value at the
+        node :math:`\lambda = \alpha / k`, with :math:`\lambda_j` the barycentric
+        coordinate of the vertex j of the cell in the order of ``sd.cell_nodes()``.
+        See the table in the docstring of the class and
+        :meth:`pg.BernsteinBasis.compute_multi_indices`.
+
+        Args:
+            dim (int): The dimension of the grid.
+
+        Returns:
+            np.ndarray: The multi-indices, of shape (ndof_per_element, dim + 1).
+        """
+        return pg.BernsteinBasis(dim, self.poly_order).multi_indices
 
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -721,8 +759,8 @@ class PwQuadratics(PwPolynomials):
     def get_local_edge_nodes(self, dim: int) -> np.ndarray:
         """
         Lists the local edge-node connectivity in the cell: the pairs of local nodes,
-        in lexicographic order, as the edges of the Bernstein basis, see
-        :meth:`pg.BernsteinBasis.compute_multi_indices`.
+        in lexicographic order, read from the local degrees of freedom of the edges,
+        see :meth:`pg.PwPolynomials.get_local_dof_multi_indices`.
 
         Args:
             dim (int): Dimension.
@@ -731,8 +769,10 @@ class PwQuadratics(PwPolynomials):
             np.ndarray: Row i contains the local indices of the nodes connected to the
             edge with local index i.
         """
-        edges = list(combinations(range(dim + 1), 2))
-        return np.array(edges, dtype=int).reshape((-1, 2))
+        # The multi-indices of the edges follow the ones of the dim + 1 vertices, and
+        # their nonzero entries are the two vertices of the edge
+        edge_alphas = self.get_local_dof_multi_indices(dim)[dim + 1 :]
+        return np.nonzero(edge_alphas)[1].reshape((-1, 2))
 
     def assemble_local_lumped_mass(self, dim: int) -> np.ndarray:
         r"""

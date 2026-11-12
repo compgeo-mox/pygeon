@@ -45,3 +45,21 @@ def test_derivatives(basis):
     ones = np.ones(len(basis.multi_indices))
     for der in basis.derivatives():
         assert np.allclose(der @ ones, basis.order)
+
+
+def test_multi_indices_order():
+    # The order 3 on a triangle, as in the docstring of pg.PwPolynomials: the
+    # vertices, the edges x0 x1, x0 x2, x1 x2, and the barycenter
+    known = [
+        [3, 0, 0],
+        [0, 3, 0],
+        [0, 0, 3],
+        [2, 1, 0],
+        [1, 2, 0],
+        [2, 0, 1],
+        [1, 0, 2],
+        [0, 2, 1],
+        [0, 1, 2],
+        [1, 1, 1],
+    ]
+    assert np.array_equal(pg.BernsteinBasis.compute_multi_indices(2, 3), known)
