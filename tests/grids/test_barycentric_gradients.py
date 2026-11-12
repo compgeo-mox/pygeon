@@ -65,7 +65,7 @@ def test_is_not_simplicial(ref_square, ref_sd_0d):
 
 
 def test_barycentric_to_coords(unit_sd):
-    # the vertices map to the nodes of each cell, and the barycenter to its center
+    # The vertices map to the nodes of each cell, and the barycenter to its center
     nodes = unit_sd.cell_nodes().indices.reshape((unit_sd.num_cells, -1))
     vertices = unit_sd.barycentric_to_coords(np.eye(unit_sd.dim + 1))
     assert np.allclose(vertices, np.moveaxis(unit_sd.nodes[:, nodes], 1, 2))

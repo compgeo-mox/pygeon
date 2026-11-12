@@ -50,7 +50,7 @@ def test_ndof(unit_sd, order):
 
 
 def test_mass_is_exact(unit_sd, order):
-    # the integral of a polynomial of the order of the space, with the mass matrix
+    # The integral of a polynomial of the order of the space, with the mass matrix
     discr = classes[order]()
     fun = polynomial(order)
     fun_h = discr.interpolate(unit_sd, pg.exact.to_callable(fun))
@@ -58,7 +58,7 @@ def test_mass_is_exact(unit_sd, order):
 
     integral = one_h @ discr.assemble_mass_matrix(unit_sd) @ fun_h
 
-    # the exact integral on the unit cube of dimension dim, with the other
+    # The exact integral on the unit cube of dimension dim, with the other
     # coordinates equal to zero
     coords = pg.exact.coordinates()
     fun = fun.subs({c: 0 for c in coords[unit_sd.dim :]})
@@ -66,47 +66,48 @@ def test_mass_is_exact(unit_sd, order):
     assert np.isclose(integral, float(known))
 
 
-def test_broken_grad_is_exact(unit_sd, order):
+def test_broken_grad_is_exact(tilted_sd, order):
+    # The gradient is in the ambient coordinates, and its components on the grid are
+    # the ones in the plane, R grad f, with R the rotation of the grid
+    sd = tilted_sd
     discr, low = classes[order](), classes[order - 1]()
     fun = polynomial(order)
-    fun_h = discr.interpolate(unit_sd, pg.exact.to_callable(fun))
-    grad_h = discr.assemble_broken_grad_matrix(unit_sd) @ fun_h
+    fun_h = discr.interpolate(sd, pg.exact.to_callable(fun))
+    grad_h = discr.assemble_broken_grad_matrix(sd) @ fun_h
 
-    # the components in the plane of the unit grids, i.e. the first dim ones
-    grad = pg.exact.gradient(fun)
-    known = [
-        low.interpolate(unit_sd, pg.exact.to_callable(grad[a]))
-        for a in range(unit_sd.dim)
-    ]
+    grad = sp.Matrix(sd.rotation_matrix) * pg.exact.gradient(fun)
+    known = [low.interpolate(sd, pg.exact.to_callable(grad_a)) for grad_a in grad]
     assert np.allclose(grad_h, np.concatenate(known))
 
 
-def test_projections(unit_sd, order):
+def test_projections(tilted_sd, order):
+    sd = tilted_sd
     discr, high = classes[order](), classes[order + 1]()
     fun = pg.exact.to_callable(polynomial(order))
-    fun_h = discr.interpolate(unit_sd, fun)
+    fun_h = discr.interpolate(sd, fun)
 
-    # the inclusion is exact, and the L2 projection back is the identity
-    up = discr.proj_to_higher_PwPolynomials(unit_sd)
-    down = high.proj_to_lower_PwPolynomials(unit_sd)
-    assert np.allclose(up @ fun_h, high.interpolate(unit_sd, fun))
+    # The inclusion is exact, and the L2 projection back is the identity
+    up = discr.proj_to_higher_PwPolynomials(sd)
+    down = high.proj_to_lower_PwPolynomials(sd)
+    assert np.allclose(up @ fun_h, high.interpolate(sd, fun))
     assert np.allclose(down @ up @ fun_h, fun_h)
 
-    # the inclusion preserves the mass
+    # The inclusion preserves the mass
     mass, mass_high = (
-        discr.assemble_mass_matrix(unit_sd),
-        high.assemble_mass_matrix(unit_sd),
+        discr.assemble_mass_matrix(sd),
+        high.assemble_mass_matrix(sd),
     )
     assert np.allclose((up.T @ mass_high @ up - mass).data, 0)
 
 
-def test_eval_at_cell_centers(unit_sd, order):
+def test_eval_at_cell_centers(tilted_sd, order):
+    sd = tilted_sd
     discr = classes[order]()
     fun = pg.exact.to_callable(polynomial(order))
-    fun_h = discr.interpolate(unit_sd, fun)
+    fun_h = discr.interpolate(sd, fun)
 
-    values = discr.eval_at_cell_centers(unit_sd) @ fun_h
-    assert np.allclose(values, fun(unit_sd.cell_centers))
+    values = discr.eval_at_cell_centers(sd) @ fun_h
+    assert np.allclose(values, fun(sd.cell_centers))
 
 
 def test_no_lumped_mass(unit_sd):

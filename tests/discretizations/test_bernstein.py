@@ -12,7 +12,7 @@ def basis(request):
 
 
 def random_points(dim, num=7):
-    # points in barycentric coordinates
+    # Points in barycentric coordinates
     pts = np.random.default_rng(0).random((num, dim + 1))
     return pts / pts.sum(axis=1, keepdims=True)
 
@@ -28,12 +28,12 @@ def test_change_of_basis(basis):
         np.eye(len(basis.multi_indices)),
     )
     if basis.order <= 1:
-        # the Bernstein and the Lagrange bases coincide
+        # The Bernstein and the Lagrange bases coincide
         assert np.allclose(basis.to_lagrange(), np.eye(len(basis.multi_indices)))
 
 
 def test_mass(basis):
-    # the integral of the partition of unity is the measure of the simplex
+    # The integral of the partition of unity is the measure of the simplex
     assert np.isclose(basis.mass(basis).sum(), 1)
 
 
