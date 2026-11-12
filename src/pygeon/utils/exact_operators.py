@@ -234,8 +234,9 @@ def msk(vector: sp.Matrix) -> sp.Matrix:
 
 def identity(dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
     """
-    Returns the identity of the leading dim by dim block, zero elsewhere, so that a
-    two-dimensional problem has no entries outside that block.
+    Returns the identity of the leading dim by dim block, zero elsewhere: the
+    projection on the plane z = 0 for dim = 2 and on the x axis for dim = 1, so that a
+    problem on a grid lying there has no entries outside that block.
 
     Args:
         dim (int): The dimension of the problem. Defaults to pg.AMBIENT_DIM.
@@ -271,8 +272,9 @@ def double_dot(matrix: sp.Matrix, other: sp.Matrix) -> sp.Expr:
 def dev(matrix: sp.Matrix, dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
     r"""
     Computes the deviatoric part :math:`\sigma - \frac{1}{d} \operatorname{Tr}(\sigma)
-    I` of a matrix, with I the identity of the leading dim by dim block, so that a
-    two-dimensional matrix stays zero outside that block.
+    I` of a matrix, with I the identity of the leading dim by dim block, see
+    :func:`identity`, so that a matrix on a grid lying in the plane z = 0 or on the x
+    axis stays zero outside that block.
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
