@@ -77,13 +77,19 @@ class HDiv(pg.Discretization):
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
         """
-        # Retrieve the tensor and the vector field, in the ambient coordinates, and the
-        # weight K^{-1} beta, in the plane of the grid: P K^{-1} P beta, with P the
-        # projection on the plane
+        # Retrieve the tensor, of shape (3, 3, num_cells), and the vector field, of
+        # shape (3, num_cells), in the ambient coordinates
         inv_K = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
+
+        # The rows of the rotation, of shape (dim, 3), are an orthonormal basis of the
+        # plane or the line of the grid, so that P = R^T R is the orthogonal projection
+        # on it, the identity in 3D. The weight is P K^{-1} P beta on each cell: beta
+        # is projected on the plane, multiplied by the tensor of the cell through the
+        # einsum, and projected again, so that only the tangential part of the tensor
+        # acts, as the one on a grid embedded in the plane
         P = sd.rotation_matrix.T @ sd.rotation_matrix
         W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
 
