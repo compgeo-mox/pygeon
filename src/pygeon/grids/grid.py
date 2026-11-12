@@ -290,11 +290,11 @@ class Grid(pp.Grid):
         Computes the gradients of the barycentric coordinates of each cell, constant on
         the cell, in the ambient coordinates. Sets them as an attribute for later use.
 
-        With :math:`T = [x_1 - x_0, \dots, x_d - x_0]` the edges of a cell from its
-        first vertex, the gradients :math:`\nabla \lambda_1, \dots, \nabla
-        \lambda_d` are the rows of the pseudo-inverse of T, tangent to the cell when
-        the grid is embedded in a higher dimension, and
-        :math:`\nabla \lambda_0 = -\sum_{j \ge 1} \nabla \lambda_j`.
+        The barycentric coordinate :math:`\lambda_i` of the vertex i vanishes on the
+        opposite face f, so that its gradient is
+        :math:`\nabla \lambda_i = -\frac{|f|}{d |c|} \boldsymbol{n}_f`, with
+        :math:`\boldsymbol{n}_f` the unit normal of f pointing out of the cell c,
+        tangent to the cell when the grid is embedded in a higher dimension.
 
         Args:
             recompute (bool): Whether to recompute the gradients. Defaults to False.
@@ -312,15 +312,21 @@ class Grid(pp.Grid):
                     "Grid is not simplicial; cannot compute barycentric gradients."
                 )
 
-            # the vertices, (3, num_cells, dim + 1), and the edges from the first one
-            nodes = self.cell_nodes().indices.reshape((self.num_cells, self.dim + 1))
-            vertices = self.nodes[:, nodes]
-            edges = np.moveaxis(vertices[:, :, 1:] - vertices[:, :, :1], 0, 1)
+            # The face opposite to each vertex of each cell, (num_cells, dim + 1), with
+            # the vertices sorted as in cell_nodes(), and its orientation in the cell
+            opposite = self.compute_opposite_nodes()
+            shape = (self.num_cells, self.dim + 1)
+            nodes = opposite.data.reshape(shape)
+            faces = opposite.indices.reshape(shape)
+            faces = np.take_along_axis(faces, np.argsort(nodes, axis=1), axis=1)
+            cells = np.repeat(np.arange(self.num_cells), self.dim + 1)
+            orien = self.cell_faces[faces.ravel(), cells].reshape(shape)
 
-            # the gradients, (num_cells, dim + 1, 3), back to (3, dim + 1, num_cells)
-            grads = np.linalg.pinv(edges)
-            grads = np.concatenate((-grads.sum(axis=1, keepdims=True), grads), axis=1)
-            self.barycentric_gradients = np.transpose(grads, (2, 1, 0))
+            # The scaled outward normals, (3, num_cells, dim + 1), to the gradients of
+            # shape (3, dim + 1, num_cells)
+            scaling = -orien / (self.dim * self.cell_volumes.reshape((-1, 1)))
+            grads = self.face_normals[:, faces] * scaling
+            self.barycentric_gradients = np.transpose(grads, (0, 2, 1))
 
         return self.barycentric_gradients
 
