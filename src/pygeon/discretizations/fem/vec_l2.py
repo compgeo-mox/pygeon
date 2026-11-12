@@ -283,8 +283,6 @@ class VecPwPolynomials(pg.VecDiscretization):
         Returns:
             sps.csc_array: The dot product matrix.
         """
-        # The field in the plane of the grid, with its value on each cell repeated on
-        # the degrees of freedom of the cell, numbered (local dof) * num_cells + cell
         w = sd.rotation_matrix @ vector_field
         num_dofs = self.base_discr.ndof_per_element(sd.dim)
         dot = [sps.diags_array(np.tile(w_a, num_dofs)) for w_a in w]
