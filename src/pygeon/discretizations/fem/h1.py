@@ -427,7 +427,7 @@ class Lagrange2(Lagrange):
 
         # Data allocation for the edges mapping
         p2 = pg.PwQuadratics()
-        n_edges = p2.num_edges_per_cell(sd.dim)
+        n_edges = len(p2.get_local_edge_nodes(sd.dim))
         size = n_edges * sd.num_cells
         rows_I = np.arange(size)
         rows_I = rows_I.reshape((-1, sd.num_cells)).ravel(order="F")

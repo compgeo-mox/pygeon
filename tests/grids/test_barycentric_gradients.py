@@ -1,4 +1,4 @@
-"""Module contains tests of the gradients of the barycentric coordinates."""
+"""Module contains tests of the barycentric coordinates of the grid cells."""
 
 import numpy as np
 import pytest
@@ -62,3 +62,19 @@ def test_is_simplicial_cartesian(unit_cart_sd):
 def test_is_not_simplicial(ref_square, ref_sd_0d):
     assert not ref_square.is_simplicial()
     assert not ref_sd_0d.is_simplicial()
+
+
+def test_barycentric_to_coords(unit_sd):
+    # The vertices map to the nodes of each cell, and the barycenter to its center
+    nodes = unit_sd.cell_nodes().indices.reshape((unit_sd.num_cells, -1))
+    vertices = unit_sd.barycentric_to_coords(np.eye(unit_sd.dim + 1))
+    assert np.allclose(vertices, np.moveaxis(unit_sd.nodes[:, nodes], 1, 2))
+
+    barycenter = np.full((1, unit_sd.dim + 1), 1 / (unit_sd.dim + 1))
+    centers = unit_sd.barycentric_to_coords(barycenter)
+    assert np.allclose(centers[:, 0], unit_sd.cell_centers)
+
+
+def test_barycentric_to_coords_non_simplicial(ref_square):
+    with pytest.raises(NotImplementedError):
+        ref_square.barycentric_to_coords(np.eye(3))

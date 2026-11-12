@@ -27,7 +27,7 @@ $$N_\text{dof} = N_\text{nodes} + N_\text{edges}$$
 
 **DOF ordering.** All nodal DOFs come first (index = node number), followed by all edge DOFs (global index of edge $e$ = $N_\text{nodes} + e$).
 
-### `PwConstants` — $L^2$, piecewise constant ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L248))
+### `PwConstants` — $L^2$, piecewise constant ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L582))
 
 One DOF per mesh **cell**.
 
@@ -37,7 +37,7 @@ $$N_\text{dof} = N_\text{cells}$$
 
 **DOF ordering.** DOF $c$ has global index $c$ (directly indexed by cell number).
 
-### `PwLinears` — $L^2$, piecewise linear (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L386))
+### `PwLinears` — $L^2$, piecewise linear (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L658))
 
 $(d+1)$ DOFs per cell (one per local node), totalling:
 
@@ -47,17 +47,28 @@ $$N_\text{dof} = (d+1) \, N_\text{cells}$$
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
 
-### `PwQuadratics` — $L^2$, piecewise quadratic (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L585))
+### `PwQuadratics` — $L^2$, piecewise quadratic (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L699))
 
 Piecewise degree-2 polynomials, discontinuous across cell boundaries. The local basis
-consists of all monomials of degree $\leq 2$, giving $\tfrac{(d+1)(d+2)}{2}$ DOFs per
-cell: one per vertex plus one per edge (midpoint) of each simplex. The total count is:
+is the Lagrange basis of degree 2, giving $\tfrac{(d+1)(d+2)}{2}$ DOFs per cell: one per
+vertex plus one per edge (midpoint) of each simplex. The total count is:
 
 $$N_\text{dof} = \frac{(d+1)(d+2)}{2}\,N_\text{cells}$$
 
-**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges.
+**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges, in the lexicographic order of their vertices.
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
+
+### `PwPolynomials` of order $k$ — $L^2$, piecewise polynomial (broken) ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/l2.py#L13))
+
+The generic class behind the three above: a class of a higher order only sets `poly_order`.
+The local basis is the Lagrange basis of degree $k$, giving $\binom{d+k}{k}$ DOFs per cell:
+
+$$N_\text{dof} = \binom{d+k}{k}\,N_\text{cells}$$
+
+**DOF meaning.** For $k \geq 1$, each DOF is the function value at a node $\lambda = \alpha / k$ of the cell, in barycentric coordinates, with $\alpha \in \mathbb{N}^{d+1}$ and $|\alpha| = k$: first the vertices, then the nodes on the edges, on the faces, and in the interior, so that the orders 1 and 2 are the ones above. For $k = 0$ the DOF is the integral over the cell. The local operators are computed in the Bernstein basis of `BernsteinBasis` and changed to the Lagrange one.
+
+**DOF ordering.** Cell index varies fastest: the $i$-th local basis function of cell $c$ has global index $i \cdot N_\text{cells} + c$.
 
 ### `RT0` — $H(\text{div})$, lowest-order Raviart–Thomas ([source](https://github.com/compgeo-mox/pygeon/blob/main/src/pygeon/discretizations/fem/hdiv.py#L13))
 
