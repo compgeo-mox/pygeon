@@ -147,12 +147,20 @@ class Poincare:
             [sd.tags["tip_ridges"] for sd in self.mdg.subdomains()]
         )
         self.bar_spaces[self.dim - 2][tip_ridges] = False
-        assert not np.any(self.zer_spaces[self.dim - 2][tip_ridges])
+        tips_in_zer = np.count_nonzero(self.zer_spaces[self.dim - 2][tip_ridges])
+        assert tips_in_zer == 0, (
+            f"{tips_in_zer} tip ridges of the fractures are in the zero space, while "
+            f"they are essential boundary conditions."
+        )
 
         tip_faces = np.concatenate(
             [sd.tags["tip_faces"] for sd in self.mdg.subdomains()]
         )
-        assert not np.any(self.bar_spaces[self.dim - 1][tip_faces])
+        tips_in_bar = np.count_nonzero(self.bar_spaces[self.dim - 1][tip_faces])
+        assert tips_in_bar == 0, (
+            f"{tips_in_bar} tip faces of the fractures are in the bar space, while "
+            f"they are essential boundary conditions."
+        )
         self.zer_spaces[self.dim - 1][tip_faces] = False
 
     def compute_cohomology(self) -> None:
@@ -175,7 +183,10 @@ class Poincare:
         self.compute_node_cohomology()
 
         dim_diff = self.get_subspace_dim_differences()
-        assert np.all(dim_diff == 0)
+        assert np.all(dim_diff == 0), (
+            f"The bar and zero spaces still differ in dimension after taking care of "
+            f"cohomology, by {dim_diff} for the form orders."
+        )
 
         for k in range(self.dim + 1):
             if np.any(self.cycles[k].data):

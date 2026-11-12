@@ -84,7 +84,10 @@ def multiply(A: np.ndarray, B: np.ndarray) -> np.ndarray:
         np.ndarray: The product block matrix.
     """
     # Make sure the dimensions match
-    assert A.shape[1] == B.shape[0]
+    assert A.shape[1] == B.shape[0], (
+        f"The block matrices cannot be multiplied: {A.shape[1]} block columns in the "
+        f"first and {B.shape[0]} block rows in the second."
+    )
 
     # Preallocation
     C = np.empty((A.shape[0], B.shape[1]), dtype=A.dtype)
