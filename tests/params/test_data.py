@@ -1,7 +1,6 @@
 """Module contains tests for the data utilities."""
 
 import numpy as np
-import pytest
 
 import pygeon as pg
 
@@ -12,9 +11,3 @@ def test_constant_tensor():
 
     assert tensor.values.shape == (3, 3, 4)
     assert np.allclose(tensor.values, K.reshape((3, 3, 1)))
-
-
-def test_constant_tensor_not_symmetric():
-    K = np.arange(9.0).reshape((3, 3))
-    with pytest.raises(AssertionError, match="symmetric matrix of shape"):
-        pg.constant_tensor(4, K)

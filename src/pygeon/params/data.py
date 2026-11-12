@@ -127,16 +127,12 @@ def constant_tensor(num_cells: int, K: np.ndarray) -> pp.SecondOrderTensor:
 
     Args:
         num_cells (int): The number of cells.
-        K (np.ndarray): The symmetric matrix, of shape (3, 3).
+        K (np.ndarray): The symmetric matrix, of shape (3, 3), of which only the
+            upper triangle is read.
 
     Returns:
         pp.SecondOrderTensor: The tensor.
     """
-    assert K.shape == (3, 3) and np.allclose(K, K.T), (
-        f"The constant tensor needs a symmetric matrix of shape (3, 3), while the "
-        f"matrix has shape {K.shape} and is\n{K}"
-    )
-
     ones = np.ones(num_cells)
     return pp.SecondOrderTensor(
         kxx=K[0, 0] * ones,
