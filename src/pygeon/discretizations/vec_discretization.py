@@ -12,6 +12,12 @@ class VecDiscretization(pg.Discretization):
     """
     A class representing a vectorized discretization for a given base discretization.
     The base needs to be specified in the __init__ function.
+
+    The functions and the data are given in the ambient coordinates, with 3
+    components, while the degrees of freedom of the components are in the plane or
+    the line of the grid, given by ``sd.rotation_matrix``: the interpolation and the
+    natural boundary conditions rotate the functions to the grid, and the evaluation
+    at the cell centers rotates the result back to the ambient coordinates.
     """
 
     base_discr: pg.Discretization
@@ -133,24 +139,34 @@ class VecDiscretization(pg.Discretization):
     ) -> np.ndarray:
         """
         Interpolates a function onto the finite element space, component-wise with
-        the scalar base discretization.
+        the base discretization. The function is given in the ambient coordinates, and
+        its components are rotated to the plane or the line of the grid with
+        ``sd.rotation_matrix``, as the degrees of freedom.
 
         Args:
             sd (pg.Grid): The grid.
-            func (Callable): A function that returns the function values at coordinates.
+            func (Callable): A function that returns the function values at coordinates,
+                with a first axis of size 3.
 
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
+        # The component d in the plane of the grid is the product of the row d of the
+        # rotation with the first axis of the values: their rows for the matrix spaces,
+        # of shape (3, 3, num_points), which R[d] @ would contract with the columns
+        R = sd.rotation_matrix
         interp = [
-            self.base_discr.interpolate(sd, lambda x: func(x)[d])
+            self.base_discr.interpolate(sd, lambda x: np.tensordot(R[d], func(x), 1))
             for d in np.arange(sd.dim)
         ]
         return np.hstack(interp)
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
         """
-        Assembles the matrix for evaluating the discretization at the cell centers.
+        Assembles the matrix for evaluating the discretization at the cell centers,
+        component-wise with the base discretization. The components are rotated back
+        from the plane or the line of the grid to the ambient coordinates with
+        ``sd.rotation_matrix``.
 
         Args:
             sd (pg.Grid): The grid.
@@ -158,8 +174,13 @@ class VecDiscretization(pg.Discretization):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        P = self.base_discr.eval_at_cell_centers(sd)
-        return self.vectorize(sd.dim, P)
+        if self.ndof(sd) == 0:
+            return sps.csc_array((pg.AMBIENT_DIM**self.tensor_order, 0))
+
+        P = self.vectorize(sd.dim, self.base_discr.eval_at_cell_centers(sd))
+        R = sps.kron(sd.rotation_matrix.T, sps.eye_array(P.shape[0] // sd.dim))
+
+        return sps.csc_array(R @ P)
 
     def assemble_nat_bc(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray], b_faces: np.ndarray
@@ -178,14 +199,20 @@ class VecDiscretization(pg.Discretization):
         Args:
             sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The vector function defining
-                 the natural boundary condition.
+                 the natural boundary condition, in the ambient coordinates and rotated
+                 to the plane or the line of the grid as in
+                 :meth:`pg.VecDiscretization.interpolate`.
             b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
             np.ndarray: The assembled natural boundary condition vector.
         """
+        # The component d in the plane of the grid, as in interpolate
+        R = sd.rotation_matrix
         nat_bc = [
-            self.base_discr.assemble_nat_bc(sd, lambda x: func(x)[d], b_faces)
+            self.base_discr.assemble_nat_bc(
+                sd, lambda x: np.tensordot(R[d], func(x), 1), b_faces
+            )
             for d in np.arange(sd.dim)
         ]
         return np.hstack(nat_bc)

@@ -138,7 +138,30 @@ $$N_\text{dof} = d \cdot N_\text{dof}^{\text{scalar}}$$
 All vector spaces use a **component-block** ordering: first all DOFs of the
 $x$-component, then all DOFs of the $y$-component, and so on.  
 
+### Coordinates on grids of lower dimension
 
+A grid of dimension $d < 3$ may lie anywhere in space, e.g. a tilted plane. Two sets of
+coordinates are then involved:
+
+- **Ambient coordinates** $(x, y, z)$, for everything the user passes in or gets out:
+  the functions given to `interpolate` and `assemble_nat_bc`, the data (vector fields,
+  tensors), and the values returned by `eval_at_cell_centers`. Vectors always have 3
+  components and tensors are $3 \times 3$.
+- **Coordinates of the grid**, for the DOFs only: the $d$ components of a vector-valued
+  space are taken along the rows of `sd.rotation_matrix` $R$, of shape $d \times 3$,
+  an orthonormal basis of the plane or the line of the grid.
+
+The conversion is done inside the discretization. For a function $f$ in the ambient
+coordinates, the DOFs of the component $i$ are the ones of $(R f)_i$, the component of
+$f$ along the row $i$ of $R$, in the underlying scalar space. Back, the value at a
+cell center in the ambient coordinates is $R^\top$ times the $d$ components, so that
+only the part of $f$ in the plane is represented: $P f$, with $P = R^\top R$ the
+projection on the plane. For a matrix-valued space the rows are converted in the same
+way, and the columns by the underlying vector-valued space, so that a matrix $F$ is
+represented by $P F P$.
+
+On a grid of dimension 3, of dimension 2 in the plane $z = 0$, or of dimension 1 on the
+$x$ axis, $R$ keeps the first $d$ ambient coordinates, and the two sets coincide on them.
 
 ## Matrix-valued spaces
 

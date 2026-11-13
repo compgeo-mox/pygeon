@@ -50,10 +50,11 @@ class HDiv(pg.Discretization):
         ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
         :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
         of dimension lower than 3 only their components in the plane or the line of
-        the grid act, through the weight :math:`P K^{-1} P \boldsymbol{\beta}`, with
-        :math:`P` the projection on it, unless the entry "is_tangential" of data is
-        True: then their first dim components are taken as the ones in the coordinates
-        of ``sd.rotation_matrix``.
+        the grid act: the weight is :math:`K^{-1} P \boldsymbol{\beta}`, with
+        :math:`P` the projection on it, and its dot product with
+        :math:`\boldsymbol{u}`, tangent to the grid, takes its component
+        :math:`P K^{-1} P \boldsymbol{\beta}`, so that only the tangential block of
+        :math:`K^{-1}` acts, as in the mass matrix.
 
         Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
         :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
@@ -79,21 +80,18 @@ class HDiv(pg.Discretization):
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
         """
-        # Retrieve the tensor and the vector field, in the ambient coordinates, and the
-        # weight K^{-1} beta, in the plane of the grid: P K^{-1} P beta, with P the
-        # projection on the plane
+        # Retrieve the tensor, of shape (3, 3, num_cells), and the vector field, of
+        # shape (3, num_cells), in the ambient coordinates
         inv_K = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        R = sd.rotation_matrix
-        # TODO: remove is_tangential, see #340
-        if data and data.get("is_tangential", False):
-            W_plane = np.einsum("abc,bc->ac", inv_K[: sd.dim, : sd.dim], V[: sd.dim])
-            W = R.T @ W_plane
-        else:
-            P = R.T @ R
-            W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
+
+        # The weight K^{-1} P beta on each cell, with P = R^T R the projection on the
+        # plane or the line of the grid, the identity in 3D. The dot product rotates
+        # it to the plane, so that only the tangential block of K^{-1} acts
+        P = sd.rotation_matrix.T @ sd.rotation_matrix
+        W = np.einsum("ijc,jc->ic", inv_K, P @ V)
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k

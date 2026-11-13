@@ -234,8 +234,9 @@ def msk(vector: sp.Matrix) -> sp.Matrix:
 
 def identity(dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
     """
-    Returns the identity of the leading dim by dim block, zero elsewhere, so that a
-    two-dimensional problem has no entries outside that block.
+    Returns the identity of the leading dim by dim block, zero elsewhere: the
+    projection on the plane z = 0 for dim = 2 and on the x axis for dim = 1, so that a
+    problem on a grid lying there has no entries outside that block.
 
     Args:
         dim (int): The dimension of the problem. Defaults to pg.AMBIENT_DIM.
@@ -271,8 +272,9 @@ def double_dot(matrix: sp.Matrix, other: sp.Matrix) -> sp.Expr:
 def dev(matrix: sp.Matrix, dim: int = pg.AMBIENT_DIM) -> sp.Matrix:
     r"""
     Computes the deviatoric part :math:`\sigma - \frac{1}{d} \operatorname{Tr}(\sigma)
-    I` of a matrix, with I the identity of the leading dim by dim block, so that a
-    two-dimensional matrix stays zero outside that block.
+    I` of a matrix, with I the identity of the leading dim by dim block, see
+    :func:`identity`, so that a matrix on a grid lying in the plane z = 0 or on the x
+    axis stays zero outside that block.
 
     Args:
         matrix (sp.Matrix): The matrix, of size three by three.
@@ -419,7 +421,7 @@ def jaumann_derivative(matrix: sp.Matrix, velocity: sp.Matrix) -> sp.Matrix:
 
 
 def to_callable(
-    expression: sp.Expr | sp.Matrix, dim: int = pg.AMBIENT_DIM, t: float | None = None
+    expression: sp.Expr | sp.Matrix, t: float | None = None
 ) -> Callable[[np.ndarray], np.ndarray]:
     """
     Turns a symbolic expression into a function of the coordinates, vectorized as the
@@ -428,9 +430,9 @@ def to_callable(
     axis. A single point is passed as a vector of three coordinates, and the value is
     then returned without that axis.
 
-    The first dim components of a vector, and the leading dim by dim block of a
-    matrix, are retained, so that a two-dimensional problem is obtained by passing
-    dim = 2.
+    A vector has 3 components and a matrix is 3 by 3, in the ambient coordinates, as
+    all the data of pygeon: on a grid of lower dimension, the discretizations take
+    their components in the plane or the line of the grid.
 
     An expression depending on the time, the symbol returned by time(), is evaluated
     at the given time t, so that a function of the coordinates is obtained at each
@@ -438,7 +440,6 @@ def to_callable(
 
     Args:
         expression (sp.Expr | sp.Matrix): The scalar, vector or matrix expression.
-        dim (int): The number of components to retain. Defaults to pg.AMBIENT_DIM.
         t (float | None): The time at which the expression is evaluated. Defaults to
             None.
 
@@ -459,13 +460,14 @@ def to_callable(
         )
 
     if isinstance(expression, sp.MatrixBase):
-        rows, cols = expression.shape
-        if cols == 1:  # a vector
-            expression = expression[:dim, :]
-            shape: tuple = (dim,)
-        else:  # a matrix
-            expression = expression[:dim, :dim]
-            shape = (dim, dim)
+        shape: tuple = expression.shape
+        assert shape in ((pg.AMBIENT_DIM, 1), (pg.AMBIENT_DIM, pg.AMBIENT_DIM)), (
+            f"A vector of {pg.AMBIENT_DIM} components or a {pg.AMBIENT_DIM} by "
+            f"{pg.AMBIENT_DIM} matrix is expected, in the ambient coordinates, while "
+            f"the expression has shape {shape}."
+        )
+        if shape[1] == 1:  # a vector
+            shape = (pg.AMBIENT_DIM,)
         entries = [sp.lambdify(symbols, entry, "numpy") for entry in expression]
     else:
         shape = ()
