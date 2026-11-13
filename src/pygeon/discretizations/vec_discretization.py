@@ -152,7 +152,8 @@ class VecDiscretization(pg.Discretization):
             np.ndarray: The values of the degrees of freedom.
         """
         # The component d in the plane of the grid is the product of the row d of the
-        # rotation with the first axis of the values
+        # rotation with the first axis of the values: their rows for the matrix spaces,
+        # of shape (3, 3, num_points), which R[d] @ would contract with the columns
         R = sd.rotation_matrix
         interp = [
             self.base_discr.interpolate(sd, lambda x: np.tensordot(R[d], func(x), 1))
@@ -206,6 +207,7 @@ class VecDiscretization(pg.Discretization):
         Returns:
             np.ndarray: The assembled natural boundary condition vector.
         """
+        # The component d in the plane of the grid, as in interpolate
         R = sd.rotation_matrix
         nat_bc = [
             self.base_discr.assemble_nat_bc(
