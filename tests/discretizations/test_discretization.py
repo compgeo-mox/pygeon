@@ -302,17 +302,20 @@ def test_interpolate_and_eval_are_physical(discr_class, tilted_sd):
         (pg.VecBDM1, "assemble_lumped_matrix_elasticity"),
     ],
 )
-def test_inner_products_are_invariant_under_rotation(
-    discr_class, method, unit_sd, tilted_sd, tilt
-):
-    # The tilted grid is the unit grid rotated by Q: rotating the data with it, a field
-    # f to Q f(Q^T x), a tensor field F to Q F(Q^T x) Q^T and a tensor K to Q K Q^T,
-    # the inner products of the interpolants do not change, since all the data are
-    # given in the ambient coordinates
+def test_inner_products_are_invariant_under_rotation(discr_class, method, unit_sd):
+    # The unit grid rotated by Q: rotating the data with it, a field f to Q f(Q^T x),
+    # a tensor field F to Q F(Q^T x) Q^T and a tensor K to Q K Q^T, the inner products
+    # of the interpolants do not change, since all the data are given in the ambient
+    # coordinates
     if "cosserat" in method and unit_sd.dim == 1:
         pytest.skip("No Cosserat in 1D")
 
-    Q = sp.Matrix(tilt)
+    Q_np = pp.map_geometry.rotation_matrix(np.pi / 3, np.array([1.0, 2.0, 3.0]))
+    rotated_sd = unit_sd.copy(keep_history=False)
+    rotated_sd.nodes = Q_np @ rotated_sd.nodes
+    rotated_sd.compute_geometry()
+
+    Q = sp.Matrix(Q_np)
     discr = discr_class("test")
 
     x = sp.Matrix(pg.exact.coordinates())
@@ -324,10 +327,14 @@ def test_inner_products_are_invariant_under_rotation(
         u = a + A * x
         u_rot = Q * u.subs(rotate_x, simultaneous=True)
         K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-        K_rot = tilt @ K @ tilt.T
+        if discr_class is pg.VRT0:
+            # The stabilization of the MVEM of PorePy scales with the infinity norm of
+            # K^{-1}, which is not invariant under rotation
+            K = 2 * np.eye(3)
+        K_rot = Q_np @ K @ Q_np.T
         params = [
             {pg.SECOND_ORDER_TENSOR: pg.constant_tensor(sd.num_cells, K_sd)}
-            for sd, K_sd in ((unit_sd, K), (tilted_sd, K_rot))
+            for sd, K_sd in ((unit_sd, K), (rotated_sd, K_rot))
         ]
     else:
         u = A + (x[0] + 2 * x[1] + 3 * x[2]) * A.T
@@ -336,7 +343,7 @@ def test_inner_products_are_invariant_under_rotation(
         params = [lame, lame]
 
     energies = []
-    for sd, u_ex, param in zip((unit_sd, tilted_sd), (u, u_rot), params):
+    for sd, u_ex, param in zip((unit_sd, rotated_sd), (u, u_rot), params):
         data = pp.initialize_data({}, "test", param)
         u_h = discr.interpolate(sd, pg.exact.to_callable(u_ex))
         energies.append(u_h @ getattr(discr, method)(sd, data) @ u_h)
