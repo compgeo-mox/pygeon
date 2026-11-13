@@ -467,7 +467,7 @@ def to_callable(
             f"the expression has shape {shape}."
         )
         if shape[1] == 1:  # a vector
-            shape = shape[:1]
+            shape = (pg.AMBIENT_DIM,)
         entries = [sp.lambdify(symbols, entry, "numpy") for entry in expression]
     else:
         shape = ()
