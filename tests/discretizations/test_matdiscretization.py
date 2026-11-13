@@ -130,22 +130,6 @@ def test_asym_with_proj(discr, unit_sd):
     assert np.allclose(check.data, 0)
 
 
-def test_interp_eval_linears(discr, unit_sd):
-    def linear(x):
-        return np.array([x, 2 * x, -x])
-
-    # The evaluation is in the ambient coordinates, projected on the plane of the
-    # grid on both sides
-    P = unit_sd.rotation_matrix.T @ unit_sd.rotation_matrix
-
-    interp = discr.interpolate(unit_sd, linear)
-    eval = discr.eval_at_cell_centers(unit_sd) @ interp
-    eval = np.reshape(eval, (pg.AMBIENT_DIM**2, unit_sd.num_cells))
-
-    known = np.array([(P @ linear(x) @ P).ravel() for x in unit_sd.cell_centers.T]).T
-    assert np.allclose(eval, known)
-
-
 def test_linear_asym(discr, unit_sd):
     if unit_sd.dim == 1:
         pytest.skip("No asymmetry in 1D")

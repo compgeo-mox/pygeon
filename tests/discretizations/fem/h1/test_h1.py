@@ -17,16 +17,6 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 
-def test_interpolate_and_evaluate(discr, unit_sd):
-    func = lambda x: x[0] ** discr.poly_order
-    known_vals = func(unit_sd.cell_centers)
-
-    interp = discr.interpolate(unit_sd, func)
-    proj = discr.eval_at_cell_centers(unit_sd)
-
-    assert np.allclose(proj @ interp, known_vals)
-
-
 def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)

@@ -237,11 +237,46 @@ def test_broken_directional_derivative(discr_class, tilted_sd):
     assert np.allclose(dir_der @ u_h, f_h)
 
 
+@pytest.fixture
+def field(discr_class: type) -> sp.Expr | sp.Matrix:
+    """
+    A function in the space of discr_class, in the ambient coordinates: a polynomial
+    of the order of the space for the scalar spaces, and linear for the vector and the
+    matrix ones, with each vector of the form a + c x for the Raviart-Thomas spaces of
+    lowest order, and symmetric for the symmetric spaces.
+    """
+    x = sp.Matrix(pg.exact.coordinates())
+    a = sp.Matrix([0.3, -0.7, 1.1])
+    c = sp.Matrix([1.0, -0.5, 2.0])
+    A = sp.Matrix([[1.0, 2.0, -1.0], [0.5, -1.0, 2.0], [3.0, 1.0, 1.0]])
+    w = c.dot(x)
+
+    match discr_class.tensor_order, discr_class:
+        case pg.SCALAR, _:
+            return (1 + x[0] + 2 * x[1] + x[2]) ** discr_class.poly_order
+        case pg.VECTOR, pg.RT0:
+            return a + 1.5 * x
+        case pg.VECTOR, _:
+            return a + A * x
+        case pg.MATRIX, pg.VecRT0:
+            return a * sp.ones(1, 3) + c * x.T
+        case pg.MATRIX, _ if "Sym" in discr_class.__name__:
+            return (A + A.T) * (1 + w)
+        case _:
+            return A + w * A.T
+
+
 @pytest.mark.parametrize(
     "discr_class",
     [
+        pg.Lagrange1,
+        pg.Lagrange2,
+        pg.PwConstants,
+        pg.PwLinears,
+        pg.PwQuadratics,
         pg.RT0,
         pg.BDM1,
+        pg.RT1,
         pg.VecLagrange1,
         pg.VecLagrange2,
         pg.VecPwConstants,
@@ -252,35 +287,36 @@ def test_broken_directional_derivative(discr_class, tilted_sd):
         pg.MatPwConstants,
         pg.MatPwLinears,
         pg.MatPwQuadratics,
+        pg.SymMatPwConstants,
+        pg.SymMatPwLinears,
+        pg.SymMatPwQuadratics,
         pg.VecRT0,
         pg.VecBDM1,
+        pg.VecRT1,
     ],
 )
-def test_interpolate_and_eval_are_physical(discr_class, tilted_sd):
+@pytest.mark.parametrize("tilted", [False, True])
+def test_interpolate_and_eval(discr_class, field, tilted, unit_sd, tilted_sd):
     # The functions are given in the ambient coordinates, and their evaluation at the
     # cell centers is in the ambient coordinates as well, projected on the plane of
-    # the grid: P f for a vector and P F P for a matrix. The fields are linear, and of
-    # the form a + b x for each vector of RT0, so that every space reproduces them
-    sd = tilted_sd
+    # the grid: f for a scalar, P f for a vector and P F P for a matrix
+    sd = tilted_sd if tilted else unit_sd
+    if discr_class in (pg.RT1, pg.VecRT1) and tilted and sd.dim < 3:
+        # TODO: RT1 evaluates its basis and interpolates the cell dofs with the
+        # ambient components, so that it fails on grids out of the coordinate planes,
+        # see #341
+        pytest.xfail("RT1 is not yet supported on tilted grids")
     P = sd.rotation_matrix.T @ sd.rotation_matrix
     discr = discr_class("test")
 
-    x = sp.Matrix(pg.exact.coordinates())
-    a = sp.Matrix([0.3, -0.7, 1.1])
-    if discr_class in (pg.RT0, pg.VecRT0):
-        vector = a + 1.5 * x
-        matrix = a * sp.ones(1, 3) + sp.Matrix([1.0, -0.5, 2.0]) * x.T
-    else:
-        A = sp.Matrix([[1.0, 2.0, -1.0], [0.5, -1.0, 2.0], [3.0, 1.0, 1.0]])
-        vector = a + A * x
-        matrix = A + (x[0] + 2 * x[1] + 3 * x[2]) * A.T
-
-    if discr.tensor_order == pg.VECTOR:
-        func = pg.exact.to_callable(vector)
-        known = P @ func(sd.cell_centers)
-    else:
-        func = pg.exact.to_callable(matrix)
-        known = np.einsum("ij,jkc,kl->ilc", P, func(sd.cell_centers), P)
+    func = pg.exact.to_callable(field)
+    match discr.tensor_order:
+        case pg.SCALAR:
+            known = func(sd.cell_centers)
+        case pg.VECTOR:
+            known = P @ func(sd.cell_centers)
+        case pg.MATRIX:
+            known = np.einsum("ij,jkc,kl->ilc", P, func(sd.cell_centers), P)
 
     eval_h = discr.eval_at_cell_centers(sd) @ discr.interpolate(sd, func)
     assert np.allclose(eval_h, known.reshape((-1, sd.num_cells)).ravel())
@@ -302,7 +338,9 @@ def test_interpolate_and_eval_are_physical(discr_class, tilted_sd):
         (pg.VecBDM1, "assemble_lumped_matrix_elasticity"),
     ],
 )
-def test_inner_products_are_invariant_under_rotation(discr_class, method, unit_sd):
+def test_inner_products_are_invariant_under_rotation(
+    discr_class, method, field, unit_sd
+):
     # The unit grid rotated by Q: rotating the data with it, a field f to Q f(Q^T x),
     # a tensor field F to Q F(Q^T x) Q^T and a tensor K to Q K Q^T, the inner products
     # of the interpolants do not change, since all the data are given in the ambient
@@ -320,11 +358,9 @@ def test_inner_products_are_invariant_under_rotation(discr_class, method, unit_s
 
     x = sp.Matrix(pg.exact.coordinates())
     rotate_x = dict(zip(x, Q.T * x))
-    A = sp.Matrix([[1.0, 2.0, -1.0], [0.5, -1.0, 2.0], [3.0, 1.0, 1.0]])
-    a = sp.Matrix([0.3, -0.7, 1.1])
+    u = field
 
     if discr.tensor_order == pg.VECTOR:
-        u = a + A * x
         u_rot = Q * u.subs(rotate_x, simultaneous=True)
         K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
         if discr_class is pg.VRT0:
@@ -337,7 +373,6 @@ def test_inner_products_are_invariant_under_rotation(discr_class, method, unit_s
             for sd, K_sd in ((unit_sd, K), (rotated_sd, K_rot))
         ]
     else:
-        u = A + (x[0] + 2 * x[1] + 3 * x[2]) * A.T
         u_rot = Q * u.subs(rotate_x, simultaneous=True) * Q.T
         lame = {pg.LAME_MU: 0.7, pg.LAME_LAMBDA: 1.3, pg.LAME_MU_COSSERAT: 0.4}
         params = [lame, lame]
