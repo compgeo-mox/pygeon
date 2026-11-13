@@ -50,8 +50,11 @@ class HDiv(pg.Discretization):
         ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
         :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
         of dimension lower than 3 only their components in the plane or the line of
-        the grid act, through the weight :math:`P K^{-1} P \boldsymbol{\beta}`, with
-        :math:`P` the projection on it.
+        the grid act: the weight is :math:`K^{-1} P \boldsymbol{\beta}`, with
+        :math:`P` the projection on it, and its dot product with
+        :math:`\boldsymbol{u}`, tangent to the grid, takes its component
+        :math:`P K^{-1} P \boldsymbol{\beta}`, so that only the tangential block of
+        :math:`K^{-1}` acts, as in the mass matrix.
 
         Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
         :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
@@ -84,14 +87,11 @@ class HDiv(pg.Discretization):
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
-        # The rows of the rotation, of shape (dim, 3), are an orthonormal basis of the
-        # plane or the line of the grid, so that P = R^T R is the orthogonal projection
-        # on it, the identity in 3D. The weight is P K^{-1} P beta on each cell: beta
-        # is projected on the plane, multiplied by the tensor of the cell through the
-        # einsum, and projected again, so that only the tangential part of the tensor
-        # acts, as the one on a grid embedded in the plane
+        # The weight K^{-1} P beta on each cell, with P = R^T R the projection on the
+        # plane or the line of the grid, the identity in 3D. The dot product rotates
+        # it to the plane, so that only the tangential block of K^{-1} acts
         P = sd.rotation_matrix.T @ sd.rotation_matrix
-        W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
+        W = np.einsum("ijc,jc->ic", inv_K, P @ V)
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k
