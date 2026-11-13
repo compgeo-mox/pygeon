@@ -8,11 +8,10 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class VPwConstants(pg.PwConstants):
+class MonConstants(pg.VDiscretization, pg.PwConstants):
     r"""
-    Class implementing the finite element discretization for piecewise polynomials of
-    lowest order :math:`\mathbb{P}_0(\Omega) \subset L^2(\Omega)`, for a generic domain
-    :math:`\Omega \subset \mathbb{R}^d`.
+    Class implementing the monomial basis for the consants :math:`\mathbb{P}_0(\Omega)
+    \subset L^2(\Omega)`, for a generic domain :math:`\Omega \subset \mathbb{R}^d`.
 
     Each degree of freedom is the integral over the cell. The space coincides with the
     FEM piecewise constants except that it relates to the monomial P1 instead of the
@@ -32,10 +31,11 @@ class VPwConstants(pg.PwConstants):
             sps.csc_array: The projection matrix.
         """
         inc = self.eval_at_cell_centers(sd)
-        return sps.csc_array(inc, shape=(3 * self.ndof(sd), self.ndof(sd)))
+        range = self.get_PwPolynomials(self.poly_order + 1, self.tensor_order)()
+        return sps.csc_array(inc, shape=(range.ndof(sd), self.ndof(sd)))
 
 
-class VPwLinears(pg.PwLinears):
+class MonLinears(pg.VDiscretization, pg.PwLinears):
     r"""
     Class implementing the piecewise linears :math:`\mathbb{P}_1(\Omega) \subset
     L^2(\Omega)`, for a polytopal grid domain :math:`\Omega \subset \mathbb{R}^d`.
@@ -59,6 +59,10 @@ class VPwLinears(pg.PwLinears):
         diams = sd.cell_diameters()
 
         faces, cells, orient = sps.find(sd.cell_faces)
+
+        # All faces must be simplicial, for now.
+        assert np.allclose(np.diff(sd.face_nodes.indptr), sd.dim)
+
         sub_volumes = (
             np.einsum(
                 "ij,ij->j",
@@ -94,9 +98,10 @@ class VPwLinears(pg.PwLinears):
 
         # Sum the resulting matrices for each cell and scale with the weight
         data_IJ = np.zeros((*sub_prods.shape[:-1], sd.num_cells))
-        np.add.at(data_IJ, (..., cells), sub_prods)
+        np.add.at(data_IJ, [slice(None), slice(None), cells], sub_prods)
         data_IJ *= weight
 
+        # Index lists for the degrees of freedom per element
         rows_I = np.tile(np.arange(self.ndof(sd)), sd.dim + 1).reshape(data_IJ.shape)
         cols_J = np.transpose(rows_I, (1, 0, 2))
 
@@ -151,7 +156,7 @@ class VPwLinears(pg.PwLinears):
         """
 
         return sps.diags_array(
-            sd.cell_volumes, 0, (sd.num_cells, self.ndof(sd))
+            sd.cell_volumes, offsets=0, shape=(sd.num_cells, self.ndof(sd))
         ).tocsc()
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
@@ -169,22 +174,6 @@ class VPwLinears(pg.PwLinears):
         """
         raise NotImplementedError
 
-    def get_dof_lookup_array(self, sd: pg.Grid) -> sps.csc_array:
-        """
-        Assembles a lookup matrix L with the property L[cell, node] = dof_index.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The lookup matrix.
-        """
-        dof_array = sd.cell_nodes().astype("int")
-        ndof = self.ndof(sd)
-        dof_array.data = np.reshape(np.arange(ndof), (sd.num_cells, -1), "F").ravel()
-
-        return dof_array
-
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
@@ -198,4 +187,8 @@ class VPwLinears(pg.PwLinears):
         Returns:
             sps.csc_array: The assembled broken gradient matrix.
         """
-        raise NotImplementedError
+        diagonal = np.tile(sd.cell_volumes / sd.cell_diameters(), sd.dim)
+        range = self.get_broken_grad_discr()()
+        return sps.diags_array(
+            diagonal, offsets=sd.num_cells, shape=(range.ndof(sd), self.ndof(sd))
+        ).tocsc()

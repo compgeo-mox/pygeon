@@ -96,6 +96,11 @@ class Discretization(abc.ABC):
         num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
         return int(self.ndof_per_entity(dim) @ num_entities)
 
+    def get_PwPolynomials(
+        self, poly_order: int, tensor_order: int
+    ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+        return pg.get_PwPolynomials(poly_order, tensor_order)
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -170,7 +175,7 @@ class Discretization(abc.ABC):
 
         # We project to the piecewise polynomials and use that mass matrix.
         Pi = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         M = getattr(pwp, pwp_method)(sd, data)
 
         return (Pi.T @ M @ Pi).tocsc()
@@ -295,7 +300,7 @@ class Discretization(abc.ABC):
             return sps.csc_array((pg.AMBIENT_DIM**self.tensor_order, 0))
 
         Pi = self.proj_to_PwPolynomials(sd)
-        Poly_space = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(
+        Poly_space = self.get_PwPolynomials(self.poly_order, self.tensor_order)(
             self.keyword
         )
 
@@ -377,7 +382,7 @@ class Discretization(abc.ABC):
             sps.csc_array: The assembled broken gradient matrix.
         """
         proj = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         grad = pwp.assemble_broken_grad_matrix(sd)
 
         return grad @ proj
@@ -393,7 +398,7 @@ class Discretization(abc.ABC):
             gradient.
         """
         grad_order = self.tensor_order + 1
-        grad_class = pg.get_PwPolynomials(self.poly_order - 1, grad_order)
+        grad_class = self.get_PwPolynomials(self.poly_order - 1, grad_order)
         return cast(Type[pg.VecPwPolynomials], grad_class)
 
     def error_l2(
@@ -445,7 +450,7 @@ class Discretization(abc.ABC):
         # If poly_order is specified, we compare the solutions in a piecewise polynomial
         # space
         else:
-            poly_space = pg.get_PwPolynomials(poly_order, self.tensor_order)(
+            poly_space = self.get_PwPolynomials(poly_order, self.tensor_order)(
                 self.keyword
             )
             proj_sol = pg.proj_to_PwPolynomials(self, sd, poly_order) @ num_sol
@@ -453,3 +458,10 @@ class Discretization(abc.ABC):
             return poly_space.error_l2(
                 sd, proj_sol, ana_sol, relative, poly_order=None, data=data
             )
+
+
+class VDiscretization(Discretization):
+    def get_PwPolynomials(
+        self, poly_order: int, tensor_order: int
+    ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+        return pg.get_PwMonomials(poly_order, tensor_order)

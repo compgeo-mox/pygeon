@@ -28,7 +28,7 @@ from pygeon.grids.regularizers import (
 
 from pygeon.params.data import get_cell_data
 
-from pygeon.discretizations.discretization import Discretization
+from pygeon.discretizations.discretization import Discretization, VDiscretization
 from pygeon.discretizations.vec_discretization import VecDiscretization
 from pygeon.discretizations.mat_discretization import MatDiscretization
 
@@ -73,14 +73,16 @@ from pygeon.discretizations.fvm.fvm_disc import FiniteVolumeDiscretization
 from pygeon.discretizations.fvm.tpsa import TPSA
 from pygeon.discretizations.fvm.tpfa import TPFA
 
-from pygeon.discretizations.vem.l2 import VPwConstants, VPwLinears
+from pygeon.discretizations.vem.l2 import MonConstants, MonLinears
 from pygeon.discretizations.vem.hdiv import VRT0, VBDM1
 from pygeon.discretizations.vem.h1 import VLagrange1
+from pygeon.discretizations.vem.vec_l2 import VecMonConstants, VecMonLinears
 from pygeon.discretizations.vem.vec_hdiv import VecVRT0
 from pygeon.discretizations.vem.vec_h1 import VecVLagrange1
 
 from pygeon.discretizations.poly_projection import (
     get_PwPolynomials,
+    get_PwMonomials,
     proj_to_PwPolynomials,
 )
 
