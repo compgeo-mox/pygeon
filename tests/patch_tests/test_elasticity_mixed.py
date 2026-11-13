@@ -97,7 +97,7 @@ def test_elasticity_rbm(unit_sd, spaces, use_lumped):
 
     u_rbm = lambda x: np.array([-0.5 - x[1], -0.5 + x[0] - x[2], -0.5 + x[1]])
     r_rbm = lambda _: np.array([-1, 0, -1]) if unit_sd.dim == 3 else -1
-    s_rbm = lambda _: np.zeros((3, 3))
+    s_rbm = lambda _: np.zeros((pg.AMBIENT_DIM, pg.AMBIENT_DIM))
 
     u_known = U_h.interpolate(unit_sd, u_rbm)
     r_known = R_h.interpolate(unit_sd, r_rbm)
