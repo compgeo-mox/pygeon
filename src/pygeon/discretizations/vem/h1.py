@@ -127,6 +127,11 @@ class VLagrange1(pg.Lagrange1):
         Returns:
             np.ndarray: The coefficients of the local projection onto the monomials.
         """
+        # The monomials are the ones of a polygon
+        assert sd.dim == 2, (
+            f"The virtual Lagrange elements are implemented on grids of dimension 2, "
+            f"while the grid has dimension {sd.dim}."
+        )
         G = self.assemble_loc_L2proj_lhs(sd, cell, diam, nodes)
         B = self.assemble_loc_L2proj_rhs(sd, cell, diam, nodes)
 

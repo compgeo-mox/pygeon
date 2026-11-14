@@ -138,3 +138,8 @@ def test_eval_and_interp(discr, ref_octagon):
     interp = discr.interpolate(ref_octagon, fun)
     known_vals = np.array([fun(c) for c in ref_octagon.cell_centers.T])
     assert np.allclose(P @ interp, known_vals)
+
+
+def test_only_2d(discr, unit_sd_1d):
+    with pytest.raises(AssertionError):
+        discr.assemble_mass_matrix(unit_sd_1d)
