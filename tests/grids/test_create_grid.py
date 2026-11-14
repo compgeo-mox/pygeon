@@ -206,3 +206,13 @@ def test_copy_history(unit_sd):
     sd.nodes = 2 * sd.nodes
     sd.compute_geometry()
     assert np.isclose(sd.cell_volumes.sum(), 2**sd.dim)
+
+
+@pytest.mark.parametrize("num", [93, 99, 105])
+def test_structured_number_of_cells(num):
+    # 1 / (1 / num) is just below num for these values, and must not be truncated
+    sd = pg.unit_grid(1, 1 / num, as_mdg=False)
+    assert sd.num_cells == num
+
+    sd = pg.unit_grid(2, 1 / num, as_mdg=False, structured=True)
+    assert sd.num_cells == 2 * num**2
