@@ -19,7 +19,8 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
         levelset (Callable): A function that returns the level-set value for each x.
 
     Returns:
-        pg.Grid: A new grid conforming to the level set.
+        pg.Grid: A new grid conforming to the level set, with the same entities as sd
+        if the level set does not cross any face.
 
     Raises:
         NotImplementedError: If the level set passes exactly through a node, or cuts
@@ -27,6 +28,13 @@ def levelset_remesh(sd: pg.Grid, levelset: Callable) -> pg.Grid:
     """
     # Mark the cut faces and cells
     cut_faces, new_nodes = intersect_faces(sd, levelset)
+
+    # Without cuts, the grid is unchanged
+    if not np.any(cut_faces):
+        return pg.Grid(
+            sd.dim, sd.nodes.copy(), sd.face_nodes.copy(), sd.cell_faces.copy(), sd.name
+        )
+
     cut_cells = intersect_cells(sd, cut_faces)
 
     # Include the new nodes in the node list
@@ -188,7 +196,7 @@ def intersect_faces(
         elif np.prod(levelset_vals) == 0:
             raise NotImplementedError("Level set passes exactly through a node.")
 
-    new_nodes_array = np.vstack(new_nodes).T
+    new_nodes_array = np.array(new_nodes, dtype=float).reshape((-1, pg.AMBIENT_DIM)).T
 
     return cut_faces, new_nodes_array
 

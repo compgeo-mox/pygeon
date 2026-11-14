@@ -117,7 +117,8 @@ def unit_grid(
     """
     Create a unit square or cube grid with a given mesh size. In dimension 0 and 1,
     and when structured is True, the grid is structured, with 1 / mesh_size cells
-    per direction; otherwise it is an unstructured simplicial grid.
+    per direction, rounded to the nearest integer; otherwise it is an unstructured
+    simplicial grid.
 
     Args:
         dim (int): The dimension of the grid.
@@ -134,7 +135,8 @@ def unit_grid(
         the highest dimension if as_mdg is False.
     """
     if dim <= 1 or kwargs.get("structured", False):
-        num = np.array([1 / mesh_size] * dim, dtype=int)
+        # Rounded, since 1 / mesh_size may fall just below an integer, e.g. for 1 / 93
+        num = np.full(dim, round(1 / mesh_size))
         sd: pp.Grid
         if dim == 0:
             sd = pp.PointGrid(np.array([[0.0], [0.0], [0.0]]))
