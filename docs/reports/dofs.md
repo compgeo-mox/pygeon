@@ -145,7 +145,6 @@ $x$-component, then all DOFs of the $y$-component, and so on.
 The matrix-valued $L^2$ spaces `MatPwConstants`, `MatPwLinears`, and
 `MatPwQuadratics` replicate the DOFs of their underlying scalar piecewise
 polynomial spaces for each entry of the $d \times d$ tensor.
-replicate their DOFs for each entry of the $d \times d$ tensor.
 
 $$N_\text{dof} = d^2 \cdot N_\text{dof}^{\text{scalar}}$$
 
