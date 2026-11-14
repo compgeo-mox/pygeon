@@ -236,7 +236,10 @@ class RT0(HDiv):
         vals = np.zeros(self.ndof(sd))
 
         signs = sd.cell_faces.sum(axis=1)
-        func_vals = self.eval_func_at_coords(func, sd.face_centers[:, b_faces])
+        # The datum is a scalar, the trace of the normal component
+        func_vals = self.eval_func_at_coords(
+            func, sd.face_centers[:, b_faces], pg.SCALAR
+        )
         vals[b_faces] = signs[b_faces] * func_vals
 
         return vals
@@ -385,7 +388,10 @@ class BDM1(HDiv):
         signs = sd.cell_faces.sum(axis=1)
 
         fn_bdry = sd.face_nodes[:, b_faces]
-        func_vals = self.eval_func_at_coords(func, sd.nodes[:, fn_bdry.indices])
+        # The datum is a scalar, the trace of the normal component
+        func_vals = self.eval_func_at_coords(
+            func, sd.nodes[:, fn_bdry.indices], pg.SCALAR
+        )
         func_vals = func_vals.reshape((-1, b_faces.size), order="F")
 
         face_vals = signs[b_faces] * (local_mass @ func_vals)

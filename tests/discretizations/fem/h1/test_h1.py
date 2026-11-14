@@ -86,7 +86,7 @@ def test_point_grid(discr, ref_sd_0d):
     assert discr.ndof(ref_sd_0d) == 0
     assert discr.assemble_diff_matrix(ref_sd_0d).nnz == 0
     assert discr.eval_at_cell_centers(ref_sd_0d).nnz == 0
-    assert discr.interpolate(ref_sd_0d, lambda x: x).size == 0
+    assert discr.interpolate(ref_sd_0d, lambda x: x[0]).size == 0
 
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(ref_sd_0d.dim)
