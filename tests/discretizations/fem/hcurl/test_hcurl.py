@@ -47,3 +47,34 @@ def test_broken_curl(discr, unit_sd_3d):
     broken_curl = pwp.assemble_broken_curl_matrix(unit_sd_3d)
 
     assert np.allclose((proj_0 @ curl - broken_curl @ proj_1).data, 0)
+
+
+def test_interp_eval_2d(discr, unit_sd_2d, mdg):
+    # In 2D the spaces are rotated RT0 spaces. On the 2D grids of the mixed-dimensional
+    # grids, the order of the nodes of an edge can be opposite to its orientation:
+    # with P the projection on the plane of the grid, a field f is represented as P f
+    a = np.array([0.3, -0.7, 1.1])
+    A = np.array([[1.0, 2.0, -1.0], [0.5, -1.0, 2.0], [3.0, 1.0, 1.0]])
+    if isinstance(discr, pg.NedelecR0):
+        f = lambda x: np.tile(a.reshape((-1, 1)), x.shape[1])
+    else:
+        f = lambda x: a.reshape((-1, 1)) + A @ x
+
+    for sd in [unit_sd_2d] + mdg.subdomains(dim=2):
+        P = sd.rotation_matrix.T @ sd.rotation_matrix
+        u = discr.interpolate(sd, f)
+        f_interp = discr.eval_at_cell_centers(sd) @ u
+        assert np.allclose(f_interp, (P @ f(sd.cell_centers)).ravel())
+
+
+def test_proj_between_nedelec(mdg):
+    # The constants interpolated in NedelecF1 are the ones of NedelecR0, also when the
+    # order of the nodes of an edge is opposite to its orientation
+    ne0, ne1 = pg.NedelecR0(), pg.NedelecF1()
+    f = lambda _: np.array([0.3, -0.7, 1.1])
+    for sd in mdg.subdomains():
+        if sd.dim < 2:
+            continue
+        u0, u1 = ne0.interpolate(sd, f), ne1.interpolate(sd, f)
+        assert np.allclose(ne1.proj_to_Ne0(sd) @ u1, u0)
+        assert np.allclose(ne0.proj_to_Ne1(sd) @ u0, u1)
