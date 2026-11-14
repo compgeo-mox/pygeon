@@ -44,7 +44,9 @@ def graph_laplace_regularization(sd: pg.Grid, sliding: bool = True) -> pg.Grid:
     # Construct the Laplacian matrix
     match sd.dim:
         case 1:
-            incidence = sd.cell_faces
+            # The nodes of a cell are the ones of its faces, which do not need to
+            # have the same index
+            incidence = sd.face_nodes @ sd.cell_faces
         case 2:
             tags = sd.tags["domain_boundary_faces"]
             incidence = sd.face_ridges[:, np.logical_not(tags)]
