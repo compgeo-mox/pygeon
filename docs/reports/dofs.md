@@ -55,7 +55,7 @@ cell: one per vertex plus one per edge (midpoint) of each simplex. The total cou
 
 $$N_\text{dof} = \frac{(d+1)(d+2)}{2}\,N_\text{cells}$$
 
-**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges.
+**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, in increasing order of their index, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges, ordered as the pairs of local vertices $(0, 1), (0, 2), \ldots, (d-1, d)$.
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
 

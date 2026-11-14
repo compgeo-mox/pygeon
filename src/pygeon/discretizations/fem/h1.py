@@ -437,10 +437,17 @@ class Lagrange2(Lagrange):
                 # The only edge in 1D is the cell
                 edges = np.arange(sd.num_cells)
             case 2:
-                # In 2D, the edges are the faces
-                edges = sd.cell_faces.indices
+                # In 2D, the edges are the faces. The local edges of PwQuadratics are
+                # (0, 1), (0, 2), (1, 2) of the nodes in increasing order, i.e. the
+                # faces opposite the nodes in decreasing order
+                opposite_nodes = sd.compute_opposite_nodes()
+                faces = opposite_nodes.indices.reshape((sd.num_cells, -1))
+                nodes = opposite_nodes.data.reshape((sd.num_cells, -1))
+                edges = np.take_along_axis(faces, np.argsort(-nodes, axis=1), axis=1)
             case 3:
-                # We find the cell-edge connectivity
+                # We find the cell-edge connectivity. The ridges are numbered by their
+                # nodes in lexicographic order, so that sorting the ridges of a cell
+                # gives the local edges (0, 1), (0, 2), ..., (2, 3) of PwQuadratics
                 cell_edges = abs(sd.face_ridges) @ abs(sd.cell_faces)
                 cell_edges.sort_indices()
                 edges = cell_edges.indices
