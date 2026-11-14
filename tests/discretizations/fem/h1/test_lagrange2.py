@@ -43,12 +43,12 @@ def test_assemble_mass_matrix(discr, ref_sd):
             M_known = (
                 np.array(
                     [
-                        [6, -1, -1, 0, 0, -4],
+                        [6, -1, -1, -4, 0, 0],
                         [-1, 6, -1, 0, -4, 0],
-                        [-1, -1, 6, -4, 0, 0],
-                        [0, 0, -4, 32, 16, 16],
+                        [-1, -1, 6, 0, 0, -4],
+                        [-4, 0, 0, 32, 16, 16],
                         [0, -4, 0, 16, 32, 16],
-                        [-4, 0, 0, 16, 16, 32],
+                        [0, 0, -4, 16, 16, 32],
                     ]
                 )
                 / 360
@@ -194,3 +194,15 @@ def test_assemble_nat_bc_no_faces(discr, unit_sd):
 
     assert b.shape == (discr.ndof(unit_sd),)
     assert not np.any(b)
+
+
+def test_proj_to_PwPolynomials_on_fracture_grids(discr, mdg):
+    # The faces of the 2D grids of a mixed-dimensional grid are not numbered as the
+    # local edges of the cells, so that the projection must order them
+    func = lambda x: (1 + x[0] + 2 * x[1] + 3 * x[2]) ** 2
+    p2 = pg.PwQuadratics()
+    for sd in mdg.subdomains():
+        if sd.dim == 0:
+            continue
+        proj = discr.proj_to_PwPolynomials(sd)
+        assert np.allclose(proj @ discr.interpolate(sd, func), p2.interpolate(sd, func))

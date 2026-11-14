@@ -55,7 +55,7 @@ cell: one per vertex plus one per edge (midpoint) of each simplex. The total cou
 
 $$N_\text{dof} = \frac{(d+1)(d+2)}{2}\,N_\text{cells}$$
 
-**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges.
+**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, in increasing order of their index, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges, ordered as the pairs of local vertices $(0, 1), (0, 2), \ldots, (d-1, d)$.
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
 
@@ -107,7 +107,7 @@ One DOF per mesh **edge**.
 
 $$N_\text{dof} = N_\text{edges}$$
 
-**DOF meaning.** Each DOF is the integral of the tangential component of the field along the edge: $\int_e \mathbf{u} \cdot \boldsymbol{\tau}_e \, ds$.
+**DOF meaning.** Each DOF is the integral of the tangential component of the field along the edge: $\int_e \mathbf{u} \cdot \boldsymbol{\tau}_e \, ds$, with $\boldsymbol{\tau}_e$ the tangent along the orientation of the edge, from the node with entry $-1$ to the one with entry $1$ in `sd.edge_nodes`.
 
 **DOF ordering.** DOF $e$ has global index $e$ (directly indexed by edge number).
 
@@ -120,7 +120,7 @@ has exactly 2 endpoint nodes in any dimension, giving:
 
 $$N_\text{dof} = 2\,N_\text{edges}$$
 
-**DOF meaning.** Each DOF is a weighted tangential-circulation moment $\int_e (\mathbf{u} \cdot \boldsymbol{\tau}_e)\,\varphi_i^e \, ds$, where $\varphi_i^e$ is the Lagrange basis function of node $i$ on edge $e$.
+**DOF meaning.** Each DOF is a weighted tangential-circulation moment $\int_e (\mathbf{u} \cdot \boldsymbol{\tau}_e^i)\,\varphi_i^e \, ds$, where $\varphi_i^e$ is the Lagrange basis function of node $i$ on edge $e$, and $\boldsymbol{\tau}_e^i$ is the tangent from node $i$ toward the other node of the edge. The nodes of an edge are in the order of the indices of `sd.edge_nodes`, so that $\boldsymbol{\tau}_e^i$ is $\pm\boldsymbol{\tau}_e$ of `NedelecR0`.
 
 **DOF ordering.** Two blocks of $N_\text{edges}$ each (one per endpoint): the global
 index of DOF $(e, i)$ is $e + i\,N_\text{edges}$, $i \in \{0, 1\}$.

@@ -273,23 +273,28 @@ class Grid(pp.Grid):
 
     def compute_edge_properties(self) -> None:
         """
-        Computes and stores the tangent vectors and lengths
-        of the grid edges (1D entities).
+        Computes and stores the connectivity, the tangent vectors and the lengths of
+        the grid edges (1D entities). The edge-node connectivity edge_nodes has the
+        entry -1 at the start and 1 at the end of each edge: the cell-face connectivity
+        through the nodes of the faces in 1D, face_ridges in 2D, ridge_peaks in 3D.
         """
         match self.dim:
             case 0:
+                self.edge_nodes = sps.csc_array((self.num_nodes, 0), dtype=int)
                 self.edge_tangents = np.zeros((0, pg.AMBIENT_DIM))
                 self.edge_lengths = np.zeros(0)
                 self.num_edges = 0
                 return
             case 1:
-                edge_nodes = self.cell_faces
+                # The edges are the cells, and their nodes are the ones of the faces,
+                # which do not need to have the same index
+                self.edge_nodes = sps.csc_array(self.face_nodes @ self.cell_faces)
             case 2:
-                edge_nodes = self.face_ridges
+                self.edge_nodes = self.face_ridges
             case 3:
-                edge_nodes = self.ridge_peaks
+                self.edge_nodes = self.ridge_peaks
 
-        self.edge_tangents = self.nodes @ edge_nodes
+        self.edge_tangents = self.nodes @ self.edge_nodes
         self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
         self.num_edges = self.edge_lengths.size
 
@@ -339,6 +344,7 @@ class Grid(pp.Grid):
             "face_ridges",
             "opposite_nodes",
             "num_edges",
+            "edge_nodes",
             "edge_tangents",
             "edge_lengths",
             "mesh_size",

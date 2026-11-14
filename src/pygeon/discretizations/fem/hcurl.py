@@ -163,7 +163,7 @@ class NedelecR0(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
+        midpoints = sd.nodes @ abs(sd.edge_nodes) / 2
         func_vals = self.eval_func_at_coords(func, midpoints)
         vals = (func_vals * sd.edge_tangents).sum(axis=0)
 
@@ -175,15 +175,28 @@ class NedelecR0(pg.Discretization):
         :math:`\Pi` takes a function from :class:`pg.NedelecR0` and maps it
         to a function in :class:`pg.NedelecF1`.
 
+        The degree of freedom of :class:`pg.NedelecR0` is along the orientation of the
+        edge, while the one of :class:`pg.NedelecF1` at a node is along the tangent
+        toward the other node: they coincide at the start of the edge and are opposite
+        at its end.
+
         Args:
             sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix to the Nedelec of the second kind.
         """
-        return (
-            sps.vstack([sps.eye_array(sd.num_edges), -sps.eye_array(sd.num_edges)])
-        ).tocsc()
+        # The nodes of the two dofs of each edge, shape (num_edges, 2), in the order of
+        # the indices of edge_nodes, and minus the orientation of the edge at each of
+        # them: 1 at its start, -1 at its end
+        edges = np.arange(sd.num_edges)
+        nodes = sd.edge_nodes.indices.reshape((sd.num_edges, 2))
+        signs = -np.column_stack([sd.edge_nodes[nodes[:, i], edges] for i in range(2)])
+
+        rows_I = edges.reshape((-1, 1)) + sd.num_edges * np.arange(2)
+        cols_J = np.tile(edges.reshape((-1, 1)), 2)
+        shape = (2 * sd.num_edges, sd.num_edges)
+        return sps.csc_array((signs.ravel(), (rows_I.ravel(), cols_J.ravel())), shape)
 
 
 class NedelecF1(pg.Discretization):
@@ -311,9 +324,10 @@ class NedelecF1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix to the Nedelec of the first kind.
         """
-        return (
-            sps.hstack([sps.eye_array(sd.num_edges), -sps.eye_array(sd.num_edges)]) / 2
-        ).tocsc()
+        # The mean of the two dofs of each edge, along its orientation, see
+        # pg.NedelecR0.proj_to_Ne1
+        proj_to_ne1 = pg.NedelecR0(self.keyword).proj_to_Ne1(sd)
+        return (proj_to_ne1.T / 2).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -342,7 +356,7 @@ class NedelecF1(pg.Discretization):
         """
         Interpolates the given function onto the finite element space: the degrees of
         freedom of each edge are the tangential components at its two nodes times the
-        edge length.
+        edge length, with the tangent from each node toward the other one.
 
         Args:
             sd (pg.Grid): The grid over which to interpolate the function.
@@ -351,11 +365,14 @@ class NedelecF1(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        edge_nodes = np.reshape(sd.ridge_peaks.indices, (-1, 2))
-        coords = sd.nodes[:, edge_nodes.ravel(order="F")]
-        func_vals = self.eval_func_at_coords(func, coords)
+        # The dof i of an edge is at its node i, in the order of the indices of
+        # edge_nodes, with the tangent toward the other node
+        edge_nodes = np.reshape(sd.edge_nodes.indices, (-1, 2))
+        nodes = edge_nodes.ravel(order="F")
+        others = edge_nodes[:, ::-1].ravel(order="F")
+        func_vals = self.eval_func_at_coords(func, sd.nodes[:, nodes])
 
-        tangents = np.hstack((sd.edge_tangents, -sd.edge_tangents))
+        tangents = sd.nodes[:, others] - sd.nodes[:, nodes]
         vals = (func_vals * tangents).sum(axis=0)
 
         return vals
