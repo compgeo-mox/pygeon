@@ -139,3 +139,20 @@ def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     A = discr.assemble_adv_matrix(sd, data)
     M = discr.assemble_mass_matrix(sd)
     assert np.allclose(A @ u_h, M @ w_h)
+
+
+def test_stiff_matrix_on_fracture_grids(discr, mdg):
+    # On the grids of a mixed-dimensional grid, the faces of the 1D grids are not
+    # numbered as their nodes and the orientation of the edges of the 2D grids may be
+    # opposite to the order of the nodes of the faces: the differential must still
+    # vanish on the constants and give the stiffness of the broken gradient
+    for sd in mdg.subdomains():
+        if sd.dim == 0:
+            continue
+        diff = discr.assemble_diff_matrix(sd)
+        ones = discr.interpolate(sd, lambda _: 1)
+        assert np.allclose(diff @ ones, 0)
+
+        stiff = discr.assemble_stiff_matrix(sd)
+        grad_grad = discr.assemble_grad_grad_matrix(sd)
+        assert np.allclose((stiff - grad_grad).data, 0)

@@ -181,12 +181,9 @@ class Lagrange1(Lagrange):
             sps.csc_array: The differential matrix.
         """
         match sd.dim:
-            case 3:
-                return sd.ridge_peaks.T.tocsc()
-            case 2:
-                return sd.face_ridges.T.tocsc()
-            case 1:
-                return sd.cell_faces.T.tocsc()
+            case 1 | 2 | 3:
+                # The difference of the values at the two nodes of each edge
+                return sd.edge_nodes.T.tocsc()
             case 0:
                 return sps.csc_array((0, 0))
             case _:
@@ -347,63 +344,44 @@ class Lagrange2(Lagrange):
                 # In a point, the differential is the trivial map
                 return sps.csc_array((0, 0))
             case 1:
-                # In 1D, the gradient of the nodal functions scales as 1/h
-                diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()
-                diff_nodes_1 = diff_nodes_0.copy()
-
-                # The derivative of the nodal basis functions is equal to 3
-                # on one side of the element and -1 on the other
-                diff_nodes_0.data[0::2] = 3 * diff_nodes_0.data[0::2]
-                diff_nodes_0.data[1::2] = -diff_nodes_0.data[1::2]
-                diff_nodes_1.data[0::2] = -diff_nodes_1.data[0::2]
-                diff_nodes_1.data[1::2] = 3 * diff_nodes_1.data[1::2]
-
-                diff_nodes = sps.vstack((diff_nodes_0, diff_nodes_1))
-
-                # The derivative of the edge (cell) basis functions are 4 and -4
-                diff_edges_0 = sps.diags_array(4 / sd.cell_volumes)
-                diff_edges = sps.vstack((diff_edges_0, -diff_edges_0))
-
-                return sps.hstack((diff_nodes, diff_edges)).tocsc()
-            # The 2D and 3D cases can be handled in a general way
+                # The edges are the cells, and the dofs of PwLinears are the values of
+                # the derivative at the nodes of the cell in increasing order
+                dof_nodes = sd.cell_nodes()
+                scaling = 1 / sd.cell_volumes
+                second_dof_scaling = 1
             case 2:
-                edge_nodes = sd.face_ridges
-                num_edges = sd.num_faces
-                # The second degree of freedom on an edge
-                # is oriented in the same way as the first
+                # The edges are the faces, and the dofs of BDM1 are the moments at the
+                # nodes of each face, in the order of face_nodes
+                dof_nodes = sd.face_nodes
+                scaling = np.ones(sd.num_faces)
                 second_dof_scaling = 1
             case 3:
-                edge_nodes = sd.ridge_peaks
-                num_edges = sd.num_ridges
-                # By design of NedelecF1, we orient the second dof
-                # on an edge opposite to the first in 3D
+                # The edges are the ridges, and the dofs of NedelecF1 are the moments
+                # at the nodes of each ridge, in the order of ridge_peaks, with the
+                # second dof on an edge oriented opposite to the first
+                dof_nodes = sd.ridge_peaks
+                scaling = np.ones(sd.num_ridges)
                 second_dof_scaling = -1
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
-        # Start of the edge
-        # The nodal function associated with the start has derivative -3 here.
-        # The other nodal function has derivative -1.
-        diff_nodes_0_csc = edge_nodes.copy().T
-        diff_nodes_0_csc.data[edge_nodes.data == -1] = -3
-        diff_nodes_0_csc.data[edge_nodes.data == 1] = -1
+        # The nodes of the two dofs of each edge, shape (num_edges, 2), and the
+        # orientation of the edge at each of them: -1 at its start, 1 at its end
+        edges = np.arange(sd.num_edges)
+        nodes = dof_nodes.indices.reshape((sd.num_edges, 2))
+        signs = np.column_stack([sd.edge_nodes[nodes[:, i], edges] for i in range(2)])
+        signs = signs * scaling.reshape((-1, 1)) * np.array([1, second_dof_scaling])
 
-        diff_0 = sps.hstack((diff_nodes_0_csc, 4 * sps.eye_array(num_edges)))
-
-        # End of the edge
-        # The nodal function associated with the start has derivative 1 here.
-        # The other nodal function has derivative 3.
-        diff_nodes_1_csr = edge_nodes.copy().T
-        diff_nodes_1_csr.data[edge_nodes.data == 1] = 3
-        diff_nodes_1_csr.data[edge_nodes.data == -1] = 1
-
-        # Rescale due to design choices in NedelecF1
-        diff_1 = second_dof_scaling * sps.hstack(
-            (diff_nodes_1_csr, -4 * sps.eye_array(num_edges))
+        # At the node a of an edge with other node b and midpoint dof m, the derivative
+        # along the edge is s (3 u_a + u_b - 4 u_m), with s the orientation at a
+        rows_I = np.tile(edges.reshape((-1, 1)) + sd.num_edges * np.arange(2), 3)
+        mid = np.tile((sd.num_nodes + edges).reshape((-1, 1)), 2)
+        cols_J = np.hstack((nodes, nodes[:, ::-1], mid))
+        data_IJ = np.hstack((3 * signs, signs, -4 * signs))
+        shape = (2 * sd.num_edges, sd.num_nodes + sd.num_edges)
+        return sps.csc_array(
+            (data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())), shape=shape
         )
-
-        # Combine
-        return sps.vstack((diff_0, diff_1)).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
