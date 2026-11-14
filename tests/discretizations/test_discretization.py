@@ -60,6 +60,25 @@ def test_unvectorized_interpolation(unit_sd_2d):
         discr.interpolate(unit_sd_2d, func)
 
 
+def test_constant_interpolation_at_three_points():
+    # On a triangle, RT0 evaluates the function at 3 face centers and Lagrange1 at 3
+    # nodes, as many as the components of a vector: a constant vector is repeated at
+    # each point, and the values of a scalar function at the 3 points are kept
+    sd = pg.reference_element(2)
+    sd.compute_geometry()
+    rt0 = pg.RT0()
+    vec = np.array([1.0, 2.0, 0.0])
+
+    constant = rt0.interpolate(sd, lambda _: vec)
+    vectorized = rt0.interpolate(
+        sd, lambda x: np.tile(vec.reshape((-1, 1)), x.shape[1])
+    )
+    assert np.allclose(constant, vectorized)
+
+    p1 = pg.Lagrange1()
+    assert np.allclose(p1.interpolate(sd, lambda x: x[0]), sd.nodes[0])
+
+
 @pytest.mark.parametrize(
     "discr_class, dim, known",
     [

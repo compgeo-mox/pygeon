@@ -230,16 +230,24 @@ class Discretization(abc.ABC):
         """
 
     def eval_func_at_coords(
-        self, func: Callable[[np.ndarray], np.ndarray], coords: np.ndarray
+        self,
+        func: Callable[[np.ndarray], np.ndarray],
+        coords: np.ndarray,
+        tensor_order: int | None = None,
     ) -> np.ndarray:
         """
         Evaluates a function at given coordinates. We assume that func(x) evaluates
         the given function for all coordinates in the columns of x at once; constant
-        scalar and vector functions are broadcast to all the coordinates.
+        functions are broadcast to all the coordinates. The values are those of a
+        scalar, a vector with 3 components or a 3 x 3 matrix, according to their tensor
+        order, so that a constant vector is not mistaken for the values of a scalar
+        function at 3 points.
 
         Args:
             func (Callable): A function that returns the function values at coordinates.
             coords (np.ndarray): A coordinate array with shape (3, n).
+            tensor_order (int | None): The tensor order of the values of the function.
+                Defaults to the tensor order of the discretization.
 
         Returns:
             np.ndarray: The values of the function, with the points along the last
@@ -248,33 +256,26 @@ class Discretization(abc.ABC):
         Raises:
             RuntimeError: If the function is neither vectorized nor constant.
         """
-        # We first simply evaluate the function at the coordinates.
         interp = np.asarray(func(coords))
+        if tensor_order is None:
+            tensor_order = self.tensor_order
+        value_shape = (pg.AMBIENT_DIM,) * tensor_order
+        num_pts = coords.shape[1]
 
-        # We can handle two cases: 1) the function is vectorized and returns an array
-        # with n entries, one for each column in coords. 2) It returns a constant value,
-        # either scalar or vector.
-
-        # 1) If the function is properly vectorized, it returns an array with the last
-        # axis indexing the evaluation points.
-        if interp.ndim > 0 and interp.shape[-1] == coords.shape[-1]:
+        # A vectorized function gives the values with the points along the last axis
+        if interp.shape == value_shape + (num_pts,):
             return interp
 
-        # 2) For constant functions, we populate the array ourselves.
-        match interp.ndim:
-            # Interpolate constant scalar functions, e.g. lambda _: 1.
-            case 0:
-                return np.tile(interp, coords.shape[1])
+        # A constant function, e.g. lambda _: 1 or lambda _: np.array([1, 0, 0]), is
+        # repeated at each point
+        if interp.shape == value_shape:
+            return np.tile(interp.reshape(value_shape + (1,)), num_pts)
 
-            # Interpolate constant vector functions, e.g. lambda _ : np.array([1, 0, 0])
-            case 1:
-                if interp.shape[0] == pg.AMBIENT_DIM:
-                    return np.tile(interp, (coords.shape[1], 1)).T
-
-        # Else, the input function does not meet the assumptions.
         raise RuntimeError(
-            "Vectorize the function so that it can be evaluated for multiple columns"
-            + " of the input array."
+            f"The function evaluated at {num_pts} points gives values of shape "
+            f"{interp.shape}, while {value_shape + (num_pts,)} or, for a constant "
+            f"function, {value_shape} is expected: vectorize the function so that it "
+            f"can be evaluated for multiple columns of the input array."
         )
 
     def eval_at_cell_centers(self, sd: pg.Grid) -> sps.csc_array:
