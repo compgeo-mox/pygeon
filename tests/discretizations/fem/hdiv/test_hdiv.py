@@ -1,6 +1,7 @@
 """Module contains general tests for all H(div) discretizations."""
 
 import numpy as np
+import porepy as pp
 import pytest
 
 import pygeon as pg
@@ -76,3 +77,37 @@ def test_broken_div(discr, unit_sd):
     broken_div = pwp.assemble_broken_div_matrix(unit_sd)
 
     assert np.allclose((div - broken_div @ proj).data, 0)
+
+
+def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
+    # With u = a + b x, in all the spaces, and the tensor and the field constant, all
+    # in the ambient coordinates, K^{-1} beta . u on the grid is
+    # f = (P K^{-1} P beta) . u, with P the projection on the plane of the grid: a
+    # linear function, which the range of the divergence tests exactly, so that
+    # A u = M f
+    sd = tilted_sd
+    if isinstance(discr, pg.RT1) and sd.dim < 3:
+        # TODO: RT1 evaluates its basis and interpolates the cell dofs with the
+        # ambient components, so that it fails on grids out of the coordinate planes,
+        # see #341
+        pytest.xfail("RT1 is not yet supported on tilted grids")
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+
+    inv_K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
+    beta = np.array([1.0, 2.0, 3.0])
+    a, b = np.array([0.5, -1.0, 2.0]), 1.5
+    w = P @ inv_K @ P @ beta
+
+    perm = pg.constant_tensor(sd.num_cells, inv_K)
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+    data = pp.initialize_data(
+        {}, "test", {pg.SECOND_ORDER_TENSOR: perm, pg.VECTOR_FIELD: field}
+    )
+
+    range_discr = discr.get_range_discr_class(sd.dim)("test")
+    u_h = discr.interpolate(sd, lambda x: a.reshape((-1, 1)) + b * x)
+    f_h = range_discr.interpolate(sd, lambda x: w @ (a.reshape((-1, 1)) + b * x))
+
+    A = discr.assemble_adv_matrix(sd, data)
+    M = range_discr.assemble_mass_matrix(sd)
+    assert np.allclose(A @ u_h, M @ f_h)

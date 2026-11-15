@@ -1,5 +1,7 @@
 """Module for the discretizations of the matrix L2 space."""
 
+from typing import cast
+
 import numpy as np
 import porepy as pp
 import scipy.sparse as sps
@@ -17,6 +19,37 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
     tensor_order: int = pg.MATRIX
     """Matrix-valued discretization"""
+
+    def assemble_dot_product(
+        self, sd: pg.Grid, vector_field: np.ndarray
+    ) -> sps.csc_array:
+        r"""
+        Assembles the product :math:`\boldsymbol{\tau} \mapsto \boldsymbol{\tau}
+        \boldsymbol{w}` with a vector field :math:`\boldsymbol{w}` constant on each
+        cell, from the matrix piecewise polynomials to the vector ones of the same
+        order: the dot product of each row of :math:`\boldsymbol{\tau}` with
+        :math:`\boldsymbol{w}`, see :meth:`pg.VecPwPolynomials.assemble_dot_product`.
+
+        The rows are the vector components of the matrix piecewise polynomials, as in
+        the broken gradient of the vector ones, so that the matrix is
+
+        .. math::
+
+            I_d \otimes W,
+
+        with :math:`W` the dot product of the rows and :math:`d` the dimension of the
+        grid.
+
+        Args:
+            sd (pg.Grid): The grid.
+            vector_field (np.ndarray): The vector field, of shape (3, num_cells).
+
+        Returns:
+            sps.csc_array: The dot product matrix.
+        """
+        vec_discr = cast(pg.VecPwPolynomials, self.base_discr)
+        dot = vec_discr.assemble_dot_product(sd, vector_field)
+        return self.vectorize(sd.dim, dot)
 
     def assemble_mass_matrix_elasticity(
         self, sd: pg.Grid, data: dict | None = None

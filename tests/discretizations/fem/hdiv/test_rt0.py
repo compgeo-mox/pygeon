@@ -72,7 +72,7 @@ def test_assemble_adv_matrix(discr, ref_sd, vector_field):
             M_known = (
                 np.array(
                     [
-                        [-1, -1],
+                        [1, 1],
                     ]
                 )
                 / 2
