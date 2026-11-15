@@ -105,14 +105,14 @@ def proj_to_PwPolynomials(
     current_poly_order = discr.poly_order
 
     while current_poly_order < poly_order:
-        poly_discr = get_PwPolynomials(current_poly_order, discr.tensor_order)(
+        poly_discr = discr.get_PwPolynomials(current_poly_order, discr.tensor_order)(
             discr.keyword
         )
         pi = poly_discr.proj_to_higher_PwPolynomials(sd) @ pi
         current_poly_order += 1
 
     while current_poly_order > poly_order:
-        poly_discr = get_PwPolynomials(current_poly_order, discr.tensor_order)(
+        poly_discr = discr.get_PwPolynomials(current_poly_order, discr.tensor_order)(
             discr.keyword
         )
         pi = poly_discr.proj_to_lower_PwPolynomials(sd) @ pi

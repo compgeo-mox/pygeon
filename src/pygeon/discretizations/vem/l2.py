@@ -159,21 +159,6 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
             sd.cell_volumes, offsets=0, shape=(sd.num_cells, self.ndof(sd))
         ).tocsc()
 
-    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
-        r"""
-        Projects the discretization to +1 order discretization. The projection operator
-        :math:`\Pi` takes a function from :class:`pg.PwLinears` and maps it
-        to a piecewise polynomial function of higher order in
-        :class:`pg.PwQuadratics`.
-
-        Args:
-            sd (pg.Grid): The grid.
-
-        Returns:
-            sps.csc_array: The projection matrix.
-        """
-        raise NotImplementedError
-
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.

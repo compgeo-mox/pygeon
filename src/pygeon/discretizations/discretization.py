@@ -401,6 +401,16 @@ class Discretization(abc.ABC):
         grad_class = self.get_PwPolynomials(self.poly_order - 1, grad_order)
         return cast(Type[pg.VecPwPolynomials], grad_class)
 
+    def assemble_broken_grad_grad_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+
+        grad_space = self.get_broken_grad_discr()(self.keyword)
+        M = grad_space.assemble_mass_matrix(sd, data)
+        grad = self.assemble_broken_grad_matrix(sd)
+
+        return (grad.T @ M @ grad).tocsc()
+
     def error_l2(
         self,
         sd: pg.Grid,

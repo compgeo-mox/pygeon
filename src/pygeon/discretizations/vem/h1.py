@@ -8,17 +8,11 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class VLagrange1(pg.Lagrange1):
+class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     """
     Discretization class for the virtual Lagrange1 method, on two-dimensional
     polygonal grids, following the Hitchhiker's guide to the virtual element method.
     """
-
-    poly_order = 1
-    """Polynomial degree of the basis functions"""
-
-    tensor_order = pg.SCALAR
-    """Scalar-valued discretization"""
 
     def _assemble_matrix_from_loc(
         self,
@@ -180,6 +174,48 @@ class VLagrange1(pg.Lagrange1):
 
         return B
 
+    def proj_to_PwPolynomials(self, sd):
+
+        # Left-hand side
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        G_tilde = pwp.assemble_broken_grad_grad_matrix(sd)
+
+        cell_nodes = sd.cell_nodes()
+        coords = sd.nodes[:, cell_nodes.indices]
+        avg_coords = np.add.reduceat(coords, cell_nodes.indptr[:-1], axis=1)
+        avg_coords /= np.diff(cell_nodes.indptr)
+
+        vals = sd.rotation_matrix @ (avg_coords - sd.cell_centers) / sd.cell_diameters()
+        vals = np.vstack([np.ones(vals.shape[1]), vals])
+
+        P_0 = sps.hstack([sps.diags_array(row) for row in vals])
+        P_0 = sps.csc_array(P_0, shape=G_tilde.shape)
+
+        G = G_tilde + P_0
+
+        # Right-hand side
+        B = np.empty((G.shape[0], self.ndof(sd)))
+        P0_phi = (cell_nodes / np.diff(cell_nodes.indptr)).T
+
+        nodes, cells, _ = sps.find(cell_nodes)
+
+        node_face_avg = (sd.face_nodes / np.diff(sd.face_nodes.indptr)).T.tocsc()
+        nc_pair_faces = node_face_avg[:, nodes] * sd.cell_faces[:, cells]
+
+        ans = sd.rotation_matrix @ sd.face_normals @ nc_pair_faces
+        ans /= sd.cell_diameters()[cells]
+
+        P1_phi = sps.vstack(
+            [sps.csc_array((row_ans, (cells, nodes))) for row_ans in ans]
+        )
+
+        B = sps.vstack((P0_phi, P1_phi))
+
+        #
+        proj = pg.block_diag_solver(G, B)
+
+        return proj
+
     def assemble_loc_monomial_mass(
         self, sd: pg.Grid, cell: int, diam: float
     ) -> np.ndarray:
@@ -310,6 +346,6 @@ class VLagrange1(pg.Lagrange1):
             case 2:
                 return pg.VRT0
             case 1:
-                return pg.PwConstants
+                return pg.MonConstants
             case _:
                 raise NotImplementedError("There's no zero discretization in PyGeoN")
