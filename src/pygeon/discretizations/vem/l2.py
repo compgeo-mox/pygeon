@@ -15,14 +15,14 @@ class MonConstants(pg.VDiscretization, pg.PwConstants):
 
     Each degree of freedom is the integral over the cell. The space coincides with the
     FEM piecewise constants except that it relates to the monomial P1 instead of the
-    barycentric P1.
+    barycentric P1 when projecting to a higher order.
     """
 
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
-        Projects the P0 discretization to the VP1 discretization. The projection
-        operator :math:`\Pi` takes a function from :class:`pg.VPwConstants` and
-        maps it to a piecewise linear function in :class:`pg.VPwLinears`.
+        Projects from P0 to P1 monomials. The projection operator :math:`\Pi` takes a
+        function from :class:`pg.MonConstants` and maps it to a piecewise linear
+        function in :class:`pg.MonLinears`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -147,7 +147,7 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
         Construct the matrix for projecting a piecewise linear function to a piecewise
         constant function. The projection operator :math:`\Pi` takes a function from
         :class:`pg.PwLinears` and maps it to a piecewise polynomial function
-        of lower order in :class:`pg.VPwConstants`.
+        of lower order in :class:`pg.MonConstants`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -164,7 +164,7 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
         This operator maps to the vector-valued piecewise constants
-        :class:`pg.VecPwConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
+        :class:`pg.VecMonConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
         and is used for computing :math:`\nabla_h u` element-wise.
 
         Args:
