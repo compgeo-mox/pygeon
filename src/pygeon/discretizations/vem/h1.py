@@ -1,6 +1,6 @@
 """Module for the virtual element discretizations of the H1 space."""
 
-from typing import Callable, Type
+from typing import Type
 
 import numpy as np
 import scipy.sparse as sps
@@ -14,53 +14,149 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     polygonal grids, following the Hitchhiker's guide to the virtual element method.
     """
 
-    def _assemble_matrix_from_loc(
-        self,
-        sd: pg.Grid,
-        assemble_loc: Callable[[pg.Grid, int, float, np.ndarray], np.ndarray],
-    ) -> sps.csc_array:
-        """
-        Assembles a global sparse matrix by looping over cells and accumulating
-        the contributions of a local matrix assembly function.
+    def proj_to_PwPolynomials(self, sd: pg.Grid):
+        r"""
+        Computes the projection onto the monomials. Returns the coefficients
+        :math:`\{a_i\}` in the expansion
+
+        .. math::
+
+            a_0 + \frac{1}{d}[a_1, a_2] \cdot (x - c)
+
+        for each VL1 basis function, with :math:`d` the diameter and :math:`c` the
+        center of the cell.
 
         Args:
             sd (pg.Grid): The grid.
-            assemble_loc (Callable): A function with signature
-                ``(sd, cell, diam, nodes) -> np.ndarray`` that returns the local
-                matrix for the given cell.
 
         Returns:
-            sps.csc_array: The assembled global sparse matrix.
+            np.ndarray: The coefficients of the local projection onto the monomials.
         """
-        # Precomputations
+
+        G = self.assemble_proj_lhs(sd)
+        B = self.assemble_proj_rhs(sd)
+
+        return pg.block_diag_solver(G, B)
+
+    def assemble_proj_lhs(self, sd: pg.Grid):
+        """
+        Returns the system G from the Hitchhiker's (3.9)
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            np.ndarray: The system matrix G.
+        """
+
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        G_tilde = pwp.assemble_broken_grad_grad_matrix(sd)
+
         cell_nodes = sd.cell_nodes()
-        cell_diams = sd.cell_diameters()
+        coords = sd.nodes[:, cell_nodes.indices]
+        avg_coords = np.add.reduceat(coords, cell_nodes.indptr[:-1], axis=1)
+        avg_coords /= np.diff(cell_nodes.indptr)
 
-        # Data allocation
-        size = np.sum(np.square(cell_nodes.sum(0)))
-        rows_I = np.empty(size, dtype=int)
-        cols_J = np.empty(size, dtype=int)
-        data_V = np.empty(size)
-        idx = 0
+        vals = sd.rotation_matrix @ (avg_coords - sd.cell_centers) / sd.cell_diameters()
+        vals = np.vstack([np.ones(vals.shape[1]), vals])
 
-        for cell, diam in enumerate(cell_diams):
-            loc = slice(cell_nodes.indptr[cell], cell_nodes.indptr[cell + 1])
-            nodes_loc = cell_nodes.indices[loc]
+        P_0 = sps.hstack([sps.diags_array(row) for row in vals])
+        P_0 = sps.csc_array(P_0, shape=G_tilde.shape)
 
-            A = assemble_loc(sd, cell, diam, nodes_loc)
+        return G_tilde + P_0
 
-            # Save values for local matrix in the global structure
-            cols = np.tile(nodes_loc, (nodes_loc.size, 1))
-            loc_idx = slice(idx, idx + cols.size)
-            rows_I[loc_idx] = cols.T.ravel()
-            cols_J[loc_idx] = cols.ravel()
-            data_V[loc_idx] = A.ravel()
-            idx += cols.size
+    def assemble_proj_rhs(self, sd: pg.Grid):
+        """
+        Returns the righthand side B from the Hitchhiker's (3.14)
 
-        return sps.csc_array((data_V, (rows_I, cols_J)))
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            np.ndarray: The righthand side B.
+        """
+
+        cell_nodes = sd.cell_nodes()
+        P0_phi = (cell_nodes / np.diff(cell_nodes.indptr)).T
+
+        nodes, cells, _ = sps.find(cell_nodes)
+
+        node_face_avg = (sd.face_nodes / np.diff(sd.face_nodes.indptr)).T.tocsc()
+        nc_pair_faces = node_face_avg[:, nodes] * sd.cell_faces[:, cells]
+
+        vals = sd.rotation_matrix @ sd.face_normals @ nc_pair_faces
+        vals /= sd.cell_diameters()[cells]
+
+        P1_phi = sps.vstack([sps.csc_array((row, (cells, nodes))) for row in vals])
+
+        return sps.vstack((P0_phi, P1_phi))
+
+    def assemble_dofs_of_monomials(self, sd: pg.Grid):
+        """
+        Returns the matrix :math:`D` whose rows are the degrees of freedom applied to
+        the local monomial basis functions, from the Hitchhiker's (3.17).
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            np.ndarray: The matrix D.
+        """
+
+        cell_nodes = sd.cell_nodes()
+        nodes, cells, _ = sps.find(cell_nodes)
+
+        vals = (
+            sd.rotation_matrix
+            @ (sd.nodes[:, nodes] - sd.cell_centers[:, cells])
+            / sd.cell_diameters()[cells]
+        )
+
+        vals = np.vstack((np.ones(vals.shape[1]), vals))
+
+        D = sps.hstack(
+            [sps.csc_array((row, (np.arange(cells.size), cells))) for row in vals]
+        )
+
+        return D
+
+    def assemble_stabilization(self, sd: pg.Grid, cell_weights: np.ndarray):
+
+        D = self.assemble_dofs_of_monomials(sd)
+        proj = self.proj_to_PwPolynomials(sd)
+
+        Pi = D @ proj
+
+        cell_nodes = sd.cell_nodes()
+        nodes, cells, _ = sps.find(cell_nodes)
+
+        Id = sps.csc_array((np.ones_like(nodes), (np.arange(nodes.size), nodes)))
+
+        return (Id - Pi).T @ sps.diags_array(cell_weights[cells]) @ (Id - Pi)
+
+    def assemble_stiff_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles and returns the VEM stiffness matrix
+        :math:`(\nabla u, \nabla v)_\Omega` using the virtual element method.
+
+        Args:
+            sd (pg.Grid): The grid.
+            _data (dict | None): Optional data for the assembly process.
+
+        Returns:
+            sps.csc_array: The stiffness matrix obtained from the discretization.
+        """
+        A = self.assemble_broken_grad_grad_matrix(sd, data)
+        A += self.assemble_stabilization(
+            sd, cell_weights=sd.cell_diameters() ** (sd.dim - 2)
+        )
+
+        return A
 
     def assemble_mass_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
+        self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
         """
         Assembles and returns the mass matrix.
@@ -72,8 +168,38 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         Returns:
             sps.csc_array: The sparse mass matrix obtained from the discretization.
         """
-        return self._assemble_matrix_from_loc(sd, self.assemble_loc_mass_matrix)
 
+        M = super().assemble_mass_matrix(sd, data)
+        M += self.assemble_stabilization(sd, cell_weights=sd.cell_volumes)
+
+        return M
+
+    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
+        """
+        Returns the range discretization class for the given dimension.
+
+        Args:
+            dim (int): The dimension of the range space.
+
+        Returns:
+            Type[pg.Discretization]: The range discretization class.
+
+        Raises:
+            NotImplementedError: For dimensions other than 1 and 2.
+        """
+        match dim:
+            case 3:
+                raise NotImplementedError(
+                    "There's no Virtual NedelecR0 discretization in PyGeoN"
+                )
+            case 2:
+                return pg.VRT0
+            case 1:
+                return pg.MonConstants
+            case _:
+                raise NotImplementedError("There's no zero discretization in PyGeoN")
+
+    # ------------------------ old stuff used in other classes.------------------------
     def assemble_loc_mass_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
@@ -174,48 +300,6 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         return B
 
-    def proj_to_PwPolynomials(self, sd):
-
-        # Left-hand side
-        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
-        G_tilde = pwp.assemble_broken_grad_grad_matrix(sd)
-
-        cell_nodes = sd.cell_nodes()
-        coords = sd.nodes[:, cell_nodes.indices]
-        avg_coords = np.add.reduceat(coords, cell_nodes.indptr[:-1], axis=1)
-        avg_coords /= np.diff(cell_nodes.indptr)
-
-        vals = sd.rotation_matrix @ (avg_coords - sd.cell_centers) / sd.cell_diameters()
-        vals = np.vstack([np.ones(vals.shape[1]), vals])
-
-        P_0 = sps.hstack([sps.diags_array(row) for row in vals])
-        P_0 = sps.csc_array(P_0, shape=G_tilde.shape)
-
-        G = G_tilde + P_0
-
-        # Right-hand side
-        B = np.empty((G.shape[0], self.ndof(sd)))
-        P0_phi = (cell_nodes / np.diff(cell_nodes.indptr)).T
-
-        nodes, cells, _ = sps.find(cell_nodes)
-
-        node_face_avg = (sd.face_nodes / np.diff(sd.face_nodes.indptr)).T.tocsc()
-        nc_pair_faces = node_face_avg[:, nodes] * sd.cell_faces[:, cells]
-
-        ans = sd.rotation_matrix @ sd.face_normals @ nc_pair_faces
-        ans /= sd.cell_diameters()[cells]
-
-        P1_phi = sps.vstack(
-            [sps.csc_array((row_ans, (cells, nodes))) for row_ans in ans]
-        )
-
-        B = sps.vstack((P0_phi, P1_phi))
-
-        #
-        proj = pg.block_diag_solver(G, B)
-
-        return proj
-
     def assemble_loc_monomial_mass(
         self, sd: pg.Grid, cell: int, diam: float
     ) -> np.ndarray:
@@ -284,22 +368,6 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         return D
 
-    def assemble_stiff_matrix(
-        self, sd: pg.Grid, _data: dict | None = None
-    ) -> sps.csc_array:
-        r"""
-        Assembles and returns the VEM stiffness matrix
-        :math:`(\nabla u, \nabla v)_\Omega` using the virtual element method.
-
-        Args:
-            sd (pg.Grid): The grid.
-            _data (dict | None): Optional data for the assembly process.
-
-        Returns:
-            sps.csc_array: The stiffness matrix obtained from the discretization.
-        """
-        return self._assemble_matrix_from_loc(sd, self.assemble_loc_stiff_matrix)
-
     def assemble_loc_stiff_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
@@ -324,28 +392,3 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         I_minus_Pi = np.eye(nodes.size) - D @ proj
 
         return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
-
-    def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
-        """
-        Returns the range discretization class for the given dimension.
-
-        Args:
-            dim (int): The dimension of the range space.
-
-        Returns:
-            Type[pg.Discretization]: The range discretization class.
-
-        Raises:
-            NotImplementedError: For dimensions other than 1 and 2.
-        """
-        match dim:
-            case 3:
-                raise NotImplementedError(
-                    "There's no Virtual NedelecR0 discretization in PyGeoN"
-                )
-            case 2:
-                return pg.VRT0
-            case 1:
-                return pg.MonConstants
-            case _:
-                raise NotImplementedError("There's no zero discretization in PyGeoN")

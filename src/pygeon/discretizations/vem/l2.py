@@ -1,6 +1,6 @@
 """Module for the discretizations of the L2 space."""
 
-from typing import Callable
+from typing import Any, Callable, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -10,8 +10,8 @@ import pygeon as pg
 
 class MonConstants(pg.VDiscretization, pg.PwConstants):
     r"""
-    Class implementing the monomial basis for the consants :math:`\mathbb{P}_0(\Omega)
-    \subset L^2(\Omega)`, for a generic domain :math:`\Omega \subset \mathbb{R}^d`.
+    Class implementing the monomial basis for the constants :math:`\mathbb{P}_0(\Omega)
+    \subset L^2(\Omega)`, for a polytopal grid :math:`\Omega \subset \mathbb{R}^d`.
 
     Each degree of freedom is the integral over the cell. The space coincides with the
     FEM piecewise constants except that it relates to the monomial P1 instead of the
@@ -37,8 +37,8 @@ class MonConstants(pg.VDiscretization, pg.PwConstants):
 
 class MonLinears(pg.VDiscretization, pg.PwLinears):
     r"""
-    Class implementing the piecewise linears :math:`\mathbb{P}_1(\Omega) \subset
-    L^2(\Omega)`, for a polytopal grid domain :math:`\Omega \subset \mathbb{R}^d`.
+    Class implementing the monomial basis for the linears :math:`\mathbb{P}_1(\Omega)
+    \subset L^2(\Omega)`, for a polytopal grid :math:`\Omega \subset \mathbb{R}^d`.
     """
 
     def assemble_mass_matrix(
@@ -98,7 +98,8 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
 
         # Sum the resulting matrices for each cell and scale with the weight
         data_IJ = np.zeros((*sub_prods.shape[:-1], sd.num_cells))
-        np.add.at(data_IJ, [slice(None), slice(None), cells], sub_prods)
+        indices = cast(Any, (slice(None), slice(None), cells))  # For mypy
+        np.add.at(data_IJ, indices, sub_prods)
         data_IJ *= weight
 
         # Index lists for the degrees of freedom per element

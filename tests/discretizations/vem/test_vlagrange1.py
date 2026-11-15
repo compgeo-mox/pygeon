@@ -24,10 +24,7 @@ def test_ndof_octagon(discr, ref_octagon):
 def test_on_pentagon(discr, pentagon_sd):
     # Test the three matrices from Hitchhikers sec 4.2
 
-    diam = pentagon_sd.cell_diameters()[0]
-    loc_nodes = np.arange(5)
-
-    B = discr.assemble_loc_L2proj_rhs(pentagon_sd, 0, diam, loc_nodes)
+    B = discr.assemble_proj_rhs(pentagon_sd)
     B_known = (
         np.array(
             [
@@ -39,7 +36,7 @@ def test_on_pentagon(discr, pentagon_sd):
         / 20
     )
 
-    D = discr.assemble_loc_dofs_of_monomials(pentagon_sd, 0, diam, loc_nodes)
+    D = discr.assemble_dofs_of_monomials(pentagon_sd)
     D_known = (
         np.array(
             [
@@ -53,14 +50,14 @@ def test_on_pentagon(discr, pentagon_sd):
         / 1470
     )
 
-    G = discr.assemble_loc_L2proj_lhs(pentagon_sd, 0, diam, loc_nodes)
+    G = discr.assemble_proj_lhs(pentagon_sd)
     G_known = (
         np.array([[1050.0, 30.0, 40.0], [0.0, 441.0, 0.0], [0.0, 0.0, 441.0]]) / 1050
     )
 
-    assert matrix_equals(B, B_known)
-    assert matrix_equals(D, D_known)
-    assert matrix_equals(G, G_known)
+    assert matrix_equals(B.todense(), B_known)
+    assert matrix_equals(D.todense(), D_known)
+    assert matrix_equals(G.todense(), G_known)
 
 
 def test_diff_matrix(discr, pentagon_sd):
@@ -98,11 +95,11 @@ def test_assemble_nat_bc(discr, pentagon_sd):
     assert np.allclose(vals, vals_known)
 
 
-def test_range_discr(discr: pg.Lagrange1):
+def test_range_discr(discr: pg.VLagrange1):
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(0)
 
-    assert discr.get_range_discr_class(1) is pg.PwConstants
+    assert discr.get_range_discr_class(1) is pg.MonConstants
     assert discr.get_range_discr_class(2) is pg.VRT0
 
     with pytest.raises(NotImplementedError):
