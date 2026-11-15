@@ -2,7 +2,7 @@
 
 import abc
 from math import comb, factorial
-from typing import Callable, Type
+from typing import Callable, Type, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -536,6 +536,7 @@ class PwLinears(PwPolynomials):
             sps.csc_array: The projection matrix.
         """
         p2 = self.get_PwPolynomials(self.poly_order + 1, self.tensor_order)()
+        p2 = cast(pg.PwQuadratics, p2)
 
         # Local dof mapping
         num_cell_edges = p2.num_edges_per_cell(sd.dim)
