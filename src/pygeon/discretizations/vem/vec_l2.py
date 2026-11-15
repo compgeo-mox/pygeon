@@ -7,7 +7,7 @@ import pygeon as pg
 
 class VecMonConstants(pg.VDiscretization, pg.VecPwConstants):
     """
-    A class representing the discretization using vector piecewise constant functions.
+    A class representing the piecewise constant monomials.
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
@@ -25,7 +25,7 @@ class VecMonConstants(pg.VDiscretization, pg.VecPwConstants):
 
 class VecMonLinears(pg.VDiscretization, pg.VecPwLinears):
     """
-    A class representing the discretization using vector piecewise linear functions.
+    A class representing the piecewise linear monomials
     """
 
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:

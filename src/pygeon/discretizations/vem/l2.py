@@ -126,8 +126,8 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
     ) -> np.ndarray:
         """
-        Interpolates a function onto the finite element space by evaluating the function
-        at the (sd.dim + 1) Gauss points of each cell.
+        Interpolates a function onto the monomials by interpolating the function onto
+        the virtual nodal space and projecting.
 
         Args:
             sd (pg.Grid): The grid.

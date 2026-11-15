@@ -40,7 +40,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
     def assemble_proj_lhs(self, sd: pg.Grid):
         """
-        Returns the system G from the Hitchhiker's (3.9)
+        Returns the system G from the Hitchhiker's (3.9), which forms the left-hand side
+        for the L2 projection problem.
 
         Args:
             sd (pg.Grid): The grid.
@@ -49,17 +50,25 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             np.ndarray: The system matrix G.
         """
 
+        # The matrix coincides with the broken stiffness matrix of the piecewise
+        # monomials.
         pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         G_tilde = pwp.assemble_broken_grad_grad_matrix(sd)
 
+        # Except for the first rows, where we need to introduce the projection onto the
+        # constants. Following the Hitchhiker's guide, we take the average over the
+        # nodal values.
         cell_nodes = sd.cell_nodes()
         coords = sd.nodes[:, cell_nodes.indices]
         avg_coords = np.add.reduceat(coords, cell_nodes.indptr[:-1], axis=1)
         avg_coords /= np.diff(cell_nodes.indptr)
 
+        # Evaluate the average value of each monomial from {1, (x - c)/d, (y - c)/d}
         vals = sd.rotation_matrix @ (avg_coords - sd.cell_centers) / sd.cell_diameters()
         vals = np.vstack([np.ones(vals.shape[1]), vals])
 
+        # Compute the averaging operator and pad it with zeros so it can be added to
+        # G_tilde
         P_0 = sps.hstack([sps.diags_array(row) for row in vals])
         P_0 = sps.csc_array(P_0, shape=G_tilde.shape)
 
@@ -67,7 +76,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
     def assemble_proj_rhs(self, sd: pg.Grid):
         """
-        Returns the righthand side B from the Hitchhiker's (3.14)
+        Returns the matrix B from the Hitchhiker's (3.14), which forms the right-hand
+        side of the L2 projection problem.
 
         Args:
             sd (pg.Grid): The grid.
@@ -76,19 +86,38 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             np.ndarray: The righthand side B.
         """
 
+        # First the projection onto the constants
         cell_nodes = sd.cell_nodes()
         P0_phi = (cell_nodes / np.diff(cell_nodes.indptr)).T
 
+        # Now the integrals against the monomials. We use the fact that
+        # \nabla m_i = ê_i / diam
+        # with ê_i the i-th basis vector of R^n. Using Stokes, we need to integrate over
+        # the faces of the cell.The integral over a face is then given by dividing over
+        # the number of nodes on each face.
+        num_nodes_per_face = np.diff(sd.face_nodes.indptr)
+        node_face_avg = (sd.face_nodes / num_nodes_per_face).T.tocsc()
+
+        # Each connected node-face-cell pair gives a contribution to the matrix. To sum
+        # up the relevant face contributions, we start with a matrix with n_faces rows
+        # and one column for each node-cell pair. The entries are given by
+        # cf_orient / num_nodes_per_face / diameter.
+        # Using an entry-wise multiplication, we ensure that only the connected triplets
+        # are counted.
         nodes, cells, _ = sps.find(cell_nodes)
+        nc_pair_faces = (
+            node_face_avg[:, nodes]
+            * sd.cell_faces[:, cells]
+            / sd.cell_diameters()[cells]
+        )
 
-        node_face_avg = (sd.face_nodes / np.diff(sd.face_nodes.indptr)).T.tocsc()
-        nc_pair_faces = node_face_avg[:, nodes] * sd.cell_faces[:, cells]
-
+        # The summation over the relevant faces is then done with a matrix product.
         vals = sd.rotation_matrix @ sd.face_normals @ nc_pair_faces
-        vals /= sd.cell_diameters()[cells]
 
+        # Each row i in vals corresponds to the monomials in terms of x_i.
         P1_phi = sps.vstack([sps.csc_array((row, (cells, nodes))) for row in vals])
 
+        # Combine with the constant projection.
         return sps.vstack((P0_phi, P1_phi))
 
     def assemble_dofs_of_monomials(self, sd: pg.Grid):
@@ -121,6 +150,17 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         return D
 
     def assemble_stabilization(self, sd: pg.Grid, cell_weights: np.ndarray):
+        """
+        Returns the stabilization term :math:`S` that measures the discrepancy between
+        the basis function and its projection onto the monomials. This is computed by
+        evaluating the original degree of freedoms for the monomial projections.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            np.ndarray: The stabilization matrix S.
+        """
 
         D = self.assemble_dofs_of_monomials(sd)
         proj = self.proj_to_PwPolynomials(sd)
@@ -143,7 +183,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         Args:
             sd (pg.Grid): The grid.
-            _data (dict | None): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The stiffness matrix obtained from the discretization.
@@ -163,7 +203,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         Args:
             sd (pg.Grid): The grid.
-            _data (dict | None): Optional data for the assembly process.
+            data (dict | None): Optional data for the assembly process.
 
         Returns:
             sps.csc_array: The sparse mass matrix obtained from the discretization.
@@ -207,6 +247,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         Computes the local VEM mass matrix :math:`(u, v)_K` on a given cell
         according to the Hitchhiker's (6.5).
 
+        NOTE: Deprecated since #350
+
         Args:
             sd (pg.Grid): The grid.
             cell (int): The index of the cell on which to compute the mass matrix.
@@ -238,6 +280,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         for each VL1 basis function, with :math:`d` the diameter and :math:`c` the
         center of the cell.
 
+        NOTE: Deprecated since #350
+
         Args:
             sd (pg.Grid): The grid.
             cell (int): The index of the cell in which the projection is computed.
@@ -257,6 +301,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     ) -> np.ndarray:
         """
         Returns the system G from the Hitchhiker's (3.9)
+
+        NOTE: Deprecated since #350
 
         Args:
             sd (pg.Grid): The grid.
@@ -280,6 +326,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     ) -> np.ndarray:
         """
         Returns the righthand side B from the Hitchhiker's (3.14)
+
+        NOTE: Deprecated since #350
 
         Args:
             sd (pg.Grid): The grid.
@@ -311,6 +359,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             \left\{1, \frac{x - c}{d}, \frac{y - c}{d}\right\}
 
         Reference: Hitchhiker's (5.3)
+
+        NOTE: Deprecated since #350
 
         Args:
             sd (pg.Grid): The grid.
@@ -351,6 +401,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         Returns the matrix :math:`D` whose rows are the degrees of freedom applied to
         the local monomial basis functions, from the Hitchhiker's (3.17).
 
+        NOTE: Deprecated since #350
+
         Args:
             sd (pg.Grid): The grid.
             cell (int): The index of the cell.
@@ -367,28 +419,3 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         ).T / diam
 
         return D
-
-    def assemble_loc_stiff_matrix(
-        self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
-    ) -> np.ndarray:
-        r"""
-        Computes the local VEM stiffness matrix :math:`(\nabla u, \nabla v)_K` on a
-        given cell according to the Hitchhiker's (3.25).
-
-        Args:
-            sd (pg.Grid): The grid.
-            cell (int): The index of the cell on which to compute the stiffness matrix.
-            diam (float): The diameter of the cell.
-            nodes (np.ndarray): The array of node indices of the cell.
-
-        Returns:
-            np.ndarray: The computed local VEM stiffness matrix.
-        """
-        proj = self.assemble_loc_proj_to_mon(sd, cell, diam, nodes)
-        G = self.assemble_loc_L2proj_lhs(sd, cell, diam, nodes)
-        G[0, :] = 0.0
-
-        D = self.assemble_loc_dofs_of_monomials(sd, cell, diam, nodes)
-        I_minus_Pi = np.eye(nodes.size) - D @ proj
-
-        return proj.T @ G @ proj + I_minus_Pi.T @ I_minus_Pi
