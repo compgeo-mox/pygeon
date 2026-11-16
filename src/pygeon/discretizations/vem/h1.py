@@ -10,8 +10,8 @@ import pygeon as pg
 
 class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     """
-    Discretization class for the virtual Lagrange1 method, on polytopal grids with
-    simplicial faces, following the Hitchhiker's guide to the virtual element method.
+    Discretization class for the virtual Lagrange1 method, on polytopal grids, following
+    the Hitchhiker's guide to the virtual element method.
     """
 
     def proj_to_PwPolynomials(self, sd: pg.Grid):
