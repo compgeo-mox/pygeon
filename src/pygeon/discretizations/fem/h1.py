@@ -92,8 +92,8 @@ class Lagrange(pg.Discretization):
 
         # Its inclusion in the piecewise polynomials of order k, where it is tested
         # with v through their mass matrix
-        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
-        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        low = self.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        high = self.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
         mass = high.assemble_mass_matrix(sd)
         proj = self.proj_to_PwPolynomials(sd)
