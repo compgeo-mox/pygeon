@@ -35,7 +35,7 @@ class MatDiscretization(pg.VecDiscretization):
             method.
         """
         P = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         method = getattr(pwp, method_name)
         result = method(sd, *args, **kwargs)
         return P.T @ result @ P
@@ -197,14 +197,14 @@ class MatDiscretization(pg.VecDiscretization):
             sps.csc_array: The assembled asymmetry matrix.
         """
         P = self.proj_to_PwPolynomials(sd)
-        mat_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
+        mat_discr = self.get_PwPolynomials(self.poly_order, pg.MATRIX)(self.keyword)
         mat_discr = cast(pg.MatPwLinears | pg.MatPwQuadratics, mat_discr)
         asym = mat_discr.assemble_asym_matrix(sd) @ P
 
         if as_pwconstant:
             tensor_order = sd.dim - 2
 
-            range_space = pg.get_PwPolynomials(self.poly_order, tensor_order)(
+            range_space = self.get_PwPolynomials(self.poly_order, tensor_order)(
                 self.keyword
             )
             P0 = pg.proj_to_PwPolynomials(range_space, sd, 0)
@@ -224,7 +224,7 @@ class MatDiscretization(pg.VecDiscretization):
             sps.csc_array: The trace matrix obtained from the discretization.
         """
         P = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         pwp = cast(pg.MatPwPolynomials, pwp)
         trace = pwp.assemble_trace_matrix(sd)
         return trace @ P

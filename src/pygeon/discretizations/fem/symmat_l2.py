@@ -29,7 +29,7 @@ class SymMatPwPolynomials(pg.Discretization):
                 Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
-        self.base_discr = pg.get_PwPolynomials(self.poly_order, pg.MATRIX)(keyword)
+        self.base_discr = self.get_PwPolynomials(self.poly_order, pg.MATRIX)(keyword)
 
     def ndof(self, sd: pg.Grid) -> int:
         """
@@ -58,7 +58,7 @@ class SymMatPwPolynomials(pg.Discretization):
         Returns:
             np.ndarray: The number of degrees of freedom per entity.
         """
-        scalar_space = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        scalar_space = self.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         return ((dim + 1) * dim // 2) * scalar_space.ndof_per_entity(dim)
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:

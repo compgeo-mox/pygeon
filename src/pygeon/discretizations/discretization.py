@@ -558,3 +558,17 @@ class VDiscretization(Discretization):
             KeyError: If the polynomial or the tensor order is not supported.
         """
         return pg.get_PwMonomials(poly_order, tensor_order)
+
+    def assemble_lumped_matrix(self, sd, data=None):
+        """
+        Lumped mass matrices are only implemented for some VEM spaces. To be on the safe
+        side, we throw an error in the general case.
+        """
+        raise NotImplementedError
+
+    def proj_to_higher_PwPolynomials(self, sd):
+        """
+        Projections are only implemented for some VEM spaces. To be on the safe side,
+        we throw an error in the general case.
+        """
+        raise NotImplementedError

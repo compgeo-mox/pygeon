@@ -32,7 +32,7 @@ class HDiv(pg.Discretization):
         Returns:
             Type[pg.Discretization]: The range discretization class.
         """
-        return pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
+        return self.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -97,14 +97,14 @@ class HDiv(pg.Discretization):
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k
-        vec_high = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        vec_high = self.get_PwPolynomials(self.poly_order, pg.VECTOR)()
         dot = cast(pg.VecPwPolynomials, vec_high).assemble_dot_product(sd, W)
         proj = self.proj_to_PwPolynomials(sd)
 
         # Tested with v in the range of the divergence, the piecewise polynomials of
         # order k - 1, through their inclusion in the order k and its mass matrix
         low = cast(pg.PwPolynomials, self.get_range_discr_class(sd.dim)())
-        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        high = self.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
         mass = high.assemble_mass_matrix(sd)
         adv = incl.T @ mass @ dot @ proj
@@ -650,7 +650,7 @@ class RT1(HDiv):
         """
         # The divergence corresponds to the broken divergence in this case.
         proj = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        pwp = self.get_PwPolynomials(self.poly_order, pg.VECTOR)()
         pwp = cast(pg.VecPwPolynomials, pwp)
 
         return pwp.assemble_broken_div_matrix(sd) @ proj
