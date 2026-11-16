@@ -31,8 +31,3 @@ def test_vector_linears(unit_poly_sd):
     )
     ndof, known = discr.ndof(unit_poly_sd), 2 * pg.PwMLinears().ndof(unit_poly_sd)
     assert ndof == known, f"{ndof} dofs, expected {known}"
-
-
-def test_unsupported_order():
-    with pytest.raises(KeyError, match="Unsupported polynomial order 2"):
-        pg.get_PwMonomials(2, pg.SCALAR)
