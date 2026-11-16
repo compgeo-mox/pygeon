@@ -60,9 +60,12 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
 
         faces, cells, orient = sps.find(sd.cell_faces)
 
-        # All faces must be simplicial, for now.
-        assert np.allclose(np.diff(sd.face_nodes.indptr), sd.dim)
+        assert np.allclose(np.diff(sd.face_nodes.indptr), sd.dim), (
+            "All faces must be simplicial, for now."
+        )
 
+        # Compute the volume of the simplicial subtesselation. It is given by connecting
+        # the cell center to the nodes of the simplicial face.
         sub_volumes = (
             np.einsum(
                 "ij,ij->j",
@@ -163,7 +166,7 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
     def assemble_broken_grad_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
-        This operator maps to the vector-valued piecewise constants
+        This operator maps to the vector-valued piecewise constant monomials
         :class:`pg.VecPwMConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
         and is used for computing :math:`\nabla_h u` element-wise.
 

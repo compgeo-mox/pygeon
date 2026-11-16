@@ -51,19 +51,19 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         """
 
         # The matrix coincides with the broken stiffness matrix of the piecewise
-        # monomials.
+        # monomials, except for the first rows, which we adjust afterward.
         pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         G_tilde = pwp.assemble_broken_grad_grad_matrix(sd)
 
-        # Except for the first rows, where we need to introduce the projection onto the
-        # constants. Following the Hitchhiker's guide, we take the average over the
-        # nodal values.
+        # We need to introduce the projection onto the constants in the first rows.
+        # Following the Hitchhiker's guide, we take the average over the nodal values.
         cell_nodes = sd.cell_nodes()
         coords = sd.nodes[:, cell_nodes.indices]
         avg_coords = np.add.reduceat(coords, cell_nodes.indptr[:-1], axis=1)
         avg_coords /= np.diff(cell_nodes.indptr)
 
-        # Evaluate the average value of each monomial from {1, (x - c)/d, (y - c)/d}
+        # Evaluate the average value of the monomials {(x - c)/d, (y - c)/d, (z - c)/d}
+        # and insert the constants at the top.
         vals = sd.rotation_matrix @ (avg_coords - sd.cell_centers) / sd.cell_diameters()
         vals = np.vstack([np.ones(vals.shape[1]), vals])
 
@@ -106,15 +106,15 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         # are counted.
         nodes, cells, _ = sps.find(cell_nodes)
         nc_pair_faces = (
-            node_face_avg[:, nodes]
-            * sd.cell_faces[:, cells]
+            sd.cell_faces[:, cells]
+            * node_face_avg[:, nodes]
             / sd.cell_diameters()[cells]
         )
 
         # The summation over the relevant faces is then done with a matrix product.
         vals = sd.rotation_matrix @ sd.face_normals @ nc_pair_faces
 
-        # Each row i in vals corresponds to the monomials in terms of x_i.
+        # Each row i in vals corresponds to the monomial in terms of x_i.
         P1_phi = sps.vstack([sps.csc_array((row, (cells, nodes))) for row in vals])
 
         # Combine with the constant projection.
@@ -132,17 +132,21 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             np.ndarray: The matrix D.
         """
 
+        # We need to evaluate the monomials at the nodes. However, some cells share a
+        # node and we must avoid that their contributions get summed. We therefore
+        # generate a matrix that has a row for each connected cell-node pair.
         cell_nodes = sd.cell_nodes()
         nodes, cells, _ = sps.find(cell_nodes)
 
+        # Evaluate the monomials and insert the constants.
         vals = (
             sd.rotation_matrix
             @ (sd.nodes[:, nodes] - sd.cell_centers[:, cells])
             / sd.cell_diameters()[cells]
         )
-
         vals = np.vstack((np.ones(vals.shape[1]), vals))
 
+        # Assemble
         D = sps.hstack(
             [sps.csc_array((row, (np.arange(cells.size), cells))) for row in vals]
         )
@@ -170,6 +174,8 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         cell_nodes = sd.cell_nodes()
         nodes, cells, _ = sps.find(cell_nodes)
 
+        # The identity tensor maps the value from the node to the relevant cell-node
+        # pairs. These can be compared with the output from Pi.
         Id = sps.csc_array((np.ones_like(nodes), (np.arange(nodes.size), nodes)))
 
         return (Id - Pi).T @ sps.diags_array(cell_weights[cells]) @ (Id - Pi)
@@ -239,7 +245,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             case _:
                 raise NotImplementedError("There's no zero discretization in PyGeoN")
 
-    # ------------------------ old stuff used in other classes.------------------------
+    # ---------------- old functionalities used in other VEM classes ----------------
     def assemble_loc_mass_matrix(
         self, sd: pg.Grid, cell: int, diam: float, nodes: np.ndarray
     ) -> np.ndarray:
@@ -247,7 +253,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         Computes the local VEM mass matrix :math:`(u, v)_K` on a given cell
         according to the Hitchhiker's (6.5).
 
-        NOTE: Deprecated since #350
+        NOTE: Deprecated since #350, will be removed in the near future.
 
         Args:
             sd (pg.Grid): The grid.
@@ -280,7 +286,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         for each VL1 basis function, with :math:`d` the diameter and :math:`c` the
         center of the cell.
 
-        NOTE: Deprecated since #350
+        NOTE: Deprecated since #350, will be removed in the near future.
 
         Args:
             sd (pg.Grid): The grid.
@@ -302,7 +308,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         """
         Returns the system G from the Hitchhiker's (3.9)
 
-        NOTE: Deprecated since #350
+        NOTE: Deprecated since #350, will be removed in the near future.
 
         Args:
             sd (pg.Grid): The grid.
@@ -327,7 +333,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         """
         Returns the righthand side B from the Hitchhiker's (3.14)
 
-        NOTE: Deprecated since #350
+        NOTE: Deprecated since #350, will be removed in the near future.
 
         Args:
             sd (pg.Grid): The grid.
@@ -360,7 +366,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         Reference: Hitchhiker's (5.3)
 
-        NOTE: Deprecated since #350
+        NOTE: Deprecated since #350, will be removed in the near future.
 
         Args:
             sd (pg.Grid): The grid.
@@ -401,7 +407,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         Returns the matrix :math:`D` whose rows are the degrees of freedom applied to
         the local monomial basis functions, from the Hitchhiker's (3.17).
 
-        NOTE: Deprecated since #350
+        NOTE: Deprecated since #350, will be removed in the near future.
 
         Args:
             sd (pg.Grid): The grid.
