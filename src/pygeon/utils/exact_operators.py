@@ -460,7 +460,7 @@ def to_callable(
         )
 
     if isinstance(expression, sp.MatrixBase):
-        shape: tuple = expression.shape
+        shape = expression.shape
         assert shape in ((pg.AMBIENT_DIM, 1), (pg.AMBIENT_DIM, pg.AMBIENT_DIM)), (
             f"A vector of {pg.AMBIENT_DIM} components or a {pg.AMBIENT_DIM} by "
             f"{pg.AMBIENT_DIM} matrix is expected, in the ambient coordinates, while "
