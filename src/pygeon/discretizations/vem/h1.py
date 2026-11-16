@@ -10,8 +10,8 @@ import pygeon as pg
 
 class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     """
-    Discretization class for the virtual Lagrange1 method, on two-dimensional
-    polygonal grids, following the Hitchhiker's guide to the virtual element method.
+    Discretization class for the virtual Lagrange1 method, on polytopal grids with
+    simplicial faces, following the Hitchhiker's guide to the virtual element method.
     """
 
     def proj_to_PwPolynomials(self, sd: pg.Grid):
@@ -194,9 +194,18 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         Returns:
             sps.csc_array: The stiffness matrix obtained from the discretization.
         """
+        # The stabilization is scaled with the mean eigenvalue of the tensor on the
+        # tangent space of the grid, times the weight
+        tensor = pg.get_cell_data(
+            sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
+        )
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+        R = sd.rotation_matrix
+        trace = np.einsum("ij,jkc,ik->c", R, tensor.values, R) / sd.dim
+
         A = self.assemble_broken_grad_grad_matrix(sd, data)
         A += self.assemble_stabilization(
-            sd, cell_weights=sd.cell_diameters() ** (sd.dim - 2)
+            sd, cell_weights=weight * trace * sd.cell_diameters() ** (sd.dim - 2)
         )
 
         return A
@@ -215,10 +224,32 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             sps.csc_array: The sparse mass matrix obtained from the discretization.
         """
 
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+
         M = super().assemble_mass_matrix(sd, data)
-        M += self.assemble_stabilization(sd, cell_weights=sd.cell_volumes)
+        M += self.assemble_stabilization(sd, cell_weights=weight * sd.cell_volumes)
 
         return M
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Assembles the lumped mass matrix, with the measure of the region of each cell
+        associated with each node, see :meth:`pg.Grid.compute_subvolumes`, scaled with
+        the weight.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Optional data for the assembly process.
+
+        Returns:
+            sps.csc_array: The diagonal lumped mass matrix.
+        """
+        weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+        subvolumes = sd.compute_subvolumes()
+
+        return sps.diags_array(subvolumes @ weight).tocsc()
 
     def get_range_discr_class(self, dim: int) -> Type[pg.Discretization]:
         """

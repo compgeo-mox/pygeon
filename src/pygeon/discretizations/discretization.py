@@ -462,6 +462,7 @@ class Discretization(abc.ABC):
 
         Args:
             sd (pg.Grid): The grid.
+            data (dict | None): Dictionary with physical parameters for scaling.
 
         Returns:
             sps.csc_array: The assembled broken grad-grad matrix.
