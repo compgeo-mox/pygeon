@@ -55,7 +55,8 @@ def test_broken_div(discr, unit_sd):
 def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     # With u = a + b x, in all the spaces, and the tensor and the field constant, all
     # in the ambient coordinates, K^{-1} beta . u on the grid is
-    # f = (P K^{-1} P beta) . u, with P the projection on the plane of the grid: a
+    # f = (P K^{-1} beta) . u, with P the projection on the plane of the grid: the
+    # normal component of beta acts through the off-diagonal block of K^{-1}. It is a
     # linear function, which the range of the divergence tests exactly, so that
     # A u = M f
     sd = tilted_sd
@@ -69,7 +70,7 @@ def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     inv_K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
     beta = np.array([1.0, 2.0, 3.0])
     a, b = np.array([0.5, -1.0, 2.0]), 1.5
-    w = P @ inv_K @ P @ beta
+    w = P @ inv_K @ beta
 
     perm = pg.constant_tensor(sd.num_cells, inv_K)
     field = np.tile(beta.reshape((-1, 1)), sd.num_cells)

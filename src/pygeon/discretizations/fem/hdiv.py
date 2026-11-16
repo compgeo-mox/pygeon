@@ -48,13 +48,12 @@ class HDiv(pg.Discretization):
         accessible via pg.VECTOR_FIELD, and the second-order tensor :math:`K^{-1}`,
         accessible via pg.SECOND_ORDER_TENSOR, both constant per cell and given in the
         ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
-        :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
-        of dimension lower than 3 only their components in the plane or the line of
-        the grid act: the weight is :math:`K^{-1} P \boldsymbol{\beta}`, with
-        :math:`P` the projection on it, and its dot product with
+        :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. The
+        weight :math:`K^{-1} \boldsymbol{\beta}` is computed in the ambient
+        coordinates, and on grids of dimension lower than 3 its dot product with
         :math:`\boldsymbol{u}`, tangent to the grid, takes its component
-        :math:`P K^{-1} P \boldsymbol{\beta}`, so that only the tangential block of
-        :math:`K^{-1}` acts, as in the mass matrix.
+        :math:`P K^{-1} \boldsymbol{\beta}`, with :math:`P` the projection on the
+        plane or the line of the grid.
 
         Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
         :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
@@ -87,11 +86,9 @@ class HDiv(pg.Discretization):
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
 
-        # The weight K^{-1} P beta on each cell, with P = R^T R the projection on the
-        # plane or the line of the grid, the identity in 3D. The dot product rotates
-        # it to the plane, so that only the tangential block of K^{-1} acts
-        P = sd.rotation_matrix.T @ sd.rotation_matrix
-        W = np.einsum("ijc,jc->ic", inv_K, P @ V)
+        # The weight K^{-1} beta on each cell, in the ambient coordinates. The dot
+        # product with u rotates it to the plane or the line of the grid
+        W = np.einsum("ijc,jc->ic", inv_K, V)
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k
