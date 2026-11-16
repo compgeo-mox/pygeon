@@ -31,8 +31,8 @@ class PwMConstants(pg.VDiscretization, pg.PwConstants):
             sps.csc_array: The projection matrix.
         """
         inc = self.eval_at_cell_centers(sd)
-        range = self.get_PwPolynomials(self.poly_order + 1, self.tensor_order)()
-        return sps.csc_array(inc, shape=(range.ndof(sd), self.ndof(sd)))
+        range_discr = self.get_PwPolynomials(self.poly_order + 1, self.tensor_order)()
+        return sps.csc_array(inc, shape=(range_discr.ndof(sd), self.ndof(sd)))
 
 
 class PwMLinears(pg.VDiscretization, pg.PwLinears):
