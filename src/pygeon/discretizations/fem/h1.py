@@ -57,10 +57,9 @@ class Lagrange(pg.Discretization):
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
         accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
         constant per cell (:class:`pg.VecPwConstants`). If not provided, it
-        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
-        rotated to the plane or the line of the grid with ``sd.rotation_matrix``,
-        unless the entry "is_tangential" of data is True: then its first dim
-        components are taken as the ones in those coordinates.
+        defaults to :math:`(0, 0, 0)`. The field is given in the ambient coordinates,
+        and on grids of dimension lower than 3 only its component in the plane or the
+        line of the grid acts.
 
         Since the field is constant on each cell,
         :math:`\boldsymbol{\beta} \cdot \nabla u` is a piecewise polynomial of order
@@ -86,9 +85,6 @@ class Lagrange(pg.Discretization):
         """
         # Retrieve the vector field, in the ambient coordinates
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        # TODO: remove is_tangential, see #340
-        if data and data.get("is_tangential", False):
-            V = sd.rotation_matrix.T @ V[: sd.dim]
 
         # The directional derivative of u along the field, in the piecewise
         # polynomials of order k - 1
@@ -128,8 +124,10 @@ class Lagrange(pg.Discretization):
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+        # Rotate the tensor, of shape (3, 3, num_cells), to the plane or the line of
+        # the grid: R K R^T on each cell, of shape (dim, dim, num_cells)
         R = sd.rotation_matrix
-        K = np.tensordot(R.T, np.tensordot(R, tensor.values, (1, 0)), (0, 1))
+        K = np.einsum("ai,ijc,bj->abc", R, tensor.values, R)
         K *= weight
 
         # The local dofs of each polynomial component are ordered as (local, cell)

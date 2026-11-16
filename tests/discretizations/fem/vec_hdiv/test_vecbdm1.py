@@ -28,6 +28,7 @@ def test_trace_2d(discr, unit_sd_2d):
         [
             [x[0] + x[1], x[0], 0 * x[0]],
             [x[1], -x[0] - x[1], 0 * x[0]],
+            [0 * x[0], 0 * x[0], 0 * x[0]],
         ]
     )
     u = discr.interpolate(unit_sd_2d, fun)

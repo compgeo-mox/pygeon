@@ -33,7 +33,7 @@ def test_div_and_symgrad_of_quadratics(discr, unit_sd):
     div = pg.exact.to_callable(pg.exact.divergence(u))
     symgrad = pg.exact.to_callable(pg.exact.symmetric_gradient(u))
 
-    fun_interp = discr.interpolate(unit_sd, pg.exact.to_callable(u, dim))
+    fun_interp = discr.interpolate(unit_sd, pg.exact.to_callable(u))
 
     p1 = pg.PwLinears(discr.keyword)
     mat_p1 = pg.MatPwLinears(discr.keyword)
