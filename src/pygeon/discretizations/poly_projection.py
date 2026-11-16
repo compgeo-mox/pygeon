@@ -48,6 +48,42 @@ def get_PwPolynomials(
     return pwp_dict[(poly_order, tensor_order)]
 
 
+def get_PwMonomials(
+    poly_order: int, tensor_order: int
+) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+    """
+    Returns the piecewise monomial discretization class based on the polynomial
+    order and the tensor order.
+
+    Args:
+        poly_order (int): The polynomial order.
+        tensor_order (int): The tensor order.
+
+    Returns:
+        Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]: The corresponding
+        piecewise polynomial discretization class.
+
+    Raises:
+        KeyError: If the polynomial or the tensor order is not supported.
+    """
+    pwp_dict: dict[
+        tuple[int, int],
+        Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials],
+    ] = {
+        (0, pg.SCALAR): pg.PwMConstants,
+        (1, pg.SCALAR): pg.PwMLinears,
+        (0, pg.VECTOR): pg.VecPwMConstants,
+        (1, pg.VECTOR): pg.VecPwMLinears,
+    }
+    if (poly_order, tensor_order) not in pwp_dict:
+        raise KeyError(
+            "Unsupported polynomial order {:} and tensor order {:}.".format(
+                poly_order, tensor_order
+            )
+        )
+    return pwp_dict[(poly_order, tensor_order)]
+
+
 def proj_to_PwPolynomials(
     discr: pg.Discretization, sd: pg.Grid, poly_order: int
 ) -> sps.csc_array:
@@ -69,14 +105,14 @@ def proj_to_PwPolynomials(
     current_poly_order = discr.poly_order
 
     while current_poly_order < poly_order:
-        poly_discr = get_PwPolynomials(current_poly_order, discr.tensor_order)(
+        poly_discr = discr.get_PwPolynomials(current_poly_order, discr.tensor_order)(
             discr.keyword
         )
         pi = poly_discr.proj_to_higher_PwPolynomials(sd) @ pi
         current_poly_order += 1
 
     while current_poly_order > poly_order:
-        poly_discr = get_PwPolynomials(current_poly_order, discr.tensor_order)(
+        poly_discr = discr.get_PwPolynomials(current_poly_order, discr.tensor_order)(
             discr.keyword
         )
         pi = poly_discr.proj_to_lower_PwPolynomials(sd) @ pi

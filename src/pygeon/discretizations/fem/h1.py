@@ -40,11 +40,7 @@ class Lagrange(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        grad_space = self.get_broken_grad_discr()(self.keyword)
-        M = grad_space.assemble_mass_matrix(sd, data)
-        grad = self.assemble_broken_grad_matrix(sd)
-
-        return (grad.T @ M @ grad).tocsc()
+        return self.assemble_broken_grad_grad_matrix(sd, data)
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -92,8 +88,8 @@ class Lagrange(pg.Discretization):
 
         # Its inclusion in the piecewise polynomials of order k, where it is tested
         # with v through their mass matrix
-        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
-        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        low = self.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        high = self.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
         mass = high.assemble_mass_matrix(sd)
         proj = self.proj_to_PwPolynomials(sd)

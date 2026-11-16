@@ -96,6 +96,27 @@ class Discretization(abc.ABC):
         num_entities = np.array([comb(dim + 1, k + 1) for k in range(4)])
         return int(self.ndof_per_entity(dim) @ num_entities)
 
+    def get_PwPolynomials(
+        self, poly_order: int, tensor_order: int
+    ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+        """
+        Returns the piecewise polynomial discretization class based on the polynomial
+        order and the tensor order. This is a shallow wrapper that is meant to be
+        overwritten in the Virtual Discretization child class.
+
+        Args:
+            poly_order (int): The polynomial order.
+            tensor_order (int): The tensor order.
+
+        Returns:
+            Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]: The corresponding
+            piecewise polynomial discretization class.
+
+        Raises:
+            KeyError: If the polynomial or the tensor order is not supported.
+        """
+        return pg.get_PwPolynomials(poly_order, tensor_order)
+
     def assemble_mass_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
@@ -170,7 +191,7 @@ class Discretization(abc.ABC):
 
         # We project to the piecewise polynomials and use that mass matrix.
         Pi = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         M = getattr(pwp, pwp_method)(sd, data)
 
         return (Pi.T @ M @ Pi).tocsc()
@@ -295,7 +316,7 @@ class Discretization(abc.ABC):
             return sps.csc_array((pg.AMBIENT_DIM**self.tensor_order, 0))
 
         Pi = self.proj_to_PwPolynomials(sd)
-        Poly_space = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(
+        Poly_space = self.get_PwPolynomials(self.poly_order, self.tensor_order)(
             self.keyword
         )
 
@@ -377,7 +398,7 @@ class Discretization(abc.ABC):
             sps.csc_array: The assembled broken gradient matrix.
         """
         proj = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
+        pwp = self.get_PwPolynomials(self.poly_order, self.tensor_order)(self.keyword)
         grad = pwp.assemble_broken_grad_matrix(sd)
 
         return grad @ proj
@@ -429,8 +450,29 @@ class Discretization(abc.ABC):
             gradient.
         """
         grad_order = self.tensor_order + 1
-        grad_class = pg.get_PwPolynomials(self.poly_order - 1, grad_order)
+        grad_class = self.get_PwPolynomials(self.poly_order - 1, grad_order)
         return cast(Type[pg.VecPwPolynomials], grad_class)
+
+    def assemble_broken_grad_grad_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        r"""
+        Assembles the broken (element-wise) grad-grad matrix :math:`(\nabla_h u,
+        \nabla_h v)` for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Returns:
+            sps.csc_array: The assembled broken grad-grad matrix.
+        """
+
+        grad_space = self.get_broken_grad_discr()(self.keyword)
+        M = grad_space.assemble_mass_matrix(sd, data)
+        grad = self.assemble_broken_grad_matrix(sd)
+
+        return (grad.T @ M @ grad).tocsc()
 
     def error_l2(
         self,
@@ -481,7 +523,7 @@ class Discretization(abc.ABC):
         # If poly_order is specified, we compare the solutions in a piecewise polynomial
         # space
         else:
-            poly_space = pg.get_PwPolynomials(poly_order, self.tensor_order)(
+            poly_space = self.get_PwPolynomials(poly_order, self.tensor_order)(
                 self.keyword
             )
             proj_sol = pg.proj_to_PwPolynomials(self, sd, poly_order) @ num_sol
@@ -489,3 +531,64 @@ class Discretization(abc.ABC):
             return poly_space.error_l2(
                 sd, proj_sol, ana_sol, relative, poly_order=None, data=data
             )
+
+
+class VDiscretization(Discretization):
+    """
+    Abstract class for PyGeoN virtual discretization methods.
+    """
+
+    def get_PwPolynomials(
+        self, poly_order: int, tensor_order: int
+    ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+        """
+        Returns the piecewise monomial discretization class based on the polynomial
+        order and the tensor order. This overwrites the method from the Discretization
+        parent class so that monomials are used instead of barycentric polynomials.
+
+        Args:
+            poly_order (int): The polynomial order.
+            tensor_order (int): The tensor order.
+
+        Returns:
+            Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]: The corresponding
+            piecewise polynomial discretization class.
+
+        Raises:
+            KeyError: If the polynomial or the tensor order is not supported.
+        """
+        return pg.get_PwMonomials(poly_order, tensor_order)
+
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
+        """
+        Lumped mass matrices are only implemented for some virtual spaces, so that the
+        general case raises an error.
+
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Raises:
+            NotImplementedError: Unless the virtual space overrides this method.
+        """
+        raise NotImplementedError(
+            f"The lumped mass matrix is not implemented for {type(self).__name__}"
+        )
+
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
+        """
+        Projections to a higher order are only implemented for some virtual spaces, so
+        that the general case raises an error.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Raises:
+            NotImplementedError: Unless the virtual space overrides this method.
+        """
+        raise NotImplementedError(
+            f"The projection to a higher order is not implemented for "
+            f"{type(self).__name__}"
+        )
