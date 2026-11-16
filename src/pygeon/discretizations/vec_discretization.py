@@ -199,9 +199,7 @@ class VecDiscretization(pg.Discretization):
         Args:
             sd (pg.Grid): The grid.
             func (Callable[[np.ndarray], np.ndarray]): The vector function defining
-                 the natural boundary condition, in the ambient coordinates and rotated
-                 to the plane or the line of the grid as in
-                 :meth:`pg.VecDiscretization.interpolate`.
+                 the natural boundary condition, in the ambient coordinates.
             b_faces (np.ndarray): The boundary faces, as a boolean mask or as indices.
 
         Returns:
