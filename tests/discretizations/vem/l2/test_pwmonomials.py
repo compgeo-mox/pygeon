@@ -1,7 +1,6 @@
 """Module contains specific tests for the piecewise monomials."""
 
 import numpy as np
-import pytest
 
 import pygeon as pg
 
