@@ -456,6 +456,16 @@ class Discretization(abc.ABC):
     def assemble_broken_grad_grad_matrix(
         self, sd: pg.Grid, data: dict | None = None
     ) -> sps.csc_array:
+        r"""
+        Assembles the broken (element-wise) grad-grad matrix :math:`(\nabla_h u,
+        \nabla_h v)` for the given grid.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Returns:
+            sps.csc_array: The assembled broken grad-grad matrix.
+        """
 
         grad_space = self.get_broken_grad_discr()(self.keyword)
         M = grad_space.assemble_mass_matrix(sd, data)
