@@ -56,11 +56,7 @@ def test_levelset_without_cuts():
     sd.compute_geometry()
 
     new_sd = pg.levelset_remesh(sd, lambda x: x[0] - 2)
-    new_sd.compute_geometry()
-
-    assert new_sd.num_cells == sd.num_cells
-    assert np.allclose(new_sd.nodes, sd.nodes)
-    assert np.allclose((new_sd.cell_faces - sd.cell_faces).data, 0)
+    assert new_sd is sd, "Without cuts, the grid itself is expected back"
 
 
 def test_structtrianglegrid():
