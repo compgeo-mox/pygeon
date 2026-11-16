@@ -177,7 +177,7 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
             sps.csc_array: The assembled broken gradient matrix.
         """
         diagonal = np.tile(sd.cell_volumes / sd.cell_diameters(), sd.dim)
-        range = self.get_broken_grad_discr()()
+        range_discr = self.get_broken_grad_discr()()
         return sps.diags_array(
-            diagonal, offsets=sd.num_cells, shape=(range.ndof(sd), self.ndof(sd))
+            diagonal, offsets=sd.num_cells, shape=(range_discr.ndof(sd), self.ndof(sd))
         ).tocsc()

@@ -559,16 +559,36 @@ class VDiscretization(Discretization):
         """
         return pg.get_PwMonomials(poly_order, tensor_order)
 
-    def assemble_lumped_matrix(self, sd, data=None):
+    def assemble_lumped_matrix(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
-        Lumped mass matrices are only implemented for some VEM spaces. To be on the safe
-        side, we throw an error in the general case.
-        """
-        raise NotImplementedError
+        Lumped mass matrices are only implemented for some virtual spaces, so that the
+        general case raises an error.
 
-    def proj_to_higher_PwPolynomials(self, sd):
+        Args:
+            sd (pg.Grid): The grid.
+            data (dict | None): Dictionary with physical parameters for scaling.
+
+        Raises:
+            NotImplementedError: Unless the virtual space overrides this method.
         """
-        Projections are only implemented for some VEM spaces. To be on the safe side,
-        we throw an error in the general case.
+        raise NotImplementedError(
+            f"The lumped mass matrix is not implemented for {type(self).__name__}"
+        )
+
+    def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         """
-        raise NotImplementedError
+        Projections to a higher order are only implemented for some virtual spaces, so
+        that the general case raises an error.
+
+        Args:
+            sd (pg.Grid): The grid.
+
+        Raises:
+            NotImplementedError: Unless the virtual space overrides this method.
+        """
+        raise NotImplementedError(
+            f"The projection to a higher order is not implemented for "
+            f"{type(self).__name__}"
+        )
