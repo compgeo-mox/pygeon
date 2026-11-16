@@ -191,3 +191,14 @@ def test_scaling_with_data(discr, unit_poly_sd):
 
     for name, diff in scaled.items():
         assert np.allclose(diff.data, 0), f"{name} = {abs(diff).max()}, not 0"
+
+
+def test_mass_matrix(discr, unit_cart_sd):
+    func = lambda x: x[0]
+    interp = discr.interpolate(unit_cart_sd, func)
+
+    known = 1 / 3
+    M = discr.assemble_mass_matrix(unit_cart_sd)
+    integral = interp @ M @ interp
+
+    assert np.isclose(integral, known)
