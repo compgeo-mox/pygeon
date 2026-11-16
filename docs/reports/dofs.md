@@ -168,7 +168,6 @@ $x$ axis, $R$ keeps the first $d$ ambient coordinates, and the two sets coincide
 The matrix-valued $L^2$ spaces `MatPwConstants`, `MatPwLinears`, and
 `MatPwQuadratics` replicate the DOFs of their underlying scalar piecewise
 polynomial spaces for each entry of the $d \times d$ tensor.
-replicate their DOFs for each entry of the $d \times d$ tensor.
 
 $$N_\text{dof} = d^2 \cdot N_\text{dof}^{\text{scalar}}$$
 
