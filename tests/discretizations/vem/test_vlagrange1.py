@@ -1,6 +1,7 @@
 """Module contains specific tests for the virtual Lagrangean L1 discretization."""
 
 import numpy as np
+import porepy as pp
 import pytest
 import scipy.sparse as sps
 
@@ -135,3 +136,58 @@ def test_eval_and_interp(discr, ref_octagon):
     interp = discr.interpolate(ref_octagon, fun)
     known_vals = np.array([fun(c) for c in ref_octagon.cell_centers.T])
     assert np.allclose(P @ interp, known_vals)
+
+
+def test_lumped_matrix(discr, unit_poly_sd):
+    L = discr.assemble_lumped_matrix(unit_poly_sd)
+    one = np.ones(discr.ndof(unit_poly_sd))
+
+    area = unit_poly_sd.cell_volumes.sum()
+    off_diag = L - sps.diags_array(L.diagonal())
+    assert np.allclose(off_diag.data, 0), "The lumped matrix should be diagonal"
+    assert np.isclose(one @ L @ one, area), f"1^T L 1 = {one @ L @ one} != {area}"
+
+
+def test_lumped_matrix_on_simplices(discr, unit_sd):
+    L = discr.assemble_lumped_matrix(unit_sd)
+    L_known = pg.Lagrange1().assemble_lumped_matrix(unit_sd)
+
+    diff = abs(L - L_known).max()
+    assert np.isclose(diff, 0), f"Lumped matrices differ from Lagrange1 by {diff}"
+
+
+def test_adv_matrix(discr, unit_poly_sd):
+    # With a constant field beta, 1^T A x_i is the integral of beta_i
+    sd = unit_poly_sd
+    beta = np.array([1.0, 2.0, 3.0])
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: field})
+
+    A = discr.assemble_adv_matrix(sd, data)
+    one = np.ones(discr.ndof(sd))
+    computed = [one @ A @ discr.interpolate(sd, lambda x: x[i]) for i in range(2)]
+    known = beta[:2] * sd.cell_volumes.sum()
+
+    assert np.allclose(computed, known), f"1^T A x_i = {computed} != {known}"
+
+
+def test_scaling_with_data(discr, unit_poly_sd):
+    # The consistency and the stabilization scale together with the data
+    sd = unit_poly_sd
+    w = 3.7
+    weight = pp.initialize_data({}, "test", {pg.WEIGHT: np.full(sd.num_cells, w)})
+    tensor = pp.SecondOrderTensor(np.full(sd.num_cells, w))
+    perm = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: tensor})
+
+    M = discr.assemble_mass_matrix(sd)
+    A = discr.assemble_stiff_matrix(sd)
+    scaled = {
+        "M_w - w M": discr.assemble_mass_matrix(sd, weight) - w * M,
+        "L_w - w L": discr.assemble_lumped_matrix(sd, weight)
+        - w * discr.assemble_lumped_matrix(sd),
+        "A_w - w A": discr.assemble_stiff_matrix(sd, weight) - w * A,
+        "A_K - w A": discr.assemble_stiff_matrix(sd, perm) - w * A,
+    }
+
+    for name, diff in scaled.items():
+        assert np.allclose(diff.data, 0), f"{name} = {abs(diff).max()}, not 0"
