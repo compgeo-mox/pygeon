@@ -99,7 +99,7 @@ def test_range_discr(discr: pg.VLagrange1):
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(0)
 
-    assert discr.get_range_discr_class(1) is pg.MonConstants
+    assert discr.get_range_discr_class(1) is pg.PwMConstants
     assert discr.get_range_discr_class(2) is pg.VRT0
 
     with pytest.raises(NotImplementedError):

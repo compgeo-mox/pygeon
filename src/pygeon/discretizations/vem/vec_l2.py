@@ -5,7 +5,7 @@ from __future__ import annotations
 import pygeon as pg
 
 
-class VecMonConstants(pg.VDiscretization, pg.VecPwConstants):
+class VecPwMConstants(pg.VDiscretization, pg.VecPwConstants):
     """
     A class representing the vector-valued piecewise constant monomials.
     """
@@ -13,17 +13,17 @@ class VecMonConstants(pg.VDiscretization, pg.VecPwConstants):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The base discretization class is pg.MonConstants.
+        The base discretization class is pg.PwMConstants.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
                 Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
-        self.base_discr = pg.MonConstants(keyword)
+        self.base_discr = pg.PwMConstants(keyword)
 
 
-class VecMonLinears(pg.VDiscretization, pg.VecPwLinears):
+class VecPwMLinears(pg.VDiscretization, pg.VecPwLinears):
     """
     A class representing the vector-valued piecewise linear monomials
     """
@@ -31,11 +31,11 @@ class VecMonLinears(pg.VDiscretization, pg.VecPwLinears):
     def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the vector discretization class.
-        The base discretization class is pg.MonLinears.
+        The base discretization class is pg.PwMLinears.
 
         Args:
             keyword (str): The keyword for the vector discretization class.
                 Defaults to pg.UNITARY_DATA.
         """
         super().__init__(keyword)
-        self.base_discr = pg.MonLinears(keyword)
+        self.base_discr = pg.PwMLinears(keyword)

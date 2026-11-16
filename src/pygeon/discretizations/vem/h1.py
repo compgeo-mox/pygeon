@@ -235,7 +235,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             case 2:
                 return pg.VRT0
             case 1:
-                return pg.MonConstants
+                return pg.PwMConstants
             case _:
                 raise NotImplementedError("There's no zero discretization in PyGeoN")
 

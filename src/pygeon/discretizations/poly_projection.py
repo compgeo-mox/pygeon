@@ -52,7 +52,7 @@ def get_PwMonomials(
     poly_order: int, tensor_order: int
 ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
     """
-    Returns the piecewise polynomial discretization class based on the polynomial
+    Returns the piecewise monomial discretization class based on the polynomial
     order and the tensor order.
 
     Args:
@@ -70,10 +70,10 @@ def get_PwMonomials(
         tuple[int, int],
         Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials],
     ] = {
-        (0, pg.SCALAR): pg.MonConstants,
-        (1, pg.SCALAR): pg.MonLinears,
-        (0, pg.VECTOR): pg.VecMonConstants,
-        (1, pg.VECTOR): pg.VecMonLinears,
+        (0, pg.SCALAR): pg.PwMConstants,
+        (1, pg.SCALAR): pg.PwMLinears,
+        (0, pg.VECTOR): pg.VecPwMConstants,
+        (1, pg.VECTOR): pg.VecPwMLinears,
     }
     if (poly_order, tensor_order) not in pwp_dict:
         raise KeyError(

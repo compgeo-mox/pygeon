@@ -8,7 +8,7 @@ import scipy.sparse as sps
 import pygeon as pg
 
 
-class MonConstants(pg.VDiscretization, pg.PwConstants):
+class PwMConstants(pg.VDiscretization, pg.PwConstants):
     r"""
     Class implementing the monomial basis for the constants :math:`\mathbb{P}_0(\Omega)
     \subset L^2(\Omega)`, for a polytopal grid :math:`\Omega \subset \mathbb{R}^d`.
@@ -21,8 +21,8 @@ class MonConstants(pg.VDiscretization, pg.PwConstants):
     def proj_to_higher_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Projects from P0 to P1 monomials. The projection operator :math:`\Pi` takes a
-        function from :class:`pg.MonConstants` and maps it to a piecewise linear
-        function in :class:`pg.MonLinears`.
+        function from :class:`pg.PwMConstants` and maps it to a piecewise linear
+        function in :class:`pg.PwMLinears`.
 
         Args:
             sd (pg.Grid): The grid.
@@ -35,7 +35,7 @@ class MonConstants(pg.VDiscretization, pg.PwConstants):
         return sps.csc_array(inc, shape=(range.ndof(sd), self.ndof(sd)))
 
 
-class MonLinears(pg.VDiscretization, pg.PwLinears):
+class PwMLinears(pg.VDiscretization, pg.PwLinears):
     r"""
     Class implementing the monomial basis for the linears :math:`\mathbb{P}_1(\Omega)
     \subset L^2(\Omega)`, for a polytopal grid :math:`\Omega \subset \mathbb{R}^d`.
@@ -147,7 +147,7 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
         Construct the matrix for projecting a piecewise linear function to a piecewise
         constant function. The projection operator :math:`\Pi` takes a function from
         :class:`pg.PwLinears` and maps it to a piecewise polynomial function
-        of lower order in :class:`pg.MonConstants`.
+        of lower order in :class:`pg.PwMConstants`.
 
         Args:
             sd (pg.Grid): The grid on which to construct the matrix.
@@ -164,7 +164,7 @@ class MonLinears(pg.VDiscretization, pg.PwLinears):
         r"""
         Assembles the broken (element-wise) gradient matrix for the given grid.
         This operator maps to the vector-valued piecewise constants
-        :class:`pg.VecMonConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
+        :class:`pg.VecPwMConstants` from :math:`u \in \mathbb{P}_1(\Omega)`
         and is used for computing :math:`\nabla_h u` element-wise.
 
         Args:

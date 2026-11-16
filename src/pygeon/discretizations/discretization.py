@@ -99,6 +99,22 @@ class Discretization(abc.ABC):
     def get_PwPolynomials(
         self, poly_order: int, tensor_order: int
     ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+        """
+        Returns the piecewise polynomial discretization class based on the polynomial
+        order and the tensor order. This is a shallow wrapper that is meant to be
+        overwritten in the Virtual Discretization child class.
+
+        Args:
+            poly_order (int): The polynomial order.
+            tensor_order (int): The tensor order.
+
+        Returns:
+            Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]: The corresponding
+            piecewise polynomial discretization class.
+
+        Raises:
+            KeyError: If the polynomial or the tensor order is not supported.
+        """
         return pg.get_PwPolynomials(poly_order, tensor_order)
 
     def assemble_mass_matrix(
@@ -507,7 +523,27 @@ class Discretization(abc.ABC):
 
 
 class VDiscretization(Discretization):
+    """
+    Abstract class for PyGeoN virtual discretization methods.
+    """
+
     def get_PwPolynomials(
         self, poly_order: int, tensor_order: int
     ) -> Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]:
+        """
+        Returns the piecewise monomial discretization class based on the polynomial
+        order and the tensor order. This overwrites the method from the Discretization
+        parent class so that monomials are used instead of barycentric polynomials.
+
+        Args:
+            poly_order (int): The polynomial order.
+            tensor_order (int): The tensor order.
+
+        Returns:
+            Type[pg.PwPolynomials] | Type[pg.VecPwPolynomials]: The corresponding
+            piecewise polynomial discretization class.
+
+        Raises:
+            KeyError: If the polynomial or the tensor order is not supported.
+        """
         return pg.get_PwMonomials(poly_order, tensor_order)
