@@ -123,7 +123,7 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
         Returns:
             sps.csc_array: The evaluation matrix.
         """
-        return sps.eye_array((sd.num_cells, self.ndof(sd))).tocsc()
+        return sps.eye_array(sd.num_cells, self.ndof(sd)).tocsc()
 
     def interpolate(
         self, sd: pg.Grid, func: Callable[[np.ndarray], np.ndarray]
