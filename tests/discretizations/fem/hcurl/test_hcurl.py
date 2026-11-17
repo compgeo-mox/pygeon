@@ -64,7 +64,10 @@ def test_interp_eval_2d(discr, unit_sd_2d, mdg):
         P = sd.rotation_matrix.T @ sd.rotation_matrix
         u = discr.interpolate(sd, f)
         f_interp = discr.eval_at_cell_centers(sd) @ u
-        assert np.allclose(f_interp, (P @ f(sd.cell_centers)).ravel())
+        diff = f_interp - (P @ f(sd.cell_centers)).ravel()
+        assert np.allclose(diff, 0), (
+            f"Evaluation error {abs(diff).max()} on {sd.num_cells} cells"
+        )
 
 
 def test_proj_between_nedelec(mdg):
@@ -76,5 +79,7 @@ def test_proj_between_nedelec(mdg):
         if sd.dim < 2:
             continue
         u0, u1 = ne0.interpolate(sd, f), ne1.interpolate(sd, f)
-        assert np.allclose(ne1.proj_to_Ne0(sd) @ u1, u0)
-        assert np.allclose(ne0.proj_to_Ne1(sd) @ u0, u1)
+        diff_0 = ne1.proj_to_Ne0(sd) @ u1 - u0
+        diff_1 = ne0.proj_to_Ne1(sd) @ u0 - u1
+        assert np.allclose(diff_0, 0), f"proj_to_Ne0 error {abs(diff_0).max()}"
+        assert np.allclose(diff_1, 0), f"proj_to_Ne1 error {abs(diff_1).max()}"

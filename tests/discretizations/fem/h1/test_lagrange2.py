@@ -205,4 +205,7 @@ def test_proj_to_PwPolynomials_on_fracture_grids(discr, mdg):
         if sd.dim == 0:
             continue
         proj = discr.proj_to_PwPolynomials(sd)
-        assert np.allclose(proj @ discr.interpolate(sd, func), p2.interpolate(sd, func))
+        diff = proj @ discr.interpolate(sd, func) - p2.interpolate(sd, func)
+        assert np.allclose(diff, 0), (
+            f"Projection error {abs(diff).max()} on dim {sd.dim}"
+        )

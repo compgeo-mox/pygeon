@@ -151,8 +151,13 @@ def test_stiff_matrix_on_fracture_grids(discr, mdg):
             continue
         diff = discr.assemble_diff_matrix(sd)
         ones = discr.interpolate(sd, lambda _: 1)
-        assert np.allclose(diff @ ones, 0)
+        assert np.allclose(diff @ ones, 0), (
+            f"Differential of the constants is {abs(diff @ ones).max()} on dim {sd.dim}"
+        )
 
         stiff = discr.assemble_stiff_matrix(sd)
         grad_grad = discr.assemble_grad_grad_matrix(sd)
-        assert np.allclose((stiff - grad_grad).data, 0)
+        assert np.allclose((stiff - grad_grad).data, 0), (
+            f"Stiffness differs from grad-grad by {abs(stiff - grad_grad).max()} on "
+            f"dim {sd.dim}"
+        )
