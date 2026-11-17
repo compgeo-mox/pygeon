@@ -160,7 +160,7 @@ class VecLagrange(pg.VecDiscretization):
         lambda_ = pg.get_cell_data(sd, data, self.keyword, pg.LAME_LAMBDA)
         data_lambda = pp.initialize_data({}, self.keyword, {pg.WEIGHT: lambda_})
 
-        scalar_space = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)(
+        scalar_space = self.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)(
             self.keyword
         )
         lambda_mass = scalar_space.assemble_mass_matrix(sd, data_lambda)

@@ -1,6 +1,7 @@
 """Module contains specific tests for the virtual Lagrangean L1 discretization."""
 
 import numpy as np
+import porepy as pp
 import pytest
 import scipy.sparse as sps
 
@@ -24,10 +25,7 @@ def test_ndof_octagon(discr, ref_octagon):
 def test_on_pentagon(discr, pentagon_sd):
     # Test the three matrices from Hitchhikers sec 4.2
 
-    diam = pentagon_sd.cell_diameters()[0]
-    loc_nodes = np.arange(5)
-
-    B = discr.assemble_loc_L2proj_rhs(pentagon_sd, 0, diam, loc_nodes)
+    B = discr.assemble_proj_rhs(pentagon_sd)
     B_known = (
         np.array(
             [
@@ -39,7 +37,7 @@ def test_on_pentagon(discr, pentagon_sd):
         / 20
     )
 
-    D = discr.assemble_loc_dofs_of_monomials(pentagon_sd, 0, diam, loc_nodes)
+    D = discr.assemble_dofs_of_monomials(pentagon_sd)
     D_known = (
         np.array(
             [
@@ -53,14 +51,14 @@ def test_on_pentagon(discr, pentagon_sd):
         / 1470
     )
 
-    G = discr.assemble_loc_L2proj_lhs(pentagon_sd, 0, diam, loc_nodes)
+    G = discr.assemble_proj_lhs(pentagon_sd)
     G_known = (
         np.array([[1050.0, 30.0, 40.0], [0.0, 441.0, 0.0], [0.0, 0.0, 441.0]]) / 1050
     )
 
-    assert matrix_equals(B, B_known)
-    assert matrix_equals(D, D_known)
-    assert matrix_equals(G, G_known)
+    assert matrix_equals(B.todense(), B_known)
+    assert matrix_equals(D.todense(), D_known)
+    assert matrix_equals(G.todense(), G_known)
 
 
 def test_diff_matrix(discr, pentagon_sd):
@@ -98,11 +96,11 @@ def test_assemble_nat_bc(discr, pentagon_sd):
     assert np.allclose(vals, vals_known)
 
 
-def test_range_discr(discr: pg.Lagrange1):
+def test_range_discr(discr: pg.VLagrange1):
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(0)
 
-    assert discr.get_range_discr_class(1) is pg.PwConstants
+    assert discr.get_range_discr_class(1) is pg.PwMConstants
     assert discr.get_range_discr_class(2) is pg.VRT0
 
     with pytest.raises(NotImplementedError):
@@ -138,3 +136,58 @@ def test_eval_and_interp(discr, ref_octagon):
     interp = discr.interpolate(ref_octagon, fun)
     known_vals = np.array([fun(c) for c in ref_octagon.cell_centers.T])
     assert np.allclose(P @ interp, known_vals)
+
+
+def test_lumped_matrix(discr, unit_poly_sd):
+    L = discr.assemble_lumped_matrix(unit_poly_sd)
+    one = np.ones(discr.ndof(unit_poly_sd))
+
+    area = unit_poly_sd.cell_volumes.sum()
+    off_diag = L - sps.diags_array(L.diagonal())
+    assert np.allclose(off_diag.data, 0), "The lumped matrix should be diagonal"
+    assert np.isclose(one @ L @ one, area), f"1^T L 1 = {one @ L @ one} != {area}"
+
+
+def test_lumped_matrix_on_simplices(discr, unit_sd):
+    L = discr.assemble_lumped_matrix(unit_sd)
+    L_known = pg.Lagrange1().assemble_lumped_matrix(unit_sd)
+
+    diff = abs(L - L_known).max()
+    assert np.isclose(diff, 0), f"Lumped matrices differ from Lagrange1 by {diff}"
+
+
+def test_adv_matrix(discr, unit_poly_sd):
+    # With a constant field beta, 1^T A x_i is the integral of beta_i
+    sd = unit_poly_sd
+    beta = np.array([1.0, 2.0, 3.0])
+    field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
+    data = pp.initialize_data({}, "test", {pg.VECTOR_FIELD: field})
+
+    A = discr.assemble_adv_matrix(sd, data)
+    one = np.ones(discr.ndof(sd))
+    computed = [one @ A @ discr.interpolate(sd, lambda x: x[i]) for i in range(2)]
+    known = beta[:2] * sd.cell_volumes.sum()
+
+    assert np.allclose(computed, known), f"1^T A x_i = {computed} != {known}"
+
+
+def test_scaling_with_data(discr, unit_poly_sd):
+    # The consistency and the stabilization scale together with the data
+    sd = unit_poly_sd
+    w = 3.7
+    weight = pp.initialize_data({}, "test", {pg.WEIGHT: np.full(sd.num_cells, w)})
+    tensor = pp.SecondOrderTensor(np.full(sd.num_cells, w))
+    perm = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: tensor})
+
+    M = discr.assemble_mass_matrix(sd)
+    A = discr.assemble_stiff_matrix(sd)
+    scaled = {
+        "M_w - w M": discr.assemble_mass_matrix(sd, weight) - w * M,
+        "L_w - w L": discr.assemble_lumped_matrix(sd, weight)
+        - w * discr.assemble_lumped_matrix(sd),
+        "A_w - w A": discr.assemble_stiff_matrix(sd, weight) - w * A,
+        "A_K - w A": discr.assemble_stiff_matrix(sd, perm) - w * A,
+    }
+
+    for name, diff in scaled.items():
+        assert np.allclose(diff.data, 0), f"{name} = {abs(diff).max()}, not 0"

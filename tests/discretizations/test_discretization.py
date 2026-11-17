@@ -420,3 +420,12 @@ def test_inner_products_are_invariant_under_rotation(
         energies.append(u_h @ getattr(discr, method)(sd, data) @ u_h)
 
     assert np.isclose(*energies)
+
+
+@pytest.mark.parametrize(
+    "method", ["assemble_lumped_matrix", "proj_to_higher_PwPolynomials"]
+)
+def test_virtual_methods_not_implemented(method, unit_poly_sd):
+    discr = pg.PwMLinears()
+    with pytest.raises(NotImplementedError, match="PwMLinears"):
+        getattr(discr, method)(unit_poly_sd)

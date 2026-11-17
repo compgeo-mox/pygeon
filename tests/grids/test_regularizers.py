@@ -9,6 +9,7 @@ import pygeon as pg
 @pytest.fixture()
 def sd_voronoi() -> pg.Grid:
     sd = pg.VoronoiGrid(30, seed=0)
+    pg.convert_from_pp(sd)  # Ensures that adjacency matrices are csc_arrays
     sd.compute_geometry()
 
     return sd
