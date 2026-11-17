@@ -267,29 +267,17 @@ class NedelecF1(pg.Discretization):
         edges = np.repeat(edges, 2)
         cells = np.repeat(cells, 2)
 
-        # We need to find the unique face that is next to the node but does not border
-        # the edge. We do that by taking the face opposite the partner node.
-        opposite_nodes = sd.compute_opposite_nodes().tocoo()
-        opp_f = opposite_nodes.row
-        opp_c = opposite_nodes.col
-        opp_n = opposite_nodes.data
-
-        opposite_faces = sps.csc_array((opp_f, (opp_n, opp_c)))
-
-        faces = opposite_faces[partner_nodes, cells]
-        orien = sd.cell_faces[faces, cells]
-
-        # Rotate the normals if the mesh is tilted
-        normals = sd.rotation_matrix @ sd.face_normals
-
-        # We avoid inner products by using the identity:
-        # tangent @ normal = dim * cell_volume * orientation
-        vals = -normals[:, faces] / (orien * sd.cell_volumes[cells] * sd.dim)
-        data_IJ = vals.ravel()
-
-        # Finally, we find the corresponding dof in p1 by generating a lookup matrix
-        # that satisfies p1_lookup[node, cell] = dof_index at (node, cell)
+        # The lookup matrix p1_lookup[node, cell] = dof_index at (node, cell) of p1,
+        # whose dofs are numbered (local node) * num_cells + cell
         p1_lookup = pg.PwLinears().get_dof_lookup_array(sd)
+
+        # At the node, the basis function is the gradient of the barycentric coordinate
+        # of the partner node, in the plane of the grid
+        partner_loc = p1_lookup[partner_nodes, cells] // sd.num_cells
+        grads = sd.compute_barycentric_gradients()
+        grads = np.einsum("ak,kjc->ajc", sd.rotation_matrix, grads)
+        vals = grads[:, partner_loc, cells]
+        data_IJ = vals.ravel()
 
         # The vector-valued analogue has sd.dim rows
         p1_dofs = p1_lookup[nodes, cells] + p1_lookup.nnz * np.arange(sd.dim)[:, None]
