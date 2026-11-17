@@ -9,7 +9,7 @@ from pygeon.grids.md_grid import MixedDimensionalGrid
 from pygeon.grids.mortar_grid import MortarGrid
 from pygeon.filters.convert_from_pp import convert_from_pp, as_mdg
 from pygeon.grids.octagon import OctagonGrid
-from pygeon.grids.voronoi import VoronoiGrid
+from pygeon.grids.voronoi import VoronoiGrid, DualVoronoiGrid
 from pygeon.grids.einstein import EinSteinGrid
 from pygeon.grids.levelset_remesh import levelset_remesh
 from pygeon.grids.create_grid import (

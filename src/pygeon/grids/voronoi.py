@@ -35,6 +35,7 @@ class VoronoiGrid(pg.Grid):
             assert np.amin(vrt) >= -tol and np.amax(vrt) <= 1 + tol, (
                 "Points must be in the unit square"
             )
+        self.seeds = vrt
 
         # Use Scipy to generate the Voronoi grid
         vor = scipy.spatial.Voronoi(vrt[:2, :].T)
@@ -155,10 +156,11 @@ class VoronoiGrid(pg.Grid):
             connectivity matrix and the cell-face connectivity matrix.
         """
         # Derive face-node connectivity
-        internal_faces = [np.sort(f) for f in vor.ridge_vertices]
+        internal_faces = [f for f in vor.ridge_vertices]
         indices = np.hstack(internal_faces)
-        indptr = 2 * np.arange(len(internal_faces) + 1)
-        data = np.ones(2 * len(internal_faces), dtype=int)
+        indptr = np.cumsum([len(f) for f in vor.ridge_vertices])
+        indptr = np.hstack((0, indptr))
+        data = np.ones_like(indices)
         face_nodes = sps.csc_array((data, indices, indptr), dtype=int)
 
         # Compute cell-face connectivity
@@ -195,3 +197,67 @@ class VoronoiGrid(pg.Grid):
         cell_faces = sps.csc_array((cf_data, cf_indices, cf_indptr), dtype=int)
 
         return face_nodes, cell_faces
+
+    def compute_geometry(self):
+        super().compute_geometry()
+
+        self.cell_centers = self.seeds
+
+
+class DualVoronoiGrid(VoronoiGrid):
+    def __init__(self, sd: pg.Grid, **kwargs):
+
+        self.seeds = sd.nodes[:, ~sd.tags["domain_boundary_nodes"]]
+
+        # Retrieve the boundary faces and the orientation of the normal
+        b_faces = np.flatnonzero(sd.tags["domain_boundary_faces"])
+        normal_orient = sd.cell_faces.sum(1)[b_faces]
+
+        # Find the nodes opposite the boundary faces
+        opposite_nodes = sd.compute_opposite_nodes().tocsr()
+        nodes_at_bdry = opposite_nodes.data[opposite_nodes.indptr[b_faces]]
+        bdry_seeds = sd.nodes[:, nodes_at_bdry]
+
+        unit_normal = (
+            normal_orient * sd.face_normals[:, b_faces] / sd.face_areas[b_faces]
+        )
+        inner_product = np.einsum(
+            "ij,ij->j",
+            sd.face_centers[:, b_faces] - bdry_seeds,
+            unit_normal,
+        )
+
+        ghost_nodes = bdry_seeds + 2 * inner_product * unit_normal
+        pts = sd.rotation_matrix @ np.hstack((self.seeds, ghost_nodes))
+
+        vor = scipy.spatial.Voronoi(pts.T)
+
+        # Keep only the finite ridges
+        finite_ridges = np.flatnonzero([-1 not in rv for rv in vor.ridge_vertices])
+        vor.ridge_vertices = [vor.ridge_vertices[r] for r in finite_ridges]
+
+        # Keep only the internal regions
+        internal_regions = vor.point_region[: self.seeds.shape[1]]
+        vor.regions = [vor.regions[r] for r in internal_regions]
+
+        nodes = sd.rotation_matrix.T @ vor.vertices.T
+        face_nodes, cell_faces = self.grid_topology(vor, nodes)
+
+        name = kwargs.get("name", "VoronoiGrid")
+        pg.Grid.__init__(self, sd.dim, nodes, face_nodes, cell_faces, name)
+
+
+if __name__ == "__main__":
+    import porepy as pp
+
+    sd = pg.unit_grid(2, 0.21, False)
+    sd.compute_geometry()
+
+    vor = pg.DualVoronoiGrid(sd)
+    vor.compute_geometry()
+
+    import matplotlib.pyplot as plt
+
+    pp.plot_grid(vor)
+
+    pass
