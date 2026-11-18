@@ -93,10 +93,36 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         # Now the integrals against the monomials. We use the fact that
         # \nabla m_i = ê_i / diam
         # with ê_i the i-th basis vector of R^n. Using Stokes, we need to integrate over
-        # the faces of the cell.The integral over a face is then given by dividing over
-        # the number of nodes on each face.
+        # the faces of the cell. The average over a 2D face is given by dividing over
+        # the number of nodes (2) on each face. In 3D, we add a corection.
         num_nodes_per_face = np.diff(sd.face_nodes.indptr)
         node_face_avg = (sd.face_nodes / num_nodes_per_face).T.tocsc()
+
+        if sd.dim == 3:
+            # We consider the system after (3.8) in the Hitchhiker's and aim to compute
+            # the coefficient s^1, for each edge-face pair.
+            ridges, faces, orient = sps.find(sd.face_ridges)
+
+            # Ignoring the first row and choosing the unscaled monomials, the right-hand
+            # side is simply the normal on the edge divided by 2. This normal needs to
+            # be computed relative to the current face.
+            unit_normals = sd.face_normals / sd.face_areas
+            edge_normals = np.cross(
+                sd.edge_tangents[:, ridges] * orient, unit_normals[:, faces], axis=0
+            )
+
+            # The left hand side is an identity matrix scaled with the face area. The
+            # coefficients for the linears therefore become:
+            coeff = edge_normals / 2 / sd.face_areas[faces]
+
+            # Because P0*1 = 1, we know that s_1 is given by node_face_avg -
+            # dot(P0*linears, coeff).
+            P0_linears = sd.nodes @ node_face_avg.T - sd.face_centers
+            edge_correction = np.einsum("ij,ij->j", P0_linears[:, faces], coeff)
+
+            # Finally, these contributions are included for every connected node.
+            correction = sps.csc_array((edge_correction, (faces, ridges)))
+            node_face_avg -= correction @ abs(sd.ridge_peaks).T
 
         # Each connected node-face-cell pair gives a contribution to the matrix. To sum
         # up the relevant face contributions, we start with a matrix with n_faces rows
