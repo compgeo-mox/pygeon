@@ -361,23 +361,21 @@ class Lagrange2(Lagrange):
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
-        # The nodes of the two dofs of each edge, shape (num_edges, 2), and the
-        # orientation of the edge at each of them: -1 at its start, 1 at its end
+        # At the node a of an edge with other node b and midpoint dof m, the derivative
+        # along the edge is the mean slope u_end - u_start plus the curvature term
+        # 2 s (u_a + u_b - 2 u_m), with s the orientation of the edge at a
+        zeros = sps.csc_array((sd.num_edges, sd.num_edges))
+        slope = sps.hstack((sd.edge_nodes.T, zeros))
+        curvature = sps.hstack((abs(sd.edge_nodes).T, -2 * sps.eye_array(sd.num_edges)))
+
+        # The orientation of the edge at the nodes of its two dofs: -1 at its start, 1
+        # at its end
         edges = np.arange(sd.num_edges)
         nodes = dof_nodes.indices.reshape((sd.num_edges, 2))
-        signs = np.column_stack([sd.edge_nodes[nodes[:, i], edges] for i in range(2)])
-        signs = signs * scaling.reshape((-1, 1))
+        signs = [sd.edge_nodes[nodes[:, i], edges] for i in range(2)]
 
-        # At the node a of an edge with other node b and midpoint dof m, the derivative
-        # along the edge is s (3 u_a + u_b - 4 u_m), with s the orientation at a
-        rows_I = np.tile(edges.reshape((-1, 1)) + sd.num_edges * np.arange(2), 3)
-        mid = np.tile((sd.num_nodes + edges).reshape((-1, 1)), 2)
-        cols_J = np.hstack((nodes, nodes[:, ::-1], mid))
-        data_IJ = np.hstack((3 * signs, signs, -4 * signs))
-        shape = (2 * sd.num_edges, sd.num_nodes + sd.num_edges)
-        return sps.csc_array(
-            (data_IJ.ravel(), (rows_I.ravel(), cols_J.ravel())), shape=shape
-        )
+        diff = sps.vstack([slope + sps.diags_array(2.0 * s) @ curvature for s in signs])
+        return (sps.diags_array(np.tile(scaling, 2)) @ diff).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
