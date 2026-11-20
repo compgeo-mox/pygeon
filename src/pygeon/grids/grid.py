@@ -127,7 +127,12 @@ class Grid(pp.Grid):
 
         orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-        self.face_ridges = face_ridges @ sps.diags_array(orients)
+        # The indices are sorted once and for all: the order of the nodes of an edge
+        # defines the order of the dofs, e.g. of NedelecF1, and abs() would sort them
+        # in place, changing it
+        face_ridges.data *= np.repeat(orients, 2).astype(int)
+        face_ridges.sort_indices()
+        self.face_ridges = face_ridges
 
     def _compute_ridges_3d(self) -> None:
         """
@@ -289,6 +294,9 @@ class Grid(pp.Grid):
                 # The edges are the cells, and their nodes are the ones of the faces,
                 # which do not need to have the same index
                 self.edge_nodes = sps.csc_array(self.face_nodes @ self.cell_faces)
+                # The product does not sort the indices, which define the order of the
+                # dofs on the edges, while abs() would sort them in place
+                self.edge_nodes.sort_indices()
             case 2:
                 self.edge_nodes = self.face_ridges
             case 3:
