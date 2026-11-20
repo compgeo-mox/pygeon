@@ -101,7 +101,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
 
         # Assemble the piecewise linear mass matrix, to assemble the term
         # (Tr(sigma), Tr(tau))
-        scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
+        scalar_discr = self.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
         M = scalar_discr.assemble_mass_matrix(sd, data_tr_space)
 
         # Compose all the parts and return them
@@ -182,7 +182,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
             case _:
                 raise ValueError("The dimension must be 2 or 3.")
 
-        R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
+        R_space = self.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
         R_mass = R_space.assemble_mass_matrix(sd, data_)
 
         asym = self.assemble_asym_matrix(sd)
@@ -229,7 +229,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         # (Trace(sigma), Trace(tau))
         data_M = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight_M})
 
-        scalar_discr = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
+        scalar_discr = self.get_PwPolynomials(self.poly_order, pg.SCALAR)(self.keyword)
         M = scalar_discr.assemble_lumped_matrix(sd, data_M)
 
         # Compose all the parts and return them
@@ -268,7 +268,7 @@ class MatPwPolynomials(pg.VecPwPolynomials):
         weight = 0.25 * (1 / mu_c - 1 / mu)
         data_R = pp.initialize_data({}, self.keyword, {pg.WEIGHT: weight})
 
-        R_space = pg.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
+        R_space = self.get_PwPolynomials(self.poly_order, R_tensor_order)(self.keyword)
         R_mass = R_space.assemble_lumped_matrix(sd, data_R)
 
         asym = self.assemble_asym_matrix(sd)

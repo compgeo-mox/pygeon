@@ -80,3 +80,8 @@ def test_up_and_down_projection(tensor_order, unit_sd):
 def test_faulty_input_pwp():
     with pytest.raises(KeyError):
         pg.get_PwPolynomials(-1, 0)
+
+
+def test_unsupported_order():
+    with pytest.raises(KeyError, match="Unsupported polynomial order 2"):
+        pg.get_PwMonomials(2, pg.SCALAR)

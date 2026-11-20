@@ -59,6 +59,11 @@ class Grid(pp.Grid):
         self.compute_edge_properties()
         self.compute_mesh_size()
 
+        self.cell_faces = sps.csc_array(self.cell_faces)
+        self.cell_faces.sort_indices()
+        self.face_ridges.sort_indices()
+        self.ridge_peaks.sort_indices()
+
     def num_entities(self) -> np.ndarray:
         """
         Returns the number of geometric entities, ordered by the dimension of the

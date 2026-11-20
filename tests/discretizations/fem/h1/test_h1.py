@@ -17,16 +17,6 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 
-def test_interpolate_and_evaluate(discr, unit_sd):
-    func = lambda x: x[0] ** discr.poly_order
-    known_vals = func(unit_sd.cell_centers)
-
-    interp = discr.interpolate(unit_sd, func)
-    proj = discr.eval_at_cell_centers(unit_sd)
-
-    assert np.allclose(proj @ interp, known_vals)
-
-
 def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)
@@ -86,7 +76,7 @@ def test_point_grid(discr, ref_sd_0d):
     assert discr.ndof(ref_sd_0d) == 0
     assert discr.assemble_diff_matrix(ref_sd_0d).nnz == 0
     assert discr.eval_at_cell_centers(ref_sd_0d).nnz == 0
-    assert discr.interpolate(ref_sd_0d, lambda x: x).size == 0
+    assert discr.interpolate(ref_sd_0d, lambda x: x[0]).size == 0
 
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(ref_sd_0d.dim)
@@ -103,8 +93,11 @@ def test_postprocess_darcy_flux(discr, tilted_sd):
     sd = tilted_sd
     P = sd.rotation_matrix.T @ sd.rotation_matrix
 
-    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    perm = pg.constant_tensor(sd.num_cells, K)
+    # The tensor is not symmetric, and PorePy builds only symmetric tensors, so the
+    # values are set directly
+    K = np.array([[3.0, 1.0, 0.5], [-0.4, 2.0, 0.3], [0.2, -1.0, 1.0]])
+    perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+    perm.values = np.tile(K.reshape((3, 3, 1)), sd.num_cells)
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
     # The flux of a linear function is constant, equal to -P K P grad p

@@ -32,7 +32,7 @@ class HDiv(pg.Discretization):
         Returns:
             Type[pg.Discretization]: The range discretization class.
         """
-        return pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
+        return self.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -48,12 +48,12 @@ class HDiv(pg.Discretization):
         accessible via pg.VECTOR_FIELD, and the second-order tensor :math:`K^{-1}`,
         accessible via pg.SECOND_ORDER_TENSOR, both constant per cell and given in the
         ambient coordinates. If not provided, :math:`\boldsymbol{\beta}` defaults to
-        :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. On grids
-        of dimension lower than 3 only their components in the plane or the line of
-        the grid act, through the weight :math:`P K^{-1} P \boldsymbol{\beta}`, with
-        :math:`P` the projection on it, unless the entry "is_tangential" of data is
-        True: then their first dim components are taken as the ones in the coordinates
-        of ``sd.rotation_matrix``.
+        :math:`(0, 0, 0)`, and :math:`K^{-1}` defaults to the identity tensor. The
+        weight :math:`K^{-1} \boldsymbol{\beta}` is computed in the ambient
+        coordinates, and on grids of dimension lower than 3 its dot product with
+        :math:`\boldsymbol{u}`, tangent to the grid, takes its component
+        :math:`P K^{-1} \boldsymbol{\beta}`, with :math:`P` the projection on the
+        plane or the line of the grid.
 
         Since the weight :math:`K^{-1} \boldsymbol{\beta}` is constant on each cell,
         :math:`K^{-1} \boldsymbol{\beta} \cdot \boldsymbol{u}` is a piecewise
@@ -79,32 +79,27 @@ class HDiv(pg.Discretization):
         Returns:
             sps.csc_array: The advection matrix obtained from the discretization.
         """
-        # Retrieve the tensor and the vector field, in the ambient coordinates, and the
-        # weight K^{-1} beta, in the plane of the grid: P K^{-1} P beta, with P the
-        # projection on the plane
+        # Retrieve the tensor, of shape (3, 3, num_cells), and the vector field, of
+        # shape (3, num_cells), in the ambient coordinates
         inv_K = pg.get_cell_data(
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         ).values
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        R = sd.rotation_matrix
-        # TODO: remove is_tangential, see #340
-        if data and data.get("is_tangential", False):
-            W_plane = np.einsum("abc,bc->ac", inv_K[: sd.dim, : sd.dim], V[: sd.dim])
-            W = R.T @ W_plane
-        else:
-            P = R.T @ R
-            W = P @ np.einsum("ijc,jc->ic", inv_K, P @ V)
+
+        # The weight K^{-1} beta on each cell, in the ambient coordinates. The dot
+        # product with u rotates it to the plane or the line of the grid
+        W = np.einsum("ijc,jc->ic", inv_K, V)
 
         # The dot product of u, in the vector piecewise polynomials of order k, with
         # the weight, in the piecewise polynomials of order k
-        vec_high = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        vec_high = self.get_PwPolynomials(self.poly_order, pg.VECTOR)()
         dot = cast(pg.VecPwPolynomials, vec_high).assemble_dot_product(sd, W)
         proj = self.proj_to_PwPolynomials(sd)
 
         # Tested with v in the range of the divergence, the piecewise polynomials of
         # order k - 1, through their inclusion in the order k and its mass matrix
         low = cast(pg.PwPolynomials, self.get_range_discr_class(sd.dim)())
-        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        high = self.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
         mass = high.assemble_mass_matrix(sd)
         adv = incl.T @ mass @ dot @ proj
@@ -236,7 +231,9 @@ class RT0(HDiv):
         vals = np.zeros(self.ndof(sd))
 
         signs = sd.cell_faces.sum(axis=1)
-        func_vals = self.eval_func_at_coords(func, sd.face_centers[:, b_faces])
+        func_vals = self.eval_func_at_coords(
+            func, sd.face_centers[:, b_faces], pg.SCALAR
+        )
         vals[b_faces] = signs[b_faces] * func_vals
 
         return vals
@@ -385,7 +382,9 @@ class BDM1(HDiv):
         signs = sd.cell_faces.sum(axis=1)
 
         fn_bdry = sd.face_nodes[:, b_faces]
-        func_vals = self.eval_func_at_coords(func, sd.nodes[:, fn_bdry.indices])
+        func_vals = self.eval_func_at_coords(
+            func, sd.nodes[:, fn_bdry.indices], pg.SCALAR
+        )
         func_vals = func_vals.reshape((-1, b_faces.size), order="F")
 
         face_vals = signs[b_faces] * (local_mass @ func_vals)
@@ -650,7 +649,7 @@ class RT1(HDiv):
         """
         # The divergence corresponds to the broken divergence in this case.
         proj = self.proj_to_PwPolynomials(sd)
-        pwp = pg.get_PwPolynomials(self.poly_order, pg.VECTOR)()
+        pwp = self.get_PwPolynomials(self.poly_order, pg.VECTOR)()
         pwp = cast(pg.VecPwPolynomials, pwp)
 
         return pwp.assemble_broken_div_matrix(sd) @ proj

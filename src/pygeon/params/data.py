@@ -69,6 +69,8 @@ def get_cell_data(
 ) -> np.ndarray | pp.SecondOrderTensor:
     """
     Retrieve cell data from a grid with appropriate formatting based on tensor order.
+    Vector and matrix data are given in the ambient coordinates, with 3 components,
+    also on grids of lower dimension.
 
     Args:
         sd (pg.Grid | pg.MortarGrid): The grid object containing cell information.
