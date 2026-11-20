@@ -99,11 +99,11 @@ def test_subvolumes_multiple_concave_quads(multiple_concave_quads):
 
 def test_subsimplices_cartgrids(unit_cart_sd: pg.Grid):
     _, volumes = unit_cart_sd.compute_simplicial_subgrid()
-    assert np.allclose(volumes, volumes[0])
+    assert np.allclose(volumes, volumes[0]), f"Subvolumes {volumes} are not all equal"
 
 
 def test_subsimplices_multiconcave(multiple_concave_quads):
     _, volumes = multiple_concave_quads.compute_simplicial_subgrid()
 
-    assert np.any(np.isclose(volumes, 0))
-    assert np.isclose(np.sum(volumes), 1)
+    assert np.any(np.isclose(volumes, 0)), f"No zero subvolume in {volumes}"
+    assert np.isclose(np.sum(volumes), 1), f"Sum of subvolumes {np.sum(volumes)}, not 1"

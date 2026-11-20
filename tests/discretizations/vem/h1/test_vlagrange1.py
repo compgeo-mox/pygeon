@@ -202,7 +202,7 @@ def test_mass_matrix(discr, unit_cart_sd):
     M = discr.assemble_mass_matrix(unit_cart_sd)
     integral = interp @ M @ interp
 
-    assert np.isclose(integral, known)
+    assert np.isclose(integral, known), f"Integral of x^2 = {integral}, not {known}"
 
 
 def test_proj_on_tilted_prism(discr, pentagon_sd):
