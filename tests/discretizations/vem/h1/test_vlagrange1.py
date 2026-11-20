@@ -4,6 +4,7 @@ import numpy as np
 import porepy as pp
 import pytest
 import scipy.sparse as sps
+from porepy.grids.grid_extrusion import extrude_grid
 
 import pygeon as pg
 from tests.helpers import matrix_equals
@@ -202,3 +203,21 @@ def test_mass_matrix(discr, unit_cart_sd):
     integral = interp @ M @ interp
 
     assert np.isclose(integral, known)
+
+
+def test_proj_on_tilted_prism(discr, pentagon_sd):
+    # A prism on the pentagon with a tilted top face: on the pentagonal faces, the mean
+    # of the nodal values of a linear function is not its mean on the face
+    sd, _, _ = extrude_grid(pentagon_sd, np.array([0.0, 1.0]))
+    top = np.isclose(sd.nodes[2], 1)
+    sd.nodes[2, top] += 0.3 * sd.nodes[0, top]
+    sd.history = []
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    # The projection of a linear function is exact
+    grad = np.array([1.0, 2.0, 3.0])
+    interp = discr.interpolate(sd, lambda x: grad @ x)
+    proj = discr.proj_to_PwPolynomials(sd) @ interp
+    known = np.hstack((grad @ sd.cell_centers, sd.cell_diameters() * grad))
+    assert np.allclose(proj, known), f"Projection error {abs(proj - known).max()}"
