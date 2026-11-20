@@ -1,4 +1,4 @@
-"""Module contains the tests of the Grid class."""
+"""Module contains tests to validate the edge length computations for grids."""
 
 import numpy as np
 import porepy as pp
