@@ -344,37 +344,26 @@ class Lagrange2(Lagrange):
                 # In a point, the differential is the trivial map
                 return sps.csc_array((0, 0))
             case 1:
-                # The edges are the cells, and the dofs of PwLinears are the values of
-                # the derivative at the nodes of the cell in increasing order
-                dof_nodes = sd.cell_nodes()
+                # The degrees of freedom of the range space are nodal evaluations
                 scaling = 1 / sd.cell_volumes
-            case 2:
-                # The edges are the faces, and the dofs of BDM1 are the moments at the
-                # nodes of each face, in the order of face_nodes
-                dof_nodes = sd.face_nodes
-                scaling = np.ones(sd.num_faces)
-            case 3:
-                # The edges are the ridges, and the dofs of NedelecF1 are the moments
-                # at the nodes of each ridge, in the order of ridge_peaks
-                dof_nodes = sd.ridge_peaks
-                scaling = np.ones(sd.num_ridges)
+            case 2 | 3:
+                # The degrees of freedom of the range space are integrals over the edges
+                scaling = np.ones(sd.num_edges)
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
         # At the node a of an edge with other node b and midpoint dof m, the derivative
         # along the edge is the mean slope u_end - u_start plus the curvature term
-        # 2 s (u_a + u_b - 2 u_m), with s the orientation of the edge at a
+        # 2 s (u_a - 2 u_m + u_b), with s the orientation of the edge at a
         zeros = sps.csc_array((sd.num_edges, sd.num_edges))
         slope = sps.hstack((sd.edge_nodes.T, zeros))
         curvature = sps.hstack((abs(sd.edge_nodes).T, -2 * sps.eye_array(sd.num_edges)))
 
         # The orientation of the edge at the nodes of its two dofs: -1 at its start, 1
         # at its end
-        edges = np.arange(sd.num_edges)
-        nodes = dof_nodes.indices.reshape((sd.num_edges, 2))
-        signs = [sd.edge_nodes[nodes[:, i], edges] for i in range(2)]
+        signs = 2 * sd.edge_nodes.data.reshape((sd.num_edges, 2)).T
 
-        diff = sps.vstack([slope + sps.diags_array(2.0 * s) @ curvature for s in signs])
+        diff = sps.vstack([slope + sps.diags_array(s) @ curvature for s in signs])
         return (sps.diags_array(np.tile(scaling, 2)) @ diff).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
