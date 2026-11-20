@@ -338,16 +338,16 @@ class Grid(pp.Grid):
 
         # Attributes added by PyGeoN, which are copied only if already computed
         copy_attributes = [
-            "num_peaks",
-            "num_ridges",
-            "ridge_peaks",
-            "face_ridges",
-            "opposite_nodes",
-            "num_edges",
+            "edge_lengths",
             "edge_nodes",
             "edge_tangents",
-            "edge_lengths",
+            "face_ridges",
             "mesh_size",
+            "num_edges",
+            "num_peaks",
+            "num_ridges",
+            "opposite_nodes",
+            "ridge_peaks",
             "rotation_matrix",
         ]
         for attr in copy_attributes:
