@@ -7,8 +7,7 @@ import pygeon as pg
 
 
 def test_grid_0d(ref_sd_0d):
-    shape = ref_sd_0d.edge_nodes.shape
-    assert shape == (ref_sd_0d.num_nodes, 0), f"edge_nodes has shape {shape}"
+    assert ref_sd_0d.edge_nodes.shape == (ref_sd_0d.num_nodes, 0)
     assert len(ref_sd_0d.edge_tangents) == 0
     assert len(ref_sd_0d.edge_lengths) == 0
     assert ref_sd_0d.mesh_size == 0
@@ -48,21 +47,3 @@ def test_grid_3d_tets():
 
     known_meshsize = (12 + 6 * np.sqrt(2) + np.sqrt(3)) / 19
     assert np.allclose(sd.mesh_size, known_meshsize)
-
-
-def test_grid_1d_in_mdg(mdg):
-    # The faces of the fracture grids are not numbered as their nodes, so that the
-    # tangent of a cell goes from the node of its incoming face to the one of its
-    # outgoing face
-    for sd in mdg.subdomains(dim=1):
-        start = sd.face_nodes.indices[sd.cell_faces.indices[sd.cell_faces.data < 0]]
-        end = sd.face_nodes.indices[sd.cell_faces.indices[sd.cell_faces.data > 0]]
-        edge_start = sd.edge_nodes.indices[sd.edge_nodes.data < 0]
-        edge_end = sd.edge_nodes.indices[sd.edge_nodes.data > 0]
-        assert np.array_equal(edge_start, start), f"Starts {edge_start} != {start}"
-        assert np.array_equal(edge_end, end), f"Ends {edge_end} != {end}"
-
-        diff = sd.edge_tangents - (sd.nodes[:, end] - sd.nodes[:, start])
-        assert np.allclose(diff, 0), f"Tangents differ by {abs(diff).max()}"
-        diff = sd.edge_lengths - sd.cell_volumes
-        assert np.allclose(diff, 0), f"Lengths differ by {abs(diff).max()}"

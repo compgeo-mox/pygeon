@@ -81,5 +81,5 @@ def test_proj_between_nedelec(mdg):
         u0, u1 = ne0.interpolate(sd, f), ne1.interpolate(sd, f)
         diff_0 = ne1.proj_to_Ne0(sd) @ u1 - u0
         diff_1 = ne0.proj_to_Ne1(sd) @ u0 - u1
-        assert np.allclose(diff_0, 0), f"proj_to_Ne0 error {abs(diff_0).max()}"
-        assert np.allclose(diff_1, 0), f"proj_to_Ne1 error {abs(diff_1).max()}"
+        assert np.allclose(diff_0, 0)
+        assert np.allclose(diff_1, 0)

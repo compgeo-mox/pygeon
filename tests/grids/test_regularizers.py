@@ -74,7 +74,7 @@ def test_graph_laplace_1d_faces_not_nodes():
 
     sd = pg.graph_laplace_regularization(sd, False)
     known = np.linspace(0, 1, x.size)
-    assert np.allclose(sd.nodes[0], known), f"Nodes {sd.nodes[0]} != {known}"
+    assert np.allclose(sd.nodes[0], known)
 
 
 def test_graph_laplace_dual(sd_voronoi):
