@@ -127,10 +127,9 @@ class Grid(pp.Grid):
 
         orients = np.sign(np.sum(rotated_normal * face_tangents, axis=0))
 
-        # The indices are sorted once and for all: the order of the nodes of an edge
-        # defines the order of the dofs, e.g. of NedelecF1, and abs() would sort them
-        # in place, changing it
         face_ridges.data *= np.repeat(orients, 2).astype(int)
+        # The indices are sorted because the order of the nodes of an edge defines the
+        # order of the dofs, e.g. of NedelecF1
         face_ridges.sort_indices()
         self.face_ridges = face_ridges
 
