@@ -10,8 +10,8 @@ import pygeon as pg
 
 class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     """
-    Discretization class for the virtual Lagrange1 method, on polytopal grids, following
-    the Hitchhiker's guide to the virtual element method.
+    Discretization class for the virtual Lagrange1 method, on polytopal grids with
+    planar faces, following the Hitchhiker's guide to the virtual element method.
     """
 
     def proj_to_PwPolynomials(self, sd: pg.Grid):
@@ -93,14 +93,17 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         # Now the integrals against the monomials. We use the fact that
         # \nabla m_i = ê_i / diam
         # with ê_i the i-th basis vector of R^n. Using Stokes, we need to integrate over
-        # the faces of the cell. The average over a 2D face is given by dividing over
-        # the number of nodes (2) on each face. In 3D, we add a corection.
+        # the faces of the cell. In 2D, the faces are segments and the integral over a
+        # face is exact with the average of the values at its two nodes. In 3D, we
+        # correct the average of the nodal values.
         num_nodes_per_face = np.diff(sd.face_nodes.indptr)
         node_face_avg = (sd.face_nodes / num_nodes_per_face).T.tocsc()
 
         if sd.dim == 3:
-            # We consider the system after (3.8) in the Hitchhiker's and aim to compute
-            # the coefficient s^1, for each edge-face pair.
+            # We consider the system (3.9) in the Hitchhiker's on each face, with the
+            # monomials centered at the face center and not scaled, and aim to compute
+            # the coefficient s^1 of the constant, for each edge-face pair. Since the
+            # linears have zero mean on the face, s^1 is the mean of v on the face.
             ridges, faces, orient = sps.find(sd.face_ridges)
 
             # Ignoring the first row and choosing the unscaled monomials, the right-hand
