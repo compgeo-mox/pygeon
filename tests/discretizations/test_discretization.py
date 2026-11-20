@@ -312,6 +312,7 @@ def field(discr_class: type) -> sp.Expr | sp.Matrix:
         pg.VecRT0,
         pg.VecBDM1,
         pg.VecRT1,
+        pg.VLagrange1,
     ],
 )
 @pytest.mark.parametrize("tilted", [False, True])
