@@ -241,6 +241,69 @@ class Grid(pp.Grid):
         else:
             return subv
 
+    def compute_simplicial_subgrid(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Creates a subsimplex for each connected (cell, face, ridge) triplet. It connects
+        the cell center to the face center and the nodes of the ridge. The triplets are
+        returned and the signed volumes of the subsimplices.
+
+        We cannot create a simplicial mesh and rely on compute_geometry because the
+        subsimplices may have negative volume.
+        """
+        assert self.dim > 0, "The grid must be at least 1D."
+
+        # Get the face-cell connectivity.
+        faces, cells, orient = sps.find(self.cell_faces)
+
+        if self.dim == 1:
+            # There are no ridges in 1D so we provide a default value of zero.
+            ridges = np.zeros_like(faces)
+        else:  # dim > 1
+            # We expand the (cell, face) pairs to (cell, face, ridge) triplets. For each
+            # face in the pair-ordering, we look up its ridges in the array sub.
+            sub = self.face_ridges[:, faces]
+
+            # The ridges are given in the rows, and the columns correspond to the
+            # indices of the (cell, face) pairs.
+            ridges, pair_ind, fr_orient = sps.find(sub)
+
+            # Expand the arrays using the pair indices.
+            cells = cells[pair_ind]
+            faces = faces[pair_ind]
+            orient = orient[pair_ind]
+
+        triplets = np.vstack([cells, faces, ridges])
+
+        # Next, we compute the normal vector of the subsimplex on the face.
+        match self.dim:
+            case 1:
+                # The face is 0D and therefore not sub-divided
+                sub_normals = self.face_normals[:, faces]
+            case 2:
+                # The face is 1D and divided in two
+                sub_normals = self.face_normals[:, faces] / 2
+            case 3:
+                # The face is 2D and divided into multiple triangles. Each triangle has
+                # an area that is computable using a cross product.
+                start_nodes = self.ridge_peaks.indices[self.ridge_peaks.indptr[ridges]]
+                segment_1 = self.nodes[:, start_nodes] - self.face_centers[:, faces]
+                segment_2 = self.edge_tangents[:, ridges]
+
+                sub_normals = np.cross(segment_1, segment_2, axis=0) * fr_orient / 2
+
+        # Compute the signed subvolumes by dot product between the sub-face normal and
+        # the line segment connecting the face and cell centers.
+        sub_volumes = (
+            np.einsum(
+                "ij,ij->j",
+                self.face_centers[:, faces] - self.cell_centers[:, cells],
+                sub_normals * orient,
+            )
+            / self.dim
+        )
+
+        return triplets, sub_volumes
+
     def compute_opposite_nodes(self, recompute=False) -> sps.csc_array:
         """
         Computes a matrix containing the index of the opposite node
