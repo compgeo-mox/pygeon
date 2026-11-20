@@ -348,20 +348,16 @@ class Lagrange2(Lagrange):
                 # the derivative at the nodes of the cell in increasing order
                 dof_nodes = sd.cell_nodes()
                 scaling = 1 / sd.cell_volumes
-                second_dof_scaling = 1
             case 2:
                 # The edges are the faces, and the dofs of BDM1 are the moments at the
                 # nodes of each face, in the order of face_nodes
                 dof_nodes = sd.face_nodes
                 scaling = np.ones(sd.num_faces)
-                second_dof_scaling = 1
             case 3:
                 # The edges are the ridges, and the dofs of NedelecF1 are the moments
-                # at the nodes of each ridge, in the order of ridge_peaks, with the
-                # second dof on an edge oriented opposite to the first
+                # at the nodes of each ridge, in the order of ridge_peaks
                 dof_nodes = sd.ridge_peaks
                 scaling = np.ones(sd.num_ridges)
-                second_dof_scaling = -1
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
@@ -370,7 +366,7 @@ class Lagrange2(Lagrange):
         edges = np.arange(sd.num_edges)
         nodes = dof_nodes.indices.reshape((sd.num_edges, 2))
         signs = np.column_stack([sd.edge_nodes[nodes[:, i], edges] for i in range(2)])
-        signs = signs * scaling.reshape((-1, 1)) * np.array([1, second_dof_scaling])
+        signs = signs * scaling.reshape((-1, 1))
 
         # At the node a of an edge with other node b and midpoint dof m, the derivative
         # along the edge is s (3 u_a + u_b - 4 u_m), with s the orientation at a

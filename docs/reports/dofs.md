@@ -120,7 +120,7 @@ has exactly 2 endpoint nodes in any dimension, giving:
 
 $$N_\text{dof} = 2\,N_\text{edges}$$
 
-**DOF meaning.** Each DOF is a weighted tangential-circulation moment $\int_e (\mathbf{u} \cdot \boldsymbol{\tau}_e^i)\,\varphi_i^e \, ds$, where $\varphi_i^e$ is the Lagrange basis function of node $i$ on edge $e$, and $\boldsymbol{\tau}_e^i$ is the tangent from node $i$ toward the other node of the edge. The nodes of an edge are in the order of the indices of `sd.edge_nodes`, so that $\boldsymbol{\tau}_e^i$ is $\pm\boldsymbol{\tau}_e$ of `NedelecR0`.
+**DOF meaning.** Each DOF is a weighted tangential-circulation moment $\int_e (\mathbf{u} \cdot \boldsymbol{\tau}_e)\,\varphi_i^e \, ds$, where $\varphi_i^e$ is the Lagrange basis function of node $i$ on edge $e$, and $\boldsymbol{\tau}_e$ is the tangent along the orientation of the edge, the same for its two nodes and as for `NedelecR0`. The nodes of an edge are in the order of the indices of `sd.edge_nodes`.
 
 **DOF ordering.** Two blocks of $N_\text{edges}$ each (one per endpoint): the global
 index of DOF $(e, i)$ is $e + i\,N_\text{edges}$, $i \in \{0, 1\}$.
