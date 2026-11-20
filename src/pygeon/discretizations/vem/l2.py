@@ -58,22 +58,7 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
         weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
         diams = sd.cell_diameters()
 
-        faces, cells, orient = sps.find(sd.cell_faces)
-
-        assert np.allclose(np.diff(sd.face_nodes.indptr), sd.dim), (
-            "All faces must be simplicial, for now."
-        )
-
-        # Compute the volume of the simplicial subtesselation. It is given by connecting
-        # the cell center to the nodes of the simplicial face.
-        sub_volumes = (
-            np.einsum(
-                "ij,ij->j",
-                sd.face_centers[:, faces] - sd.cell_centers[:, cells],
-                sd.face_normals[:, faces] * orient,
-            )
-            / sd.dim
-        )
+        (cells, faces, ridges), sub_volumes = sd.compute_simplicial_subgrid()
 
         # We make an array of the values of the monomials in all the nodes of the
         # subsimplices. vals is of shape:
@@ -83,14 +68,27 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
         # The constants are one on every subsimplex node
         vals[:, 0, :] = 1
 
-        # Loop over the remaining d nodes of the subsimplex
-        for i in range(sd.dim):
-            node_i = sd.face_nodes.indices[sd.face_nodes.indptr[faces] + i]
-            vals[i + 1, 1:, :] = (
-                sd.rotation_matrix
-                @ (sd.nodes[:, node_i] - sd.cell_centers[:, cells])
-                / diams[cells]
-            )
+        # The linears:
+        def eval_lin_monomials(x):
+            """
+            Helper function to evaluate the linear monomials for given coordinates x,
+            assumed to have shape (3, cells.size)
+            """
+            return sd.rotation_matrix @ (x - sd.cell_centers[:, cells]) / diams[cells]
+
+        # The linear monomials on the face centers
+        vals[1, 1:, :] = eval_lin_monomials(sd.face_centers[:, faces])
+
+        # In 2D and 3D, we also evaluate the linears on the nodes of the ridge
+        match sd.dim:
+            case 2:
+                # The ridge is the node
+                vals[2, 1:, :] = eval_lin_monomials(sd.nodes[:, ridges])
+            case 3:
+                # The ridge has two nodes
+                for i in range(2):
+                    node_i = sd.ridge_peaks.indices[sd.ridge_peaks.indptr[ridges] + i]
+                    vals[2 + i, 1:, :] = eval_lin_monomials(sd.nodes[:, node_i])
 
         # Get the local mass matrix from the piecewise linears
         M_loc = pg.PwLinears().assemble_local_mass(sd.dim)
