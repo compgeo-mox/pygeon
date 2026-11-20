@@ -59,12 +59,10 @@ class Grid(pp.Grid):
         self.compute_edge_properties()
         self.compute_mesh_size()
 
-        # The topological maps are sorted once and for all, except face_nodes, whose
-        # order defines the geometry of the faces: abs() of a sparse array with
-        # unsorted indices sorts them in place, which would change the order of the
-        # local entities, e.g. of the dofs of NedelecF1, in later computations
-        for conn in (self.cell_faces, self.face_ridges, self.ridge_peaks):
-            conn.sort_indices()
+        self.cell_faces = sps.csc_array(self.cell_faces)
+        self.cell_faces.sort_indices()
+        self.face_ridges.sort_indices()
+        self.ridge_peaks.sort_indices()
 
     def num_entities(self) -> np.ndarray:
         """
