@@ -17,7 +17,7 @@ def poin(unit_sd: pg.Grid) -> pg.Poincare:
 
 
 def poin_from_geo(filename: str, dim: int) -> pg.Poincare:
-    dirname = Path(__file__).parents[1]
+    dirname = Path(__file__).parents[2]
     geo_file = dirname / "geo_files" / filename
 
     mdg = pp.fracs.fracture_importer.dfm_from_gmsh(geo_file, dim)
