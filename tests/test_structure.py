@@ -34,7 +34,6 @@ SRC_WITHOUT_TESTS = {
     # Tested in files named otherwise, which #358 and #359 rename
     "discretizations/mat_discretization.py",
     "grids/einstein.py",
-    "grids/grid.py",
     "grids/levelset_remesh.py",
     "grids/octagon.py",
     # Without tests of their own, covered by the tests of other files. Their tests are

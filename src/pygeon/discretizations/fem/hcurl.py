@@ -163,7 +163,7 @@ class NedelecR0(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        midpoints = sd.nodes @ abs(sd.ridge_peaks) / 2
+        midpoints = sd.nodes @ abs(sd.edge_nodes) / 2
         func_vals = self.eval_func_at_coords(func, midpoints)
         vals = (func_vals * sd.edge_tangents).sum(axis=0)
 
@@ -175,15 +175,17 @@ class NedelecR0(pg.Discretization):
         :math:`\Pi` takes a function from :class:`pg.NedelecR0` and maps it
         to a function in :class:`pg.NedelecF1`.
 
+        The degrees of freedom of both spaces are along the orientation of the edge, so
+        that the two degrees of freedom of :class:`pg.NedelecF1` on an edge are equal to
+        the one of :class:`pg.NedelecR0`.
+
         Args:
             sd (pg.Grid): The grid.
 
         Returns:
             sps.csc_array: The projection matrix to the Nedelec of the second kind.
         """
-        return (
-            sps.vstack([sps.eye_array(sd.num_edges), -sps.eye_array(sd.num_edges)])
-        ).tocsc()
+        return sps.vstack([sps.eye_array(sd.num_edges)] * 2).tocsc()
 
 
 class NedelecF1(pg.Discretization):
@@ -193,7 +195,8 @@ class NedelecF1(pg.Discretization):
     :math:`\mathbb{N}_1(\Omega) \subset H_{curl}(\Omega)`, for a generic domain
     :math:`\Omega \subset \mathbb{R}^d`.
 
-    Each degree of freedom is a tangential evaluation at the edge nodes.
+    Each degree of freedom is the tangential component at one of the two nodes of an
+    edge, along the orientation of the edge.
 
     While intended for three-dimensional grids, the space is generalized to 2D, where it
     corresponds to a rotated :class:`pg.BDM1`.
@@ -258,6 +261,13 @@ class NedelecF1(pg.Discretization):
         nodes = en[edges].ravel()
         partner_nodes = en[edges, ::-1].ravel()
 
+        # The basis function of the dof at a node is its nodal function times the
+        # gradient of the nodal function of the partner, whose tangential component is 1
+        # toward the partner. The dof is along the orientation of the edge, so the sign
+        # is minus the orientation of the edge at the node: 1 at the start, -1 at the
+        # end
+        signs = -sd.edge_nodes[nodes, np.repeat(edges, 2)]
+
         # The column indices are given by the Nedelec dof indices.
         dofs_at_edge = np.reshape(np.arange(self.ndof(sd)), (sd.num_edges, -1), "F")
         cols_J = dofs_at_edge[edges].ravel()
@@ -284,7 +294,7 @@ class NedelecF1(pg.Discretization):
 
         # We avoid inner products by using the identity:
         # tangent @ normal = dim * cell_volume * orientation
-        vals = -normals[:, faces] / (orien * sd.cell_volumes[cells] * sd.dim)
+        vals = -normals[:, faces] * signs / (orien * sd.cell_volumes[cells] * sd.dim)
         data_IJ = vals.ravel()
 
         # Finally, we find the corresponding dof in p1 by generating a lookup matrix
@@ -311,9 +321,9 @@ class NedelecF1(pg.Discretization):
         Returns:
             sps.csc_array: The projection matrix to the Nedelec of the first kind.
         """
-        return (
-            sps.hstack([sps.eye_array(sd.num_edges), -sps.eye_array(sd.num_edges)]) / 2
-        ).tocsc()
+        # The mean of the two dofs of each edge, see pg.NedelecR0.proj_to_Ne1
+        proj_to_ne1 = pg.NedelecR0(self.keyword).proj_to_Ne1(sd)
+        return (proj_to_ne1.T / 2).tocsc()
 
     def assemble_diff_matrix(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -342,7 +352,7 @@ class NedelecF1(pg.Discretization):
         """
         Interpolates the given function onto the finite element space: the degrees of
         freedom of each edge are the tangential components at its two nodes times the
-        edge length.
+        edge length, along the orientation of the edge.
 
         Args:
             sd (pg.Grid): The grid over which to interpolate the function.
@@ -351,11 +361,12 @@ class NedelecF1(pg.Discretization):
         Returns:
             np.ndarray: The values of the degrees of freedom.
         """
-        edge_nodes = np.reshape(sd.ridge_peaks.indices, (-1, 2))
-        coords = sd.nodes[:, edge_nodes.ravel(order="F")]
-        func_vals = self.eval_func_at_coords(func, coords)
+        # The dof i of an edge is at its node i, in the order of the indices of
+        # edge_nodes, along the orientation of the edge
+        nodes = np.reshape(sd.edge_nodes.indices, (-1, 2)).ravel(order="F")
+        func_vals = self.eval_func_at_coords(func, sd.nodes[:, nodes])
 
-        tangents = np.hstack((sd.edge_tangents, -sd.edge_tangents))
+        tangents = np.hstack((sd.edge_tangents, sd.edge_tangents))
         vals = (func_vals * tangents).sum(axis=0)
 
         return vals

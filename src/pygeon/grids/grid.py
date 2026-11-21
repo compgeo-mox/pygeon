@@ -59,6 +59,12 @@ class Grid(pp.Grid):
         self.compute_edge_properties()
         self.compute_mesh_size()
 
+        self.cell_faces = sps.csc_array(self.cell_faces)
+        self.cell_faces.sort_indices()
+        self.face_ridges.sort_indices()
+        self.ridge_peaks.sort_indices()
+        self.edge_nodes.sort_indices()
+
     def num_entities(self) -> np.ndarray:
         """
         Returns the number of geometric entities, ordered by the dimension of the
@@ -235,6 +241,69 @@ class Grid(pp.Grid):
         else:
             return subv
 
+    def compute_simplicial_subgrid(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Creates a subsimplex for each connected (cell, face, ridge) triplet. It connects
+        the cell center to the face center and the nodes of the ridge. The triplets are
+        returned and the signed volumes of the subsimplices.
+
+        We cannot create a simplicial mesh and rely on compute_geometry because the
+        subsimplices may have negative volume.
+        """
+        assert self.dim > 0, "The grid must be at least 1D."
+
+        # Get the face-cell connectivity.
+        faces, cells, orient = sps.find(self.cell_faces)
+
+        if self.dim == 1:
+            # There are no ridges in 1D so we provide a default value of zero.
+            ridges = np.zeros_like(faces)
+        else:  # dim > 1
+            # We expand the (cell, face) pairs to (cell, face, ridge) triplets. For each
+            # face in the pair-ordering, we look up its ridges in the array sub.
+            sub = self.face_ridges[:, faces]
+
+            # The ridges are given in the rows, and the columns correspond to the
+            # indices of the (cell, face) pairs.
+            ridges, pair_ind, fr_orient = sps.find(sub)
+
+            # Expand the arrays using the pair indices.
+            cells = cells[pair_ind]
+            faces = faces[pair_ind]
+            orient = orient[pair_ind]
+
+        triplets = np.vstack([cells, faces, ridges])
+
+        # Next, we compute the normal vector of the subsimplex on the face.
+        match self.dim:
+            case 1:
+                # The face is 0D and therefore not sub-divided
+                sub_normals = self.face_normals[:, faces]
+            case 2:
+                # The face is 1D and divided in two
+                sub_normals = self.face_normals[:, faces] / 2
+            case 3:
+                # The face is 2D and divided into multiple triangles. Each triangle has
+                # an area that is computable using a cross product.
+                start_nodes = self.ridge_peaks.indices[self.ridge_peaks.indptr[ridges]]
+                segment_1 = self.nodes[:, start_nodes] - self.face_centers[:, faces]
+                segment_2 = self.edge_tangents[:, ridges]
+
+                sub_normals = np.cross(segment_1, segment_2, axis=0) * fr_orient / 2
+
+        # Compute the signed subvolumes by dot product between the sub-face normal and
+        # the line segment connecting the face and cell centers.
+        sub_volumes = (
+            np.einsum(
+                "ij,ij->j",
+                self.face_centers[:, faces] - self.cell_centers[:, cells],
+                sub_normals * orient,
+            )
+            / self.dim
+        )
+
+        return triplets, sub_volumes
+
     def compute_opposite_nodes(self, recompute=False) -> sps.csc_array:
         """
         Computes a matrix containing the index of the opposite node
@@ -273,23 +342,28 @@ class Grid(pp.Grid):
 
     def compute_edge_properties(self) -> None:
         """
-        Computes and stores the tangent vectors and lengths
-        of the grid edges (1D entities).
+        Computes and stores the connectivity, the tangent vectors and the lengths of
+        the grid edges (1D entities). The edge-node connectivity edge_nodes has the
+        entry -1 at the start and 1 at the end of each edge: the cell-face connectivity
+        through the nodes of the faces in 1D, face_ridges in 2D, ridge_peaks in 3D.
         """
         match self.dim:
             case 0:
+                self.edge_nodes = sps.csc_array((self.num_nodes, 0), dtype=int)
                 self.edge_tangents = np.zeros((0, pg.AMBIENT_DIM))
                 self.edge_lengths = np.zeros(0)
                 self.num_edges = 0
                 return
             case 1:
-                edge_nodes = self.cell_faces
+                # The edges are the cells, and their nodes are the ones of the faces,
+                # which do not need to have the same index
+                self.edge_nodes = sps.csc_array(self.face_nodes @ self.cell_faces)
             case 2:
-                edge_nodes = self.face_ridges
+                self.edge_nodes = self.face_ridges
             case 3:
-                edge_nodes = self.ridge_peaks
+                self.edge_nodes = self.ridge_peaks
 
-        self.edge_tangents = self.nodes @ edge_nodes
+        self.edge_tangents = self.nodes @ self.edge_nodes
         self.edge_lengths = np.sqrt(np.sum(self.edge_tangents**2, axis=0))
         self.num_edges = self.edge_lengths.size
 
@@ -333,15 +407,16 @@ class Grid(pp.Grid):
 
         # Attributes added by PyGeoN, which are copied only if already computed
         copy_attributes = [
+            "edge_lengths",
+            "edge_nodes",
+            "edge_tangents",
+            "face_ridges",
+            "mesh_size",
+            "num_edges",
             "num_peaks",
             "num_ridges",
-            "ridge_peaks",
-            "face_ridges",
             "opposite_nodes",
-            "num_edges",
-            "edge_tangents",
-            "edge_lengths",
-            "mesh_size",
+            "ridge_peaks",
             "rotation_matrix",
         ]
         for attr in copy_attributes:

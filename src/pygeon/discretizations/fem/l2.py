@@ -636,7 +636,8 @@ class PwQuadratics(PwPolynomials):
 
         Returns:
             np.ndarray: Row i contains the local indices of the nodes connected to the
-            edge with local index i.
+            edge with local index i, in lexicographic order (0, 1), (0, 2), ...,
+            (dim - 1, dim).
         """
         n_nodes = dim + 1
         n_edges = self.num_edges_per_cell(dim)

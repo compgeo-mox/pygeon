@@ -7,6 +7,7 @@ import pygeon as pg
 
 
 def test_grid_0d(ref_sd_0d):
+    assert ref_sd_0d.edge_nodes.shape == (ref_sd_0d.num_nodes, 0)
     assert len(ref_sd_0d.edge_tangents) == 0
     assert len(ref_sd_0d.edge_lengths) == 0
     assert ref_sd_0d.mesh_size == 0
