@@ -4,6 +4,6 @@ import pygeon as pg
 
 
 def test_sorted_topological_maps(unit_sd: pg.Grid):
-    for name in ("cell_faces", "face_ridges", "ridge_peaks"):
+    for name in ("cell_faces", "face_ridges", "ridge_peaks", "edge_nodes"):
         conn = getattr(unit_sd, name)
         assert conn.has_sorted_indices, f"{name} has unsorted indices"
