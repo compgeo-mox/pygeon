@@ -17,16 +17,6 @@ def discr(request: pytest.FixtureRequest) -> pg.Discretization:
     return request.param("test")
 
 
-def test_interpolate_and_evaluate(discr, unit_sd):
-    func = lambda x: x[0] ** discr.poly_order
-    known_vals = func(unit_sd.cell_centers)
-
-    interp = discr.interpolate(unit_sd, func)
-    proj = discr.eval_at_cell_centers(unit_sd)
-
-    assert np.allclose(proj @ interp, known_vals)
-
-
 def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)
@@ -86,7 +76,7 @@ def test_point_grid(discr, ref_sd_0d):
     assert discr.ndof(ref_sd_0d) == 0
     assert discr.assemble_diff_matrix(ref_sd_0d).nnz == 0
     assert discr.eval_at_cell_centers(ref_sd_0d).nnz == 0
-    assert discr.interpolate(ref_sd_0d, lambda x: x).size == 0
+    assert discr.interpolate(ref_sd_0d, lambda x: x[0]).size == 0
 
     with pytest.raises(NotImplementedError):
         discr.get_range_discr_class(ref_sd_0d.dim)
@@ -103,8 +93,11 @@ def test_postprocess_darcy_flux(discr, tilted_sd):
     sd = tilted_sd
     P = sd.rotation_matrix.T @ sd.rotation_matrix
 
-    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
-    perm = pg.constant_tensor(sd.num_cells, K)
+    # The tensor is not symmetric, and PorePy builds only symmetric tensors, so the
+    # values are set directly
+    K = np.array([[3.0, 1.0, 0.5], [-0.4, 2.0, 0.3], [0.2, -1.0, 1.0]])
+    perm = pp.SecondOrderTensor(np.ones(sd.num_cells))
+    perm.values = np.tile(K.reshape((3, 3, 1)), sd.num_cells)
     data = pp.initialize_data({}, "test", {pg.SECOND_ORDER_TENSOR: perm})
 
     # The flux of a linear function is constant, equal to -P K P grad p
@@ -139,3 +132,25 @@ def test_assemble_adv_matrix_is_exact(discr, tilted_sd):
     A = discr.assemble_adv_matrix(sd, data)
     M = discr.assemble_mass_matrix(sd)
     assert np.allclose(A @ u_h, M @ w_h)
+
+
+def test_stiff_matrix_on_fracture_grids(discr, mdg):
+    # On the grids of a mixed-dimensional grid, the faces of the 1D grids are not
+    # numbered as their nodes and the orientation of the edges of the 2D grids may be
+    # opposite to the order of the nodes of the faces: the differential must still
+    # vanish on the constants and give the stiffness of the broken gradient
+    for sd in mdg.subdomains():
+        if sd.dim == 0:
+            continue
+        diff = discr.assemble_diff_matrix(sd)
+        ones = discr.interpolate(sd, lambda _: 1)
+        assert np.allclose(diff @ ones, 0), (
+            f"Differential of the constants is {abs(diff @ ones).max()} on dim {sd.dim}"
+        )
+
+        stiff = discr.assemble_stiff_matrix(sd)
+        grad_grad = discr.assemble_grad_grad_matrix(sd)
+        assert np.allclose((stiff - grad_grad).data, 0), (
+            f"Stiffness differs from grad-grad by {abs(stiff - grad_grad).max()} on "
+            f"dim {sd.dim}"
+        )

@@ -67,38 +67,6 @@ def test_proj_to_higherPwPolynomials(discr, unit_sd):
     assert np.allclose(diff.data, 0.0)
 
 
-def test_interpolate_and_evaluate(discr: pg.Discretization, unit_sd: pg.Grid):
-    match discr.tensor_order:
-        case 0:
-            func = lambda x: x[0] ** discr.poly_order
-        case 1:
-
-            def func(x):
-                ans = x.copy()
-                ans[unit_sd.dim :] = 0
-                return ans
-        case 2:
-
-            def func(x):
-                d = unit_sd.dim
-                ans = np.tile(x, [3, 1, 1][: x.ndim + 1])
-                ans[d:] = 0
-                ans[:, d:] = 0
-
-                # Make it symmetric for the SymMat case
-                if "Sym" in type(discr).__name__:
-                    ans += np.transpose(ans, [1, 0, 2][: x.ndim + 1])
-
-                return ans
-
-    known_vals = np.vstack([func(x).ravel() for x in unit_sd.cell_centers.T]).T
-
-    interp = discr.interpolate(unit_sd, func)
-    proj = discr.eval_at_cell_centers(unit_sd)
-
-    assert np.allclose(proj @ interp, known_vals.ravel())
-
-
 def test_lumped_consistency(discr, unit_sd):
     M_lumped = discr.assemble_lumped_matrix(unit_sd)
     M_full = discr.assemble_mass_matrix(unit_sd)

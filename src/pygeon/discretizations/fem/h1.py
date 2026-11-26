@@ -40,11 +40,7 @@ class Lagrange(pg.Discretization):
         Returns:
             sps.csc_array: The assembled stiffness matrix.
         """
-        grad_space = self.get_broken_grad_discr()(self.keyword)
-        M = grad_space.assemble_mass_matrix(sd, data)
-        grad = self.assemble_broken_grad_matrix(sd)
-
-        return (grad.T @ M @ grad).tocsc()
+        return self.assemble_broken_grad_grad_matrix(sd, data)
 
     def assemble_adv_matrix(
         self, sd: pg.Grid, data: dict | None = None
@@ -57,10 +53,9 @@ class Lagrange(pg.Discretization):
         The data dictionary contains the vector field :math:`\boldsymbol{\beta}`
         accessible via pg.VECTOR_FIELD. It is given as a vector field, assumed
         constant per cell (:class:`pg.VecPwConstants`). If not provided, it
-        defaults to :math:`(0, 0, 0)`. On grids of dimension lower than 3, the field is
-        rotated to the plane or the line of the grid with ``sd.rotation_matrix``,
-        unless the entry "is_tangential" of data is True: then its first dim
-        components are taken as the ones in those coordinates.
+        defaults to :math:`(0, 0, 0)`. The field is given in the ambient coordinates,
+        and on grids of dimension lower than 3 only its component in the plane or the
+        line of the grid acts.
 
         Since the field is constant on each cell,
         :math:`\boldsymbol{\beta} \cdot \nabla u` is a piecewise polynomial of order
@@ -86,9 +81,6 @@ class Lagrange(pg.Discretization):
         """
         # Retrieve the vector field, in the ambient coordinates
         V = pg.get_cell_data(sd, data, self.keyword, pg.VECTOR_FIELD, pg.VECTOR)
-        # TODO: remove is_tangential, see #340
-        if data and data.get("is_tangential", False):
-            V = sd.rotation_matrix.T @ V[: sd.dim]
 
         # The directional derivative of u along the field, in the piecewise
         # polynomials of order k - 1
@@ -96,8 +88,8 @@ class Lagrange(pg.Discretization):
 
         # Its inclusion in the piecewise polynomials of order k, where it is tested
         # with v through their mass matrix
-        low = pg.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
-        high = pg.get_PwPolynomials(self.poly_order, pg.SCALAR)()
+        low = self.get_PwPolynomials(self.poly_order - 1, pg.SCALAR)()
+        high = self.get_PwPolynomials(self.poly_order, pg.SCALAR)()
         incl = low.proj_to_higher_PwPolynomials(sd)
         mass = high.assemble_mass_matrix(sd)
         proj = self.proj_to_PwPolynomials(sd)
@@ -128,8 +120,10 @@ class Lagrange(pg.Discretization):
             sd, data, self.keyword, pg.SECOND_ORDER_TENSOR, pg.MATRIX
         )
         weight = pg.get_cell_data(sd, data, self.keyword, pg.WEIGHT)
+        # Rotate the tensor, of shape (3, 3, num_cells), to the plane or the line of
+        # the grid: R K R^T on each cell, of shape (dim, dim, num_cells)
         R = sd.rotation_matrix
-        K = np.tensordot(R.T, np.tensordot(R, tensor.values, (1, 0)), (0, 1))
+        K = np.einsum("ai,ijc,bj->abc", R, tensor.values, R)
         K *= weight
 
         # The local dofs of each polynomial component are ordered as (local, cell)
@@ -181,12 +175,9 @@ class Lagrange1(Lagrange):
             sps.csc_array: The differential matrix.
         """
         match sd.dim:
-            case 3:
-                return sd.ridge_peaks.T.tocsc()
-            case 2:
-                return sd.face_ridges.T.tocsc()
-            case 1:
-                return sd.cell_faces.T.tocsc()
+            case 1 | 2 | 3:
+                # The difference of the values at the two nodes of each edge
+                return sd.edge_nodes.T.tocsc()
             case 0:
                 return sps.csc_array((0, 0))
             case _:
@@ -347,63 +338,27 @@ class Lagrange2(Lagrange):
                 # In a point, the differential is the trivial map
                 return sps.csc_array((0, 0))
             case 1:
-                # In 1D, the gradient of the nodal functions scales as 1/h
-                diff_nodes_0 = (sd.cell_faces.T / sd.cell_volumes[:, None]).tocsr()
-                diff_nodes_1 = diff_nodes_0.copy()
-
-                # The derivative of the nodal basis functions is equal to 3
-                # on one side of the element and -1 on the other
-                diff_nodes_0.data[0::2] = 3 * diff_nodes_0.data[0::2]
-                diff_nodes_0.data[1::2] = -diff_nodes_0.data[1::2]
-                diff_nodes_1.data[0::2] = -diff_nodes_1.data[0::2]
-                diff_nodes_1.data[1::2] = 3 * diff_nodes_1.data[1::2]
-
-                diff_nodes = sps.vstack((diff_nodes_0, diff_nodes_1))
-
-                # The derivative of the edge (cell) basis functions are 4 and -4
-                diff_edges_0 = sps.diags_array(4 / sd.cell_volumes)
-                diff_edges = sps.vstack((diff_edges_0, -diff_edges_0))
-
-                return sps.hstack((diff_nodes, diff_edges)).tocsc()
-            # The 2D and 3D cases can be handled in a general way
-            case 2:
-                edge_nodes = sd.face_ridges
-                num_edges = sd.num_faces
-                # The second degree of freedom on an edge
-                # is oriented in the same way as the first
-                second_dof_scaling = 1
-            case 3:
-                edge_nodes = sd.ridge_peaks
-                num_edges = sd.num_ridges
-                # By design of NedelecF1, we orient the second dof
-                # on an edge opposite to the first in 3D
-                second_dof_scaling = -1
+                # The degrees of freedom of the range space are nodal evaluations
+                scaling = 1 / sd.cell_volumes
+            case 2 | 3:
+                # The degrees of freedom of the range space are integrals over the edges
+                scaling = np.ones(sd.num_edges)
             case _:
                 raise ValueError("Dimension must be 0, 1, 2, or 3.")
 
-        # Start of the edge
-        # The nodal function associated with the start has derivative -3 here.
-        # The other nodal function has derivative -1.
-        diff_nodes_0_csc = edge_nodes.copy().T
-        diff_nodes_0_csc.data[edge_nodes.data == -1] = -3
-        diff_nodes_0_csc.data[edge_nodes.data == 1] = -1
+        # At the node a of an edge with other node b and midpoint dof m, the derivative
+        # along the edge is the mean slope u_end - u_start plus the curvature term
+        # 2 s (u_a - 2 u_m + u_b), with s the orientation of the edge at a
+        zeros = sps.csc_array((sd.num_edges, sd.num_edges))
+        slope = sps.hstack((sd.edge_nodes.T, zeros))
+        curvature = sps.hstack((abs(sd.edge_nodes).T, -2 * sps.eye_array(sd.num_edges)))
 
-        diff_0 = sps.hstack((diff_nodes_0_csc, 4 * sps.eye_array(num_edges)))
+        # The orientation of the edge at the nodes of its two dofs: -1 at its start, 1
+        # at its end
+        signs = 2 * sd.edge_nodes.data.reshape((sd.num_edges, 2)).T
 
-        # End of the edge
-        # The nodal function associated with the start has derivative 1 here.
-        # The other nodal function has derivative 3.
-        diff_nodes_1_csr = edge_nodes.copy().T
-        diff_nodes_1_csr.data[edge_nodes.data == 1] = 3
-        diff_nodes_1_csr.data[edge_nodes.data == -1] = 1
-
-        # Rescale due to design choices in NedelecF1
-        diff_1 = second_dof_scaling * sps.hstack(
-            (diff_nodes_1_csr, -4 * sps.eye_array(num_edges))
-        )
-
-        # Combine
-        return sps.vstack((diff_0, diff_1)).tocsc()
+        diff = sps.vstack([slope + sps.diags_array(s) @ curvature for s in signs])
+        return (sps.diags_array(np.tile(scaling, 2)) @ diff).tocsc()
 
     def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
@@ -437,10 +392,17 @@ class Lagrange2(Lagrange):
                 # The only edge in 1D is the cell
                 edges = np.arange(sd.num_cells)
             case 2:
-                # In 2D, the edges are the faces
-                edges = sd.cell_faces.indices
+                # In 2D, the edges are the faces. The local edges of PwQuadratics are
+                # (0, 1), (0, 2), (1, 2) of the nodes in increasing order, i.e. the
+                # faces opposite the nodes in decreasing order
+                opposite_nodes = sd.compute_opposite_nodes()
+                faces = opposite_nodes.indices.reshape((sd.num_cells, -1))
+                nodes = opposite_nodes.data.reshape((sd.num_cells, -1))
+                edges = np.take_along_axis(faces, np.argsort(-nodes, axis=1), axis=1)
             case 3:
-                # We find the cell-edge connectivity
+                # We find the cell-edge connectivity. The ridges are numbered by their
+                # nodes in lexicographic order, so that sorting the ridges of a cell
+                # gives the local edges (0, 1), (0, 2), ..., (2, 3) of PwQuadratics
                 cell_edges = abs(sd.face_ridges) @ abs(sd.cell_faces)
                 cell_edges.sort_indices()
                 edges = cell_edges.indices

@@ -55,7 +55,7 @@ cell: one per vertex plus one per edge (midpoint) of each simplex. The total cou
 
 $$N_\text{dof} = \frac{(d+1)(d+2)}{2}\,N_\text{cells}$$
 
-**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges.
+**DOF meaning.** The local DOFs are heterogeneous within each cell: the first $(d+1)$ are function values at the cell vertices, in increasing order of their index, and the remaining $\tfrac{d(d+1)}{2}$ are function values at the midpoints of the cell edges, ordered as the pairs of local vertices $(0, 1), (0, 2), \ldots, (d-1, d)$.
 
 **DOF ordering.** Cell index varies fastest: the $k$-th local basis function of cell $c$ has global index $k \cdot N_\text{cells} + c$.
 
@@ -78,7 +78,7 @@ Since each face of a $d$-simplex has exactly $d$ nodes:
 
 $$N_\text{dof} = d \cdot N_\text{faces}$$
 
-**DOF meaning.** Each DOF is a weighted normal-flux moment $\int_f (\mathbf{u} \cdot \mathbf{n}_f)\,\varphi_i^f \, ds$, where $\varphi_i^f$ is the Lagrange basis function of node $i$ restricted to face $f$.
+**DOF meaning.** Each DOF is the normal component of the field at a node of the face, scaled by the face area: $|f|\,\mathbf{u}(\mathbf{x}_i) \cdot \mathbf{n}_f$, where $\mathbf{x}_i$ is the node $i$ of face $f$, in the order of `sd.face_nodes`, and $\mathbf{n}_f$ is the unit normal of the face.
 
 **DOF ordering.** The DOFs are grouped by node-position within the face: the first
 $N_\text{faces}$ entries correspond to the first node of each face, the next
@@ -92,7 +92,7 @@ $d$ DOFs per face and $d$ DOFs per cell.
 
 $$N_\text{dof} = d\,(N_\text{faces} + N_\text{cells})$$
 
-**DOF meaning.** The two sets are heterogeneous: face DOFs are directional normal-flux moments (one per spatial direction per face); cell DOFs are the $d$ components of the cell-average of the field.
+**DOF meaning.** The two sets are heterogeneous: face DOFs are those of `BDM1`, the normal components of the field at the nodes of each face scaled by its area; cell DOFs are the coefficients of the $d$ cell basis functions such that the interpolant equals the field at the cell center, where the face basis functions vanish.
 
 **DOF ordering.** The global vector is split into a face block followed by a cell
 block, each further divided into $d$ sub-blocks of uniform size.
@@ -107,7 +107,7 @@ One DOF per mesh **edge**.
 
 $$N_\text{dof} = N_\text{edges}$$
 
-**DOF meaning.** Each DOF is the integral of the tangential component of the field along the edge: $\int_e \mathbf{u} \cdot \boldsymbol{\tau}_e \, ds$.
+**DOF meaning.** Each DOF is the integral of the tangential component of the field along the edge: $\int_e \mathbf{u} \cdot \boldsymbol{\tau}_e \, ds$, with $\boldsymbol{\tau}_e$ the tangent along the orientation of the edge, from the node with entry $-1$ to the one with entry $1$ in `sd.edge_nodes`.
 
 **DOF ordering.** DOF $e$ has global index $e$ (directly indexed by edge number).
 
@@ -120,7 +120,7 @@ has exactly 2 endpoint nodes in any dimension, giving:
 
 $$N_\text{dof} = 2\,N_\text{edges}$$
 
-**DOF meaning.** Each DOF is a weighted tangential-circulation moment $\int_e (\mathbf{u} \cdot \boldsymbol{\tau}_e)\,\varphi_i^e \, ds$, where $\varphi_i^e$ is the Lagrange basis function of node $i$ on edge $e$.
+**DOF meaning.** Each DOF is the tangential component of the field at a node of the edge, scaled by the edge length: $|e|\,\mathbf{u}(\mathbf{x}_i) \cdot \boldsymbol{\tau}_e$, where $\boldsymbol{\tau}_e$ is the unit tangent along the orientation of the edge, the same for its two nodes and as for `NedelecR0`. The nodes of an edge are in the order of the indices of `sd.edge_nodes`.
 
 **DOF ordering.** Two blocks of $N_\text{edges}$ each (one per endpoint): the global
 index of DOF $(e, i)$ is $e + i\,N_\text{edges}$, $i \in \{0, 1\}$.
@@ -138,14 +138,36 @@ $$N_\text{dof} = d \cdot N_\text{dof}^{\text{scalar}}$$
 All vector spaces use a **component-block** ordering: first all DOFs of the
 $x$-component, then all DOFs of the $y$-component, and so on.  
 
+### Coordinates on grids of lower dimension
 
+A grid of dimension $d < 3$ may lie anywhere in space, e.g. a tilted plane. Two sets of
+coordinates are then involved:
+
+- **Ambient coordinates** $(x, y, z)$, for everything the user passes in or gets out:
+  the functions given to `interpolate` and `assemble_nat_bc`, the data (vector fields,
+  tensors), and the values returned by `eval_at_cell_centers`. Vectors always have 3
+  components and tensors are $3 \times 3$.
+- **Coordinates of the grid**, for the DOFs only: the $d$ components of a vector-valued
+  space are taken along the rows of `sd.rotation_matrix` $R$, of shape $d \times 3$,
+  an orthonormal basis of the plane or the line of the grid.
+
+The conversion is done inside the discretization. For a function $f$ in the ambient
+coordinates, the DOFs of the component $i$ are the ones of $(R f)_i$, the component of
+$f$ along the row $i$ of $R$, in the underlying scalar space. Back, the value at a
+cell center in the ambient coordinates is $R^\top$ times the $d$ components, so that
+only the part of $f$ in the plane is represented: $P f$, with $P = R^\top R$ the
+projection on the plane. For a matrix-valued space the rows are converted in the same
+way, and the columns by the underlying vector-valued space, so that a matrix $F$ is
+represented by $P F P$.
+
+On a grid of dimension 3, of dimension 2 in the plane $z = 0$, or of dimension 1 on the
+$x$ axis, $R$ keeps the first $d$ ambient coordinates, and the two sets coincide on them.
 
 ## Matrix-valued spaces
 
 The matrix-valued $L^2$ spaces `MatPwConstants`, `MatPwLinears`, and
 `MatPwQuadratics` replicate the DOFs of their underlying scalar piecewise
 polynomial spaces for each entry of the $d \times d$ tensor.
-replicate their DOFs for each entry of the $d \times d$ tensor.
 
 $$N_\text{dof} = d^2 \cdot N_\text{dof}^{\text{scalar}}$$
 

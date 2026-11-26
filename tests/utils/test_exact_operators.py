@@ -411,10 +411,10 @@ def test_to_callable_in_time(coords):
     pts = np.array([[0.0, 1.0, 2.0], [0.0, 0.5, 1.0], [0.0, 0.0, 0.0]])
 
     scalar = pg.exact.to_callable(x * t + y, t=2.0)
-    vector = pg.exact.to_callable(sp.Matrix([sp.sin(t) * x, y, 0]), 2, t=0.0)
+    vector = pg.exact.to_callable(sp.Matrix([sp.sin(t) * x, y, 0]), t=0.0)
 
     assert np.allclose(scalar(pts), 2 * pts[0] + pts[1])
-    assert np.allclose(vector(pts), [np.zeros(3), pts[1]])
+    assert np.allclose(vector(pts), [np.zeros(3), pts[1], np.zeros(3)])
     # a time is accepted, and ignored, by an expression independent of time
     assert np.allclose(pg.exact.to_callable(x, t=1.0)(pts), pts[0])
 
@@ -431,18 +431,6 @@ def test_to_callable_rejects_wrong_coordinates(coords):
 
     with pytest.raises(ValueError):
         pg.exact.to_callable(x)([0.25, 0.75])
-
-
-def test_to_callable_in_two_dimensions(coords):
-    x, y, _ = coords
-    pts = np.array([[0.0, 1.0], [0.0, 0.5], [0.0, 0.0]])
-
-    vector = pg.exact.to_callable(sp.Matrix([x, y, 0]), 2)
-    matrix = pg.exact.to_callable(pg.exact.vector_gradient(sp.Matrix([x * y, y, 0])), 2)
-
-    assert vector(pts).shape == (2, 2)
-    assert matrix(pts).shape == (2, 2, 2)
-    assert np.allclose(vector(pts), pts[:2])
 
 
 def test_to_callable_of_constants():

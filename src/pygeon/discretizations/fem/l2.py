@@ -2,7 +2,7 @@
 
 import abc
 from math import comb, factorial
-from typing import Callable, Type
+from typing import Callable, Type, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -535,8 +535,8 @@ class PwLinears(PwPolynomials):
         Returns:
             sps.csc_array: The projection matrix.
         """
-        p1 = pg.PwLinears()
-        p2 = pg.PwQuadratics()
+        p2 = self.get_PwPolynomials(self.poly_order + 1, self.tensor_order)()
+        p2 = cast(pg.PwQuadratics, p2)
 
         # Local dof mapping
         num_cell_edges = p2.num_edges_per_cell(sd.dim)
@@ -546,7 +546,7 @@ class PwLinears(PwPolynomials):
         # The local dofs of all the cells at once, one row per cell: the dofs of the
         # cell c are c + num_cells * k, with k running over its local dofs
         cells = np.arange(sd.num_cells)[:, None]
-        dofs_p1 = sd.num_cells * np.arange(p1.ndof_per_element(sd.dim)) + cells
+        dofs_p1 = sd.num_cells * np.arange(self.ndof_per_element(sd.dim)) + cells
         dofs_p2 = sd.num_cells * np.arange(p2.ndof_per_element(sd.dim)) + cells
 
         rows_I = np.hstack(
@@ -636,7 +636,8 @@ class PwQuadratics(PwPolynomials):
 
         Returns:
             np.ndarray: Row i contains the local indices of the nodes connected to the
-            edge with local index i.
+            edge with local index i, in lexicographic order (0, 1), (0, 2), ...,
+            (dim - 1, dim).
         """
         n_nodes = dim + 1
         n_edges = self.num_edges_per_cell(dim)

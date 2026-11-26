@@ -50,6 +50,15 @@ def test_levelset_through_node():
         pg.levelset_remesh(sd, line_at_y80)
 
 
+def test_levelset_without_cuts():
+    sd = pp.StructuredTriangleGrid([2] * 2, [1] * 2)
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    new_sd = pg.levelset_remesh(sd, lambda x: x[0] - 2)
+    assert new_sd is sd, "Without cuts, the grid itself is expected back"
+
+
 def test_structtrianglegrid():
     sd = pp.StructuredTriangleGrid([2] * 2, [1] * 2)
     pg.convert_from_pp(sd)

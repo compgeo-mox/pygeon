@@ -10,6 +10,7 @@ import pygeon as pg
     params=[
         pg.Lagrange1,
         pg.Lagrange2,
+        pg.VLagrange1,
     ]
 )
 def discr(request: pytest.FixtureRequest) -> pg.Discretization:

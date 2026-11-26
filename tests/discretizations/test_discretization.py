@@ -1,6 +1,7 @@
 """Module contains general tests for all discretizations."""
 
 import numpy as np
+import porepy as pp
 import pytest
 import sympy as sp
 
@@ -58,6 +59,25 @@ def test_unvectorized_interpolation(unit_sd_2d):
 
     with pytest.raises(RuntimeError):
         discr.interpolate(unit_sd_2d, func)
+
+
+def test_constant_interpolation_at_three_points():
+    # On a triangle, RT0 evaluates the function at 3 face centers and Lagrange1 at 3
+    # nodes, as many as the components of a vector: a constant vector is repeated at
+    # each point, and the values of a scalar function at the 3 points are kept
+    sd = pg.reference_element(2)
+    sd.compute_geometry()
+    rt0 = pg.RT0()
+    vec = np.array([1.0, 2.0, 0.0])
+
+    constant = rt0.interpolate(sd, lambda _: vec)
+    vectorized = rt0.interpolate(
+        sd, lambda x: np.tile(vec.reshape((-1, 1)), x.shape[1])
+    )
+    assert np.allclose(constant, vectorized)
+
+    p1 = pg.Lagrange1()
+    assert np.allclose(p1.interpolate(sd, lambda x: x[0]), sd.nodes[0])
 
 
 @pytest.mark.parametrize(
@@ -201,6 +221,8 @@ def test_get_broken_grad_discr(discr_class, known):
         pg.VecPwQuadratics,
         pg.RT0,
         pg.BDM1,
+        pg.VecLagrange1,
+        pg.VecLagrange2,
     ],
 )
 def test_broken_directional_derivative(discr_class, tilted_sd):
@@ -232,3 +254,179 @@ def test_broken_directional_derivative(discr_class, tilted_sd):
 
     dir_der = discr.assemble_broken_directional_derivative(sd, vector_field)
     assert np.allclose(dir_der @ u_h, f_h)
+
+
+@pytest.fixture
+def field(discr_class: type) -> sp.Expr | sp.Matrix:
+    """
+    A function in the space of discr_class, in the ambient coordinates: a polynomial
+    of the order of the space for the scalar spaces, and linear for the vector and the
+    matrix ones, with each vector of the form a + c x for the Raviart-Thomas spaces of
+    lowest order, and symmetric for the symmetric spaces.
+    """
+    x = sp.Matrix(pg.exact.coordinates())
+    a = sp.Matrix([0.3, -0.7, 1.1])
+    c = sp.Matrix([1.0, -0.5, 2.0])
+    A = sp.Matrix([[1.0, 2.0, -1.0], [0.5, -1.0, 2.0], [3.0, 1.0, 1.0]])
+    w = c.dot(x)
+
+    match discr_class.tensor_order, discr_class:
+        case pg.SCALAR, _:
+            return (1 + x[0] + 2 * x[1] + x[2]) ** discr_class.poly_order
+        case pg.VECTOR, pg.RT0:
+            return a + 1.5 * x
+        case pg.VECTOR, _:
+            return a + A * x
+        case pg.MATRIX, pg.VecRT0:
+            return a * sp.ones(1, 3) + c * x.T
+        case pg.MATRIX, _ if "Sym" in discr_class.__name__:
+            return (A + A.T) * (1 + w)
+        case _:
+            return A + w * A.T
+
+
+@pytest.mark.parametrize(
+    "discr_class",
+    [
+        pg.Lagrange1,
+        pg.Lagrange2,
+        pg.PwConstants,
+        pg.PwLinears,
+        pg.PwQuadratics,
+        pg.RT0,
+        pg.BDM1,
+        pg.RT1,
+        pg.VecLagrange1,
+        pg.VecLagrange2,
+        pg.VecPwConstants,
+        pg.VecPwLinears,
+        pg.VecPwQuadratics,
+        pg.VecVLagrange1,
+        pg.MatLagrange1,
+        pg.MatPwConstants,
+        pg.MatPwLinears,
+        pg.MatPwQuadratics,
+        pg.SymMatPwConstants,
+        pg.SymMatPwLinears,
+        pg.SymMatPwQuadratics,
+        pg.VecRT0,
+        pg.VecBDM1,
+        pg.VecRT1,
+        pg.VLagrange1,
+    ],
+)
+@pytest.mark.parametrize("tilted", [False, True])
+def test_interpolate_and_eval(discr_class, field, tilted, unit_sd, tilted_sd):
+    # The functions are given in the ambient coordinates, and their evaluation at the
+    # cell centers is in the ambient coordinates as well, projected on the plane of
+    # the grid: f for a scalar, P f for a vector and P F P for a matrix
+    sd = tilted_sd if tilted else unit_sd
+    if discr_class in (pg.RT1, pg.VecRT1) and tilted and sd.dim < 3:
+        # TODO: RT1 evaluates its basis and interpolates the cell dofs with the
+        # ambient components, so that it fails on grids out of the coordinate planes,
+        # see #341
+        pytest.xfail("RT1 is not yet supported on tilted grids")
+    P = sd.rotation_matrix.T @ sd.rotation_matrix
+    discr = discr_class("test")
+
+    func = pg.exact.to_callable(field)
+    match discr.tensor_order:
+        case pg.SCALAR:
+            known = func(sd.cell_centers)
+        case pg.VECTOR:
+            known = P @ func(sd.cell_centers)
+        case pg.MATRIX:
+            known = np.einsum("ij,jkc,kl->ilc", P, func(sd.cell_centers), P)
+
+    eval_h = discr.eval_at_cell_centers(sd) @ discr.interpolate(sd, func)
+    assert np.allclose(eval_h, known.reshape((-1, sd.num_cells)).ravel())
+
+
+def rotate(sd: pg.Grid) -> tuple[np.ndarray, pg.Grid]:
+    """The rotation Q by pi / 3 about (1, 2, 3) and the grid rotated by it."""
+    Q = pp.map_geometry.rotation_matrix(np.pi / 3, np.array([1.0, 2.0, 3.0]))
+    rotated_sd = sd.copy(keep_history=False)
+    rotated_sd.nodes = Q @ rotated_sd.nodes
+    rotated_sd.compute_geometry()
+    return Q, rotated_sd
+
+
+@pytest.mark.parametrize(
+    "discr_class, method",
+    [
+        (pg.RT0, "assemble_mass_matrix"),
+        (pg.RT0, "assemble_lumped_matrix"),
+        (pg.BDM1, "assemble_mass_matrix"),
+        (pg.BDM1, "assemble_lumped_matrix"),
+        (pg.VRT0, "assemble_mass_matrix"),
+    ],
+)
+def test_mass_matrices_are_invariant_under_rotation(discr_class, method, unit_sd):
+    # The dofs are the fluxes through the faces, which do not change when the grid is
+    # rotated by Q and a tensor K, given in the ambient coordinates, to Q K Q^T: the
+    # matrices coincide
+    Q, rotated_sd = rotate(unit_sd)
+    discr = discr_class("test")
+
+    K = np.array([[3.0, 1.0, 0.5], [1.0, 2.0, 0.3], [0.5, 0.3, 1.0]])
+    if discr_class is pg.VRT0:
+        # The stabilization of the MVEM of PorePy scales with the infinity norm of
+        # K^{-1}, which is not invariant under rotation
+        K = 2 * np.eye(3)
+
+    matrices = []
+    for sd, K_sd in ((unit_sd, K), (rotated_sd, Q @ K @ Q.T)):
+        param = {pg.SECOND_ORDER_TENSOR: pg.constant_tensor(sd.num_cells, K_sd)}
+        data = pp.initialize_data({}, "test", param)
+        matrices.append(getattr(discr, method)(sd, data))
+
+    assert np.allclose((matrices[0] - matrices[1]).data, 0)
+
+
+@pytest.mark.parametrize(
+    "discr_class, method",
+    [
+        (pg.VecRT0, "assemble_mass_matrix_elasticity"),
+        (pg.VecRT0, "assemble_lumped_matrix_elasticity"),
+        (pg.VecRT0, "assemble_mass_matrix_cosserat"),
+        (pg.VecRT0, "assemble_lumped_matrix_cosserat"),
+        (pg.VecBDM1, "assemble_mass_matrix_elasticity"),
+        (pg.VecBDM1, "assemble_lumped_matrix_elasticity"),
+    ],
+)
+def test_inner_products_are_invariant_under_rotation(
+    discr_class, method, field, unit_sd
+):
+    # The dofs are the components of the rows of the tensor along the rows of
+    # sd.rotation_matrix, which change when the grid is rotated by Q, so that the
+    # matrices differ. Rotating a tensor field F to Q F(Q^T x) Q^T, the inner products
+    # of the interpolants do not change, since all the data are given in the ambient
+    # coordinates
+    if "cosserat" in method and unit_sd.dim == 1:
+        pytest.skip("No Cosserat in 1D")
+
+    Q_np, rotated_sd = rotate(unit_sd)
+    Q = sp.Matrix(Q_np)
+    discr = discr_class("test")
+
+    x = sp.Matrix(pg.exact.coordinates())
+    rotate_x = dict(zip(x, Q.T * x))
+    u_rot = Q * field.subs(rotate_x, simultaneous=True) * Q.T
+    lame = {pg.LAME_MU: 0.7, pg.LAME_LAMBDA: 1.3, pg.LAME_MU_COSSERAT: 0.4}
+    data = pp.initialize_data({}, "test", lame)
+
+    energies = []
+    for sd, u_ex in zip((unit_sd, rotated_sd), (field, u_rot)):
+        u_h = discr.interpolate(sd, pg.exact.to_callable(u_ex))
+        energies.append(u_h @ getattr(discr, method)(sd, data) @ u_h)
+
+    assert np.isclose(*energies)
+
+
+@pytest.mark.parametrize(
+    "method", ["assemble_lumped_matrix", "proj_to_higher_PwPolynomials"]
+)
+def test_virtual_methods_not_implemented(method, unit_poly_sd):
+    discr = pg.PwMLinears()
+    with pytest.raises(NotImplementedError, match="PwMLinears"):
+        getattr(discr, method)(unit_poly_sd)
