@@ -1,5 +1,7 @@
 """Module for the stiffness operators."""
 
+from typing import Any
+
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -8,7 +10,7 @@ import pygeon as pg
 
 
 def cell_stiff(
-    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for the piecewise constants on a (MD-)grid.
@@ -25,7 +27,7 @@ def cell_stiff(
 
 
 def face_stiff(
-    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the faces of a (MD-)grid.
@@ -44,7 +46,7 @@ def face_stiff(
 def ridge_stiff(
     mdg: pg.MixedDimensionalGrid,
     discr: pg.Discretization | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the ridges of a
@@ -62,7 +64,7 @@ def ridge_stiff(
 
 
 def peak_stiff(
-    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization | None = None, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix for discretization defined on the peaks of a (MD-)grid.
@@ -85,7 +87,7 @@ def stiff_matrix(
     mdg: pg.MixedDimensionalGrid,
     n_minus_k: int,
     discr: pg.Discretization | None,
-    **kwargs,
+    **kwargs: Any,
 ) -> sps.csc_array:
     """
     Compute the stiffness matrix on a mixed-dimensional grid.

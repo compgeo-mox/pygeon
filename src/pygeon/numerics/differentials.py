@@ -1,7 +1,7 @@
 """Module for the differential operators."""
 
 import warnings
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import porepy as pp
@@ -19,7 +19,7 @@ Acknowledgements:
 
 
 def div(
-    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the divergence.
@@ -38,7 +38,7 @@ def div(
 
 
 def curl(
-    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the curl.
@@ -57,7 +57,7 @@ def curl(
 
 
 def grad(
-    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs
+    grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the gradient.
@@ -81,7 +81,7 @@ def grad(
 def exterior_derivative(
     grid: pg.Grid | pg.MortarGrid | pg.MixedDimensionalGrid,
     n_minus_k: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> sps.csc_array:
     """
     Compute the (mixed-dimensional) exterior derivative for the differential forms of
@@ -120,7 +120,7 @@ def exterior_derivative(
 def _g_exterior_derivative(
     grid: pg.Grid | pg.MortarGrid,
     n_minus_k: int,
-    **_kwargs,
+    **_kwargs: Any,
 ) -> sps.csc_array:
     """
     Compute the exterior derivative on a grid. A warning is raised, and an empty
@@ -152,7 +152,7 @@ def _g_exterior_derivative(
 
 
 def _mdg_exterior_derivative(
-    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
+    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs: Any
 ) -> sps.csc_array:
     """
     Compute the mixed-dimensional exterior derivative on a mixed-dimensional grid,

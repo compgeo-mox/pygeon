@@ -83,3 +83,8 @@ def test_out_of_bounds():
 
     with pytest.raises(AssertionError):
         pg.VoronoiGrid(3, vrt)
+
+
+def test_missing_seed_points():
+    with pytest.raises(ValueError, match="num_pts or vrt"):
+        pg.VoronoiGrid()

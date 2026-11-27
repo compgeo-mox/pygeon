@@ -1,7 +1,7 @@
 """Create grids from various sources."""
 
 import inspect
-from typing import Literal, cast, overload
+from typing import Any, Literal, cast, overload
 
 import numpy as np
 import porepy as pp
@@ -12,18 +12,18 @@ import pygeon as pg
 
 @overload
 def grid_from_domain(
-    domain: pp.Domain, mesh_size: float, as_mdg: Literal[False], **kwargs
+    domain: pp.Domain, mesh_size: float, as_mdg: Literal[False], **kwargs: Any
 ) -> pg.Grid: ...
 
 
 @overload
 def grid_from_domain(
-    domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs
+    domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs: Any
 ) -> pg.MixedDimensionalGrid: ...
 
 
 def grid_from_domain(
-    domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs
+    domain: pp.Domain, mesh_size: float, as_mdg: bool = True, **kwargs: Any
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a grid from a domain with a specified mesh size.
@@ -61,18 +61,18 @@ def grid_from_domain(
 
 @overload
 def grid_from_boundary_pts(
-    pts: np.ndarray, mesh_size: float, as_mdg: Literal[False], **kwargs
+    pts: np.ndarray, mesh_size: float, as_mdg: Literal[False], **kwargs: Any
 ) -> pg.Grid: ...
 
 
 @overload
 def grid_from_boundary_pts(
-    pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs
+    pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs: Any
 ) -> pg.MixedDimensionalGrid: ...
 
 
 def grid_from_boundary_pts(
-    pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs
+    pts: np.ndarray, mesh_size: float, as_mdg: bool = True, **kwargs: Any
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a 2D grid from a set of nodes, where portions of the boundary of the grid
@@ -101,18 +101,18 @@ def grid_from_boundary_pts(
 # Overloads to make mypy understand when we return a Grid or a MixedDimensionalGrid
 @overload
 def unit_grid(
-    dim: int, mesh_size: float, as_mdg: Literal[False], **kwargs
+    dim: int, mesh_size: float, as_mdg: Literal[False], **kwargs: Any
 ) -> pg.Grid: ...
 
 
 @overload
 def unit_grid(
-    dim: int, mesh_size: float, as_mdg: bool = True, **kwargs
+    dim: int, mesh_size: float, as_mdg: bool = True, **kwargs: Any
 ) -> pg.MixedDimensionalGrid: ...
 
 
 def unit_grid(
-    dim: int, mesh_size: float, as_mdg: bool = True, **kwargs
+    dim: int, mesh_size: float, as_mdg: bool = True, **kwargs: Any
 ) -> pg.Grid | pg.MixedDimensionalGrid:
     """
     Create a unit square or cube grid with a given mesh size. In dimension 0 and 1,

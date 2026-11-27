@@ -1,7 +1,7 @@
 """Grid class for the pygeon package."""
 
 import copy
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import porepy as pp
@@ -22,7 +22,7 @@ class Grid(pp.Grid):
     Grid of PyGeoN, extending ``pp.Grid``.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Initialize a Grid object.
 
@@ -249,6 +249,11 @@ class Grid(pp.Grid):
 
         We cannot create a simplicial mesh and rely on compute_geometry because the
         subsimplices may have negative volume.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The (cell, face, ridge) triplets, of shape
+            (3, num_subsimplices), and the signed volumes of the subsimplices, of shape
+            (num_subsimplices,).
         """
         assert self.dim > 0, "The grid must be at least 1D."
 
@@ -304,7 +309,7 @@ class Grid(pp.Grid):
 
         return triplets, sub_volumes
 
-    def compute_opposite_nodes(self, recompute=False) -> sps.csc_array:
+    def compute_opposite_nodes(self, recompute: bool = False) -> sps.csc_array:
         """
         Computes a matrix containing the index of the opposite node
         for every (face, cell) pair. Sets it as an attribute for later use.
@@ -388,7 +393,7 @@ class Grid(pp.Grid):
         else:
             self.rotation_matrix = np.eye(self.dim, pg.AMBIENT_DIM)
 
-    def copy(self, keep_history: bool = True):
+    def copy(self, keep_history: bool = True) -> "pg.Grid":
         """
         Create a new instance with some attributes deep-copied from the grid.
 
@@ -403,7 +408,7 @@ class Grid(pp.Grid):
         """
         h = super().copy()
         h.history = list(self.history) if keep_history else []
-        pg.convert_from_pp(h)
+        h = pg.convert_from_pp(h)
 
         # Attributes added by PyGeoN, which are copied only if already computed
         copy_attributes = [

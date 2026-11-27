@@ -1,5 +1,7 @@
 """Utilities for plotting a spanning tree superimposed on a grid."""
 
+from typing import Any
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -13,7 +15,7 @@ def plot_spanningtree(
     spt: pg.SpanningTree,
     mdg: pg.MixedDimensionalGrid | pg.Grid,
     fig_name: str | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Create a graphical illustration of the spanning tree superimposed on the grid.

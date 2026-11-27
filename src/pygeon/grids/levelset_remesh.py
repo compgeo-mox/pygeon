@@ -154,7 +154,7 @@ def create_splitting_map(cut_entities: np.ndarray, offset: int = 0) -> sps.csc_a
 
 
 def intersect_faces(
-    sd: pg.Grid, levelset: Callable, root_finder=brentq
+    sd: pg.Grid, levelset: Callable, root_finder: Callable = brentq
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Marks the faces cut by the level set and finds the new nodes at the

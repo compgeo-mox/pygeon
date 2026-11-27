@@ -481,7 +481,9 @@ class RT1(HDiv):
         """
         return dim * np.roll([1, 1, 0, 0], dim - 1)  # faces and cells
 
-    def local_dofs_of_cell(self, sd: pg.Grid, faces_loc: np.ndarray, c: int):
+    def local_dofs_of_cell(
+        self, sd: pg.Grid, faces_loc: np.ndarray, c: int
+    ) -> np.ndarray:
         """
         Compute the local degrees of freedom (DOFs) indices for a cell.
 
@@ -787,7 +789,7 @@ class RT1(HDiv):
         return sps.csc_array(sps.block_diag((bdm1_lumped, cell_dof_lumped)))
 
     @weak_cache
-    def proj_to_PwPolynomials(self, sd: pg.Grid):
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Constructs the projection matrix from the current finite element space to the
         VecPwQuadratics space. The projection operator :math:`\Pi` takes a function

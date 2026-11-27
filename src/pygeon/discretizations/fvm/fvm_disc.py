@@ -16,7 +16,7 @@ class FiniteVolumeDiscretization(abc.ABC):
     Abstract class for PyGeoN finite volume discretization methods.
     """
 
-    def __init__(self, keyword=pg.UNITARY_DATA) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the FiniteVolumeDiscretization object.
 
@@ -27,7 +27,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         self.keyword = keyword
         self.bc_type: Type[pg.FiniteVolumeBC]
 
-    def ndof(self, sd) -> int:
+    def ndof(self, sd: pg.Grid) -> int:
         """
         Returns the number of degrees of freedom on a given grid.
 
@@ -69,7 +69,7 @@ class FiniteVolumeDiscretization(abc.ABC):
         # Assemble the matrix
         return (M + A).tocsc()
 
-    def div(self, sd) -> sps.csc_array:
+    def div(self, sd: pg.Grid) -> sps.csc_array:
         """
         Assembles the block-diagonal divergence operator acting on all the face-based
         dual variables.
@@ -84,7 +84,7 @@ class FiniteVolumeDiscretization(abc.ABC):
             sps.eye_array(self.ndof_per_element(sd.dim)), pg.div(sd), format="csc"
         )
 
-    def face_area_scaling(self, sd) -> np.ndarray:
+    def face_area_scaling(self, sd: pg.Grid) -> np.ndarray:
         """
         Assembles the scaling vector with the face areas, for the face-based dual
         variables.

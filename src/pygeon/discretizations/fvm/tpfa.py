@@ -19,7 +19,7 @@ class TPFA(pg.FiniteVolumeDiscretization):
     Degrees of freedom are given by the cell center values.
     """
 
-    def __init__(self, keyword=pg.UNITARY_DATA) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the TPFA object.
 
@@ -216,7 +216,9 @@ class TPFA(pg.FiniteVolumeDiscretization):
 
         return A_csc
 
-    def assemble_bdry_dual_var_map(self, sd: pg.Grid, data: dict | None = None):
+    def assemble_bdry_dual_var_map(
+        self, sd: pg.Grid, data: dict | None = None
+    ) -> sps.csc_array:
         """
         Assembles the matrix that maps from the boundary condition values to the dual
         variables on the boundary faces. This implementation handles Dirichlet, Robin,

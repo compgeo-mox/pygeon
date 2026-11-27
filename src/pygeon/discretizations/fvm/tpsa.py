@@ -31,7 +31,7 @@ class TPSA(pg.FiniteVolumeDiscretization):
     https://doi.org/10.1016/j.camwa.2025.07.035
     """
 
-    def __init__(self, keyword=pg.UNITARY_DATA) -> None:
+    def __init__(self, keyword: str = pg.UNITARY_DATA) -> None:
         """
         Initialize the TPSA object.
 

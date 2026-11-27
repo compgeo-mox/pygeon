@@ -69,7 +69,7 @@ class PwMLinears(pg.VDiscretization, pg.PwLinears):
         vals[:, 0, :] = 1
 
         # The linears:
-        def eval_lin_monomials(x):
+        def eval_lin_monomials(x: np.ndarray) -> np.ndarray:
             """
             Helper function to evaluate the linear monomials for given coordinates x,
             assumed to have shape (3, cells.size)

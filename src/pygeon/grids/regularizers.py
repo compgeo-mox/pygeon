@@ -156,7 +156,7 @@ def elasticity_regularization(
 
 def compute_displacement(
     sd: pg.Grid,
-    A: sps.csc_matrix,
+    A: sps.csc_array,
     b: np.ndarray,
     coords: np.ndarray,
     ess: np.ndarray | None = None,
@@ -166,7 +166,7 @@ def compute_displacement(
 
     Args:
         sd (pg.Grid): The grid to regularize.
-        A (sps.csc_matrix): The system matrix.
+        A (sps.csc_array): The system matrix.
         b (np.ndarray): The right-hand side.
         coords (np.ndarray): The coordinates of the nodes in the graph.
         ess (np.ndarray | None): The fixed degrees of freedom. Defaults to None, the
