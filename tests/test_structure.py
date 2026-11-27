@@ -51,7 +51,6 @@ SRC_WITHOUT_TESTS = {
 TESTS_WITHOUT_SRC = {
     "discretizations/test_matdiscretization.py",
     "grids/test_grid_edge_tangents.py",
-    "grids/test_subvolumes.py",
 }
 
 
