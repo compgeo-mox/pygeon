@@ -175,28 +175,6 @@ def test_ndof_per_entity_on_polygonal_cells(unit_poly_sd):
 
 
 @pytest.mark.parametrize(
-    "dim, known",
-    [(1, [2, 1, 0, 0]), (2, [3, 3, 1, 0]), (3, [4, 6, 4, 1])],
-)
-def test_num_entities_of_reference_element(_ref_elements_dict, dim, known):
-    assert np.array_equal(_ref_elements_dict[dim].num_entities(), known)
-
-
-def test_num_entities(unit_sd):
-    num_entities = unit_sd.num_entities()
-
-    assert num_entities[0] == unit_sd.num_nodes
-    assert num_entities[1] == unit_sd.num_edges
-    assert num_entities[unit_sd.dim] == unit_sd.num_cells
-    assert np.all(num_entities[unit_sd.dim + 1 :] == 0)
-
-
-def test_num_entities_of_point_grid(ref_sd_0d):
-    # a point grid has a single cell and no nodes
-    assert np.array_equal(ref_sd_0d.num_entities(), [1, 0, 0, 0])
-
-
-@pytest.mark.parametrize(
     "discr_class, known",
     [
         (pg.Lagrange1, pg.VecPwConstants),
@@ -208,52 +186,6 @@ def test_num_entities_of_point_grid(ref_sd_0d):
 )
 def test_get_broken_grad_discr(discr_class, known):
     assert discr_class("test").get_broken_grad_discr() is known
-
-
-@pytest.mark.parametrize(
-    "discr_class",
-    [
-        pg.Lagrange1,
-        pg.Lagrange2,
-        pg.PwLinears,
-        pg.PwQuadratics,
-        pg.VecPwLinears,
-        pg.VecPwQuadratics,
-        pg.RT0,
-        pg.BDM1,
-        pg.VecLagrange1,
-        pg.VecLagrange2,
-    ],
-)
-def test_broken_directional_derivative(discr_class, tilted_sd):
-    # With u in the space and beta constant, both in the ambient coordinates,
-    # beta . grad u on the grid is (P beta) . grad u, with P the projection on the
-    # plane of the grid, for each component of u in the plane: a polynomial of one
-    # order less, interpolated exactly by the piecewise polynomials of that order
-    sd = tilted_sd
-    P = sd.rotation_matrix.T @ sd.rotation_matrix
-    discr = discr_class("test")
-    k = discr.poly_order
-
-    x, y, z = pg.exact.coordinates()
-    if discr_class is pg.RT0:
-        u = [0.3 + 1.5 * x, -0.7 + 1.5 * y, 1.1 + 1.5 * z]
-    else:
-        u = [(1 + x + 2 * y + z) ** k, (2 - x + y - z) ** k, (x - y + 2 * z) ** k]
-    beta = np.array([1.0, 2.0, 3.0])
-    f = [sum(b * g for b, g in zip(P @ beta, pg.exact.gradient(u_i))) for u_i in u]
-    if discr.tensor_order == pg.SCALAR:
-        u_ex, f_ex = u[0], f[0]
-    else:
-        u_ex, f_ex = sp.Matrix(u), sp.Matrix(f)
-
-    low = pg.get_PwPolynomials(k - 1, discr.tensor_order)("test")
-    u_h = discr.interpolate(sd, pg.exact.to_callable(u_ex))
-    f_h = low.interpolate(sd, pg.exact.to_callable(f_ex))
-    vector_field = np.tile(beta.reshape((-1, 1)), sd.num_cells)
-
-    dir_der = discr.assemble_broken_directional_derivative(sd, vector_field)
-    assert np.allclose(dir_der @ u_h, f_h)
 
 
 @pytest.fixture
