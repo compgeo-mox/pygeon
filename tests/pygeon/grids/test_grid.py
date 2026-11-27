@@ -2,6 +2,7 @@
 
 import numpy as np
 import porepy as pp
+import pytest
 import scipy.sparse as sps
 
 import pygeon as pg
@@ -120,3 +121,25 @@ def test_mdg_3d_itsc(_mdg_dict):
     for mg in mdg.interfaces(dim=2):
         assert mg.ridge_peaks.shape == (112, 20)
         assert mg.face_ridges.shape == (392, 32)
+
+
+def test_opposite_nodes(unit_sd):
+    opposite_node = unit_sd.compute_opposite_nodes()
+    assert opposite_node.nnz == unit_sd.num_cells * (unit_sd.dim + 1)
+
+    faces, cells, nodes = sps.find(opposite_node)
+
+    cell_nodes = unit_sd.cell_nodes()
+    assert np.all(cell_nodes[nodes, cells])
+    assert not np.any(unit_sd.face_nodes[nodes, faces])
+
+
+def test_opposite_nodes_0d_grid(ref_sd_0d):
+    opposite_node = ref_sd_0d.compute_opposite_nodes()
+    assert opposite_node.nnz == 0
+    assert opposite_node.shape == (0, 1)
+
+
+def test_non_simplicial_grid(ref_square):
+    with pytest.raises(NotImplementedError):
+        ref_square.compute_opposite_nodes()
