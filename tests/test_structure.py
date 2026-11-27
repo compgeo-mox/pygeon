@@ -31,8 +31,6 @@ TESTS = Path(__file__).parent / "pygeon"
 # Exceptions: the source files without tests at the mirrored path, relative to
 # src/pygeon. See #356 for the plan to remove them
 SRC_WITHOUT_TESTS = {
-    # Tested in files named otherwise, which #358 and #359 rename
-    "discretizations/mat_discretization.py",
     # Without tests of their own, covered by the tests of other files. Their tests are
     # to be added after the restructuring
     "discretizations/fem/symmat_l2.py",
@@ -46,11 +44,8 @@ SRC_WITHOUT_TESTS = {
     "utils/sort_points.py",
 }
 
-# Exceptions: the test files that mirror no source file, relative to tests/pygeon. They
-# test the source files listed above as named otherwise, and #358 and #359 rename them
-TESTS_WITHOUT_SRC = {
-    "discretizations/test_matdiscretization.py",
-}
+# Exceptions: the test files that mirror no source file, relative to tests/pygeon
+TESTS_WITHOUT_SRC: set[str] = set()
 
 
 def mirrored_source(test_file: Path) -> str | None:
