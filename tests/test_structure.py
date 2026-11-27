@@ -33,9 +33,6 @@ TESTS = Path(__file__).parent / "pygeon"
 SRC_WITHOUT_TESTS = {
     # Tested in files named otherwise, which #358 and #359 rename
     "discretizations/mat_discretization.py",
-    "grids/einstein.py",
-    "grids/levelset_remesh.py",
-    "grids/octagon.py",
     # Without tests of their own, covered by the tests of other files. Their tests are
     # to be added after the restructuring
     "discretizations/fem/symmat_l2.py",
@@ -53,11 +50,8 @@ SRC_WITHOUT_TESTS = {
 # test the source files listed above as named otherwise, and #358 and #359 rename them
 TESTS_WITHOUT_SRC = {
     "discretizations/test_matdiscretization.py",
-    "grids/test_einstein_grid.py",
     "grids/test_grid_edge_tangents.py",
     "grids/test_grid_ridges.py",
-    "grids/test_levelset.py",
-    "grids/test_octagon_grid.py",
     "grids/test_opposite_node.py",
     "grids/test_subvolumes.py",
 }
