@@ -249,6 +249,11 @@ class Grid(pp.Grid):
 
         We cannot create a simplicial mesh and rely on compute_geometry because the
         subsimplices may have negative volume.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The (cell, face, ridge) triplets, of shape
+            (3, num_subsimplices), and the signed volumes of the subsimplices, of shape
+            (num_subsimplices,).
         """
         assert self.dim > 0, "The grid must be at least 1D."
 
