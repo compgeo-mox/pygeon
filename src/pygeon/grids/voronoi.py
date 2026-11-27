@@ -30,6 +30,8 @@ class VoronoiGrid(pg.Grid):
         tol = kwargs.get("tol", 1e-8)
         # Generate the internal seed points for the Voronoi grid
         if vrt is None:
+            if num_pts is None:
+                raise ValueError("Either num_pts or vrt must be given")
             vrt = self.generate_internal_pts(num_pts, **kwargs)
         else:
             assert np.amin(vrt) >= -tol and np.amax(vrt) <= 1 + tol, (
