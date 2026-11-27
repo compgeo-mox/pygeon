@@ -244,3 +244,46 @@ def test_subsimplices_multiconcave(multiple_concave_quads):
 
     assert np.any(np.isclose(volumes, 0)), f"No zero subvolume in {volumes}"
     assert np.isclose(np.sum(volumes), 1), f"Sum of subvolumes {np.sum(volumes)}, not 1"
+
+
+def test_edge_tangents_0d(ref_sd_0d):
+    assert ref_sd_0d.edge_nodes.shape == (ref_sd_0d.num_nodes, 0)
+    assert len(ref_sd_0d.edge_tangents) == 0
+    assert len(ref_sd_0d.edge_lengths) == 0
+    assert ref_sd_0d.mesh_size == 0
+
+
+def test_cartgrids(unit_cart_sd):
+    h = unit_cart_sd.edge_lengths[0]
+    assert np.allclose(unit_cart_sd.edge_lengths, h)
+    assert np.allclose(unit_cart_sd.mesh_size, h)
+
+
+def test_edge_tangents_2d_tris():
+    sd = pp.StructuredTriangleGrid([1] * 2)
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    unique_lengths = np.unique(sd.edge_lengths)
+    known_lengths = np.sqrt(np.arange(1, 3))
+
+    assert np.allclose(unique_lengths, known_lengths)
+    assert np.allclose(sd.edge_lengths, sd.face_areas)
+    assert np.allclose(np.sum(sd.edge_tangents * sd.face_normals, axis=0), 0)
+
+    known_meshsize = (4 + np.sqrt(2)) / 5
+    assert np.allclose(sd.mesh_size, known_meshsize)
+
+
+def test_grid_3d_tets():
+    sd = pp.StructuredTetrahedralGrid([1] * 3)
+    pg.convert_from_pp(sd)
+    sd.compute_geometry()
+
+    unique_lengths = np.unique(sd.edge_lengths)
+    known_lengths = np.sqrt(np.arange(1, 4))
+
+    assert np.allclose(unique_lengths, known_lengths)
+
+    known_meshsize = (12 + 6 * np.sqrt(2) + np.sqrt(3)) / 19
+    assert np.allclose(sd.mesh_size, known_meshsize)

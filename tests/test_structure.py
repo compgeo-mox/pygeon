@@ -50,7 +50,6 @@ SRC_WITHOUT_TESTS = {
 # test the source files listed above as named otherwise, and #358 and #359 rename them
 TESTS_WITHOUT_SRC = {
     "discretizations/test_matdiscretization.py",
-    "grids/test_grid_edge_tangents.py",
 }
 
 
