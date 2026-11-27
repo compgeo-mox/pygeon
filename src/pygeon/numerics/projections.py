@@ -1,6 +1,6 @@
 """Module for the projection operators."""
 
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -9,7 +9,7 @@ import pygeon as pg
 
 
 def eval_at_cell_centers(
-    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization, **kwargs
+    mdg: pg.MixedDimensionalGrid, discr: pg.Discretization, **kwargs: Any
 ) -> sps.csc_array | np.ndarray:
     """
     Create an operator that evaluates a solution in the cell centers.

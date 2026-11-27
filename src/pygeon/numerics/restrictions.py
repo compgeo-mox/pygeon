@@ -1,6 +1,6 @@
 """Module for the restriction operators."""
 
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import scipy.sparse as sps
@@ -9,7 +9,7 @@ import pygeon as pg
 
 
 def zero_tip_dofs(
-    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs
+    mdg: pg.MixedDimensionalGrid, n_minus_k: int, **kwargs: Any
 ) -> sps.csc_array | np.ndarray:
     """
     Compute the operator that maps the tip degrees of freedom to zero.

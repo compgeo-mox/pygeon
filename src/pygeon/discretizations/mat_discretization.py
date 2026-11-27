@@ -1,6 +1,6 @@
 """Module for the matrix-valued discretization class."""
 
-from typing import cast
+from typing import Any, cast
 
 import scipy.sparse as sps
 
@@ -19,7 +19,7 @@ class MatDiscretization(pg.VecDiscretization):
     """Matrix-valued discretization"""
 
     def _apply_pwpolynomials_method(
-        self, sd: pg.Grid, method_name: str, *args, **kwargs
+        self, sd: pg.Grid, method_name: str, *args: Any, **kwargs: Any
     ) -> sps.csc_array:
         """
         Generic helper to apply a PwPolynomials method with projection.

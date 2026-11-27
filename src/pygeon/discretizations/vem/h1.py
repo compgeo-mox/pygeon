@@ -14,7 +14,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
     planar faces, following the Hitchhiker's guide to the virtual element method.
     """
 
-    def proj_to_PwPolynomials(self, sd: pg.Grid):
+    def proj_to_PwPolynomials(self, sd: pg.Grid) -> sps.csc_array:
         r"""
         Computes the projection onto the monomials. Returns the coefficients
         :math:`\{a_i\}` in the expansion
@@ -30,7 +30,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             sd (pg.Grid): The grid.
 
         Returns:
-            np.ndarray: The coefficients of the local projection onto the monomials.
+            sps.csc_array: The coefficients of the local projection onto the monomials.
         """
 
         G = self.assemble_proj_lhs(sd)
@@ -38,7 +38,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         return pg.block_diag_solver(G, B)
 
-    def assemble_proj_lhs(self, sd: pg.Grid):
+    def assemble_proj_lhs(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the system G from the Hitchhiker's (3.9), which forms the left-hand side
         for the L2 projection problem.
@@ -47,7 +47,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             sd (pg.Grid): The grid.
 
         Returns:
-            np.ndarray: The system matrix G.
+            sps.csc_array: The system matrix G.
         """
 
         # The matrix coincides with the broken stiffness matrix of the piecewise
@@ -74,7 +74,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         return G_tilde + P_0
 
-    def assemble_proj_rhs(self, sd: pg.Grid):
+    def assemble_proj_rhs(self, sd: pg.Grid) -> sps.sparray:
         """
         Returns the matrix B from the Hitchhiker's (3.14), which forms the right-hand
         side of the L2 projection problem.
@@ -83,7 +83,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             sd (pg.Grid): The grid.
 
         Returns:
-            np.ndarray: The righthand side B.
+            sps.sparray: The right-hand side B.
         """
 
         # First the projection onto the constants
@@ -149,7 +149,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
         # Combine with the constant projection.
         return sps.vstack((P0_phi, P1_phi))
 
-    def assemble_dofs_of_monomials(self, sd: pg.Grid):
+    def assemble_dofs_of_monomials(self, sd: pg.Grid) -> sps.csc_array:
         """
         Returns the matrix :math:`D` whose rows are the degrees of freedom applied to
         the local monomial basis functions, from the Hitchhiker's (3.17).
@@ -158,7 +158,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             sd (pg.Grid): The grid.
 
         Returns:
-            np.ndarray: The matrix D.
+            sps.csc_array: The matrix D.
         """
 
         # We need to evaluate the monomials at the nodes. However, some cells share a
@@ -182,7 +182,9 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
 
         return D
 
-    def assemble_stabilization(self, sd: pg.Grid, cell_weights: np.ndarray):
+    def assemble_stabilization(
+        self, sd: pg.Grid, cell_weights: np.ndarray
+    ) -> sps.sparray:
         """
         Returns the stabilization term :math:`S` that measures the discrepancy between
         the basis function and its projection onto the monomials. This is computed by
@@ -192,7 +194,7 @@ class VLagrange1(pg.VDiscretization, pg.Lagrange1):
             sd (pg.Grid): The grid.
 
         Returns:
-            np.ndarray: The stabilization matrix S.
+            sps.sparray: The stabilization matrix S.
         """
 
         D = self.assemble_dofs_of_monomials(sd)

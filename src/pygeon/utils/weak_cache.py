@@ -31,7 +31,7 @@ def weak_cache(method: Callable[[Any, Any], T]) -> Callable[[Any, Any], T]:
     _caches.append(cache)
 
     @wraps(method)
-    def wrapped(self, sd):
+    def wrapped(self: Any, sd: Any) -> Any:
         results = cache.setdefault(sd, {})
         cls = type(self)
         if cls not in results:

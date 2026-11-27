@@ -1,6 +1,6 @@
 """Module for the Voronoi grid generation."""
 
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import porepy as pp
@@ -13,7 +13,9 @@ import pygeon as pg
 class VoronoiGrid(pg.Grid):
     """A Voronoi grid of the unit square, generated from internal seed points."""
 
-    def __init__(self, num_pts=None, vrt=None, **kwargs) -> None:
+    def __init__(
+        self, num_pts: int | None = None, vrt: np.ndarray | None = None, **kwargs: Any
+    ) -> None:
         """
         Initialize a VoronoiGrid object.
 
@@ -124,7 +126,7 @@ class VoronoiGrid(pg.Grid):
         # Initialize the PyGeoN grid with the cut Voronoi grid
         super().__init__(2, sd_part.nodes, sd_part.face_nodes, sd_part.cell_faces, name)
 
-    def generate_internal_pts(self, num_pts: int, **kwargs) -> np.ndarray:
+    def generate_internal_pts(self, num_pts: int, **kwargs: Any) -> np.ndarray:
         """
         Generate random internal points in the unit square.
 

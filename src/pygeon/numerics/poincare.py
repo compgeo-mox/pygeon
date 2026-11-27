@@ -598,7 +598,9 @@ class Poincare:
 
         return P
 
-    def compute_linking_number(self, U: np.ndarray, P: np.ndarray, n_points=5) -> float:
+    def compute_linking_number(
+        self, U: np.ndarray, P: np.ndarray, n_points: int = 5
+    ) -> float:
         r"""
         Computes the linking number of two closed polygons U and P.
 
